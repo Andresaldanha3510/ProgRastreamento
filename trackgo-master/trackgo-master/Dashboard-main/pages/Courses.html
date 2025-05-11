@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../css/all.min.css" />
+    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <title>Courses</title>
+  </head>
+  <body class="body-courses">
+    <div class="page-content">
+      <div class="sidebar">
+        <div class="brand">
+          <i class="fa-solid fa-xmark xmark"></i>
+          <h3>Track GO</h3>
+        </div>
+        <ul>
+          <li>
+            <a href="../index.html" class="sidebar-link">
+              <i class="fa-regular fa-chart-bar fa-fw"></i>
+              <span>Dashboard</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="./settings.html" class="sidebar-link">
+              <i class="fa-solid fa-gear fa-fw"></i>
+              <span>Configurações</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="./Profile.html" class="sidebar-link">
+              <i class="fa-regular fa-user fa-fw"></i><span>Perfil</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="./Projects.html" class="sidebar-link">
+              <i class="fa-solid fa-diagram-project fa-fw"></i
+              ><span>Minhas viagens</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="./Courses.html" class="sidebar-link">
+              <i class="fa-solid fa-graduation-cap fa-fw"></i
+              ><span>Cadastro de Veiculos</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="./Friends.html" class="sidebar-link">
+              <i class="fa-regular fa-circle-user fa-fw"></i
+              ><span>Motoristas</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="./Files.html" class="sidebar-link">
+              <i class="fa-regular fa-file fa-fw"></i> <span>Documentos</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="./Plans.html" class="sidebar-link">
+              <i class="fa-regular fa-credit-card fa-fw"></i><span>Cadastro de Motorista</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+      <main>
+        <div class="header">
+          <i class="fa-solid fa-bars bar-item"></i>
+          <div class="search">
+            <input type="search" placeholder="Type A Keyword" />
+          </div>
+
+          <div class="profile">
+            <span class="bell"><i class="fa-regular fa-bell fa-lg"></i></span>
+            <img src="../images/avatar.png" alt="No Image" />
+          </div>
+        </div>
+        <div class="main-content">
+          <div class="title">
+            <h1>Cadastro de veiculos</h1>
+          </div>
+          <div class="courses-boxes">  <!-- Aqui é onde é a pai de todos -->
+            <div class="courses-box"> <!-- Aqui é onde é cada card, irei fazer um form nisso para cadastro do veículo -->
+              <div class="cadastro-veiculo"> <!---->
+                <h1>Informações Primarias</h1>
+                <div class="form-cad-veiculo">
+                  <form id="veiculo-form">
+                    <div class="form-group-veiculo">
+                      <label for="placa">Placa</label>
+                      <input type="text" id="placa" name="placa" required />
+                    </div>
+                    <div class="form-group-veiculo">
+                      <label for="modelo">Modelo</label>
+                      <input type="text" id="modelo" name="modelo" required />
+                    </div>
+                    <div class="form-group-veiculo">
+                      <label for="fabricante">Fabricante</label>
+                      <input type="text" id="fabricante" name="fabricante" required />
+                    </div>
+                    <div class="form-group-veiculo">
+                      <label for="ano">Ano do Veículo</label>
+                      <input type="text" id="anoveiculo" name="anoveiculo" required />
+                    </div>
+                    <div class="form-group-veiculo">
+                      <label for="tipo">Tipo</label>
+                      <select name="tipo" id="tipo" required>
+                        <option value="s">Selecione</option>
+                        <option value="caminhao">Caminhão</option>
+                        <option value="van">Van</option>
+                        <option value="furgao">Furgão</option>
+                        <option value="fiorino">Fiorino</option>
+                        <option value="Moto">Moto</option>
+                      </select>
+                    </div>
+                    <div class="form-group-veiculo">
+                      <button type="submit">Cadastrar</button>
+                    </div>
+                  </form>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+    <script src="../js/script.js"></script>
+  </body>
+</html>
