@@ -1,0 +1,126 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Gerenciamento de Viagens</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <h1 class="text-2xl font-bold mb-4">Gerenciamento de Viagens</h1>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+                    {% for message in messages %}
+                        <p>{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="mb-4">
+            <a href="{{ url_for('cadastrar_motorista') }}" class="bg-blue-500 text-white px-4 py-2 rounded">Cadastrar Motorista</a>
+            <a href="{{ url_for('cadastrar_veiculo') }}" class="bg-blue-500 text-white px-4 py-2 rounded ml-2">Cadastrar Veículo</a>
+            <a href="{{ url_for('iniciar_viagem') }}" class="bg-blue-500 text-white px-4 py-2 rounded ml-2">Iniciar Viagem</a>
+        </div>
+
+        <h2 class="text-xl font-semibold mb-2">Motoristas</h2>
+        <table class="w-full mb-4 border">
+            <tr class="bg-gray-200">
+                <th class="border p-2">Nome</th>
+                <th class="border p-2">CPF</th>
+            </tr>
+            {% for motorista in motoristas %}
+            <tr>
+                <td class="border p-2">{{ motorista.nome }}</td>
+                <td class="border p-2">{{ motorista.cpf }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <h2 class="text-xl font-semibold mb-2">Veículos</h2>
+        <table class="w-full mb-4 border">
+            <tr class="bg-gray-200">
+                <th class="border p-2">Placa</th>
+                <th class="border p-2">Modelo</th>
+                <th class="border p-2">Disponível</th>
+            </tr>
+            {% for veiculo in veiculos %}
+            <tr>
+                <td class="border p-2">{{ veiculo.placa }}</td>
+                <td class="border p-2">{{ veiculo.modelo }}</td>
+                <td class="border p-2">{{ 'Sim' if veiculo.disponivel else 'Não' }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <h2 class="text-xl font-semibold mb-2">Viagens</h2>
+        <table class="w-full border">
+            <tr class="bg-gray-200">
+                <th class="border p-2">Motorista</th>
+                <th class="border p-2">Veículo</th>
+                <th class="border p-2">Saída</th>
+                <th class="border p-2">Destino</th>
+                <th class="border p-2">Início</th>
+                <th class="border p-2">Fim</th>
+                <th class="border p-2">Ação</th>
+            </tr>
+            {% for viagem in viagens %}
+            <tr>
+                <td class="border p-2">{{ viagem.motorista.nome }}</td>
+                <td class="border p-2">{{ viagem.veiculo.placa }}</td>
+                <td class="border p-2">{{ viagem.endereco_saida }}</td>
+                <td class="border p-2">{{ viagem.endereco_destino }}</td>
+                <td class="border p-2">{{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</td>
+                <td class="border p-2">{{ viagem.data_fim.strftime('%d/%m/%Y %H:%M') if viagem.data_fim else 'Em andamento' }}</td>
+                <td class="border p-2">
+                    {% if not viagem.data_fim %}
+                    <a href="{{ url_for('finalizar_viagem', viagem_id=viagem.id) }}" class="bg-red-500 text-white px-2 py-1 rounded">Finalizar</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</body>
+</html>
