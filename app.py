@@ -1,3 +1,5 @@
+# ---- Importações ----
+# Bibliotecas padrão e de terceiros necessárias para o aplicativo
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -8,39 +10,66 @@ import os
 import math
 import re
 from dotenv import load_dotenv
+import boto3
+from werkzeug.utils import secure_filename
 
-# Carregar variáveis de ambiente
+# ---- Configurações Iniciais ----
+# Carrega variáveis de ambiente do arquivo .env
 load_dotenv()
 
-# Configuração do aplicativo Flask
+# Inicializa o aplicativo Flask
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///transport.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'sua_chave_secreta_forte')
-GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', 'AIzaSyBPdSOZF2maHURmdRmVzLgVo5YO2wliylo')
 
-# Configurar logging
+# Configurações do Flask
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///transport.db')  # Banco de dados (SQLite local ou PostgreSQL no Render)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Desativa rastreamento de modificações para economizar recursos
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'sua_chave_secreta_forte')  # Chave secreta para sessões
+GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', 'AIzaSyBPdSOZF2maHURmdRmVzLgVo5YO2wliylo')  # Chave da API do Google Maps
+
+# Configuração do Cloudflare R2 (usado para upload de anexos)
+app.config['CLOUDFLARE_R2_ENDPOINT'] = os.getenv('CLOUDFLARE_R2_ENDPOINT')
+app.config['CLOUDFLARE_R2_ACCESS_KEY'] = os.getenv('CLOUDFLARE_R2_ACCESS_KEY')
+app.config['CLOUDFLARE_R2_SECRET_KEY'] = os.getenv('CLOUDFLARE_R2_SECRET_KEY')
+app.config['CLOUDFLARE_R2_BUCKET'] = os.getenv('CLOUDFLARE_R2_BUCKET')
+app.config['CLOUDFLARE_R2_PUBLIC_URL'] = os.getenv('CLOUDFLARE_R2_PUBLIC_URL')
+
+# Configura o logging para depuração
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Inicializar extensões
+# ---- Inicialização de Extensões ----
+# Inicializa o SQLAlchemy para gerenciar o banco de dados
 db = SQLAlchemy(app)
+# Inicializa o Flask-Migrate para gerenciar migrações do banco
 migrate = Migrate(app, db)
 
-# Modelos do Banco de Dados
+# ---- Modelos do Banco de Dados ----
+# Modelo Motorista: armazena informações dos motoristas
 class Motorista(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
-    cpf = db.Column(db.String(11), unique=True, nullable=False, index=True)
+    data_nascimento = db.Column(db.Date, nullable=False)
+    endereco = db.Column(db.String(200), nullable=False)
+    pessoa_tipo = db.Column(db.String(10), nullable=False)  # 'fisica' ou 'juridica'
+    cpf_cnpj = db.Column(db.String(14), unique=True, nullable=False, index=True)
+    rg = db.Column(db.String(9), nullable=True)
+    telefone = db.Column(db.String(11), nullable=False)
+    cnh = db.Column(db.String(11), unique=True, nullable=False, index=True)
+    validade_cnh = db.Column(db.Date, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    anexos = db.Column(db.String(500), nullable=True)  # URLs dos arquivos no Cloudflare R2, separadas por vírgula
+    viagens = db.relationship('Viagem', backref='motorista')  # Relacionamento com Viagem
 
+# Modelo Veiculo: armazena informações dos veículos
 class Veiculo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     placa = db.Column(db.String(7), unique=True, nullable=False, index=True)
     modelo = db.Column(db.String(50), nullable=False)
     disponivel = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    viagens = db.relationship('Viagem', backref='veiculo')  # Relacionamento com Viagem
 
+# Modelo Viagem: armazena informações das viagens
 class Viagem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     motorista_id = db.Column(db.Integer, db.ForeignKey('motorista.id'), nullable=False)
@@ -57,18 +86,31 @@ class Viagem(db.Model):
     status = db.Column(db.String(50), nullable=False, default='pendente', index=True)
     observacoes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    motorista = db.relationship('Motorista', backref='viagens')
-    veiculo = db.relationship('Veiculo', backref='viagens')
 
-# Funções Utilitárias
-def validate_cpf(cpf):
-    """Valida se o CPF tem 11 dígitos numéricos."""
-    return bool(re.match(r'^\d{11}$', cpf))
+# ---- Funções Utilitárias ----
+# Valida CPF (11 dígitos) ou CNPJ (14 dígitos)
+def validate_cpf_cnpj(cpf_cnpj, pessoa_tipo):
+    """Valida se o CPF/CNPJ tem o número correto de dígitos."""
+    if pessoa_tipo == 'fisica':
+        return bool(re.match(r'^\d{11}$', cpf_cnpj))
+    return bool(re.match(r'^\d{14}$', cpf_cnpj))
 
+# Valida telefone (10 ou 11 dígitos)
+def validate_telefone(telefone):
+    """Valida se o telefone tem 10 ou 11 dígitos."""
+    return bool(re.match(r'^\d{10,11}$', telefone))
+
+# Valida CNH (11 dígitos)
+def validate_cnh(cnh):
+    """Valida se a CNH tem 11 dígitos."""
+    return bool(re.match(r'^\d{11}$', cnh))
+
+# Valida placa (7 caracteres alfanuméricos)
 def validate_placa(placa):
     """Valida se a placa tem 7 caracteres alfanuméricos."""
     return bool(re.match(r'^[A-Z0-9]{7}$', placa.upper()))
 
+# Calcula distância em linha reta usando a fórmula de Haversine
 def haversine_distance(lat1, lon1, lat2, lon2):
     """Calcula distância em linha reta usando a fórmula de Haversine."""
     R = 6371  # Raio da Terra em km
@@ -80,6 +122,7 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
+# Obtém coordenadas de um endereço usando Google Maps Geocoding API
 def get_coordinates(endereco):
     """Obtém coordenadas de um endereço usando Google Maps Geocoding API."""
     url = 'https://maps.googleapis.com/maps/api/geocode/json'
@@ -98,6 +141,7 @@ def get_coordinates(endereco):
         logger.error(f"Erro ao obter coordenadas: {str(e)}")
         return None, None
 
+# Valida se o endereço é reconhecido pela Google Maps API
 def validar_endereco(endereco):
     """Valida se o endereço é reconhecido pela Google Maps API."""
     url = 'https://maps.googleapis.com/maps/api/geocode/json'
@@ -112,6 +156,7 @@ def validar_endereco(endereco):
         logger.error(f"Erro na validação de endereço: {str(e)}")
         return False
 
+# Calcula distância e duração da viagem usando Google Maps Directions API
 def calcular_distancia_e_duracao(origem, destino):
     """Calcula distância e duração da viagem usando Google Maps Directions API."""
     url = 'https://maps.googleapis.com/maps/api/directions/json'
@@ -149,7 +194,8 @@ def calcular_distancia_e_duracao(origem, destino):
         flash(f'Erro de conexão com a API do Google Maps: {str(e)}', 'error')
         return None, None
 
-# Rotas
+# ---- Rotas do Aplicativo ----
+# Rota principal: exibe o dashboard com motoristas, veículos e viagens
 @app.route('/')
 def index():
     """Página inicial com dashboard."""
@@ -166,72 +212,322 @@ def index():
         GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY
     )
 
+# Rota para cadastrar motoristas
 @app.route('/cadastrar_motorista', methods=['GET', 'POST'])
 def cadastrar_motorista():
-    """Rota para cadastrar motoristas."""
+    """Rota para cadastrar motoristas com validação e upload de anexos."""
     if request.method == 'POST':
+        # Coleta de dados do formulário
         nome = request.form.get('nome', '').strip()
-        cpf = request.form.get('cpf', '').strip()
-        if not nome or not cpf:
-            flash('Nome e CPF são obrigatórios.', 'error')
+        data_nascimento = request.form.get('data_nascimento', '').strip()
+        endereco = request.form.get('endereco', '').strip()
+        pessoa_tipo = request.form.get('pessoa_tipo', '').strip()
+        cpf_cnpj = request.form.get('cpf_cnpj', '').strip()
+        rg = request.form.get('rg', '').strip() or None
+        telefone = request.form.get('telefone', '').strip()
+        cnh = request.form.get('cnh', '').strip()
+        validade_cnh = request.form.get('validade_cnh', '').strip()
+        files = request.files.getlist('anexos')
+
+        # Validação dos campos obrigatórios
+        if not all([nome, data_nascimento, endereco, pessoa_tipo, cpf_cnpj, telefone, cnh, validade_cnh]):
+            flash('Todos os campos obrigatórios devem ser preenchidos.', 'error')
             return redirect(url_for('cadastrar_motorista'))
-        if not validate_cpf(cpf):
-            flash('CPF inválido. Deve conter 11 dígitos numéricos.', 'error')
+
+        # Validação das datas
+        try:
+            data_nascimento = datetime.strptime(data_nascimento, '%Y-%m-%d').date()
+            validade_cnh = datetime.strptime(validade_cnh, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Formato de data inválido.', 'error')
             return redirect(url_for('cadastrar_motorista'))
-        motorista = Motorista(nome=nome, cpf=cpf)
+
+        # Validação de CPF/CNPJ
+        if not validate_cpf_cnpj(cpf_cnpj, pessoa_tipo):
+            flash(f"{'CPF' if pessoa_tipo == 'fisica' else 'CNPJ'} inválido. Deve conter {'11' if pessoa_tipo == 'fisica' else '14'} dígitos numéricos.", 'error')
+            return redirect(url_for('cadastrar_motorista'))
+
+        # Validação de telefone
+        if not validate_telefone(telefone):
+            flash('Telefone inválido. Deve conter 10 ou 11 dígitos numéricos.', 'error')
+            return redirect(url_for('cadastrar_motorista'))
+
+        # Validação de CNH
+        if not validate_cnh(cnh):
+            flash('CNH inválida. Deve conter 11 dígitos numéricos.', 'error')
+            return redirect(url_for('cadastrar_motorista'))
+
+        # Verificar unicidade de CPF/CNPJ e CNH
+        if Motorista.query.filter_by(cpf_cnpj=cpf_cnpj).first():
+            flash('CPF/CNPJ já cadastrado.', 'error')
+            return redirect(url_for('cadastrar_motorista'))
+        if Motorista.query.filter_by(cnh=cnh).first():
+            flash('CNH já cadastrada.', 'error')
+            return redirect(url_for('cadastrar_motorista'))
+
+        # Upload de anexos para Cloudflare R2
+        anexos_urls = []
+        allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png'}  # Extensões permitidas
+        if files and any(f.filename for f in files):  # Verifica se há arquivos válidos
+            try:
+                # Inicializa o cliente S3 para Cloudflare R2
+                s3_client = boto3.client(
+                    's3',
+                    endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+                    aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+                    aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY']
+                )
+                bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
+
+                # Processa cada arquivo
+                for file in files:
+                    if file and file.filename:
+                        # Verifica a extensão do arquivo
+                        extension = os.path.splitext(file.filename)[1].lower()
+                        if extension not in allowed_extensions:
+                            flash(f'Arquivo {file.filename} não permitido. Use PDF, JPG ou PNG.', 'error')
+                            continue
+
+                        # Gera um nome seguro para o arquivo
+                        filename = secure_filename(file.filename)
+                        # Organiza arquivos em uma pasta por CPF/CNPJ
+                        s3_path = f"motoristas/{cpf_cnpj}/{filename}"
+
+                        # Faz o upload do arquivo
+                        s3_client.upload_fileobj(
+                            file,
+                            bucket_name,
+                            s3_path,
+                            ExtraArgs={'ContentType': file.content_type or 'application/octet-stream'}
+                        )
+                        # Gera a URL pública do arquivo
+                        public_url = f"{app.config['CLOUDFLARE_R2_PUBLIC_URL']}/{s3_path}"
+                        anexos_urls.append(public_url)
+            except Exception as e:
+                flash(f'Erro ao fazer upload dos arquivos: {str(e)}', 'error')
+                return redirect(url_for('cadastrar_motorista'))
+
+        # Cria o objeto Motorista
+        motorista = Motorista(
+            nome=nome,
+            data_nascimento=data_nascimento,
+            endereco=endereco,
+            pessoa_tipo=pessoa_tipo,
+            cpf_cnpj=cpf_cnpj,
+            rg=rg,
+            telefone=telefone,
+            cnh=cnh,
+            validade_cnh=validade_cnh,
+            anexos=','.join(anexos_urls) if anexos_urls else None
+        )
+
+        # Salva no banco de dados
         try:
             db.session.add(motorista)
             db.session.commit()
             flash('Motorista cadastrado com sucesso!', 'success')
             return redirect(url_for('index'))
-        except:
+        except Exception as e:
             db.session.rollback()
-            flash('Erro: CPF já cadastrado.', 'error')
+            flash(f'Erro ao cadastrar motorista: {str(e)}', 'error')
+            return redirect(url_for('cadastrar_motorista'))
+
+    # Renderiza o formulário para GET
     return render_template('cadastrar_motorista.html')
 
+# Rota para consultar motoristas
+@app.route('/consultar_motoristas', methods=['GET'])
+def consultar_motoristas():
+    """Rota para consultar motoristas com suporte a busca."""
+    search_query = request.args.get('search', '').strip()
+    query = Motorista.query
+    if search_query:
+        query = query.filter(
+            (Motorista.nome.ilike(f'%{search_query}%')) |
+            (Motorista.cpf_cnpj.ilike(f'%{search_query}%'))
+        )
+    motoristas = query.order_by(Motorista.nome.asc()).all()
+    return render_template('consultar_motoristas.html', motoristas=motoristas, search_query=search_query)
+
+# Rota para editar motoristas
 @app.route('/editar_motorista/<int:motorista_id>', methods=['GET', 'POST'])
 def editar_motorista(motorista_id):
-    """Rota para editar motoristas."""
+    """Rota para editar motoristas com validação e upload de anexos."""
     motorista = Motorista.query.get_or_404(motorista_id)
+
     if request.method == 'POST':
-        nome = request.form.get('nome', '').strip()
-        cpf = request.form.get('cpf', '').strip()
-        if not nome or not cpf:
-            flash('Nome e CPF são obrigatórios.', 'error')
+        # Coleta de dados do formulário
+        motorista.nome = request.form.get('nome', '').strip()
+        data_nascimento = request.form.get('data_nascimento', '').strip()
+        motorista.endereco = request.form.get('endereco', '').strip()
+        motorista.pessoa_tipo = request.form.get('pessoa_tipo', '').strip()
+        motorista.cpf_cnpj = request.form.get('cpf_cnpj', '').strip()
+        motorista.rg = request.form.get('rg', '').strip() or None
+        motorista.telefone = request.form.get('telefone', '').strip()
+        motorista.cnh = request.form.get('cnh', '').strip()
+        validade_cnh = request.form.get('validade_cnh', '').strip()
+        files = request.files.getlist('anexos')
+
+        # Validação dos campos obrigatórios
+        if not all([motorista.nome, data_nascimento, motorista.endereco, motorista.pessoa_tipo, motorista.cpf_cnpj, motorista.telefone, motorista.cnh, validade_cnh]):
+            flash('Todos os campos obrigatórios devem be preenchidos.', 'error')
             return redirect(url_for('editar_motorista', motorista_id=motorista_id))
-        if not validate_cpf(cpf):
-            flash('CPF inválido. Deve conter 11 dígitos numéricos.', 'error')
+
+        # Validação das datas
+        try:
+            motorista.data_nascimento = datetime.strptime(data_nascimento, '%Y-%m-%d').date()
+            motorista.validade_cnh = datetime.strptime(validade_cnh, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Formato de data inválido.', 'error')
             return redirect(url_for('editar_motorista', motorista_id=motorista_id))
-        if Motorista.query.filter(Motorista.cpf == cpf, Motorista.id != motorista_id).first():
-            flash('Erro: CPF já cadastrado para outro motorista.', 'error')
+
+        # Validação de CPF/CNPJ
+        if not validate_cpf_cnpj(motorista.cpf_cnpj, motorista.pessoa_tipo):
+            flash(f"{'CPF' if motorista.pessoa_tipo == 'fisica' else 'CNPJ'} inválido. Deve conter {'11' if motorista.pessoa_tipo == 'fisica' else '14'} dígitos numéricos.", 'error')
             return redirect(url_for('editar_motorista', motorista_id=motorista_id))
-        motorista.nome = nome
-        motorista.cpf = cpf
+
+        # Validação de telefone
+        if not validate_telefone(motorista.telefone):
+            flash('Telefone inválido. Deve conter 10 ou 11 dígitos numéricos.', 'error')
+            return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+
+        # Validação de CNH
+        if not validate_cnh(motorista.cnh):
+            flash('CNH inválida. Deve conter 11 dígitos numéricos.', 'error')
+            return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+
+        # Verificar unicidade
+        existing_cpf_cnpj = Motorista.query.filter(Motorista.cpf_cnpj == motorista.cpf_cnpj, Motorista.id != motorista_id).first()
+        if existing_cpf_cnpj:
+            flash('CPF/CNPJ já cadastrado.', 'error')
+            return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+        existing_cnh = Motorista.query.filter(Motorista.cnh == motorista.cnh, Motorista.id != motorista_id).first()
+        if existing_cnh:
+            flash('CNH já cadastrada.', 'error')
+            return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+
+        # Upload de novos anexos para Cloudflare R2
+        anexos_urls = motorista.anexos.split(',') if motorista.anexos else []
+        allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png'}  # Extensões permitidas
+        if files and any(f.filename for f in files):
+            try:
+                # Inicializa o cliente S3
+                s3_client = boto3.client(
+                    's3',
+                    endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+                    aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+                    aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY']
+                )
+                bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
+
+                # Processa cada arquivo
+                for file in files:
+                    if file and file.filename:
+                        # Verifica a extensão
+                        extension = os.path.splitext(file.filename)[1].lower()
+                        if extension not in allowed_extensions:
+                            flash(f'Arquivo {file.filename} não permitido. Use PDF, JPG ou PNG.', 'error')
+                            continue
+
+                        # Gera nome seguro
+                        filename = secure_filename(file.filename)
+                        s3_path = f"motoristas/{motorista.cpf_cnpj}/{filename}"
+
+                        # Faz upload
+                        s3_client.upload_fileobj(
+                            file,
+                            bucket_name,
+                            s3_path,
+                            ExtraArgs={'ContentType': file.content_type or 'application/octet-stream'}
+                        )
+                        # Adiciona URL
+                        public_url = f"{app.config['CLOUDFLARE_R2_PUBLIC_URL']}/{s3_path}"
+                        anexos_urls.append(public_url)
+            except Exception as e:
+                flash(f'Erro ao fazer upload dos arquivos: {str(e)}', 'error')
+                return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+
+        # Atualiza os anexos
+        motorista.anexos = ','.join(anexos_urls) if anexos_urls else None
+
+        # Salva as alterações
         try:
             db.session.commit()
             flash('Motorista atualizado com sucesso!', 'success')
             return redirect(url_for('consultar_motoristas'))
-        except:
+        except Exception as e:
             db.session.rollback()
-            flash('Erro ao atualizar motorista.', 'error')
+            flash(f'Erro ao atualizar motorista: {str(e)}', 'error')
+            return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+
     return render_template('editar_motorista.html', motorista=motorista)
 
+# Rota para excluir anexo de motorista
+@app.route('/excluir_anexo/<int:motorista_id>/<path:anexo>', methods=['GET'])
+def excluir_anexo(motorista_id, anexo):
+    """Rota para excluir um anexo do motorista do Cloudflare R2."""
+    motorista = Motorista.query.get_or_404(motorista_id)
+    anexos_urls = motorista.anexos.split(',') if motorista.anexos else []
+    if anexo in anexos_urls:
+        try:
+            # Inicializa o cliente S3
+            s3_client = boto3.client(
+                's3',
+                endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+                aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+                aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY']
+            )
+            bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
+            # Extrai o caminho do arquivo
+            filename = anexo.replace(app.config['CLOUDFLARE_R2_PUBLIC_URL'] + '/', '')
+            # Exclui o arquivo
+            s3_client.delete_object(Bucket=bucket_name, Key=filename)
+            # Remove a URL da lista
+            anexos_urls.remove(anexo)
+            motorista.anexos = ','.join(anexos_urls) if anexos_urls else None
+            db.session.commit()
+            flash('Anexo excluído com sucesso!', 'success')
+        except Exception as e:
+            flash(f'Erro ao excluir o anexo: {str(e)}', 'error')
+    else:
+        flash('Anexo não encontrado.', 'error')
+    return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+
+# Rota para excluir motorista
 @app.route('/excluir_motorista/<int:motorista_id>')
 def excluir_motorista(motorista_id):
-    """Rota para excluir motoristas."""
+    """Rota para excluir motoristas e seus anexos."""
     motorista = Motorista.query.get_or_404(motorista_id)
+    # Verifica se o motorista tem viagens associadas
     if Viagem.query.filter_by(motorista_id=motorista_id).first():
         flash('Erro: Motorista possui viagens associadas.', 'error')
         return redirect(url_for('consultar_motoristas'))
     try:
+        # Exclui anexos do Cloudflare R2
+        if motorista.anexos:
+            s3_client = boto3.client(
+                's3',
+                endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+                aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+                aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY']
+            )
+            bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
+            for anexo in motorista.anexos.split(','):
+                filename = anexo.replace(app.config['CLOUDFLARE_R2_PUBLIC_URL'] + '/', '')
+                try:
+                    s3_client.delete_object(Bucket=bucket_name, Key=filename)
+                except Exception as e:
+                    logger.error(f"Erro ao excluir anexo {filename}: {str(e)}")
+        # Exclui o motorista do banco
         db.session.delete(motorista)
         db.session.commit()
         flash('Motorista excluído com sucesso!', 'success')
-    except:
+    except Exception as e:
         db.session.rollback()
-        flash('Erro ao excluir motorista.', 'error')
+        flash(f'Erro ao excluir motorista: {str(e)}', 'error')
     return redirect(url_for('consultar_motoristas'))
 
+# Rota para cadastrar veículos
 @app.route('/cadastrar_veiculo', methods=['GET', 'POST'])
 def cadastrar_veiculo():
     """Rota para cadastrar veículos."""
@@ -255,6 +551,7 @@ def cadastrar_veiculo():
             flash('Erro: Placa já cadastrada.', 'error')
     return render_template('cadastrar_veiculo.html')
 
+# Rota para editar veículos
 @app.route('/editar_veiculo/<int:veiculo_id>', methods=['GET', 'POST'])
 def editar_veiculo(veiculo_id):
     """Rota para editar veículos."""
@@ -282,6 +579,7 @@ def editar_veiculo(veiculo_id):
             flash('Erro ao atualizar veículo.', 'error')
     return render_template('editar_veiculo.html', veiculo=veiculo)
 
+# Rota para excluir veículos
 @app.route('/excluir_veiculo/<int:veiculo_id>')
 def excluir_veiculo(veiculo_id):
     """Rota para excluir veículos."""
@@ -298,6 +596,7 @@ def excluir_veiculo(veiculo_id):
         flash('Erro ao excluir veículo.', 'error')
     return redirect(url_for('consultar_veiculos'))
 
+# Rota para iniciar uma nova viagem
 @app.route('/iniciar_viagem', methods=['GET', 'POST'])
 def iniciar_viagem():
     """Rota para iniciar uma nova viagem."""
@@ -401,6 +700,7 @@ def iniciar_viagem():
         viagens_data.append(viagem_dict)
     return render_template('iniciar_viagem.html', motoristas=motoristas, veiculos=veiculos, viagens=viagens_data, GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
 
+# Rota para editar viagens
 @app.route('/editar_viagem/<int:viagem_id>', methods=['GET', 'POST'])
 def editar_viagem(viagem_id):
     """Rota para editar uma viagem existente."""
@@ -487,6 +787,7 @@ def editar_viagem(viagem_id):
         viagens_data.append(viagem_dict)
     return render_template('iniciar_viagem.html', motoristas=motoristas, veiculos=veiculos, viagens=viagens_data, viagem_edit=viagem, GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
 
+# Rota para excluir viagens
 @app.route('/excluir_viagem/<int:viagem_id>')
 def excluir_viagem(viagem_id):
     """Rota para excluir uma viagem."""
@@ -502,6 +803,7 @@ def excluir_viagem(viagem_id):
         flash(f'Erro ao excluir viagem: {str(e)}', 'error')
     return redirect(url_for('index'))
 
+# Rota para finalizar viagens
 @app.route('/finalizar_viagem/<int:viagem_id>')
 def finalizar_viagem(viagem_id):
     """Rota para finalizar uma viagem."""
@@ -516,6 +818,7 @@ def finalizar_viagem(viagem_id):
         flash('Viagem finalizada com sucesso!', 'success')
     return redirect(url_for('index'))
 
+# Rota para consultar viagens
 @app.route('/consultar_viagens')
 def consultar_viagens():
     """Rota para consultar viagens com filtros."""
@@ -574,19 +877,7 @@ def consultar_viagens():
         data_fim=data_fim
     )
 
-@app.route('/consultar_motoristas')
-def consultar_motoristas():
-    """Rota para consultar motoristas."""
-    search_query = request.args.get('search', '')
-    query = Motorista.query
-    if search_query:
-        query = query.filter(
-            (Motorista.nome.ilike(f'%{search_query}%')) |
-            (Motorista.cpf.ilike(f'%{search_query}%'))
-        )
-    motoristas = query.order_by(Motorista.nome.asc()).all()
-    return render_template('consultar_motoristas.html', motoristas=motoristas, search_query=search_query)
-
+# Rota para consultar veículos
 @app.route('/consultar_veiculos')
 def consultar_veiculos():
     """Rota para consultar veículos."""
@@ -600,6 +891,7 @@ def consultar_veiculos():
     veiculos = query.order_by(Veiculo.placa.asc()).all()
     return render_template('consultar_veiculos.html', veiculos=veiculos, search_query=search_query)
 
+# Rota para relatórios
 @app.route('/relatorios')
 def relatorios():
     """Rota para relatórios e análises."""
@@ -639,6 +931,7 @@ def relatorios():
         data_fim=data_fim
     )
 
+# Rota para obter viagem ativa
 @app.route('/get_active_trip')
 def get_active_trip():
     """Rota para obter a viagem ativa atual."""
@@ -658,9 +951,11 @@ def get_active_trip():
         return jsonify(trip_data)
     return jsonify({'trip': None})
 
-# Inicializar banco de dados
+# ---- Inicialização do Banco de Dados ----
+# Cria as tabelas no banco de dados, se não existirem
 with app.app_context():
     db.create_all()
 
+# ---- Execução do Aplicativo ----
 if __name__ == '__main__':
     app.run(debug=True)

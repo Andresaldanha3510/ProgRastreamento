@@ -4,29 +4,156 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Motorista</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            const pessoaTipo = document.getElementById('pessoa_tipo');
+            const cpfCnpjLabel = document.getElementById('cpf_cnpj_label');
+            const cpfCnpjInput = document.getElementById('cpf_cnpj');
+
+            function updateCpfCnpjValidation() {
+                if (pessoaTipo.value === 'fisica') {
+                    cpfCnpjLabel.textContent = 'CPF';
+                    cpfCnpjInput.placeholder = 'Digite o CPF (11 dígitos)';
+                    cpfCnpjInput.pattern = '\\d{11}';
+                    cpfCnpjInput.title = 'CPF deve ter 11 dígitos';
+                } else {
+                    cpfCnpjLabel.textContent = 'CNPJ';
+                    cpfCnpjInput.placeholder = 'Digite o CNPJ (14 dígitos)';
+                    cpfCnpjInput.pattern = '\\d{14}';
+                    cpfCnpjInput.title = 'CNPJ deve ter 14 dígitos';
+                }
+            }
+
+            pessoaTipo.addEventListener('change', updateCpfCnpjValidation);
+            updateCpfCnpjValidation(); // Inicializa com o valor atual
+
+            // Validação de telefone/WhatsApp
+            const telefoneInput = document.getElementById('telefone');
+            telefoneInput.addEventListener('input', function() {
+                this.value = this.value.replace(/\D/g, '');
+                if (this.value.length > 11) {
+                    this.value = this.value.slice(0, 11);
+                }
+            });
+
+            // Validação de RG
+            const rgInput = document.getElementById('rg');
+            rgInput.addEventListener('input', function() {
+                this.value = this.value.replace(/\D/g, '');
+                if (this.value.length > 9) {
+                    this.value = this.value.slice(0, 9);
+                }
+            });
+
+            // Validação de CNH
+            const cnhInput = document.getElementById('cnh');
+            cnhInput.addEventListener('input', function() {
+                this.value = this.value.replace(/\D/g, '');
+                if (this.value.length > 11) {
+                    this.value = this.value.slice(0, 11);
+                }
+            });
+
+            // Confirmação para excluir anexos
+            const deleteLinks = document.querySelectorAll('.delete-anexo');
+            deleteLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    if (!confirm('Tem certeza que deseja excluir este anexo?')) {
+                        e.preventDefault();
+                    }
+                });
+            });
+        });
+    </script>
 </head>
-<body>
-    <div class="container mt-4">
-        <h2>Editar Motorista</h2>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <h1 class="text-2xl font-bold mb-4">Editar Motorista</h1>
+
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
-                {% endfor %}
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    {% for category, message in messages %}
+                        <p class="{{ 'text-red-700' if category == 'error' else 'text-green-700' }}">{{ message }}</p>
+                    {% endfor %}
+                </div>
             {% endif %}
         {% endwith %}
-        <form method="POST">
-            <div class="mb-3">
-                <label for="nome" class="form-label">Nome</label>
-                <input type="text" class="form-control" id="nome" name="nome" value="{{ motorista.nome }}" required>
+
+        <form method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded shadow-md">
+            <div class="mb-4">
+                <label class="block text-gray-700">Nome</label>
+                <input type="text" name="nome" required class="w-full p-2 border rounded" value="{{ motorista.nome }}" placeholder="Digite o nome completo">
             </div>
-            <div class="mb-3">
-                <label for="cpf" class="form-label">CPF</label>
-                <input type="text" class="form-control" id="cpf" name="cpf" value="{{ motorista.cpf }}" required>
+
+            <div class="mb-4">
+                <label class="block text-gray-700">Data de Nascimento</label>
+                <input type="date" name="data_nascimento" required class="w-full p-2 border rounded" value="{{ motorista.data_nascimento.strftime('%Y-%m-%d') if motorista.data_nascimento else '' }}">
             </div>
-            <button type="submit" class="btn btn-primary">Salvar</button>
-            <a href="{{ url_for('consultar_motoristas') }}" class="btn btn-secondary">Voltar</a>
+
+            <div class="mb-4">
+                <label class="block text-gray-700">Endereço</label>
+                <input type="text" name="endereco" required class="w-full p-2 border rounded" value="{{ motorista.endereco }}" placeholder="Digite o endereço completo">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700">Pessoa Física ou Jurídica</label>
+                <select id="pessoa_tipo" name="pessoa_tipo" required class="w-full p-2 border rounded">
+                    <option value="fisica" {{ 'selected' if motorista.pessoa_tipo == 'fisica' else '' }}>Pessoa Física</option>
+                    <option value="juridica" {{ 'selected' if motorista.pessoa_tipo == 'juridica' else '' }}>Pessoa Jurídica</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label id="cpf_cnpj_label" class="block text-gray-700">{{ 'CPF' if motorista.pessoa_tipo == 'fisica' else 'CNPJ' }}</label>
+                <input type="text" id="cpf_cnpj" name="cpf_cnpj" required class="w-full p-2 border rounded" value="{{ motorista.cpf_cnpj }}" pattern="{{ '\d{11}' if motorista.pessoa_tipo == 'fisica' else '\d{14}' }}" placeholder="{{ 'Digite o CPF (11 dígitos)' if motorista.pessoa_tipo == 'fisica' else 'Digite o CNPJ (14 dígitos)' }}" title="{{ 'CPF deve ter 11 dígitos' if motorista.pessoa_tipo == 'fisica' else 'CNPJ deve ter 14 dígitos' }}">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700">RG</label>
+                <input type="text" id="rg" name="rg" class="w-full p-2 border rounded" maxlength="9" value="{{ motorista.rg or '' }}" placeholder="Digite o RG (máximo 9 dígitos)">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700">Telefone/WhatsApp</label>
+                <input type="text" id="telefone" name="telefone" required class="w-full p-2 border rounded" value="{{ motorista.telefone }}" pattern="\d{10,11}" placeholder="Digite o telefone (10-11 dígitos)" title="Telefone deve ter 10 ou 11 dígitos">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700">CNH</label>
+                <input type="text" id="cnh" name="cnh" required class="w-full p-2 border rounded" value="{{ motorista.cnh }}" pattern="\d{11}" placeholder="Digite a CNH (11 dígitos)" title="CNH deve ter 11 dígitos">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700">Validade da CNH</label>
+                <input type="date" name="validade_cnh" required class="w-full p-2 border rounded" value="{{ motorista.validade_cnh.strftime('%Y-%m-%d') if motorista.validade_cnh else '' }}">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700">Anexos Atuais</label>
+                {% if motorista.anexos %}
+                    <ul class="list-disc pl-5">
+                        {% for anexo in motorista.anexos.split(',') %}
+                            <li>
+                                <a href="{{ anexo }}" target="_blank" class="text-blue-500 underline">Ver</a>
+                                <a href="{{ url_for('excluir_anexo', motorista_id=motorista.id, anexo=anexo) }}" class="text-red-500 underline delete-anexo">Excluir</a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-gray-500">Nenhum anexo.</p>
+                {% endif %}
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700">Adicionar Novos Anexos</label>
+                <input type="file" name="anexos" multiple class="w-full p-2 border rounded">
+                <p class="text-sm text-gray-500">Selecione arquivos para upload (ex.: documentos da CNH, RG)</p>
+            </div>
+
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Salvar</button>
+            <a href="{{ url_for('consultar_motorista') }}" class="bg-gray-500 text-white px-4 py-2 rounded ml-2">Voltar</a>
         </form>
     </div>
 </body>
