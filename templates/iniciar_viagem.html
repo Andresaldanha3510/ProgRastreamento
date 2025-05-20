@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Viagem</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select, input[type="text"], input[type="datetime-local"], input[type="number"], textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .buttons {
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .submit-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        .back-btn {
+            background-color: #6c757d;
+            color: white;
+        }
+        .edit-btn {
+            background-color: #007bff;
+            color: white;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        .messages {
+            margin-bottom: 20px;
+        }
+        .message {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .message.warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .accordion {
+            margin-top: 20px;
+        }
+        .accordion-item {
+            border: 1px solid #ccc;
+            margin-bottom: 5px;
+            border-radius: 4px;
+        }
+        .accordion-header {
+            background-color: #f1f1f1;
+            padding: 10px;
+            cursor: pointer;
+        }
+        .accordion-content {
+            display: none;
+            padding: 10px;
+        }
+        .accordion-content.active {
+            display: block;
+        }
+    </style>
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places"></script>
+    <script>
+        function initAutocomplete() {
+            const enderecoSaida = document.getElementById('endereco_saida');
+            const enderecoDestino = document.getElementById('endereco_destino');
+            new google.maps.places.Autocomplete(enderecoSaida, { types: ['geocode'] });
+            new google.maps.places.Autocomplete(enderecoDestino, { types: ['geocode'] });
+        }
+
+        function toggleAccordion(id) {
+            const content = document.getElementById('accordion-content-' + id);
+            content.classList.toggle('active');
+        }
+
+        function preencherFormulario(element) {
+            const viagem = JSON.parse(element.getAttribute('data-viagem'));
+            document.getElementById('motorista_id').value = viagem.motorista_id;
+            document.getElementById('veiculo_id').value = viagem.veiculo_id;
+            document.getElementById('cliente').value = viagem.cliente;
+            document.getElementById('endereco_saida').value = viagem.endereco_saida;
+            document.getElementById('endereco_destino').value = viagem.endereco_destino;
+            const dataInicio = new Date(viagem.data_inicio);
+            const formattedDate = dataInicio.toISOString().slice(0, 16);
+            document.getElementById('data_inicio').value = formattedDate;
+            document.getElementById('custo').value = viagem.custo || '';
+            document.getElementById('forma_pagamento').value = viagem.forma_pagamento || '';
+            document.getElementById('status').value = viagem.status;
+            document.getElementById('observacoes').value = viagem.observacoes || '';
+            document.getElementById('form-action').action = '/editar_viagem/' + viagem.id;
+            document.getElementById('submit-btn').textContent = 'Salvar Alterações';
+        }
+
+        function confirmarExclusao(viagemId) {
+            if (confirm('Tem certeza que deseja excluir esta viagem?')) {
+                window.location.href = '/excluir_viagem/' + viagemId;
+            }
+        }
+
+        window.onload = initAutocomplete;
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Iniciar Viagem</h1>
+
+        <!-- Exibição de mensagens flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="messages">
+                    {% for category, message in messages %}
+                        <div class="message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Formulário de cadastro de viagem -->
+        <form id="form-action" method="POST" action="{{ url_for('iniciar_viagem') }}">
+            <div class="form-group">
+                <label for="motorista_id">Motorista</label>
+                <select id="motorista_id" name="motorista_id" required>
+                    <option value="" disabled {% if not viagem_edit %}selected{% endif %}>Selecione um motorista</option>
+                    {% for motorista in motoristas %}
+                        <option value="{{ motorista.id }}" {% if viagem_edit and viagem_edit.motorista_id == motorista.id %}selected{% endif %}>{{ motorista.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="veiculo_id">Veículo</label>
+                <select id="veiculo_id" name="veiculo_id" required>
+                    <option value="" disabled {% if not viagem_edit %}selected{% endif %}>Selecione um veículo</option>
+                    {% for veiculo in veiculos %}
+                        <option value="{{ veiculo.id }}" {% if viagem_edit and viagem_edit.veiculo_id == veiculo.id %}selected{% endif %}>{{ veiculo.placa }} - {{ veiculo.modelo }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="cliente">Nome do Cliente</label>
+                <input type="text" id="cliente" name="cliente" placeholder="Digite o nome do cliente" value="{{ viagem_edit.cliente if viagem_edit else '' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="endereco_saida">Endereço de Saída</label>
+                <input type="text" id="endereco_saida" name="endereco_saida" placeholder="Digite o endereço de saída" value="{{ viagem_edit.endereco_saida if viagem_edit else '' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="endereco_destino">Endereço de Destino</label>
+                <input type="text" id="endereco_destino" name="endereco_destino" placeholder="Digite o endereço de destino" value="{{ viagem_edit.endereco_destino if viagem_edit else '' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="data_inicio">Data e Hora da Viagem</label>
+                <input type="datetime-local" id="data_inicio" name="data_inicio" value="{{ viagem_edit.data_inicio.strftime('%Y-%m-%dT%H:%M') if viagem_edit else '' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="custo">Custo da Viagem (R$)</label>
+                <input type="number" id="custo" name="custo" step="0.01" min="0" placeholder="Ex: 50.00" value="{{ viagem_edit.custo if viagem_edit and viagem_edit.custo else '' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="forma_pagamento">Forma de Pagamento</label>
+                <select id="forma_pagamento" name="forma_pagamento">
+                    <option value="" disabled {% if not viagem_edit or not viagem_edit.forma_pagamento %}selected{% endif %}>Selecione a forma de pagamento</option>
+                    <option value="dinheiro" {% if viagem_edit and viagem_edit.forma_pagamento == 'dinheiro' %}selected{% endif %}>Dinheiro</option>
+                    <option value="cartao_credito" {% if viagem_edit and viagem_edit.forma_pagamento == 'cartao_credito' %}selected{% endif %}>Cartão de Crédito</option>
+                    <option value="cartao_debito" {% if viagem_edit and viagem_edit.forma_pagamento == 'cartao_debito' %}selected{% endif %}>Cartão de Débito</option>
+                    <option value="pix" {% if viagem_edit and viagem_edit.forma_pagamento == 'pix' %}selected{% endif %}>PIX</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="status">Status da Viagem</label>
+                <select id="status" name="status" required>
+                    <option value="pendente" {% if viagem_edit and viagem_edit.status == 'pendente' %}selected{% endif %}>Pendente</option>
+                    <option value="em_andamento" {% if viagem_edit and viagem_edit.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
+                    <option value="concluida" {% if viagem_edit and viagem_edit.status == 'concluida' %}selected{% endif %}>Concluída</option>
+                    <option value="cancelada" {% if viagem_edit and viagem_edit.status == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="observacoes">Observações</label>
+                <textarea id="observacoes" name="observacoes" rows="4" placeholder="Adicione observações, se necessário">{{ viagem_edit.observacoes if viagem_edit else '' }}</textarea>
+            </div>
+
+            <div class="buttons">
+                <button type="submit" id="submit-btn" class="submit-btn">Adicionar Viagem (+)</button>
+                <a href="{{ url_for('index') }}"><button type="button" class="back-btn">Voltar</button></a>
+            </div>
+        </form>
+
+        <!-- Lista de viagens pendentes -->
+        <div class="accordion">
+            <h2>Viagens Cadastradas</h2>
+            {% for viagem in viagens %}
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion({{ viagem.id }})">
+                        Viagem #{{ viagem.id }} - {{ viagem.cliente }} ({{ viagem.status|title }})
+                    </div>
+                    <div id="accordion-content-{{ viagem.id }}" class="accordion-content">
+                        <p><strong>Motorista:</strong> {{ viagem.motorista_nome }}</p>
+                        <p><strong>Veículo:</strong> {{ viagem.veiculo_placa }} - {{ viagem.veiculo_modelo }}</p>
+                        <p><strong>Cliente:</strong> {{ viagem.cliente }}</p>
+                        <p><strong>Endereço de Saída:</strong> {{ viagem.endereco_saida }}</p>
+                        <p><strong>Endereço de Destino:</strong> {{ viagem.endereco_destino }}</p>
+                        <p><strong>Distância:</strong> {{ viagem.distancia_km|round(2) }} km</p>
+                        <p><strong>Data/Hora Início:</strong> {{ viagem.data_inicio[:-3] }}</p>
+                        <p><strong>Horário Estimado de Chegada:</strong> {{ viagem.horario_chegada }}</p>
+                        <p><strong>Duração Estimada:</strong> {{ (viagem.duracao_segundos // 60) if viagem.duracao_segundos else 'Não informado' }} minutos</p>
+                        <p><strong>Custo:</strong> R$ {{ viagem.custo|round(2) if viagem.custo else 'Não informado' }}</p>
+                        <p><strong>Forma de Pagamento:</strong> {{ viagem.forma_pagamento|title if viagem.forma_pagamento else 'Não informado' }}</p>
+                        <p><strong>Status:</strong> {{ viagem.status|title }}</p>
+                        <p><strong>Observações:</strong> {{ viagem.observacoes if viagem.observacoes else 'Nenhuma' }}</p>
+                        <button class="edit-btn" data-viagem='{{ viagem|tojson|safe }}' onclick='preencherFormulario(this)'>Editar</button>
+                        <button class="delete-btn" onclick='confirmarExclusao({{ viagem.id }})'>Excluir</button>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>
