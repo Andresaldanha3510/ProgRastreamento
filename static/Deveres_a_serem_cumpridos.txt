@@ -1,0 +1,38 @@
+Parte Matheus:
+Cadastro Motorista:
+
+Nome motorista:
+Data de Nascimento: campo data
+Veiculos associados: essa informação ira pegar dos veiculos cadastrados.
+Endereço Motorista: 
+Pessoa fisica ou juidica: ESSE CAMPO IRA DETERMINAR SE É CPF OU CNPJ
+CPF/CNPJ: CAMPO CPF/CNPJ 
+RG: CAMPO RG -> MAXIMO 9 PODE TER MENOS
+Telefone: CAMPO TELEFONE E WHATSAPP ME 
+CNH: CAMPO CNH 11 NUMEROS
+Validade da CNH: campo data
+anexo de arquivos: (clond flare)
+
+Perfil do Motorista:
+---------------------------------------
+Parte do joao:
+
+Ajustar Side Bar
+Cadastro de Veiculos:
+Placa de Veiculo: campo placa
+Modelo de veiculo: campo escrito
+Km veiculo: campo numerico
+Ultima manutenção: campo data
+
+Perfil do veiculo:
+---------------------------------------
+Parte do André 
+
+Trajetoria de viagem: Maps
+Iniciar viagem:
+Endereço de destino: Roteiro, ao clicar no + colocar parada 2, parada 3, parada 4 etc... 
+Impressão do roteiro para o motorista.
+Consultar viangens: 
+tela modo lista e modo kanban.
+Resultado financeiro das viagens.
+Tabela de abastecimento: Media de combustivel.
