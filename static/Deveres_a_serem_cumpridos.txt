@@ -36,3 +36,4 @@ Consultar viangens:
 tela modo lista e modo kanban.
 Resultado financeiro das viagens.
 Tabela de abastecimento: Media de combustivel.
+Bloquear usuarios
