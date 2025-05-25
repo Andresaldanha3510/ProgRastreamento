@@ -81,6 +81,19 @@ class Destino(db.Model):
     ordem = db.Column(db.Integer, nullable=False)  # Ordem do destino (1, 2, 3, ...)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+class CustoViagem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    viagem_id = db.Column(db.Integer, db.ForeignKey('viagem.id'), nullable=False, unique=True)
+    combustivel = db.Column(db.Float, nullable=True)
+    pedagios = db.Column(db.Float, nullable=True)
+    alimentacao = db.Column(db.Float, nullable=True)
+    hospedagem = db.Column(db.Float, nullable=True)
+    outros = db.Column(db.Float, nullable=True)
+    descricao_outros = db.Column(db.String(300), nullable=True)
+    anexos = db.Column(db.String(500), nullable=True)  # links de arquivos
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    viagem = db.relationship('Viagem', backref=db.backref('custo_viagem', uselist=False))
+
 # Modelo Viagem: armazena informações das viagens
 class Viagem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -88,6 +101,7 @@ class Viagem(db.Model):
     veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculo.id'), nullable=False)
     cliente = db.Column(db.String(100), nullable=False)
     endereco_saida = db.Column(db.String(200), nullable=False)
+    endereco_destino = db.Column(db.String(200), nullable=False)
     distancia_km = db.Column(db.Float, nullable=True)
     data_inicio = db.Column(db.DateTime, nullable=False)
     data_fim = db.Column(db.DateTime, nullable=True)
@@ -152,6 +166,33 @@ def get_coordinates(endereco):
     except requests.exceptions.RequestException as e:
         logger.error(f"Erro ao obter coordenadas: {str(e)}")
         return None, None
+    
+@app.route('/salvar_custo_viagem', methods=['POST'])
+def salvar_custo_viagem():
+    try:
+        viagem_id = request.form.get('viagem_id')
+        viagem = Viagem.query.get_or_404(viagem_id)
+
+        custo = CustoViagem(
+            viagem_id=viagem_id,
+            combustivel=request.form.get('combustivel') or 0,
+            pedagios=request.form.get('pedagios') or 0,
+            alimentacao=request.form.get('alimentacao') or 0,
+            hospedagem=request.form.get('hospedagem') or 0,
+            outros=request.form.get('outros') or 0,
+            descricao_outros=request.form.get('descricao_outros')
+        )
+
+        # futuramente: salvar anexos no cloudflare aqui
+
+        db.session.add(custo)
+        db.session.commit()
+        flash('Custo da viagem salvo com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao salvar custo da viagem: {str(e)}', 'error')
+    return redirect(url_for('iniciar_viagem'))
+
 
 # Valida se o endereço é reconhecido pela Google Maps API
 def validar_endereco(endereco):
@@ -473,6 +514,44 @@ def editar_motorista(motorista_id):
             return redirect(url_for('editar_motorista', motorista_id=motorista_id))
 
     return render_template('editar_motorista.html', motorista=motorista)
+@app.route('/consultar_despesas/<int:viagem_id>', methods=['GET'])
+def consultar_despesas(viagem_id):
+    """Rota para consultar despesas de uma viagem específica."""
+    viagem = Viagem.query.get_or_404(viagem_id)
+    custo_viagem = CustoViagem.query.filter_by(viagem_id=viagem_id).first()
+
+    # Preparar dados para o template
+    viagem_dict = {
+        'id': viagem.id,
+        'motorista_nome': viagem.motorista.nome,
+        'veiculo_placa': viagem.veiculo.placa,
+        'veiculo_modelo': viagem.veiculo.modelo,
+        'cliente': viagem.cliente,
+        'endereco_saida': viagem.endereco_saida,
+        'endereco_destino': viagem.endereco_destino,
+        'data_inicio': viagem.data_inicio.strftime('%d/%m/%Y %H:%M'),
+        'data_fim': viagem.data_fim.strftime('%d/%m/%Y %H:%M') if viagem.data_fim else 'Em andamento',
+        'status': viagem.status,
+        'custo': viagem.custo,
+        'forma_pagamento': viagem.forma_pagamento,
+        'observacoes': viagem.observacoes
+    }
+
+    custo_dict = {
+        'combustivel': custo_viagem.combustivel if custo_viagem else 0,
+        'pedagios': custo_viagem.pedagios if custo_viagem else 0,
+        'alimentacao': custo_viagem.alimentacao if custo_viagem else 0,
+        'hospedagem': custo_viagem.hospedagem if custo_viagem else 0,
+        'outros': custo_viagem.outros if custo_viagem else 0,
+        'descricao_outros': custo_viagem.descricao_outros if custo_viagem else None,
+        'anexos': custo_viagem.anexos.split(',') if custo_viagem and custo_viagem.anexos else []
+    }
+
+    return render_template(
+        'consultar_despesas.html',
+        viagem=viagem_dict,
+        custo=custo_dict
+    )
 
 # Rota para excluir anexo de motorista
 @app.route('/excluir_anexo/<int:motorista_id>/<path:anexo>', methods=['GET'])
