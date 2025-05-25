@@ -1,0 +1,41 @@
+<div class="space-y-4">
+    <div>
+        <label class="block text-sm font-medium text-gray-700">Combustível (R$):</label>
+        <p class="mt-1 p-2 border border-gray-300 rounded-md">{{ custo.combustivel|default(0)|round(2) }}</p>
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700">Pedágios (R$):</label>
+        <p class="mt-1 p-2 border border-gray-300 rounded-md">{{ custo.pedagios|default(0)|round(2) }}</p>
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700">Alimentação (R$):</label>
+        <p class="mt-1 p-2 border border-gray-300 rounded-md">{{ custo.alimentacao|default(0)|round(2) }}</p>
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700">Hospedagem (R$):</label>
+        <p class="mt-1 p-2 border border-gray-300 rounded-md">{{ custo.hospedagem|default(0)|round(2) }}</p>
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700">Outros (R$):</label>
+        <p class="mt-1 p-2 border border-gray-300 rounded-md">{{ custo.outros|default(0)|round(2) }}</p>
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700">Descrição dos Outros:</label>
+        <p class="mt-1 p-2 border border-gray-300 rounded-md">{{ custo.descricao_outros|default('Nenhuma') }}</p>
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700">Arquivos:</label>
+        <p class="mt-1 p-2 border border-gray-300 rounded-md">
+            {% if custo.anexos %}
+                {% for anexo in custo.anexos %}
+                    <a href="{{ anexo }}" target="_blank" class="text-blue-600 hover:underline">
+                        {% set filename = anexo.split('/')[-1] if '/' in anexo else anexo %}
+                        {{ filename }}
+                    </a><br>
+                {% endfor %}
+            {% else %}
+                Nenhum arquivo selecionado
+            {% endif %}
+        </p>
+    </div>
+</div>
