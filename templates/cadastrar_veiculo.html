@@ -2,6 +2,9 @@
         var gk_isXlsx = false;
         var gk_xlsxFileLookup = {};
         var gk_fileData = {};
+
+        
+
         function filledCell(cell) {
           return cell !== '' && cell != null;
         }
@@ -58,18 +61,83 @@
             {% endif %}
         {% endwith %}
 
-        <form method="POST" class="bg-white p-6 rounded shadow-md">
+        <form method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded shadow-md">
             <div class="mb-4">
                 <label class="block text-gray-700">Placa</label>
-                <input type="text" name="placa" required class="w-full p-2 border rounded" pattern="[A-Z0-9]{7}" title="Placa deve ter 7 caracteres alfanuméricos">
+                <input type="text" name="placa" required class="w-full p-2 border rounded" pattern="[A-Z0-9]{7}" placeholder="Placa deve ter 7 caracteres alfanuméricos">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700">Categoria do Veículo</label>
+                <input type="text" name="categoria_veiculo" required class="w-full p-2 border rounded" placeholder="Ex: Caminhão, Van, Utilitáio Pequeno">
             </div>
             <div class="mb-4">
                 <label class="block text-gray-700">Modelo</label>
-                <input type="text" name="modelo" required class="w-full p-2 border rounded">
+                <input type="text" name="modelo" required class="w-full p-2 border rounded" placeholder="Ex: Scania p310, Volvo 540, Fiorino">
             </div>
+            <div class="mb-4">
+                <label class="block text-gray-700">Ano do Veículo</label>
+                <select name="ano_veiculo" id="ano_veiculo" required class="w-full p-2 border rounded">
+                    <option value="">Selecione o ano</option>
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700">Valor do Veículo</label>
+                <input type="text" name="valorveiculo" id="valorveiculo" required class="w-full p-2 border rounded" placeholder="Digite o valor aproximado do seu veículo">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700">Km rodados do Veículo</label>
+                <input type="number" name="kmveiculo" required class="w-full p-2 border rounded">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700">Última Manutenção</label>
+                <input type="date" name="ultimamanut" required class="w-full p-2 border rounded">
+            </div>
+
             <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Cadastrar</button>
             <a href="{{ url_for('index') }}" class="bg-gray-500 text-white px-4 py-2 rounded ml-2">Voltar</a>
         </form>
     </div>
 </body>
+<script>
+    // Garante que o script rode após o DOM estar carregado
+        document.addEventListener('DOMContentLoaded', function () {
+            const selectAno = document.getElementById('ano_veiculo');
+
+            // Verifica se o elemento foi encontrado
+                // Gera opções de 2010 a 2025
+                for (let ano = 2025; ano >= 2010; ano--) {
+                    const option = document.createElement('option');
+                    option.value = ano;
+                    option.text = ano;
+                    selectAno.appendChild(option);
+                }
+        });
+
+    // Tranformação do numérico para R$
+        document.addEventListener('DOMContentLoaded', function () {
+                const inputValor = document.getElementById('valorveiculo');
+                if (inputValor) {
+                    inputValor.addEventListener('input', function (e) {
+                        let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não é número
+                        value = Number(value) / 100; // Converte para formato decimal
+                        if (value > 0) {
+                            e.target.value = 'R$ ' + value.toLocaleString('pt-BR', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            });
+                        } else {
+                            e.target.value = '';
+                        }
+                    });
+
+                    // Remove a formatação ao enviar o formulário
+                    inputValor.addEventListener('change', function (e) {
+                        let value = e.target.value.replace(/\D/g, '');
+                        e.target.value = (Number(value) / 100).toFixed(2);
+                    });
+                } else {
+                    console.error('Elemento com ID "valorveiculo" não encontrado.');
+                }
+        });
+</script>
 </html>
