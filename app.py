@@ -210,43 +210,61 @@ def validar_endereco(endereco):
         return False
 
 # Calcula distância e duração da viagem usando Google Maps Directions API
-def calcular_distancia_e_duracao(origem, destino):
-    """Calcula distância e duração da viagem usando Google Maps Directions API."""
+def calcular_distancia_e_duracao(enderecos):
+    """Calcula distância e duração da viagem com múltiplos destinos usando Google Maps Directions API."""
+    if len(enderecos) < 2:
+        logger.error("Pelo menos dois endereços são necessários (origem e pelo menos um destino).")
+        return None, None
+
     url = 'https://maps.googleapis.com/maps/api/directions/json'
-    params = {
-        'origin': origem,
-        'destination': destino,
-        'key': GOOGLE_MAPS_API_KEY,
-        'units': 'metric',
-        'departure_time': 'now'
-    }
+    origem = enderecos[0]
+    destinos = enderecos[1:]
+    total_distancia_km = 0
+    total_duracao_segundos = 0
+
     try:
-        logger.debug(f"Calculando distância entre {origem} e {destino}")
-        response = requests.get(url, params=params, timeout=5)
-        response.raise_for_status()
-        data = response.json()
-        if data['status'] == 'OK' and data['routes']:
-            route = data['routes'][0]['legs'][0]
-            distancia_km = route['distance']['value'] / 1000
-            duracao_segundos = route['duration']['value']
-            return distancia_km, duracao_segundos
-        else:
-            logger.warning(f"Erro na Directions API: {data.get('error_message', 'Erro desconhecido')}")
-            lat1, lon1 = get_coordinates(origem)
-            lat2, lon2 = get_coordinates(destino)
-            if lat1 is None or lat2 is None:
-                flash('Não foi possível calcular a distância entre os endereços.', 'error')
-                return None, None
-            distancia_km = haversine_distance(lat1, lon1, lat2, lon2)
-            velocidade_media_kmh = 60
-            duracao_segundos = int((distancia_km / velocidade_media_kmh) * 3600)
-            flash('Distância calculada em linha reta. Duração estimada.', 'warning')
-            return distancia_km, duracao_segundos
+        logger.debug(f"Calculando rota para endereços: {enderecos}")
+        for i in range(len(destinos)):
+            params = {
+                'origin': origem,
+                'destination': destinos[i],
+                'key': GOOGLE_MAPS_API_KEY,
+                'units': 'metric',
+                'departure_time': 'now'
+            }
+            if i < len(destinos) - 1:
+                params['waypoints'] = destinos[i]
+                origem = destinos[i]  # O destino atual se torna a origem para o próximo trecho
+
+            response = requests.get(url, params=params, timeout=5)
+            response.raise_for_status()
+            data = response.json()
+            if data['status'] == 'OK' and data['routes']:
+                route = data['routes'][0]['legs'][0]
+                total_distancia_km += route['distance']['value'] / 1000
+                total_duracao_segundos += route['duration']['value']
+            else:
+                logger.warning(f"Erro na Directions API para trecho {origem} -> {destinos[i]}: {data.get('error_message', 'Erro desconhecido')}")
+                # Fallback para Haversine se a API falhar
+                lat1, lon1 = get_coordinates(origem)
+                lat2, lon2 = get_coordinates(destinos[i])
+                if lat1 is None or lat2 is None:
+                    flash(f'Não foi possível calcular a distância para o trecho {origem} -> {destinos[i]}.', 'error')
+                    return None, None
+                distancia_km = haversine_distance(lat1, lon1, lat2, lon2)
+                velocidade_media_kmh = 60
+                duracao_segundos = int((distancia_km / velocidade_media_kmh) * 3600)
+                total_distancia_km += distancia_km
+                total_duracao_segundos += duracao_segundos
+                flash(f'Distância calculada em linha reta para o trecho {origem} -> {destinos[i]}.', 'warning')
+                origem = destinos[i]
+
+        return total_distancia_km, total_duracao_segundos
     except requests.exceptions.RequestException as e:
         logger.error(f"Erro na Directions API: {str(e)}")
         flash(f'Erro de conexão com a API do Google Maps: {str(e)}', 'error')
         return None, None
-
+    
 # ---- Rotas do Aplicativo ----
 # Rota principal: exibe o dashboard com motoristas, veículos e viagens
 @app.route('/')
@@ -514,44 +532,37 @@ def editar_motorista(motorista_id):
             return redirect(url_for('editar_motorista', motorista_id=motorista_id))
 
     return render_template('editar_motorista.html', motorista=motorista)
+
+
 @app.route('/consultar_despesas/<int:viagem_id>', methods=['GET'])
 def consultar_despesas(viagem_id):
-    """Rota para consultar despesas de uma viagem específica."""
-    viagem = Viagem.query.get_or_404(viagem_id)
-    custo_viagem = CustoViagem.query.filter_by(viagem_id=viagem_id).first()
+    """Rota para consultar as despesas de uma viagem específica e retornar os dados para exibição em um modal."""
+    try:
+        # Busca a viagem pelo ID, retorna 404 se não encontrada
+        viagem = Viagem.query.get_or_404(viagem_id)
 
-    # Preparar dados para o template
-    viagem_dict = {
-        'id': viagem.id,
-        'motorista_nome': viagem.motorista.nome,
-        'veiculo_placa': viagem.veiculo.placa,
-        'veiculo_modelo': viagem.veiculo.modelo,
-        'cliente': viagem.cliente,
-        'endereco_saida': viagem.endereco_saida,
-        'endereco_destino': viagem.endereco_destino,
-        'data_inicio': viagem.data_inicio.strftime('%d/%m/%Y %H:%M'),
-        'data_fim': viagem.data_fim.strftime('%d/%m/%Y %H:%M') if viagem.data_fim else 'Em andamento',
-        'status': viagem.status,
-        'custo': viagem.custo,
-        'forma_pagamento': viagem.forma_pagamento,
-        'observacoes': viagem.observacoes
-    }
+        # Busca os custos associados à viagem
+        custo_viagem = CustoViagem.query.filter_by(viagem_id=viagem_id).first()
 
-    custo_dict = {
-        'combustivel': custo_viagem.combustivel if custo_viagem else 0,
-        'pedagios': custo_viagem.pedagios if custo_viagem else 0,
-        'alimentacao': custo_viagem.alimentacao if custo_viagem else 0,
-        'hospedagem': custo_viagem.hospedagem if custo_viagem else 0,
-        'outros': custo_viagem.outros if custo_viagem else 0,
-        'descricao_outros': custo_viagem.descricao_outros if custo_viagem else None,
-        'anexos': custo_viagem.anexos.split(',') if custo_viagem and custo_viagem.anexos else []
-    }
+        # Prepara o dicionário de custos com valores padrão para evitar erros
+        custo_dict = {
+            'combustivel': custo_viagem.combustivel if custo_viagem else 0.0,
+            'pedagios': custo_viagem.pedagios if custo_viagem else 0.0,
+            'alimentacao': custo_viagem.alimentacao if custo_viagem else 0.0,
+            'hospedagem': custo_viagem.hospedagem if custo_viagem else 0.0,
+            'outros': custo_viagem.outros if custo_viagem else 0.0,
+            'descricao_outros': custo_viagem.descricao_outros if custo_viagem else 'Nenhuma',
+            'anexos': custo_viagem.anexos.split(',') if custo_viagem and custo_viagem.anexos else []
+        }
 
-    return render_template(
-        'consultar_despesas.html',
-        viagem=viagem_dict,
-        custo=custo_dict
-    )
+        # Renderiza o template parcial para o modal
+        return render_template('consultar_despesas_modal.html', custo=custo_dict)
+
+    except Exception as e:
+        # Loga o erro para depuração
+        logger.error(f"Erro ao consultar despesas da viagem {viagem_id}: {str(e)}")
+        # Retorna uma mensagem de erro para o modal
+        return f"<p class='text-red-600'>Erro ao carregar despesas: {str(e)}</p>", 500
 
 # Rota para excluir anexo de motorista
 @app.route('/excluir_anexo/<int:motorista_id>/<path:anexo>', methods=['GET'])
@@ -804,16 +815,19 @@ def iniciar_viagem():
             veiculo_id = request.form.get('veiculo_id', '').strip()
             cliente = request.form.get('cliente', '').strip()
             endereco_saida = request.form.get('endereco_saida', '').strip()
-            endereco_destino = request.form.get('endereco_destino', '').strip()
+            enderecos_destino = request.form.getlist('enderecos_destino[]')
             data_inicio_str = request.form.get('data_inicio', '')
-            custo = request.form.get('custo', '')
             forma_pagamento = request.form.get('forma_pagamento', '')
             status = request.form.get('status', '')
             observacoes = request.form.get('observacoes', '').strip()
 
             # Validações
-            if not all([motorista_id, veiculo_id, cliente, endereco_saida, endereco_destino, data_inicio_str, forma_pagamento, status]):
+            if not all([motorista_id, veiculo_id, cliente, endereco_saida, enderecos_destino, data_inicio_str, forma_pagamento, status]):
                 flash('Todos os campos obrigatórios devem ser preenchidos.', 'error')
+                return redirect(url_for('iniciar_viagem'))
+
+            if not enderecos_destino:
+                flash('Pelo menos um endereço de destino é necessário.', 'error')
                 return redirect(url_for('iniciar_viagem'))
 
             try:
@@ -821,8 +835,6 @@ def iniciar_viagem():
             except ValueError:
                 flash('Formato de data/hora inválido.', 'error')
                 return redirect(url_for('iniciar_viagem'))
-
-            custo = float(custo) if custo else None
 
             veiculo = Veiculo.query.get(veiculo_id)
             if not veiculo:
@@ -832,40 +844,52 @@ def iniciar_viagem():
                 flash('Erro: Veículo já está em viagem.', 'error')
                 return redirect(url_for('iniciar_viagem'))
 
-            if data_inicio < datetime.now():
-                flash('A data e hora da viagem não podem ser no passado.', 'error')
-                return redirect(url_for('iniciar_viagem'))
+            # Validar endereços
+            enderecos = [endereco_saida] + enderecos_destino
+            for endereco in enderecos:
+                if not validar_endereco(endereco):
+                    flash(f'Endereço inválido: {endereco}. Por favor, insira endereços válidos.', 'error')
+                    return redirect(url_for('iniciar_viagem'))
 
-            if not validar_endereco(endereco_saida) or not validar_endereco(endereco_destino):
-                flash('Endereço inválido. Por favor, insira endereços válidos.', 'error')
-                return redirect(url_for('iniciar_viagem'))
-
-            distancia_km, duracao_segundos = calcular_distancia_e_duracao(endereco_saida, endereco_destino)
+            # Calcular distância e duração total
+            distancia_km, duracao_segundos = calcular_distancia_e_duracao(enderecos)
             if distancia_km is None or duracao_segundos is None:
                 flash('Não foi possível calcular a distância ou duração.', 'error')
                 return redirect(url_for('iniciar_viagem'))
 
+            # Criar viagem
             viagem = Viagem(
                 motorista_id=motorista_id,
                 veiculo_id=veiculo_id,
                 cliente=cliente,
                 endereco_saida=endereco_saida,
-                endereco_destino=endereco_destino,
+                endereco_destino=enderecos_destino[-1],  # Último destino como destino principal
                 distancia_km=distancia_km,
                 data_inicio=data_inicio,
                 duracao_segundos=duracao_segundos,
-                custo=custo,
                 forma_pagamento=forma_pagamento,
                 status=status,
                 observacoes=observacoes or None
             )
             veiculo.disponivel = False
             db.session.add(viagem)
+            db.session.flush()  # Obtém o ID da viagem antes de commit
+
+            # Adicionar destinos
+            for ordem, endereco in enumerate(enderecos_destino, 1):
+                destino = Destino(
+                    viagem_id=viagem.id,
+                    endereco=endereco,
+                    ordem=ordem
+                )
+                db.session.add(destino)
+
             db.session.commit()
             flash(f'Viagem iniciada com sucesso! Distância: {distancia_km:.2f} km, Duração estimada: {duracao_segundos//60} minutos', 'success')
             return redirect(url_for('iniciar_viagem'))
         except Exception as e:
             logger.error(f"Erro ao iniciar viagem: {str(e)}")
+            db.session.rollback()
             flash(f'Erro ao iniciar viagem: {str(e)}', 'error')
             return redirect(url_for('iniciar_viagem'))
 
@@ -893,7 +917,8 @@ def iniciar_viagem():
             'veiculo_placa': viagem.veiculo.placa,
             'veiculo_modelo': viagem.veiculo.modelo,
             'distancia_km': viagem.distancia_km,
-            'horario_chegada': horario_chegada
+            'horario_chegada': horario_chegada,
+            'destinos': [{'endereco': destino.endereco, 'ordem': destino.ordem} for destino in viagem.destinos]
         }
         viagens_data.append(viagem_dict)
     return render_template('iniciar_viagem.html', motoristas=motoristas, veiculos=veiculos, viagens=viagens_data, GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
@@ -909,15 +934,18 @@ def editar_viagem(viagem_id):
             veiculo_id = request.form.get('veiculo_id', '').strip()
             cliente = request.form.get('cliente', '').strip()
             endereco_saida = request.form.get('endereco_saida', '').strip()
-            endereco_destino = request.form.get('endereco_destino', '').strip()
+            enderecos_destino = request.form.getlist('enderecos_destino[]')
             data_inicio_str = request.form.get('data_inicio', '')
-            custo = request.form.get('custo', '')
             forma_pagamento = request.form.get('forma_pagamento', '')
             status = request.form.get('status', '')
             observacoes = request.form.get('observacoes', '').strip()
 
-            if not all([motorista_id, veiculo_id, cliente, endereco_saida, endereco_destino, data_inicio_str, forma_pagamento, status]):
+            if not all([motorista_id, veiculo_id, cliente, endereco_saida, enderecos_destino, data_inicio_str, forma_pagamento, status]):
                 flash('Todos os campos obrigatórios devem ser preenchidos.', 'error')
+                return redirect(url_for('iniciar_viagem'))
+
+            if not enderecos_destino:
+                flash('Pelo menos um endereço de destino é necessário.', 'error')
                 return redirect(url_for('iniciar_viagem'))
 
             try:
@@ -926,39 +954,55 @@ def editar_viagem(viagem_id):
                 flash('Formato de data/hora inválido.', 'error')
                 return redirect(url_for('iniciar_viagem'))
 
-            custo = float(custo) if custo else None
+            # Validar endereços
+            enderecos = [endereco_saida] + enderecos_destino
+            for endereco in enderecos:
+                if not validar_endereco(endereco):
+                    flash(f'Endereço inválido: {endereco}. Por favor, insira endereços válidos.', 'error')
+                    return redirect(url_for('iniciar_viagem'))
 
-            if not validar_endereco(endereco_saida) or not validar_endereco(endereco_destino):
-                flash('Endereço inválido. Por favor, insira endereços válidos.', 'error')
-                return redirect(url_for('iniciar_viagem'))
-
-            distancia_km, duracao_segundos = calcular_distancia_e_duracao(endereco_saida, endereco_destino)
+            # Calcular distância e duração
+            distancia_km, duracao_segundos = calcular_distancia_e_duracao(enderecos)
             if distancia_km is None or duracao_segundos is None:
                 flash('Não foi possível recalcular a distância ou duração.', 'error')
                 return redirect(url_for('iniciar_viagem'))
 
+            # Atualizar viagem
             viagem.motorista_id = motorista_id
             viagem.veiculo_id = veiculo_id
             viagem.cliente = cliente
             viagem.endereco_saida = endereco_saida
-            viagem.endereco_destino = endereco_destino
+            viagem.endereco_destino = enderecos_destino[-1]
             viagem.data_inicio = data_inicio
             viagem.distancia_km = distancia_km
             viagem.duracao_segundos = duracao_segundos
-            viagem.custo = custo
             viagem.forma_pagamento = forma_pagamento
             viagem.status = status
             viagem.observacoes = observacoes or None
+
+            # Atualizar destinos
+            Destino.query.filter_by(viagem_id=viagem.id).delete()
+            for ordem, endereco in enumerate(enderecos_destino, 1):
+                destino = Destino(
+                    viagem_id=viagem.id,
+                    endereco=endereco,
+                    ordem=ordem
+                )
+                db.session.add(destino)
+
             db.session.commit()
             flash('Viagem atualizada com sucesso!', 'success')
             return redirect(url_for('iniciar_viagem'))
         except Exception as e:
             logger.error(f"Erro ao editar viagem: {str(e)}")
+            db.session.rollback()
             flash(f'Erro ao editar viagem: {str(e)}', 'error')
             return redirect(url_for('iniciar_viagem'))
 
     motoristas = Motorista.query.all()
     veiculos = Veiculo.query.filter_by(disponivel=True).all()
+    if viagem.veiculo.disponivel == False:
+        veiculos.append(viagem.veiculo)
     viagens = Viagem.query.filter_by(data_fim=None).order_by(Viagem.data_inicio.desc()).all()
     viagens_data = []
     for v in viagens:
@@ -980,11 +1024,11 @@ def editar_viagem(viagem_id):
             'veiculo_placa': v.veiculo.placa,
             'veiculo_modelo': v.veiculo.modelo,
             'distancia_km': v.distancia_km,
-            'horario_chegada': horario_chegada
+            'horario_chegada': horario_chegada,
+            'destinos': [{'endereco': destino.endereco, 'ordem': destino.ordem} for destino in v.destinos]
         }
         viagens_data.append(viagem_dict)
     return render_template('iniciar_viagem.html', motoristas=motoristas, veiculos=veiculos, viagens=viagens_data, viagem_edit=viagem, GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
-
 # Rota para excluir viagens
 @app.route('/excluir_viagem/<int:viagem_id>')
 def excluir_viagem(viagem_id):
