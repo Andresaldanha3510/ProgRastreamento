@@ -64,10 +64,22 @@ class Motorista(db.Model):
 class Veiculo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     placa = db.Column(db.String(7), unique=True, nullable=False, index=True)
+    categoria = db.Column(db.String(50), nullable=True)  # Novo campo
     modelo = db.Column(db.String(50), nullable=False)
+    ano = db.Column(db.Integer, nullable=True)  # Novo campo
+    valor = db.Column(db.Float, nullable=True)  # Novo campo
+    km_rodados = db.Column(db.Float, nullable=True)  # Novo campo
+    ultima_manutencao = db.Column(db.Date, nullable=True)  # Novo campo
     disponivel = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    viagens = db.relationship('Viagem', backref='veiculo')  # Relacionamento com Viagem
+    viagens = db.relationship('Viagem', backref='veiculo')
+
+class Destino(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    viagem_id = db.Column(db.Integer, db.ForeignKey('viagem.id'), nullable=False)
+    endereco = db.Column(db.String(200), nullable=False)
+    ordem = db.Column(db.Integer, nullable=False)  # Ordem do destino (1, 2, 3, ...)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 # Modelo Viagem: armazena informações das viagens
 class Viagem(db.Model):
@@ -76,7 +88,6 @@ class Viagem(db.Model):
     veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculo.id'), nullable=False)
     cliente = db.Column(db.String(100), nullable=False)
     endereco_saida = db.Column(db.String(200), nullable=False)
-    endereco_destino = db.Column(db.String(200), nullable=False)
     distancia_km = db.Column(db.Float, nullable=True)
     data_inicio = db.Column(db.DateTime, nullable=False)
     data_fim = db.Column(db.DateTime, nullable=True)
@@ -86,6 +97,7 @@ class Viagem(db.Model):
     status = db.Column(db.String(50), nullable=False, default='pendente', index=True)
     observacoes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    destinos = db.relationship('Destino', backref='viagem', lazy='dynamic', cascade='all, delete-orphan')
 
 # ---- Funções Utilitárias ----
 # Valida CPF (11 dígitos) ou CNPJ (14 dígitos)
@@ -528,37 +540,102 @@ def excluir_motorista(motorista_id):
     return redirect(url_for('consultar_motoristas'))
 
 # Rota para cadastrar veículos
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 @app.route('/cadastrar_veiculo', methods=['GET', 'POST'])
 def cadastrar_veiculo():
-    """Rota para cadastrar veículos."""
     if request.method == 'POST':
         placa = request.form.get('placa', '').strip().upper()
+        categoria = request.form.get('categoria', '').strip()
         modelo = request.form.get('modelo', '').strip()
+        ano = request.form.get('ano', '').strip()
+        valor = request.form.get('valor', '').strip()
+        km_rodados = request.form.get('km_rodados', '').strip()
+        ultima_manutencao = request.form.get('ultima_manutencao', '').strip()
+
+        # Validações
         if not placa or not modelo:
             flash('Placa e modelo são obrigatórios.', 'error')
             return redirect(url_for('cadastrar_veiculo'))
         if not validate_placa(placa):
             flash('Placa inválida. Deve conter 7 caracteres alfanuméricos.', 'error')
             return redirect(url_for('cadastrar_veiculo'))
-        veiculo = Veiculo(placa=placa, modelo=modelo)
+        if ano:
+            try:
+                ano = int(ano)
+                if ano < 1900 or ano > datetime.now().year:
+                    flash('Ano inválido.', 'error')
+                    return redirect(url_for('cadastrar_veiculo'))
+            except ValueError:
+                flash('Ano deve ser um número válido.', 'error')
+                return redirect(url_for('cadastrar_veiculo'))
+        if valor:
+            try:
+                valor = float(valor)
+                if valor < 0:
+                    flash('Valor deve ser positivo.', 'error')
+                    return redirect(url_for('cadastrar_veiculo'))
+            except ValueError:
+                flash('Valor deve ser um número válido.', 'error')
+                return redirect(url_for('cadastrar_veiculo'))
+        if km_rodados:
+            try:
+                km_rodados = float(km_rodados)
+                if km_rodados < 0:
+                    flash('Km rodados deve ser positivo.', 'error')
+                    return redirect(url_for('cadastrar_veiculo'))
+            except ValueError:
+                flash('Km rodados deve ser um número válido.', 'error')
+                return redirect(url_for('cadastrar_veiculo'))
+        if ultima_manutencao:
+            try:
+                ultima_manutencao = datetime.strptime(ultima_manutencao, '%Y-%m-%d').date()
+                if ultima_manutencao > datetime.now().date():
+                    flash('Data de última manutenção não pode ser no futuro.', 'error')
+                    return redirect(url_for('cadastrar_veiculo'))
+            except ValueError:
+                flash('Formato de data inválido para última manutenção.', 'error')
+                return redirect(url_for('cadastrar_veiculo'))
+
+        veiculo = Veiculo(
+            placa=placa,
+            categoria=categoria or None,
+            modelo=modelo,
+            ano=ano if ano else None,
+            valor=valor if valor else None,
+            km_rodados=km_rodados if km_rodados else None,
+            ultima_manutencao=ultima_manutencao if ultima_manutencao else None
+        )
         try:
             db.session.add(veiculo)
             db.session.commit()
             flash('Veículo cadastrado com sucesso!', 'success')
             return redirect(url_for('index'))
-        except:
+        except IntegrityError:
             db.session.rollback()
             flash('Erro: Placa já cadastrada.', 'error')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao cadastrar veículo: {str(e)}', 'error')
+            # Opcional: Adicionar log para depuração
+            print(f"Erro ao cadastrar veículo: {str(e)}")
     return render_template('cadastrar_veiculo.html')
 
 # Rota para editar veículos
 @app.route('/editar_veiculo/<int:veiculo_id>', methods=['GET', 'POST'])
 def editar_veiculo(veiculo_id):
-    """Rota para editar veículos."""
     veiculo = Veiculo.query.get_or_404(veiculo_id)
     if request.method == 'POST':
         placa = request.form.get('placa', '').strip().upper()
+        categoria = request.form.get('categoria', '').strip()
         modelo = request.form.get('modelo', '').strip()
+        ano = request.form.get('ano', '').strip()
+        valor = request.form.get('valor', '').strip()
+        km_rodados = request.form.get('km_rodados', '').strip()
+        ultima_manutencao = request.form.get('ultima_manutencao', '').strip()
+
         if not placa or not modelo:
             flash('Placa e modelo são obrigatórios.', 'error')
             return redirect(url_for('editar_veiculo', veiculo_id=veiculo_id))
@@ -568,8 +645,50 @@ def editar_veiculo(veiculo_id):
         if Veiculo.query.filter(Veiculo.placa == placa, Veiculo.id != veiculo_id).first():
             flash('Erro: Placa já cadastrada para outro veículo.', 'error')
             return redirect(url_for('editar_veiculo', veiculo_id=veiculo_id))
+        if ano:
+            try:
+                ano = int(ano)
+                if ano < 1900 or ano > datetime.now().year:
+                    flash('Ano inválido.', 'error')
+                    return redirect(url_for('editar_veiculo', veiculo_id=veiculo_id))
+            except ValueError:
+                flash('Ano deve ser um número válido.', 'error')
+                return redirect(url_for('editar_veiculo', veiculo_id=veiculo_id))
+        if valor:
+            try:
+                valor = float(valor)
+                if valor < 0:
+                    flash('Valor deve ser positivo.', 'error')
+                    return redirect(url_for('editar_veiculo', veiculo_id=veiculo_id))
+            except ValueError:
+                flash('Valor deve ser um número válido.', 'error')
+                return redirect(url_for('editar_veiculo', veiculo_id=veiculo_id))
+        if km_rodados:
+            try:
+                km_rodados = float(km_rodados)
+                if km_rodados < 0:
+                    flash('Km rodados deve ser positivo.', 'error')
+                    return redirect(url_for('editar_veiculo', veiculo_id=veiculo_id))
+            except ValueError:
+                flash('Km rodados deve ser um número válido.', 'error')
+                return redirect(url_for('editar_veiculo', veiculo_id=veiculo_id))
+        if ultima_manutencao:
+            try:
+                ultima_manutencao = datetime.strptime(ultima_manutencao, '%Y-%m-%d').date()
+                if ultima_manutencao > datetime.now().date():
+                    flash('Data de última manutenção não pode ser no futuro.', 'error')
+                    return redirect(url_for('editar_veiculo', veiculo_id=veiculo_id))
+            except ValueError:
+                flash('Formato de data inválido para última manutenção.', 'error')
+                return redirect(url_for('editar_veiculo', veiculo_id=veiculo_id))
+
         veiculo.placa = placa
+        veiculo.categoria = categoria or None
         veiculo.modelo = modelo
+        veiculo.ano = ano
+        veiculo.valor = valor
+        veiculo.km_rodados = km_rodados
+        veiculo.ultima_manutencao = ultima_manutencao
         try:
             db.session.commit()
             flash('Veículo atualizado com sucesso!', 'success')
@@ -878,17 +997,18 @@ def consultar_viagens():
     )
 
 # Rota para consultar veículos
-@app.route('/consultar_veiculos')
+@app.route('/consultar_veiculos', methods=['GET'])
 def consultar_veiculos():
-    """Rota para consultar veículos."""
-    search_query = request.args.get('search', '')
-    query = Veiculo.query
+    search_query = request.args.get('search', '').strip()
     if search_query:
-        query = query.filter(
-            (Veiculo.placa.ilike(f'%{search_query}%')) |
-            (Veiculo.modelo.ilike(f'%{search_query}%'))
-        )
-    veiculos = query.order_by(Veiculo.placa.asc()).all()
+        veiculos = Veiculo.query.filter(
+            or_(
+                Veiculo.placa.ilike(f'%{search_query}%'),
+                Veiculo.modelo.ilike(f'%{search_query}%')
+            )
+        ).all()
+    else:
+        veiculos = Veiculo.query.all()
     return render_template('consultar_veiculos.html', veiculos=veiculos, search_query=search_query)
 
 # Rota para relatórios
