@@ -267,22 +267,22 @@ def calcular_distancia_e_duracao(enderecos):
     
 # ---- Rotas do Aplicativo ----
 # Rota principal: exibe o dashboard com motoristas, veículos e viagens
+# No app.py, substitua a função index() pela versão abaixo:
+
 @app.route('/')
 def index():
     """Página inicial com dashboard."""
     motoristas = Motorista.query.all()
     veiculos = Veiculo.query.all()
     viagens = Viagem.query.all()
-    viagens_ativas = Viagem.query.filter(Viagem.status.in_(['pendente', 'em_andamento'])).order_by(Viagem.data_inicio.desc()).all()
+    # Removemos a filtragem para viagens_ativas e usamos todas as viagens
     return render_template(
         'index.html',
         motoristas=motoristas,
         veiculos=veiculos,
         viagens=viagens,
-        viagens_ativas=viagens_ativas,
         GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY
     )
-
 # Rota para cadastrar motoristas
 @app.route('/cadastrar_motorista', methods=['GET', 'POST'])
 def cadastrar_motorista():
