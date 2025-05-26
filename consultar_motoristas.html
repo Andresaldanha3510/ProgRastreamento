@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultar Motoristas</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <h1 class="text-2xl font-bold mb-4">Consultar Motoristas</h1>
+
+        <!-- Exibe mensagens de erro ou sucesso -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    {% for category, message in messages %}
+                        <p class="{{ 'text-red-700' if category == 'error' else 'text-green-700' }}">{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Formulário de busca -->
+        <form method="GET" class="mb-4">
+            <div class="flex flex-col md:flex-row md:items-end">
+                <div class="md:w-1/3 mb-2 md:mb-0">
+                    <input type="text" name="search" class="w-full p-2 border rounded" placeholder="Buscar por nome ou CPF/CNPJ..." value="{{ search_query or '' }}">
+                </div>
+                <div class="md:ml-2">
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Buscar</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Tabela de motoristas -->
+        <div class="overflow-x-auto">
+            <table class="w-full bg-white shadow-md rounded">
+                <thead>
+                    <tr class="bg-gray-200 text-gray-700">
+                        <th class="p-2 text-left">ID</th>
+                        <th class="p-2 text-left">Nome</th>
+                        <th class="p-2 text-left">Data de Nascimento</th>
+                        <th class="p-2 text-left">Endereço</th>
+                        <th class="p-2 text-left">Tipo</th>
+                        <th class="p-2 text-left">CPF/CNPJ</th>
+                        <th class="p-2 text-left">RG</th>
+                        <th class="p-2 text-left">Telefone</th>
+                        <th class="p-2 text-left">CNH</th>
+                        <th class="p-2 text-left">Validade CNH</th>
+                        <th class="p-2 text-left">Anexos</th>
+                        <th class="p-2 text-left">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for motorista in motoristas %}
+                        <tr>
+                            <td class="p-2">{{ motorista.id }}</td>
+                            <td class="p-2">{{ motorista.nome }}</td>
+                            <td class="p-2">{{ motorista.data_nascimento.strftime('%d/%m/%Y') }}</td>
+                            <td class="p-2">{{ motorista.endereco }}</td>
+                            <td class="p-2">{{ 'Física' if motorista.pessoa_tipo == 'fisica' else 'Jurídica' }}</td>
+                            <td class="p-2">{{ motorista.cpf_cnpj }}</td>
+                            <td class="p-2">{{ motorista.rg or '-' }}</td>
+                            <td class="p-2">{{ motorista.telefone }}</td>
+                            <td class="p-2">{{ motorista.cnh }}</td>
+                            <td class="p-2">{{ motorista.validade_cnh.strftime('%d/%m/%Y') }}</td>
+                            <td class="p-2">
+                                {% if motorista.anexos %}
+                                    <!-- Lista de anexos como links com nome do arquivo -->
+                                    {% for anexo in motorista.anexos.split(',') %}
+                                        {% set filename = anexo.split('/')[-1] %}
+                                        <div class="flex items-center">
+                                            <a href="{{ anexo }}" target="_blank" class="text-blue-500 underline">{{ filename }}</a>
+                                            <!-- Link para excluir anexo -->
+                                            <a href="{{ url_for('excluir_anexo', motorista_id=motorista.id, anexo=anexo) }}" class="ml-2 text-red-500 text-sm" onclick="return confirm('Tem certeza que deseja excluir o anexo {{ filename }}?')">Excluir</a>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="p-2">
+                                <a href="{{ url_for('editar_motorista', motorista_id=motorista.id) }}" class="bg-blue-500 text-white px-2 py-1 rounded text-sm">Editar</a>
+                                <a href="{{ url_for('excluir_motorista', motorista_id=motorista.id) }}" class="bg-red-500 text-white px-2 py-1 rounded text-sm" onclick="return confirm('Tem certeza que deseja excluir?')">Excluir</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Botão de voltar -->
+        <a href="{{ url_for('index') }}" class="bg-gray-500 text-white px-4 py-2 rounded mt-4 inline-block">Voltar</a>
+    </div>
+</body>
+</html>
