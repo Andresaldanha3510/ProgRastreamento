@@ -30,10 +30,8 @@ Parte do André
 
 Trajetoria de viagem: Maps
 Iniciar viagem:
-Endereço de destino: Roteiro, ao clicar no + colocar parada 2, parada 3, parada 4 etc... 
 Impressão do roteiro para o motorista.
 Consultar viangens: 
-tela modo lista e modo kanban.
 Resultado financeiro das viagens.
 Tabela de abastecimento: Media de combustivel.
 Bloquear usuarios
