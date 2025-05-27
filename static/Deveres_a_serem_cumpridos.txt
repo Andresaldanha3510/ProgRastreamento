@@ -1,37 +1,31 @@
 Parte Matheus:
 Cadastro Motorista:
 
-Nome motorista:
-Data de Nascimento: campo data
-Veiculos associados: essa informação ira pegar dos veiculos cadastrados.
-Endereço Motorista: 
-Pessoa fisica ou juidica: ESSE CAMPO IRA DETERMINAR SE É CPF OU CNPJ
-CPF/CNPJ: CAMPO CPF/CNPJ 
-RG: CAMPO RG -> MAXIMO 9 PODE TER MENOS
-Telefone: CAMPO TELEFONE E WHATSAPP ME 
-CNH: CAMPO CNH 11 NUMEROS
-Validade da CNH: campo data
-anexo de arquivos: (clond flare)
-
+Ajustar para funcionar o Botão de anexo
+Auxiliar nas outras telas que o andré pedir
+Ajuste das telas relacionadas a veiculo... exemplo a tela de consulta de veiculo esta errada. Precisa verifica-la pegue como exemplo a tela de consulta de motorista ou viagem <- ajudar joão
 Perfil do Motorista:
+Fazer a tela de editar motorista: feito hoje dia 26/05/2025
+Fazer a tela de perfil de usuario
 ---------------------------------------
 Parte do joao:
 
-Ajustar Side Bar
-Cadastro de Veiculos:
-Placa de Veiculo: campo placa
-Modelo de veiculo: campo escrito
-Km veiculo: campo numerico
-Ultima manutenção: campo data
-
+Ajuste das telas relacionadas a veiculo... exemplo a tela de consulta de veiculo esta errada. Precisa verifica-la pegue como exemplo a tela de consulta de motorista ou viagem
+Ajustar a side bar do sistema e a paleta de cores....
 Perfil do veiculo:
 ---------------------------------------
 Parte do André 
 
 Trajetoria de viagem: Maps
-Iniciar viagem:
 Impressão do roteiro para o motorista.
-Consultar viangens: 
+Consultar viangens: Pode ser a mesma tela nova de editar Motorista ou veiculo porem mudando os menus
 Resultado financeiro das viagens.
-Tabela de abastecimento: Media de combustivel.
+Tabela de abastecimento: Media de combustivel. <- É a tela de Dashs
 Bloquear usuarios
+Na tela principal do Kambam, dar para mover a viagem de status por staus... arrastando-os
+---------------------------------------
+Bugs a serem visto: 
+1- A Side bar esta com problema conforme conversamos
+2- Tela inicial não esta responsiva
+3- Na tela de iniciar viagem ao colocar mais de uma rota e finalizar ele aparece apenas a mensagem de km da primeira rota tem que pegar do circuito todo
+4- Custo de viagem esta bugado.
