@@ -1,6 +1,6 @@
 # ---- Importações ----
 # Bibliotecas padrão e de terceiros necessárias para o aplicativo
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime, timedelta
@@ -12,6 +12,11 @@ import re
 from dotenv import load_dotenv
 import boto3
 from werkzeug.utils import secure_filename
+import io
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy import or_
 
 # ---- Configurações Iniciais ----
 # Carrega variáveis de ambiente do arquivo .env
@@ -23,7 +28,7 @@ app = Flask(__name__)
 # Configurações do Flask
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///transport.db')  # Banco de dados (SQLite local ou PostgreSQL no Render)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Desativa rastreamento de modificações para economizar recursos
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'sua_chave_secreta_forte')  # Chave secreta para sessões
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'w9z$kL2mNpQvR7tYxJ3hF8gWcPqB5vM2nZ4rT6yU')
 GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', 'AIzaSyBPdSOZF2maHURmdRmVzLgVo5YO2wliylo')  # Chave da API do Google Maps
 
 # Configuração do Cloudflare R2 (usado para upload de anexos)
@@ -74,6 +79,7 @@ class Veiculo(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     viagens = db.relationship('Viagem', backref='veiculo')
 
+# Modelo Destino: armazena os destinos de uma viagem
 class Destino(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     viagem_id = db.Column(db.Integer, db.ForeignKey('viagem.id'), nullable=False)
@@ -81,6 +87,7 @@ class Destino(db.Model):
     ordem = db.Column(db.Integer, nullable=False)  # Ordem do destino (1, 2, 3, ...)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+# Modelo CustoViagem: armazena os custos associados a uma viagem
 class CustoViagem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     viagem_id = db.Column(db.Integer, db.ForeignKey('viagem.id'), nullable=False, unique=True)
@@ -100,6 +107,8 @@ class Viagem(db.Model):
     motorista_id = db.Column(db.Integer, db.ForeignKey('motorista.id'), nullable=False)
     veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculo.id'), nullable=False)
     cliente = db.Column(db.String(100), nullable=False)
+    valor_recebido = db.Column(db.Float, nullable=True)
+    forma_pagamento = db.Column(db.String(50), nullable=True)
     endereco_saida = db.Column(db.String(200), nullable=False)
     endereco_destino = db.Column(db.String(200), nullable=False)
     distancia_km = db.Column(db.Float, nullable=True)
@@ -107,7 +116,6 @@ class Viagem(db.Model):
     data_fim = db.Column(db.DateTime, nullable=True)
     duracao_segundos = db.Column(db.Integer, nullable=True)
     custo = db.Column(db.Float, nullable=True)
-    forma_pagamento = db.Column(db.String(50), nullable=True)
     status = db.Column(db.String(50), nullable=False, default='pendente', index=True)
     observacoes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -166,33 +174,6 @@ def get_coordinates(endereco):
     except requests.exceptions.RequestException as e:
         logger.error(f"Erro ao obter coordenadas: {str(e)}")
         return None, None
-    
-@app.route('/salvar_custo_viagem', methods=['POST'])
-def salvar_custo_viagem():
-    try:
-        viagem_id = request.form.get('viagem_id')
-        viagem = Viagem.query.get_or_404(viagem_id)
-
-        custo = CustoViagem(
-            viagem_id=viagem_id,
-            combustivel=request.form.get('combustivel') or 0,
-            pedagios=request.form.get('pedagios') or 0,
-            alimentacao=request.form.get('alimentacao') or 0,
-            hospedagem=request.form.get('hospedagem') or 0,
-            outros=request.form.get('outros') or 0,
-            descricao_outros=request.form.get('descricao_outros')
-        )
-
-        # futuramente: salvar anexos no cloudflare aqui
-
-        db.session.add(custo)
-        db.session.commit()
-        flash('Custo da viagem salvo com sucesso!', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Erro ao salvar custo da viagem: {str(e)}', 'error')
-    return redirect(url_for('iniciar_viagem'))
-
 
 # Valida se o endereço é reconhecido pela Google Maps API
 def validar_endereco(endereco):
@@ -264,18 +245,15 @@ def calcular_distancia_e_duracao(enderecos):
         logger.error(f"Erro na Directions API: {str(e)}")
         flash(f'Erro de conexão com a API do Google Maps: {str(e)}', 'error')
         return None, None
-    
+
 # ---- Rotas do Aplicativo ----
 # Rota principal: exibe o dashboard com motoristas, veículos e viagens
-# No app.py, substitua a função index() pela versão abaixo:
-
 @app.route('/')
 def index():
     """Página inicial com dashboard."""
     motoristas = Motorista.query.all()
     veiculos = Veiculo.query.all()
     viagens = Viagem.query.all()
-    # Removemos a filtragem para viagens_ativas e usamos todas as viagens
     return render_template(
         'index.html',
         motoristas=motoristas,
@@ -283,6 +261,7 @@ def index():
         viagens=viagens,
         GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY
     )
+
 # Rota para cadastrar motoristas
 @app.route('/cadastrar_motorista', methods=['GET', 'POST'])
 def cadastrar_motorista():
@@ -441,7 +420,7 @@ def editar_motorista(motorista_id):
 
         # Validação dos campos obrigatórios
         if not all([motorista.nome, data_nascimento, motorista.endereco, motorista.pessoa_tipo, motorista.cpf_cnpj, motorista.telefone, motorista.cnh, validade_cnh]):
-            flash('Todos os campos obrigatórios devem be preenchidos.', 'error')
+            flash('Todos os campos obrigatórios devem ser preenchidos.', 'error')
             return redirect(url_for('editar_motorista', motorista_id=motorista_id))
 
         # Validação das datas
@@ -533,37 +512,6 @@ def editar_motorista(motorista_id):
 
     return render_template('editar_motorista.html', motorista=motorista)
 
-
-@app.route('/consultar_despesas/<int:viagem_id>', methods=['GET'])
-def consultar_despesas(viagem_id):
-    """Rota para consultar as despesas de uma viagem específica e retornar os dados para exibição em um modal."""
-    try:
-        # Busca a viagem pelo ID, retorna 404 se não encontrada
-        viagem = Viagem.query.get_or_404(viagem_id)
-
-        # Busca os custos associados à viagem
-        custo_viagem = CustoViagem.query.filter_by(viagem_id=viagem_id).first()
-
-        # Prepara o dicionário de custos com valores padrão para evitar erros
-        custo_dict = {
-            'combustivel': custo_viagem.combustivel if custo_viagem else 0.0,
-            'pedagios': custo_viagem.pedagios if custo_viagem else 0.0,
-            'alimentacao': custo_viagem.alimentacao if custo_viagem else 0.0,
-            'hospedagem': custo_viagem.hospedagem if custo_viagem else 0.0,
-            'outros': custo_viagem.outros if custo_viagem else 0.0,
-            'descricao_outros': custo_viagem.descricao_outros if custo_viagem else 'Nenhuma',
-            'anexos': custo_viagem.anexos.split(',') if custo_viagem and custo_viagem.anexos else []
-        }
-
-        # Renderiza o template parcial para o modal
-        return render_template('consultar_despesas_modal.html', custo=custo_dict)
-
-    except Exception as e:
-        # Loga o erro para depuração
-        logger.error(f"Erro ao consultar despesas da viagem {viagem_id}: {str(e)}")
-        # Retorna uma mensagem de erro para o modal
-        return f"<p class='text-red-600'>Erro ao carregar despesas: {str(e)}</p>", 500
-
 # Rota para excluir anexo de motorista
 @app.route('/excluir_anexo/<int:motorista_id>/<path:anexo>', methods=['GET'])
 def excluir_anexo(motorista_id, anexo):
@@ -630,10 +578,6 @@ def excluir_motorista(motorista_id):
     return redirect(url_for('consultar_motoristas'))
 
 # Rota para cadastrar veículos
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 @app.route('/cadastrar_veiculo', methods=['GET', 'POST'])
 def cadastrar_veiculo():
     if request.method == 'POST':
@@ -709,9 +653,23 @@ def cadastrar_veiculo():
         except Exception as e:
             db.session.rollback()
             flash(f'Erro ao cadastrar veículo: {str(e)}', 'error')
-            # Opcional: Adicionar log para depuração
             print(f"Erro ao cadastrar veículo: {str(e)}")
     return render_template('cadastrar_veiculo.html')
+
+# Rota para consultar veículos
+@app.route('/consultar_veiculos', methods=['GET'])
+def consultar_veiculos():
+    search_query = request.args.get('search', '').strip()
+    if search_query:
+        veiculos = Veiculo.query.filter(
+            or_(
+                Veiculo.placa.ilike(f'%{search_query}%'),
+                Veiculo.modelo.ilike(f'%{search_query}%')
+            )
+        ).all()
+    else:
+        veiculos = Veiculo.query.all()
+    return render_template('consultar_veiculos.html', veiculos=veiculos, search_query=search_query)
 
 # Rota para editar veículos
 @app.route('/editar_veiculo/<int:veiculo_id>', methods=['GET', 'POST'])
@@ -901,6 +859,7 @@ def iniciar_viagem():
         data_inicio_formatada = viagem.data_inicio.strftime('%Y-%m-%d %H:%M:%S')[:-3]
         horario_chegada = (viagem.data_inicio + timedelta(seconds=viagem.duracao_segundos)).strftime('%d/%m/%Y %H:%M') if viagem.duracao_segundos else 'Não calculado'
         viagem_dict = {
+            'valor_recebido': viagem.valor_recebido or 0,
             'id': viagem.id,
             'motorista_id': viagem.motorista_id,
             'veiculo_id': viagem.veiculo_id,
@@ -1029,6 +988,7 @@ def editar_viagem(viagem_id):
         }
         viagens_data.append(viagem_dict)
     return render_template('iniciar_viagem.html', motoristas=motoristas, veiculos=veiculos, viagens=viagens_data, viagem_edit=viagem, GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
+
 # Rota para excluir viagens
 @app.route('/excluir_viagem/<int:viagem_id>')
 def excluir_viagem(viagem_id):
@@ -1045,20 +1005,114 @@ def excluir_viagem(viagem_id):
         flash(f'Erro ao excluir viagem: {str(e)}', 'error')
     return redirect(url_for('index'))
 
-# Rota para finalizar viagens
-@app.route('/finalizar_viagem/<int:viagem_id>')
-def finalizar_viagem(viagem_id):
-    """Rota para finalizar uma viagem."""
-    viagem = Viagem.query.get_or_404(viagem_id)
-    if viagem.data_fim:
-        flash('Erro: Viagem já finalizada.', 'error')
-    else:
-        viagem.data_fim = datetime.now()
-        viagem.veiculo.disponivel = True
-        viagem.status = 'concluida'
+# Rota para salvar custos de viagem
+@app.route('/salvar_custo_viagem', methods=['POST'])
+def salvar_custo_viagem():
+    try:
+        viagem_id = request.form.get('viagem_id')
+        viagem = Viagem.query.get_or_404(viagem_id)
+
+        # Verifica se já existe um registro de custo
+        custo = CustoViagem.query.filter_by(viagem_id=viagem_id).first()
+        if custo:
+            # Atualiza o registro existente
+            custo.combustivel = float(request.form.get('combustivel') or custo.combustivel)
+            custo.pedagios = float(request.form.get('pedagios') or custo.pedagios)
+            custo.alimentacao = float(request.form.get('alimentacao') or custo.alimentacao)
+            custo.hospedagem = float(request.form.get('hospedagem') or custo.hospedagem)
+            custo.outros = float(request.form.get('outros') or custo.outros)
+            custo.descricao_outros = request.form.get('descricao_outros') or custo.descricao_outros
+        else:
+            # Cria um novo registro
+            custo = CustoViagem(
+                viagem_id=viagem_id,
+                combustivel=float(request.form.get('combustivel') or 0),
+                pedagios=float(request.form.get('pedagios') or 0),
+                alimentacao=float(request.form.get('alimentacao') or 0),
+                hospedagem=float(request.form.get('hospedagem') or 0),
+                outros=float(request.form.get('outros') or 0),
+                descricao_outros=request.form.get('descricao_outros')
+            )
+            db.session.add(custo)
+
+        # Calcular o custo total e atualizar a tabela viagem
+        custo_total = (custo.combustivel or 0) + (custo.pedagios or 0) + (custo.alimentacao or 0) + (custo.hospedagem or 0) + (custo.outros or 0)
+        viagem.custo = custo_total
+
+        # Upload de anexos (se implementado)
+        files = request.files.getlist('anexos')
+        anexos_urls = []
+        allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png'}
+        if files and any(f.filename for f in files):
+            s3_client = boto3.client(
+                's3',
+                endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+                aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+                aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY']
+            )
+            bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
+            for file in files:
+                if file and file.filename:
+                    extension = os.path.splitext(file.filename)[1].lower()
+                    if extension not in allowed_extensions:
+                        flash(f'Arquivo {file.filename} não permitido. Use PDF, JPG ou PNG.', 'error')
+                        continue
+                    filename = secure_filename(file.filename)
+                    s3_path = f"custos_viagem/{viagem_id}/{filename}"
+                    s3_client.upload_fileobj(file, bucket_name, s3_path)
+                    public_url = f"{app.config['CLOUDFLARE_R2_PUBLIC_URL']}/{s3_path}"
+                    anexos_urls.append(public_url)
+            custo.anexos = ','.join(anexos_urls) if anexos_urls else None
+
         db.session.commit()
-        flash('Viagem finalizada com sucesso!', 'success')
-    return redirect(url_for('index'))
+        flash('Custo da viagem salvo com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao salvar custo da viagem: {str(e)}', 'error')
+    return redirect(url_for('consultar_viagens'))
+
+# Rota para consultar despesas de uma viagem
+@app.route('/consultar_despesas/<int:viagem_id>', methods=['GET'])
+def consultar_despesas(viagem_id):
+    try:
+        viagem = Viagem.query.get_or_404(viagem_id)
+        custo_viagem = CustoViagem.query.filter_by(viagem_id=viagem_id).first()
+        custo_dict = {
+            'combustivel': custo_viagem.combustivel if custo_viagem else 0.0,
+            'pedagios': custo_viagem.pedagios if custo_viagem else 0.0,
+            'alimentacao': custo_viagem.alimentacao if custo_viagem else 0.0,
+            'hospedagem': custo_viagem.hospedagem if custo_viagem else 0.0,
+            'outros': custo_viagem.outros if custo_viagem else 0.0,
+            'descricao_outros': custo_viagem.descricao_outros if custo_viagem else 'Nenhuma',
+            'anexos': custo_viagem.anexos.split(',') if custo_viagem and custo_viagem.anexos else []
+        }
+        return jsonify(custo_dict)
+    except Exception as e:
+        logger.error(f"Erro ao consultar despesas da viagem {viagem_id}: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# Rota para atualizar o status de uma viagem
+@app.route('/atualizar_status_viagem/<int:viagem_id>', methods=['POST'])
+def atualizar_status_viagem(viagem_id):
+    try:
+        data = request.get_json()
+        novo_status = data.get('status')
+
+        if novo_status not in ['pendente', 'em_andamento', 'concluida', 'cancelada']:
+            return jsonify({'success': False, 'message': 'Status inválido'}), 400
+
+        viagem = Viagem.query.get_or_404(viagem_id)
+        viagem.status = novo_status
+
+        if novo_status == 'concluida' and not viagem.data_fim:
+            viagem.data_fim = datetime.now()
+
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao atualizar status da viagem {viagem_id}: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 # Rota para consultar viagens
 @app.route('/consultar_viagens')
@@ -1119,28 +1173,43 @@ def consultar_viagens():
         data_fim=data_fim
     )
 
-# Rota para consultar veículos
-@app.route('/consultar_veiculos', methods=['GET'])
-def consultar_veiculos():
-    search_query = request.args.get('search', '').strip()
-    if search_query:
-        veiculos = Veiculo.query.filter(
-            or_(
-                Veiculo.placa.ilike(f'%{search_query}%'),
-                Veiculo.modelo.ilike(f'%{search_query}%')
-            )
-        ).all()
-    else:
-        veiculos = Veiculo.query.all()
-    return render_template('consultar_veiculos.html', veiculos=veiculos, search_query=search_query)
+# Rota para finalizar viagens
+@app.route('/finalizar_viagem/<int:viagem_id>', methods=['GET', 'POST'])
+def finalizar_viagem(viagem_id):
+    viagem = Viagem.query.get_or_404(viagem_id)
+    
+    if request.method == 'POST':
+        try:
+            valor_recebido = float(request.form.get('valor_recebido', 0))
+            
+            viagem.data_fim = datetime.now()
+            viagem.veiculo.disponivel = True
+            viagem.status = 'concluida'
+            viagem.valor_recebido = valor_recebido
+            
+            db.session.commit()
+            flash('Viagem finalizada com sucesso! Valor recebido registrado.', 'success')
+            return redirect(url_for('consultar_viagens'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao finalizar viagem: {str(e)}', 'error')
+    
+    # Se for GET, mostra o formulário de finalização
+    return render_template('finalizar_viagem.html', viagem=viagem)
 
 # Rota para relatórios
 @app.route('/relatorios')
 def relatorios():
-    """Rota para relatórios e análises."""
+    # Filtros
     data_inicio = request.args.get('data_inicio', '')
     data_fim = request.args.get('data_fim', '')
+    status_filter = request.args.get('status', '')
+    motorista_id = request.args.get('motorista_id', '')
+
+    # Query base
     query = Viagem.query
+
+    # Aplicar filtros
     if data_inicio:
         try:
             query = query.filter(Viagem.data_inicio >= datetime.strptime(data_inicio, '%Y-%m-%d'))
@@ -1151,28 +1220,183 @@ def relatorios():
             query = query.filter(Viagem.data_inicio <= datetime.strptime(data_fim, '%Y-%m-%d'))
         except ValueError:
             flash('Data de fim inválida.', 'error')
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+    if motorista_id:
+        query = query.filter_by(motorista_id=motorista_id)
 
+    # Estatísticas
     total_viagens = query.count()
-    total_distancia = db.session.query(db.func.sum(Viagem.distancia_km)).filter(query.is_(None) == False).scalar() or 0
-    total_custo = db.session.query(db.func.sum(Viagem.custo)).filter(query.is_(None) == False).scalar() or 0
-    viagens_por_status = db.session.query(Viagem.status, db.func.count(Viagem.id)).filter(query.is_(None) == False).group_by(Viagem.status).all()
-    viagens_por_motorista = db.session.query(
-        Motorista.nome,
-        db.func.count(Viagem.id).label('total_viagens'),
-        db.func.sum(Viagem.distancia_km).label('total_distancia'),
-        db.func.sum(Viagem.custo).label('total_custo')
-    ).join(Viagem).filter(query.is_(None) == False).group_by(Motorista.id).all()
+    total_distancia = db.session.query(db.func.sum(Viagem.distancia_km)).filter(
+        Viagem.distancia_km.isnot(None)
+    ).scalar() or 0
+    total_receita = db.session.query(db.func.sum(Viagem.valor_recebido)).filter(
+        Viagem.valor_recebido.isnot(None)
+    ).scalar() or 0
+    total_custo = db.session.query(db.func.sum(Viagem.custo)).filter(
+        Viagem.custo.isnot(None)
+    ).scalar() or 0
+
+    # Agregações
+    viagens_por_status = db.session.query(
+        Viagem.status,
+        db.func.count(Viagem.id).label('total'),
+        db.func.sum(Viagem.valor_recebido).label('receita'),
+        db.func.sum(Viagem.custo).label('custo')
+    ).group_by(Viagem.status).all()
+
+    motoristas = {}
+    for v in query.all():
+        nome = v.motorista.nome
+        if nome not in motoristas:
+            motoristas[nome] = {'viagens': 0, 'custo': 0, 'receita': 0}
+        motoristas[nome]['viagens'] += 1
+        motoristas[nome]['custo'] += v.custo or 0
+        motoristas[nome]['receita'] += v.valor_recebido or 0
+
+    veiculos = {}
+    for v in query.all():
+        veiculo = f"{v.veiculo.placa} - {v.veiculo.modelo}"
+        if veiculo not in veiculos:
+            veiculos[veiculo] = {'km': 0, 'custo': 0}
+        veiculos[veiculo]['km'] += v.distancia_km or 0
+        veiculos[veiculo]['custo'] += v.custo or 0
+
+    # Lucros por Viagem
+    viagens = []
+    for v in query.all():
+        receita = v.valor_recebido if v.valor_recebido is not None else 0
+        custo = v.custo or 0
+        lucro = receita - custo
+        viagens.append({
+            'id': v.id,
+            'cliente': v.cliente or 'N/A',
+            'data': v.data_inicio.strftime('%d/%m/%Y') if v.data_inicio else '',
+            'receita': receita,
+            'custo': custo,
+            'lucro': lucro
+        })
+
+    # Custos por Categoria
+    categorias = {
+        'Combustível': 0,
+        'Pedágios': 0,
+        'Alimentação': 0,
+        'Hospedagem': 0,
+        'Outros': 0
+    }
+    for v in query.all():
+        if v.custo_viagem:
+            categorias['Combustível'] += v.custo_viagem.combustivel or 0
+            categorias['Pedágios'] += v.custo_viagem.pedagios or 0
+            categorias['Alimentação'] += v.custo_viagem.alimentacao or 0
+            categorias['Hospedagem'] += v.custo_viagem.hospedagem or 0
+            categorias['Outros'] += v.custo_viagem.outros or 0
+
+    # Receita vs Custo por Mês
+    mensal = {}
+    for v in query.all():
+        if v.data_inicio:
+            mes = v.data_inicio.strftime('%Y-%m')
+            if mes not in mensal:
+                mensal[mes] = {'receita': 0, 'custo': 0}
+            mensal[mes]['receita'] += v.valor_recebido or 0
+            mensal[mes]['custo'] += v.custo or 0
+
+    # Obter lista de motoristas para o filtro
+    motoristas_filtro = Motorista.query.all()
 
     return render_template(
         'relatorios.html',
         total_viagens=total_viagens,
         total_distancia=total_distancia,
+        total_receita=total_receita,
         total_custo=total_custo,
         viagens_por_status=viagens_por_status,
-        viagens_por_motorista=viagens_por_motorista,
+        motoristas=motoristas,
+        veiculos=veiculos,
+        viagens=viagens,
+        categorias=categorias,
+        mensal=mensal,
         data_inicio=data_inicio,
-        data_fim=data_fim
+        data_fim=data_fim,
+        status_filter=status_filter,
+        motorista_id=motorista_id,
+        motoristas_filtro=motoristas_filtro
     )
+
+# Rota para exportar relatório
+@app.route('/exportar_relatorio')
+def exportar_relatorio():
+    try:
+        # Filtros
+        data_inicio = request.args.get('data_inicio', '')
+        data_fim = request.args.get('data_fim', '')
+        motorista_id = request.args.get('motorista_id', '')
+        status_filter = request.args.get('status', '')
+
+        # Query base
+        query = Viagem.query
+
+        # Aplicar filtros
+        if data_inicio:
+            query = query.filter(Viagem.data_inicio >= datetime.strptime(data_inicio, '%Y-%m-%d'))
+        if data_fim:
+            query = query.filter(Viagem.data_inicio <= datetime.strptime(data_fim, '%Y-%m-%d'))
+        if motorista_id:
+            query = query.filter_by(motorista_id=motorista_id)
+        if status_filter:
+            query = query.filter_by(status=status_filter)
+
+        viagens = query.join(Motorista).join(Veiculo).all()
+
+        # Criar arquivo Excel
+        output = io.BytesIO()
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "Relatório Financeiro"
+
+        # Cabeçalhos
+        headers = [
+            "ID", "Data", "Cliente", "Motorista", "Veículo",
+            "Distância (km)", "Receita (R$)", "Custo (R$)", "Lucro (R$)",
+            "Forma Pagamento", "Status"
+        ]
+        
+        for col_num, header in enumerate(headers, 1):
+            sheet.cell(row=1, column=col_num, value=header).font = Font(bold=True)
+
+        # Dados
+        for row_num, viagem in enumerate(viagens, 2):
+            receita = viagem.valor_recebido or 0
+            custo = viagem.custo or 0
+            lucro = receita - custo
+            
+            sheet.cell(row=row_num, column=1, value=viagem.id)
+            sheet.cell(row=row_num, column=2, value=viagem.data_inicio.strftime('%d/%m/%Y'))
+            sheet.cell(row=row_num, column=3, value=viagem.cliente)
+            sheet.cell(row=row_num, column=4, value=viagem.motorista.nome)
+            sheet.cell(row=row_num, column=5, value=f"{viagem.veiculo.placa} - {viagem.veiculo.modelo}")
+            sheet.cell(row=row_num, column=6, value=viagem.distancia_km or 0)
+            sheet.cell(row=row_num, column=7, value=receita)
+            sheet.cell(row=row_num, column=8, value=custo)
+            sheet.cell(row=row_num, column=9, value=lucro)
+            sheet.cell(row=row_num, column=10, value=viagem.forma_pagamento or '')
+            sheet.cell(row=row_num, column=11, value=viagem.status)
+
+        workbook.save(output)
+        output.seek(0)
+
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=f"relatorio_financeiro_{datetime.now().strftime('%Y%m%d')}.xlsx",
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    except Exception as e:
+        logger.error(f"Erro ao exportar relatório: {str(e)}")
+        flash('Erro ao gerar relatório em Excel', 'error')
+        return redirect(url_for('relatorios'))
 
 # Rota para obter viagem ativa
 @app.route('/get_active_trip')
