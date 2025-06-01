@@ -4,32 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Consultar Viagens</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/Zpiw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
-<body class="bg-gray-100 font-sans">
-    <div class="container mx-auto p-6">
-        <h1 class="text-3xl font-bold text-gray-800 mb-6">Consultar Viagens</h1>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-search"></i> Consultar Viagens</h1>
 
-        <!-- Flash Messages -->
+        <!-- Mensagens de Feedback -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <div class="mb-4">
+                <div class="messages">
                     {% for category, message in messages %}
-                        <div class="p-4 mb-2 rounded {% if category == 'success' %}bg-green-100 text-green-700{% elif category == 'error' %}bg-red-100 text-red-700{% else %}bg-blue-100 text-blue-700{% endif %}">
-                            {{ message }}
-                        </div>
+                        <p class="message {{ category }}">{{ message }}</p>
                     {% endfor %}
                 </div>
             {% endif %}
         {% endwith %}
 
-        <!-- Filters -->
-        <form class="bg-white p-6 rounded-lg shadow-md mb-6" method="GET" action="{{ url_for('consultar_viagens') }}">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                    <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
-                    <select id="status" name="status" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+        <!-- Filtro de Viagens -->
+        <div class="filter-section">
+            <form method="GET" action="{{ url_for('consultar_viagens') }}" class="filter-form">
+                <div class="form-group">
+                    <label for="status">Status:</label>
+                    <select id="status" name="status">
                         <option value="">Todos os Status</option>
                         <option value="pendente" {% if status_filter == 'pendente' %}selected{% endif %}>Pendente</option>
                         <option value="em_andamento" {% if status_filter == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
@@ -37,117 +34,569 @@
                         <option value="cancelada" {% if status_filter == 'cancelada' %}selected{% endif %}>Cancelada</option>
                     </select>
                 </div>
-                <div>
-                    <label for="search" class="block text-sm font-medium text-gray-700">Buscar</label>
-                    <input type="text" id="search" name="search" value="{{ search_query }}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" placeholder="Cliente, motorista, endereço...">
+                <div class="form-group">
+                    <label for="search">Buscar:</label>
+                    <input type="text" id="search" name="search" placeholder="Cliente, motorista, veículo..." value="{{ search_query }}">
                 </div>
-                <div>
-                    <label for="data_inicio" class="block text-sm font-medium text-gray-700">Data Início</label>
-                    <input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio }}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                <div class="form-group">
+                    <label for="data_inicio">Data Início:</label>
+                    <input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio }}">
                 </div>
-                <div>
-                    <label for="data_fim" class="block text-sm font-medium text-gray-700">Data Fim</label>
-                    <input type="date" id="data_fim" name="data_fim" value="{{ data_fim }}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                <div class="form-group">
+                    <label for="data_fim">Data Fim:</label>
+                    <input type="date" id="data_fim" name="data_fim" value="{{ data_fim }}">
                 </div>
-            </div>
-            <div class="mt-4 flex justify-between">
-                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Filtrar</button>
-                <button type="button" onclick="exportToExcel()" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Exportar para Excel</button>
-            </div>
-        </form>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Filtrar</button>
+                <a href="{{ url_for('exportar_relatorio') }}" class="btn btn-secondary"><i class="fas fa-file-excel"></i> Exportar para Excel</a>
+            </form>
+        </div>
 
-        <!-- Trips Table -->
-        <div class="bg-white p-6 rounded-lg shadow-md overflow-x-auto">
-            <table class="min-w-full table-auto">
+        <!-- Tabela de Viagens -->
+        <div class="table-container">
+            <table>
                 <thead>
-                    <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
-                        <th class="py-3 px-6 text-left">ID</th>
-                        <th class="py-3 px-6 text-left">Motorista</th>
-                        <th class="py-3 px-6 text-left">Veículo</th>
-                        <th class="py-3 px-6 text-left">Cliente</th>
-                        <th class="py-3 px-6 text-left">Saída</th>
-                        <th class="py-3 px-6 text-left">Destino</th>
-                        <th class="py-3 px-6 text-left">Início</th>
-                        <th class="py-3 px-6 text-left">Fim</th>
-                        <th class="py-3 px-6 text-left">Status</th>
-                        <th class="py-3 px-6 text-left">Ações</th>
+                    <tr>
+                        <th class="col-id">ID</th>
+                        <th class="col-motorista">Motorista</th>
+                        <th class="col-veiculo">Veículo</th>
+                        <th class="col-cliente">Cliente</th>
+                        <th class="col-saida">Saída</th>
+                        <th class="col-destino">Destino</th>
+                        <th class="col-inicio">Início</th>
+                        <th class="col-fim">Fim</th>
+                        <th class="col-status">Status</th>
+                        <th class="col-custo">Custo Total</th>
+                        <th class="col-despesas">Despesas</th>
+                        <th class="col-acoes">Ações</th>
                     </tr>
                 </thead>
-                <tbody class="text-gray-600 text-sm">
+                <tbody>
                     {% for viagem in viagens %}
-                        <tr class="border-b border-gray-200 hover:bg-gray-100">
-                            <td class="py-3 px-6">{{ viagem.id }}</td>
-                            <td class="py-3 px-6">{{ viagem.motorista_nome }}</td>
-                            <td class="py-3 px-6">{{ viagem.veiculo_placa }} - {{ viagem.veiculo_modelo }}</td>
-                            <td class="py-3 px-6">{{ viagem.cliente }}</td>
-                            <td class="py-3 px-6">{{ viagem.endereco_saida }}</td>
-                            <td class="py-3 px-6">{{ viagem.endereco_destino }}</td>
-                            <td class="py-3 px-6">{{ viagem.data_inicio }}</td>
-                            <td class="py-3 px-6">{{ viagem.data_fim if viagem.data_fim else 'Em andamento' }}</td>
-                            <td class="py-3 px-6">{{ viagem.status|capitalize }}</td>
-                            <td class="py-3 px-6 flex space-x-2">
-                                <button onclick="openExpenseModal({{ viagem.id }})" class="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700">Consultar Despesas</button>
-                                <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="bg-yellow-600 text-white px-3 py-1 rounded-md hover:bg-yellow-700">Editar</a>
-                                {% if viagem.status != 'concluida' %}
-                                    <a href="{{ url_for('finalizar_viagem', viagem_id=viagem.id) }}" class="bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700" onclick="return confirm('Deseja finalizar esta viagem?')">Finalizar</a>
-                                {% else %}
-                                    <button class="bg-gray-400 text-white px-3 py-1 rounded-md cursor-not-allowed" disabled>Finalizar</button>
-                                {% endif %}
-                                <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700" onclick="return confirm('Deseja excluir esta viagem?')">Excluir</a>
-                            </td>
-                        </tr>
+                    <tr>
+                        <td class="col-id">{{ viagem.id }}</td>
+                        <td class="col-motorista">{{ viagem.motorista_nome }}</td>
+                        <td class="col-veiculo">{{ viagem.veiculo_placa }} - {{ viagem.veiculo_modelo }}</td>
+                        <td class="col-cliente">{{ viagem.cliente }}</td>
+                        <td class="col-saida">{{ viagem.endereco_saida }}</td>
+                        <td class="col-destino">{{ viagem.endereco_destino }}</td>
+                        <td class="col-inicio">{{ viagem.data_inicio }}</td>
+                        <td class="col-fim">{{ viagem.data_fim if viagem.data_fim else 'Em andamento' }}</td>
+                        <td class="col-status">
+                            <select class="status-select" data-viagem-id="{{ viagem.id }}" onchange="atualizarStatus(this)">
+                                <option value="pendente" {% if viagem.status == 'pendente' %}selected{% endif %}>Pendente</option>
+                                <option value="em_andamento" {% if viagem.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
+                                <option value="concluida" {% if viagem.status == 'concluida' %}selected{% endif %}>Concluída</option>
+                                <option value="cancelada" {% if viagem.status == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                            </select>
+                        </td>
+                        <td class="col-custo">R$ {{ viagem.custo|round(2) if viagem.custo else '0.00' }}</td>
+                        <td class="col-despesas">
+                            {% set custo_viagem = viagem.custo_viagem %}
+                            {% if custo_viagem %}
+                                <span class="expense-tag">Atribuído</span>
+                                <button class="btn btn-info btn-small" onclick="visualizarDespesas({{ viagem.id }})"><i class="fas fa-eye"></i> Ver</button>
+                            {% else %}
+                                <span class="expense-tag pending">Pendente</span>
+                            {% endif %}
+                        </td>
+                        <td class="col-acoes">
+                            <div class="action-buttons">
+                                <div class="action-group">
+                                    <button class="btn btn-warning" onclick="abrirModalAtribuirDespesa({{ viagem.id }})"><i class="fas fa-dollar-sign"></i> Despesa</button>
+                                    <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="btn btn-primary"><i class="fas fa-edit"></i> Editar</a>
+                                </div>
+                                <div class="action-group">
+                                    {% if viagem.status != 'concluida' %}
+                                        <a href="{{ url_for('finalizar_viagem', viagem_id=viagem.id) }}" class="btn btn-secondary"><i class="fas fa-check"></i> Finalizar</a>
+                                    {% else %}
+                                        <span class="btn btn-disabled"><i class="fas fa-check"></i> Finalizar</span>
+                                    {% endif %}
+                                    <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja excluir esta viagem?');"><i class="fas fa-trash"></i> Excluir</a>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
 
-        <!-- Expense Modal -->
-        <div id="expenseModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden">
-            <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-                <h2 class="text-xl font-bold mb-4">Custo da Viagem</h2>
-                <div id="expenseDetails" class="space-y-4">
-                    <!-- Expense details will be loaded here via AJAX -->
-                </div>
-                <div class="mt-4 flex justify-end space-x-2">
-                    <button onclick="closeExpenseModal()" class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700">Fechar</button>
+        <!-- Modal para Atribuir Despesa -->
+        <div id="atribuirDespesaModal" class="modal">
+            <div class="modal-content">
+                <h2><i class="fas fa-dollar-sign"></i> Atribuir Despesa à Viagem</h2>
+                <form id="atribuirDespesaForm" method="POST" action="{{ url_for('salvar_custo_viagem') }}" enctype="multipart/form-data" onsubmit="return validarFormulario()">
+                    <input type="hidden" name="viagem_id" id="viagem_id">
+                    <div class="form-group">
+                        <label for="combustivel">Combustível (R$):</label>
+                        <input type="number" id="combustivel" name="combustivel" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="pedagios">Pedágios (R$):</label>
+                        <input type="number" id="pedagios" name="pedagios" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="alimentacao">Alimentação (R$):</label>
+                        <input type="number" id="alimentacao" name="alimentacao" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="hospedagem">Hospedagem (R$):</label>
+                        <input type="number" id="hospedagem" name="hospedagem" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="outros">Outros (R$):</label>
+                        <input type="number" id="outros" name="outros" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="descricao_outros">Descrição dos Outros:</label>
+                        <textarea id="descricao_outros" name="descricao_outros" placeholder="Descreva outros custos..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="anexos">Arquivos (PDF/JPG/PNG):</label>
+                        <input type="file" id="anexos" name="anexos" multiple accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar Despesa</button>
+                        <button type="button" class="btn btn-secondary" onclick="fecharModal('atribuirDespesaModal')"><i class="fas fa-times"></i> Fechar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal para Visualizar Despesas -->
+        <div id="visualizarDespesasModal" class="modal">
+            <div class="modal-content">
+                <h2><i class="fas fa-eye"></i> Detalhes das Despesas</h2>
+                <div id="despesasContent"></div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModal('visualizarDespesasModal')"><i class="fas fa-times"></i> Fechar</button>
                 </div>
             </div>
         </div>
 
-        <!-- Back Button -->
-        <div class="mt-6">
-            <a href="{{ url_for('index') }}" class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700">Voltar</a>
-        </div>
+        <!-- Botão Voltar -->
+        <a href="{{ url_for('index') }}" class="btn btn-secondary back-btn"><i class="fas fa-arrow-left"></i> Voltar</a>
     </div>
 
+    <!-- JavaScript -->
     <script>
-        // Open expense modal and fetch details via AJAX
-        function openExpenseModal(viagemId) {
+        function abrirModalAtribuirDespesa(viagemId) {
+            document.getElementById('viagem_id').value = viagemId;
+            document.getElementById('atribuirDespesaForm').reset();
+            document.getElementById('atribuirDespesaModal').style.display = 'flex';
+        }
+
+        function visualizarDespesas(viagemId) {
             fetch(`/consultar_despesas/${viagemId}`)
-                .then(response => response.text())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erro ao carregar despesas');
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    document.getElementById('expenseDetails').innerHTML = data;
-                    document.getElementById('expenseModal').classList.remove('hidden');
+                    const content = `
+                        <p><strong>Combustível (R$):</strong> ${data.combustivel.toFixed(2)}</p>
+                        <p><strong>Pedágios (R$):</strong> ${data.pedagios.toFixed(2)}</p>
+                        <p><strong>Alimentação (R$):</strong> ${data.alimentacao.toFixed(2)}</p>
+                        <p><strong>Hospedagem (R$):</strong> ${data.hospedagem.toFixed(2)}</p>
+                        <p><strong>Outros (R$):</strong> ${data.outros.toFixed(2)}</p>
+                        <p><strong>Descrição dos Outros:</strong> ${data.descricao_outros || 'Nenhuma'}</p>
+                        <p><strong>Arquivos:</strong> ${
+                            data.anexos.length > 0
+                                ? data.anexos.map(anexo => `<a href="${anexo}" target="_blank">${anexo.split('/').pop()}</a>`).join(', ')
+                                : 'Nenhum arquivo'
+                        }</p>
+                    `;
+                    document.getElementById('despesasContent').innerHTML = content;
+                    document.getElementById('visualizarDespesasModal').style.display = 'flex';
                 })
                 .catch(error => {
-                    alert('Erro ao carregar despesas: ' + error);
+                    alert('Erro ao carregar despesas: ' + error.message);
                 });
         }
 
-        // Close expense modal
-        function closeExpenseModal() {
-            document.getElementById('expenseModal').classList.add('hidden');
-            document.getElementById('expenseDetails').innerHTML = '';
+        function atualizarStatus(selectElement) {
+            const viagemId = selectElement.getAttribute('data-viagem-id');
+            const novoStatus = selectElement.value;
+
+            fetch(`/atualizar_status_viagem/${viagemId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: novoStatus }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao atualizar o status');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    alert('Status atualizado com sucesso!');
+                    location.reload(); // Recarrega a página para refletir as mudanças
+                } else {
+                    throw new Error(data.message || 'Erro desconhecido');
+                }
+            })
+            .catch(error => {
+                alert('Erro ao atualizar o status: ' + error.message);
+                selectElement.value = selectElement.getAttribute('data-original-status'); // Reverte a seleção
+            });
         }
 
-        // Export table to Excel
-        function exportToExcel() {
-            const table = document.querySelector('table');
-            const ws = XLSX.utils.table_to_sheet(table);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Viagens');
-            XLSX.writeFile(wb, 'viagens.xlsx');
+        function fecharModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
         }
+
+        function validarFormulario() {
+            const inputs = document.querySelectorAll('#atribuirDespesaForm input[type="number"]');
+            for (let input of inputs) {
+                if (input.value < 0) {
+                    alert('Os valores de custo não podem ser negativos.');
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Fechar modais ao clicar fora
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.onclick = function(event) {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            };
+        });
+
+        // Armazenar o status original para possível reversão
+        document.querySelectorAll('.status-select').forEach(select => {
+            select.setAttribute('data-original-status', select.value);
+        });
     </script>
+
+    <!-- CSS -->
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Mensagens */
+        .messages {
+            margin-bottom: 1rem;
+        }
+        .message {
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            margin: 0.5rem 0;
+        }
+        .message.success {
+            background-color: #e6f4ea;
+            color: #2e7d32;
+        }
+        .message.error {
+            background-color: #ffebee;
+            color: #d32f2f;
+        }
+
+        /* Filtro */
+        .filter-section {
+            background-color: #fff;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
+        }
+        .filter-form {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+            color: #2c3e50;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 0.25rem;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+
+        /* Tabela */
+        .table-container {
+            background-color: #fff;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background-color: #2c3e50;
+            color: white;
+            font-weight: bold;
+        }
+        /* Definição de larguras fixas para colunas */
+        .col-id { width: 5%; }
+        .col-motorista { width: 10%; }
+        .col-veiculo { width: 12%; }
+        .col-cliente { width: 10%; }
+        .col-saida { width: 12%; }
+        .col-destino { width: 12%; }
+        .col-inicio { width: 10%; }
+        .col-fim { width: 10%; }
+        .col-status { width: 10%; }
+        .col-custo { width: 8%; }
+        .col-despesas { width: 10%; }
+        .col-acoes { width: 25%; }
+
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        .status-select {
+            padding: 0.25rem;
+            border: 1px solid #ddd;
+            border-radius: 0.25rem;
+            font-size: 0.9rem;
+            color: #333;
+        }
+        .status-select option[value="pendente"] { color: #FFA500; }
+        .status-select option[value="em_andamento"] { color: #2196F3; }
+        .status-select option[value="concluida"] { color: #4CAF50; }
+        .status-select option[value="cancelada"] { color: #f44336; }
+        .expense-tag {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.85rem;
+            color: white;
+            background-color: #4CAF50;
+        }
+        .expense-tag.pending {
+            background-color: #f44336;
+        }
+
+        /* Botões */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.25rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+        .btn-secondary {
+            background-color: #ccc;
+            color: black;
+        }
+        .btn-secondary:hover {
+            background-color: #b0b0b0;
+        }
+        .btn-warning {
+            background-color: #FFD700;
+            color: black;
+        }
+        .btn-warning:hover {
+            background-color: #e6c200;
+        }
+        .btn-danger {
+            background-color: #f44336;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #da190b;
+        }
+        .btn-info {
+            background-color: #2196F3;
+            color: white;
+        }
+        .btn-info:hover {
+            background-color: #1976D2;
+        }
+        .btn-disabled {
+            background-color: #e0e0e0;
+            color: #999;
+            cursor: not-allowed;
+        }
+        .btn-small {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.85rem;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .action-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .back-btn {
+            margin-top: 1.5rem;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .modal-content h2 {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .modal-content .form-group {
+            margin-bottom: 1rem;
+        }
+        .modal-content label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+            color: #2c3e50;
+        }
+        .modal-content input,
+        .modal-content textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 0.25rem;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        .modal-content input:focus,
+        .modal-content textarea:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+        .modal-content textarea {
+            height: 80px;
+            resize: vertical;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .filter-form {
+                flex-direction: column;
+            }
+            .form-group {
+                min-width: 100%;
+            }
+            .table-container {
+                overflow-x: auto;
+            }
+            th, td {
+                min-width: 120px;
+            }
+            .action-buttons {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+            .action-group {
+                flex-direction: column;
+            }
+            .modal-content {
+                width: 95%;
+                max-width: 95%;
+            }
+        }
+    </style>
 </body>
 </html>

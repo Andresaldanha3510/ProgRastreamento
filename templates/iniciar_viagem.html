@@ -121,48 +121,7 @@
             </div>
         </form>
 
-        <!-- Modal para Custos da Viagem -->
-        <div id="custoModal" class="modal">
-            <div class="modal-content">
-                <h2>Custo da Viagem</h2>
-                <form method="POST" action="{{ url_for('salvar_custo_viagem') }}" enctype="multipart/form-data">
-                    <input type="hidden" name="viagem_id" id="viagem_id_custo">
-                    <div class="form-group">
-                        <label for="combustivel">Combustível (R$):</label>
-                        <input type="number" step="0.01" name="combustivel" id="combustivel">
-                    </div>
-                    <div class="form-group">
-                        <label for="pedagios">Pedágios (R$):</label>
-                        <input type="number" step="0.01" name="pedagios" id="pedagios">
-                    </div>
-                    <div class="form-group">
-                        <label for="alimentacao">Alimentação (R$):</label>
-                        <input type="number" step="0.01" name="alimentacao" id="alimentacao">
-                    </div>
-                    <div class="form-group">
-                        <label for="hospedagem">Hospedagem (R$):</label>
-                        <input type="number" step="0.01" name="hospedagem" id="hospedagem">
-                    </div>
-                    <div class="form-group">
-                        <label for="outros">Outros (R$):</label>
-                        <input type="number" step="0.01" name="outros" id="outros">
-                    </div>
-                    <div class="form-group">
-                        <label for="descricao_outros">Descrição dos Outros:</label>
-                        <textarea name="descricao_outros" id="descricao_outros"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="anexos">Arquivos (PDF/JPG/PNG):</label>
-                        <input type="file" name="anexos" id="anexos" multiple accept=".pdf,.jpg,.jpeg,.png">
-                    </div>
-                    <div class="buttons">
-                        <button type="submit" class="submit-btn">Salvar Custo</button>
-                        <button type="button" class="back-btn" onclick="closeCustoModal()">Fechar</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
+        
         <!-- Seção de Viagens Cadastradas -->
 <div class="accordion">
             <h2>Viagens Cadastradas</h2>

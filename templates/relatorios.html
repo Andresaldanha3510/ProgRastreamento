@@ -1,88 +1,360 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relatórios</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Relatório Financeiro Geral</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome para ícones -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <!-- Estilos personalizados -->
+    <style>
+        body {
+            background-color: #f5f7fa;
+            font-family: 'Arial', sans-serif;
+        }
+        .container {
+            max-width: 1400px;
+            margin-top: 30px;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            margin-bottom: 20px;
+        }
+        .table {
+            background-color: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .table thead th {
+            background-color: #2c3e50;
+            color: #fff;
+            font-weight: 600;
+        }
+        .table tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        .table tbody tr:hover {
+            background-color: #e9ecef;
+        }
+        .filter-form {
+            background-color: #e9ecef;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .chart-container {
+            max-width: 600px;
+            margin: 20px auto;
+        }
+        .btn-primary {
+            background-color: #2c3e50;
+            border-color: #2c3e50;
+        }
+        .btn-primary:hover {
+            background-color: #34495e;
+            border-color: #34495e;
+        }
+    </style>
 </head>
 <body>
-    <div class="container mt-4">
-        <h2>Relatórios</h2>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        <form method="GET" class="mb-4">
-            <div class="row">
-                <div class="col-md-3">
-                    <input type="date" class="form-control" name="data_inicio" value="{{ data_inicio }}">
+    <div class="container">
+        <h1><i class="fas fa-chart-line me-2"></i>Relatório Financeiro Geral</h1>
+
+        <!-- Formulário de Filtros -->
+        <div class="filter-form">
+            <form action="{{ url_for('relatorios') }}" method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label for="data_inicio" class="form-label">Data Início</label>
+                    <input type="date" class="form-control" id="data_inicio" name="data_inicio" value="{{ data_inicio }}">
                 </div>
-                <div class="col-md-3">
-                    <input type="date" class="form-control" name="data_fim" value="{{ data_fim }}">
+                <div class="col-md-4">
+                    <label for="data_fim" class="form-label">Data Fim</label>
+                    <input type="date" class="form-control" id="data_fim" name="data_fim" value="{{ data_fim }}">
                 </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                <div class="col-md-4">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">Todos</option>
+                        <option value="Concluída" {% if status_filter == 'Concluída' %}selected{% endif %}>Concluída</option>
+                        <option value="Em Andamento" {% if status_filter == 'Em Andamento' %}selected{% endif %}>Em Andamento</option>
+                        <option value="Cancelada" {% if status_filter == 'Cancelada' %}selected{% endif %}>Cancelada</option>
+                    </select>
                 </div>
-            </div>
-        </form>
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Total de Viagens</h5>
-                        <p class="card-text">{{ total_viagens }}</p>
-                    </div>
+                <div class="col-12 text-end">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-filter me-2"></i>Filtrar</button>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Distância Total (km)</h5>
-                        <p class="card-text">{{ total_distancia | round(2) }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Custo Total (R$)</h5>
-                        <p class="card-text">{{ total_custo | round(2) }}</p>
-                    </div>
-                </div>
-            </div>
+            </form>
         </div>
-        <h3 class="mt-4">Viagens por Status</h3>
-        <ul class="list-group mb-4">
-            {% for status, count in viagens_por_status %}
-                <li class="list-group-item">{{ status | capitalize }}: {{ count }}</li>
-            {% endfor %}
-        </ul>
-        <h3>Viagens por Motorista</h3>
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Motorista</th>
-                    <th>Viagens</th>
-                    <th>Distância (km)</th>
-                    <th>Custo (R$)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for motorista in viagens_por_motorista %}
+
+        <!-- 1. Lucros por Viagem -->
+        <h2><i class="fas fa-dollar-sign me-2"></i>Lucros por Viagem</h2>
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead>
                     <tr>
-                        <td>{{ motorista.nome }}</td>
-                        <td>{{ motorista.total_viagens }}</td>
-                        <td>{{ motorista.total_distancia | round(2) if motorista.total_distancia else 0 }}</td>
-                        <td>{{ motorista.total_custo | round(2) if motorista.total_custo else 0 }}</td>
+                        <th>ID</th>
+                        <th>Cliente</th>
+                        <th>Data</th>
+                        <th>Receita (R$)</th>
+                        <th>Custo (R$)</th>
+                        <th>Lucro (R$)</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <a href="{{ url_for('index') }}" class="btn btn-secondary mt-3">Voltar</a>
+                </thead>
+                <tbody>
+                    {% for v in viagens %}
+                    <tr>
+                        <td>{{ v.id }}</td>
+                        <td>{{ v.cliente }}</td>
+                        <td>{{ v.data }}</td>
+                        <td>{{ "%.2f"|format(v.receita|default(0)) }}</td>
+                        <td>{{ "%.2f"|format(v.custo|default(0)) }}</td>
+                        <td>{{ "%.2f"|format(v.lucro|default(0)) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">Nenhuma viagem encontrada.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 2. Desempenho por Motorista -->
+        <h2><i class="fas fa-user me-2"></i>Desempenho por Motorista</h2>
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Motorista</th>
+                        <th>Viagens</th>
+                        <th>Receita (R$)</th>
+                        <th>Custo (R$)</th>
+                        <th>Lucro (R$)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for nome, total_viagens, total_distancia, receita, custo in viagens_por_motorista %}
+                    <tr>
+                        <td>{{ nome }}</td>
+                        <td>{{ total_viagens }}</td>
+                        <td>{{ "%.2f"|format(receita|default(0)) }}</td>
+                        <td>{{ "%.2f"|format(custo|default(0)) }}</td>
+                        <td>{{ "%.2f"|format((receita|default(0) - custo|default(0))) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center">Nenhum motorista encontrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <!-- Gráfico de Desempenho por Motorista -->
+        <div class="chart-container">
+            <canvas id="motoristaChart"></canvas>
+        </div>
+
+        <!-- 3. Custos por Categoria -->
+        <h2><i class="fas fa-tags me-2"></i>Custos por Categoria</h2>
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Categoria</th>
+                        <th>Valor (R$)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for categoria, valor in categorias.items() %}
+                    <tr>
+                        <td>{{ categoria }}</td>
+                        <td>{{ "%.2f"|format(valor|default(0)) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="2" class="text-center">Nenhuma categoria encontrada.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <!-- Gráfico de Custos por Categoria -->
+        <div class="chart-container">
+            <canvas id="categoriasChart"></canvas>
+        </div>
+
+        <!-- 4. Receita vs Custo por Mês -->
+        <h2><i class="fas fa-calendar-alt me-2"></i>Receita vs Custo por Mês</h2>
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Mês</th>
+                        <th>Receita (R$)</th>
+                        <th>Custo (R$)</th>
+                        <th>Lucro (R$)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mes, dados in mensal.items() %}
+                    <tr>
+                        <td>{{ mes }}</td>
+                        <td>{{ "%.2f"|format(dados.receita|default(0)) }}</td>
+                        <td>{{ "%.2f"|format(dados.custo|default(0)) }}</td>
+                        <td>{{ "%.2f"|format((dados.receita|default(0) - dados.custo|default(0))) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center">Nenhum dado mensal encontrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <!-- Gráfico de Receita vs Custo por Mês -->
+        <div class="chart-container">
+            <canvas id="mensalChart"></canvas>
+        </div>
+
+        <!-- 5. Custo por Quilômetro por Veículo -->
+        <h2><i class="fas fa-truck me-2"></i>Custo por Quilômetro por Veículo</h2>
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Veículo</th>
+                        <th>KM Rodados</th>
+                        <th>Custo Total (R$)</th>
+                        <th>Custo por KM (R$)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for placa, modelo, total_viagens, total_km, custo in viagens_por_veiculo %}
+                    <tr>
+                        <td>{{ placa }} - {{ modelo }}</td>
+                        <td>{{ "%.2f"|format(total_km|default(0)) }}</td>
+                        <td>{{ "%.2f"|format(custo|default(0)) }}</td>
+                        <td>{{ "%.2f"|format((custo|default(0) / total_km|default(1)) if total_km > 0 else 0) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center">Nenhum veículo encontrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
+
+    <!-- Bootstrap 5 JS e Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <!-- Script para Gráficos -->
+    <script>
+        // Gráfico de Custos por Categoria (Pizza)
+        const categoriasCtx = document.getElementById('categoriasChart').getContext('2d');
+        new Chart(categoriasCtx, {
+            type: 'pie',
+            data: {
+                labels: [{% for categoria, valor in categorias.items() %}'{{ categoria }}',{% endfor %}],
+                datasets: [{
+                    data: [{% for categoria, valor in categorias.items() %}{{ valor|default(0) }},{% endfor %}],
+                    backgroundColor: ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff'],
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    title: { display: true, text: 'Custos por Categoria' }
+                }
+            }
+        });
+
+        // Gráfico de Receita vs Custo por Mês (Barras)
+        const mensalCtx = document.getElementById('mensalChart').getContext('2d');
+        new Chart(mensalCtx, {
+            type: 'bar',
+            data: {
+                labels: [{% for mes, dados in mensal.items() %}'{{ mes }}',{% endfor %}],
+                datasets: [
+                    {
+                        label: 'Receita (R$)',
+                        data: [{% for mes, dados in mensal.items() %}{{ dados.receita|default(0) }},{% endfor %}],
+                        backgroundColor: '#36a2eb',
+                        borderColor: '#36a2eb',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Custo (R$)',
+                        data: [{% for mes, dados in mensal.items() %}{{ dados.custo|default(0) }},{% endfor %}],
+                        backgroundColor: '#ff6384',
+                        borderColor: '#ff6384',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    title: { display: true, text: 'Receita vs Custo por Mês' }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        // Gráfico de Desempenho por Motorista (Barras)
+        const motoristaCtx = document.getElementById('motoristaChart').getContext('2d');
+        new Chart(motoristaCtx, {
+            type: 'bar',
+            data: {
+                labels: [{% for nome, total_viagens, total_distancia, receita, custo in viagens_por_motorista %}'{{ nome }}',{% endfor %}],
+                datasets: [
+                    {
+                        label: 'Receita (R$)',
+                        data: [{% for nome, total_viagens, total_distancia, receita, custo in viagens_por_motorista %}{{ receita|default(0) }},{% endfor %}],
+                        backgroundColor: '#36a2eb',
+                        borderColor: '#36a2eb',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Custo (R$)',
+                        data: [{% for nome, total_viagens, total_distancia, receita, custo in viagens_por_motorista %}{{ custo|default(0) }},{% endfor %}],
+                        backgroundColor: '#ff6384',
+                        borderColor: '#ff6384',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    title: { display: true, text: 'Desempenho por Motorista' }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    </script>
 </body>
 </html>

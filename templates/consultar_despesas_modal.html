@@ -1,41 +1,108 @@
-<div class="space-y-4">
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes dos Custos</title>
+</head>
+<body>
     <div>
-        <label class="block text-sm font-medium text-gray-700">Combustível (R$):</label>
-        <p class="mt-1 p-2 border border-gray-300 rounded-md">{{ custo.combustivel|default(0)|round(2) }}</p>
+        <h2 style="font-size: 1.2rem; margin-bottom: 1rem;">Detalhes dos Custos da Viagem</h2>
+        <div style="max-height: 60vh; overflow-y: auto; padding-right: 0.5rem;">
+            <p>
+                <strong>Combustível (R$):</strong>
+                <span>{{ custo.combustivel|default(0)|round(2) }}</span>
+            </p>
+            <p>
+                <strong>Pedágios (R$):</strong>
+                <span>{{ custo.pedagios|default(0)|round(2) }}</span>
+            </p>
+            <p>
+                <strong>Alimentação (R$):</strong>
+                <span>{{ custo.alimentacao|default(0)|round(2) }}</span>
+            </p>
+            <p>
+                <strong>Hospedagem (R$):</strong>
+                <span>{{ custo.hospedagem|default(0)|round(2) }}</span>
+            </p>
+            <p>
+                <strong>Outros (R$):</strong>
+                <span>{{ custo.outros|default(0)|round(2) }}</span>
+            </p>
+            <p>
+                <strong>Descrição dos Outros:</strong>
+                <span>{{ custo.descricao_outros|default('Nenhuma') }}</span>
+            </p>
+            <p>
+                <strong>Arquivos:</strong>
+                <ul style="list-style: none; padding-left: 0;">
+                    {% if custo.anexos %}
+                        {% for anexo in custo.anexos %}
+                            <li>
+                                {% set filename = anexo.split('/')[-1] if '/' in anexo else anexo %}
+                                <a href="{{ anexo }}" target="_blank" style="color: #007BFF; text-decoration: none;">{{ filename }}</a>
+                            </li>
+                        {% endfor %}
+                    {% else %}
+                        <li>Nenhum arquivo selecionado</li>
+                    {% endif %}
+                </ul>
+            </p>
+        </div>
+        <button onclick="document.getElementById('despesasModal').style.display='none'" style="padding: 0.5rem 1rem; background-color: #ccc; border: none; cursor: pointer; border-radius: 0.25rem; margin-top: 1rem;">Fechar</button>
     </div>
-    <div>
-        <label class="block text-sm font-medium text-gray-700">Pedágios (R$):</label>
-        <p class="mt-1 p-2 border border-gray-300 rounded-md">{{ custo.pedagios|default(0)|round(2) }}</p>
-    </div>
-    <div>
-        <label class="block text-sm font-medium text-gray-700">Alimentação (R$):</label>
-        <p class="mt-1 p-2 border border-gray-300 rounded-md">{{ custo.alimentacao|default(0)|round(2) }}</p>
-    </div>
-    <div>
-        <label class="block text-sm font-medium text-gray-700">Hospedagem (R$):</label>
-        <p class="mt-1 p-2 border border-gray-300 rounded-md">{{ custo.hospedagem|default(0)|round(2) }}</p>
-    </div>
-    <div>
-        <label class="block text-sm font-medium text-gray-700">Outros (R$):</label>
-        <p class="mt-1 p-2 border border-gray-300 rounded-md">{{ custo.outros|default(0)|round(2) }}</p>
-    </div>
-    <div>
-        <label class="block text-sm font-medium text-gray-700">Descrição dos Outros:</label>
-        <p class="mt-1 p-2 border border-gray-300 rounded-md">{{ custo.descricao_outros|default('Nenhuma') }}</p>
-    </div>
-    <div>
-        <label class="block text-sm font-medium text-gray-700">Arquivos:</label>
-        <p class="mt-1 p-2 border border-gray-300 rounded-md">
-            {% if custo.anexos %}
-                {% for anexo in custo.anexos %}
-                    <a href="{{ anexo }}" target="_blank" class="text-blue-600 hover:underline">
-                        {% set filename = anexo.split('/')[-1] if '/' in anexo else anexo %}
-                        {{ filename }}
-                    </a><br>
-                {% endfor %}
-            {% else %}
-                Nenhum arquivo selecionado
-            {% endif %}
-        </p>
-    </div>
-</div>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+        div {
+            background-color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-top: 0;
+        }
+        p {
+            margin: 0.5rem 0;
+        }
+        strong {
+            display: inline-block;
+            width: 40%;
+            font-weight: bold;
+        }
+        span {
+            display: inline-block;
+            width: 60%;
+        }
+        ul li {
+            margin: 0.25rem 0;
+        }
+        @media (max-width: 480px) {
+            strong, span {
+                width: 100%;
+                display: block;
+            }
+            div {
+                width: 95%;
+                max-width: 95%;
+            }
+        }
+        @media (min-width: 481px) and (max-width: 768px) {
+            div {
+                width: 80%;
+                max-width: 80%;
+            }
+        }
+        @media (min-width: 769px) {
+            div {
+                width: 500px;
+                max-width: 90%;
+            }
+        }
+    </style>
+</body>
+</html>
