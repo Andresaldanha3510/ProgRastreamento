@@ -1,0 +1,238 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f8fa;
+        }
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #fff;
+            padding: 20px;
+            border-right: 1px solid #e1e8ed;
+        }
+        .sidebar .back-button {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #ADD8E6;
+            color: #2c3e50;
+            text-decoration: none;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            border: 1px solid #b0c4de;
+            text-align: center;
+            width: 180px;
+        }
+        .sidebar h2 {
+            font-size: 18px;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .sidebar a {
+            display: block;
+            color: #2c3e50;
+            text-decoration: none;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .sidebar a.active {
+            font-weight: bold;
+            color: #00a4b4;
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 20px 40px;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e1e8ed;
+            margin-bottom: 20px;
+        }
+        .tabs a {
+            padding: 10px 20px;
+            text-decoration: none;
+            color: #2c3e50;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .tabs a.active {
+            color: #00a4b4;
+            border-bottom: 2px solid #00a4b4;
+        }
+        .content p {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+        .content h3 {
+            font-size: 16px;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            max-width: 400px;
+            padding: 10px;
+            border: 1px solid #e1e8ed;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .form-group input:disabled {
+            background-color: #f5f8fa;
+        }
+        .form-group a {
+            color: #00a4b4;
+            text-decoration: none;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        .form-group .edit-button {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #fff;
+            color: #00a4b4;
+            border: 1px solid #00a4b4;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <a href="#" class="back-button">Voltar ao menu inicial</a>
+            <h2>Configurações</h2>
+            <a href="#" class="active">Geral</a>
+            <a href="#">Notificações</a>
+            <a href="#">Gerenciamento de conta</a>
+            <a href="#">Padrões da conta</a>
+            <a href="#">Usuários e equipes</a>
+        </div>
+        <div class="main-content">
+            <div class="tabs">
+                <a href="#" class="active">Geral</a>
+                <a href="#">Segurança</a>
+            </div>
+            <div class="content">
+                <div class="content-section active">
+                    <p>Essas preferências somente se aplicam a você.</p>
+                    <h3>Global</h3>
+                    <p>Isso se aplica a todas as contas da Track GO que você tem.</p>
+                    <div class="form-group">
+                        <label for="nome">Nome</label>
+                        <input type="text" id="nome" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="sobrenome">Sobrenome</label>
+                        <input type="text" id="sobrenome" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="idioma">Idioma</label>
+                        <select id="idioma">
+                            <option>Português</option>
+                            <option>Inglês</option>
+                            <option>Espanhol</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="content-section">
+                    <p>Define as preferências relacionadas ao login e à segurança da sua conta pessoal.</p>
+                    <h3>Endereço de email</h3>
+                    <div class="form-group">
+                        <input type="email" disabled>
+                        <a href="#" class="edit-button">Editar endereço de email</a>
+                    </div>
+                    <h3>Senha</h3>
+                    <div class="form-group">
+                        <a href="#" class="edit-button">Redefinir senha</a>
+                    </div>
+                    <h3>Número de telefone confiável</h3>
+                    <div class="form-group">
+                        <a href="#" class="edit-button">Adicionar um número de telefone confiável</a>
+                        <p>Adicione um número de telefone usado para verificar ocasionalmente sua identidade e receber outros alertas de segurança. Esse número de telefone nunca será usado para fins de vendas ou marketing.</p>
+                    </div>
+                    <h3>Chaves de acesso</h3>
+                    <div class="form-group">
+                        <a href="#" class="edit-button">Configurar chaves de acesso</a>
+                        <p>As chaves de acesso substituem as senhas que fornecem um login mais rápido, fácil e seguro em todos os seus dispositivos.</p>
+                        <a href="#">Mais informações</a>
+                    </div>
+                    <h3>Autenticação de dois fatores (2FA)</h3>
+                    <div class="form-group">
+                        <a href="#" class="edit-button">Remover SMS</a>
+                        <p>Método principal</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

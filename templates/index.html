@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         /* Estilo personalizado para design premium */
         body {
@@ -310,6 +311,18 @@
                  width: 80%; /* Pode ser um pouco mais larga em telas menores */
             }
         }
+        .user-icon {
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          font-size: 24px;
+          color: #2c3e50;
+          text-decoration: none;
+        }
+        .user-icon:hover {
+         color: #00a4b4;
+         }
+
     </style>
     
 </head>
@@ -319,13 +332,19 @@
         <button id="menu-toggle" class="text-white md:hidden focus:outline-none">
             <i class="fas fa-bars"></i>
         </button>
+        
         <div class="brand-section">
             <div class="img-logo">
                 <a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='trackgo_logo.png') }}" alt="Logo TrackGo"></a>
+                <!-- Adicionar no <header> após <h1>Transporte de Cargas</h1> -->
+                <a href="{{ url_for('configuracoes') }}" class="user-icon" title="Configurações">
+                <i class="fas fa-user-cog"></i>
+</a>
             </div>
             <div class="name-tag">
                 <h1>Transporte de Cargas</h1>
-            </div>
+            <a href="{{ url_for('configuracoes') }}" class="user-icon" title="Configurações">
+                <i class="fas fa-user-cog"></i>
         </div>
     </header>
 
