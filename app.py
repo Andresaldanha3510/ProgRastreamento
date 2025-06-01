@@ -17,6 +17,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 
 # ---- Configurações Iniciais ----
 # Carrega variáveis de ambiente do arquivo .env
@@ -48,6 +49,16 @@ db = SQLAlchemy(app)
 # Inicializa o Flask-Migrate para gerenciar migrações do banco
 migrate = Migrate(app, db)
 
+# Inicializa o Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    """Carrega o usuário pelo ID."""
+    return Usuario.query.get(int(user_id))
+
 # ---- Modelos do Banco de Dados ----
 # Modelo Motorista: armazena informações dos motoristas
 class Motorista(db.Model):
@@ -78,6 +89,29 @@ class Veiculo(db.Model):
     disponivel = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     viagens = db.relationship('Viagem', backref='veiculo')
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import UserMixin
+
+# Modelo Usuario: armazena informações dos usuários
+class Usuario(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    sobrenome = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
+    senha_hash = db.Column(db.String(128), nullable=False)
+    telefone = db.Column(db.String(11), nullable=True)
+    idioma = db.Column(db.String(20), default='Português')
+    two_factor_enabled = db.Column(db.Boolean, default=False)
+    two_factor_phone = db.Column(db.String(11), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def set_password(self, password):
+        """Define a senha com hash."""
+        self.senha_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        """Verifica a senha."""
+        return check_password_hash(self.senha_hash, password)
 
 # Modelo Destino: armazena os destinos de uma viagem
 class Destino(db.Model):
@@ -262,6 +296,43 @@ def index():
         GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY
     )
 
+from flask import render_template, request, redirect, url_for, flash
+from flask_login import login_required, current_user
+
+# Rota para a página de configurações
+@app.route('/configuracoes', methods=['GET', 'POST'])
+@login_required
+def configuracoes():
+    """Rota para gerenciar configurações do usuário."""
+    if request.method == 'POST':
+        # Atualizar informações gerais
+        nome = request.form.get('nome', '').strip()
+        sobrenome = request.form.get('sobrenome', '').strip()
+        idioma = request.form.get('idioma', '').strip()
+
+        if not nome or not sobrenome:
+            flash('Nome e sobrenome são obrigatórios.', 'error')
+            return redirect(url_for('configuracoes'))
+
+        if idioma not in ['Português', 'Inglês', 'Espanhol']:
+            flash('Idioma inválido.', 'error')
+            return redirect(url_for('configuracoes'))
+
+        current_user.nome = nome
+        current_user.sobrenome = sobrenome
+        current_user.idioma = idioma
+
+        try:
+            db.session.commit()
+            flash('Configurações gerais atualizadas com sucesso!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar configurações: {str(e)}', 'error')
+
+        return redirect(url_for('configuracoes'))
+
+    return render_template('configuracoes.html', usuario=current_user)
+
 # Rota para cadastrar motoristas
 @app.route('/cadastrar_motorista', methods=['GET', 'POST'])
 def cadastrar_motorista():
@@ -384,6 +455,30 @@ def cadastrar_motorista():
 
     # Renderiza o formulário para GET
     return render_template('cadastrar_motorista.html')
+def create_test_user():
+    with app.app_context():
+        if not Usuario.query.filter_by(email='admin@example.com').first():
+            try:
+                admin = Usuario(
+                    nome='Admin',
+                    sobrenome='Sistema',
+                    email='admin@example.com',
+                    telefone='11999999999'
+                )
+                admin.set_password('admin123')
+                db.session.add(admin)
+                db.session.commit()
+                print("✅ Usuário teste criado: admin@example.com / admin123")
+            except Exception as e:
+                print(f"❌ Erro ao criar usuário teste: {str(e)}")
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('Você foi desconectado.', 'success')
+    return redirect(url_for('index'))
 
 # Rota para consultar motoristas
 @app.route('/consultar_motoristas', methods=['GET'])
@@ -398,6 +493,63 @@ def consultar_motoristas():
         )
     motoristas = query.order_by(Motorista.nome.asc()).all()
     return render_template('consultar_motoristas.html', motoristas=motoristas, search_query=search_query)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        senha = request.form.get('senha')
+        
+        if not email or not senha:
+            flash('Preencha todos os campos', 'error')
+            return redirect(url_for('login'))
+            
+        usuario = Usuario.query.filter_by(email=email).first()
+        
+        if not usuario:
+            flash('Usuário não encontrado', 'error')
+            return redirect(url_for('login'))
+            
+        if not usuario.check_password(senha):
+            flash('Senha incorreta', 'error')
+            return redirect(url_for('login'))
+            
+        login_user(usuario)
+        flash('Login realizado com sucesso!', 'success')
+        return redirect(url_for('index'))
+        
+    return render_template('login.html')
+
+
+@app.route('/registrar', methods=['GET', 'POST'])
+def registrar():
+    if request.method == 'POST':
+        nome = request.form.get('nome')
+        sobrenome = request.form.get('sobrenome')
+        email = request.form.get('email')
+        senha = request.form.get('senha')
+        
+        if Usuario.query.filter_by(email=email).first():
+            flash('Email já cadastrado', 'error')
+            return redirect(url_for('registrar'))
+            
+        novo_usuario = Usuario(
+            nome=nome,
+            sobrenome=sobrenome,
+            email=email
+        )
+        novo_usuario.set_password(senha)
+        
+        try:
+            db.session.add(novo_usuario)
+            db.session.commit()
+            flash('Conta criada com sucesso! Faça login.', 'success')
+            return redirect(url_for('login'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao criar conta: {str(e)}', 'error')
+            
+    return render_template('registrar.html')
 
 # Rota para editar motoristas
 @app.route('/editar_motorista/<int:motorista_id>', methods=['GET', 'POST'])
@@ -1418,6 +1570,21 @@ def get_active_trip():
         return jsonify(trip_data)
     return jsonify({'trip': None})
 
+@app.route('/create_admin')
+def create_admin():
+    if not Usuario.query.filter_by(email='adminadmin@admin.com').first():
+        admin = Usuario(
+            nome='Admin',
+            sobrenome='Admin',
+            email='adminadmin@admin.com',
+            telefone='11999999999'
+        )
+        admin.set_password('admin123')
+        db.session.add(admin)
+        db.session.commit()
+        return 'Usuário admin criado!'
+    return 'Usuário já existe'
+
 # ---- Inicialização do Banco de Dados ----
 # Cria as tabelas no banco de dados, se não existirem
 with app.app_context():
@@ -1425,4 +1592,7 @@ with app.app_context():
 
 # ---- Execução do Aplicativo ----
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+        create_test_user()
     app.run(debug=True)
