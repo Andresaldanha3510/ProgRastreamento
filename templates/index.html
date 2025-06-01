@@ -6,54 +6,115 @@
     <title>Transporte de Cargas</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         /* Estilo personalizado para design premium */
         body {
-            background: linear-gradient(135deg, #0f172a 0%, #1e40af 100%);
+            background: white;
             background-attachment: fixed;
             color: #f9fafb;
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Inter', sans-serif;
             overflow-x: hidden;
+            padding-top: 100px;
         }
 
-        .header {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        /* Estilo do cabeçalho */
+        header {
+            background-color: green; /* Cor de fundo verde */
+            box-shadow: 0px 3px 10px rgb(10, 73, 10); /* Sombra para dar profundidade */
+            backdrop-filter: blur(10px); /* Efeito de desfoque no fundo */
+            width: 100%; /* Garante que o cabeçalho ocupe toda a largura disponível */
+            position: fixed; /* Torna o cabeçalho fixo na tela */
+            top: 0; /* Fixa o cabeçalho no topo */
+            left: 0; /* Fixa o cabeçalho na esquerda */
+            z-index: 30; /* Garante que o cabeçalho fique acima de outros elementos */
         }
 
-        .sidebar {
-            position: Fixed;
-            background: #4b5563; /* Cinza escuro conforme o exemplo */
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
-            transition: transform 0.3s ease;
-            z-index: 10; /* Garante que o menu fique acima do conteúdo */
+
+        /* Estilo da barra de navegação */
+        .navbar {
+            display: flex; /* Usa flexbox para organizar os itens */
+            justify-content: space-between; /* Espaça os itens nas extremidades (logo/nome à esquerda, outros itens à direita) */
+            padding: 1.5px 4rem; /* Preenchimento interno para espaçamento */
+            align-items: center; /* Alinha verticalmente os itens no centro */
+            flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha em telas menores */
         }
 
-        .sidebar.collapsed {
-            transform: translateX(-100%);
-        }
-
-        .sidebar a {
-            color: #ffffff; /* Letras brancas conforme o exemplo */
-            transition: color 0.3s ease, transform 0.3s ease;
-            display: inline-flex;
+        /* Contêiner para o logo e o nome (em desktop, lado a lado) */
+        .brand-section {
+            display: flex;
             align-items: center;
-            position: relative;
+            gap: 8px; /* Espaçamento entre os itens */
+            flex-shrink: 0;
         }
 
-        .sidebar a:hover {
-            color: #93c5fd;
-            transform: translateX(5px);
+        /* Estilo do título dentro do name-tag */
+        .name-tag h1 {
+            color: white; /* Cor do texto branca */
+            font-size: 1.5rem; /* Tamanho da fonte responsivo */
+            white-space: nowrap; /* Impede que o texto quebre em várias linhas */
         }
 
-        .sidebar a i {
-            margin-right: 8px;
-            transition: transform 0.3s ease;
+        /* Estilo da imagem do logo */
+        .img-logo img {
+            height: 100px; /* Altura fixa para o logo */
+            width: 100px; /* Largura fixa para o logo */
+            object-fit: contain; /* Garante que a imagem se ajuste sem cortar */
+            border-radius: 8px; /* Cantos arredondados para o logo */
         }
 
-        .sidebar a:hover i {
-            transform: scale(1.2);
+        /* Estilos da Sidebar */
+        .sidebar {
+            background-color: #1a4d2e; /* Um verde mais escuro para combinar com a navbar */
+            box-shadow: 2px 0px 10px rgba(0, 0, 0, 0.3); /* Sombra para a sidebar */
+            transition: transform 0.3s ease-in-out; /* Transição suave para abrir/fechar */
+            border-top-right-radius: 10px; /* Cantos arredondados */
+            border-bottom-right-radius: 10px; /* Cantos arredondados */
+            position: fixed; /* Torna a sidebar fixa na tela */
+            top: 100px; /* Fixa a sidebar abaixo da navbar */
+            height: calc(100% - 100px); /* Ocupa a altura restante da viewport */
+            z-index: 20; /* Garante que a sidebar fique acima do conteúdo principal */
+            width: 14rem; /* Largura da sidebar ajustada para 14rem (w-56) */
+            overflow-y: auto; /* Adiciona rolagem se o conteúdo for muito grande */
+        }
+
+        .sidebar h1 {
+            color: #e0ffe0; /* Cor do título da sidebar */
+        }
+
+        .sidebar ul li a {
+            color: white; /* Cor do texto dos links */
+            display: block; /* Faz o link ocupar toda a largura do item da lista */
+            padding: 10px 15px; /* Preenchimento para os links */
+            border-radius: 8px; /* Cantos arredondados para os links */
+            transition: background-color 0.2s ease-in-out; /* Transição para o hover */
+            display: flex; /* Permite alinhar ícone e texto */
+            align-items: center; /* Alinha verticalmente ícone e texto */
+            gap: 10px; /* Espaço entre ícone e texto */
+        }
+
+        .sidebar ul li a:hover {
+            background-color: #2e8b57; /* Cor de fundo ao passar o mouse */
+        }
+
+        /* Estilo do botão de menu para mobile */
+        .menu-button {
+            display: none; /* Esconde o botão por padrão em desktop */
+            background-color: transparent;
+            border: none;
+            color: white;
+            font-size: 1.8rem;
+            cursor: pointer;
+            /* Removido position: fixed e top/left/z-index */
+            padding: 10px;
+            border-radius: 50%;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .menu-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
         }
 
         .main-content {
@@ -63,12 +124,16 @@
             backdrop-filter: blur(10px);
             color: #1e293b;
             /* Ajuste de padding à esquerda para evitar sobreposição */
-            padding-left: 18rem; /* Aumentado de 16rem para 18rem */
-            min-height: calc(100vh - 4rem); /* Ajuste para o header de 4rem */
+            padding-left: 18rem;
+            /* Aumentado de 16rem para 18rem */
+            min-height: calc(100vh - 4rem);
+            /* Ajuste para o header de 4rem */
             transition: padding-left 0.3s ease;
         }
 
         .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             opacity: 0;
             animation: fadeIn 0.5s ease forwards;
             animation-delay: calc(0.1s * var(--index));
@@ -81,23 +146,36 @@
         }
 
         .dashboard-section {
+            background-color: #f8f8f8; /* Fundo claro para as seções */
             opacity: 0;
             transform: translateX(-20px);
             animation: slideIn 0.7s ease forwards;
             animation-delay: calc(0.2s * var(--index));
-            border-radius: 0.5rem;
+            border-radius: 10px 0.5rem;
             overflow: hidden;
         }
 
         .dashboard-section-header {
-            font-weight: 600;
-            letter-spacing: 0.5px;
+            font-weight: bold;
+            text-align: center;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+            padding: 1rem;
+            color: white;
+            background-color: #38a169; /* Cor padrão para cabeçalhos de seção */
         }
 
         .dashboard-item {
-            background: rgba(255, 255, 255, 0.95);
-            border: 1px solid #e5e7eb;
-            transition: all 0.3s ease;
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            margin-bottom: 10px; /* Espaçamento entre os itens */
+        }
+
+        .dashboard-item:last-child {
+            margin-bottom: 0; /* Remove margem do último item */
         }
 
         .dashboard-item:hover {
@@ -148,52 +226,130 @@
             }
         }
 
+        /* Media Queries para responsividade */
+        @media (min-width: 769px) { /* Desktop */
+            .main-content {
+                margin-left: 12rem;
+            }
+            .sidebar {
+                transform: translateX(0);
+                left: 0;
+            }
+            .menu-button { /* Esconde o botão no desktop */
+                display: none;
+            }
+        } 
+
         /* Ajuste responsivo */
-        @media (max-width: 768px) {
+        @media (max-width: 768px) { /* Tablet e Mobile */
+            .navbar {
+                padding: 10px 1rem;
+                justify-content: space-between; /* Alinha o conteúdo da navbar à esquerda no mobile */
+                flex-wrap: nowrap;
+            }
+
+            .brand-section { /* Novo contêiner para logo e nome */
+                flex-direction: column; /* Empilha logo e nome */
+                align-items: center; /* Centraliza logo e nome horizontalmente */
+                flex-grow: 1; /* Permite que ocupe espaço e empurre o botão */
+                gap: 5px; /* Reduz o espaçamento entre logo e nome */
+            }
+
+            .name-tag h1 {
+                display: none;
+            }
+
+            .img-logo img {
+                height: 80px;
+                width: 80px;
+            }
+
+            /* Esconde a sidebar por padrão no mobile */
             .sidebar {
                 transform: translateX(-100%);
+                left: 0;
+                top: 100px; /* Inicia no topo da viewport */
+                height: calc(100% - 100px); /* Ocupa a altura restante da viewport */
+                z-index: 31;
+                width: 70%; /* Ajuste a largura da sidebar para mobile (ex: 70%) */
+                max-width: 14rem; /* Garante que não fique muito larga em tablets */
             }
-            .sidebar.collapsed {
+
+            /* Mostra a sidebar quando a classe 'open' é adicionada */
+            .sidebar.open {
                 transform: translateX(0);
             }
+
+            /* Mostra o botão de menu no mobile */
+            .menu-button {
+                display: block;
+            }
+
+            /* Ajusta o conteúdo principal para não ter margem extra no mobile */
             .main-content {
-                padding-left: 0;
+                margin-left: 0;
+                padding-left: 1rem; /* Padding base para o conteúdo em mobile */
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 5px 0.5rem;
+            }
+
+            .img-logo img {
+                height: 60px;
+                width: 60px;
+            }
+
+            .name-tag h1 {
+                font-size: 1rem;
+            }
+
+            .sidebar {
+                 width: 80%; /* Pode ser um pouco mais larga em telas menores */
             }
         }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
 </head>
-<body class="min-h-screen">
-    <!-- Header -->
-    <header class="header p-4 flex justify-between items-center print-hide">
-        <div class="flex items-center space-x-4">
-    <img src="{{ url_for('static', filename='trackgo_logo.png') }}" 
-         alt="Logo TrackGo" 
-         class="h-20 w-20 rounded shadow-md bg-white p-1">
-    <div class="text-2xl font-bold text-white">
-        Transporte de Cargas
-    </div>
-</div>
-
+<body class="flex-container">
+<!-- Header -->
+    <header class="navbar">
         <button id="menu-toggle" class="text-white md:hidden focus:outline-none">
             <i class="fas fa-bars"></i>
         </button>
+        <div class="brand-section">
+            <div class="img-logo">
+                <a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='trackgo_logo.png') }}" alt="Logo TrackGo"></a>
+            </div>
+            <div class="name-tag">
+                <h1>Transporte de Cargas</h1>
+            </div>
+        </div>
     </header>
 
     <div class="flex h-screen">
         <!-- Sidebar -->
-<div id="sidebar" class="w-64 p-6 sidebar fixed h-full z-10">
-    <h1 class="text-2xl font-bold mb-8 text-center text-white">Menu</h1>
-    <ul>
-        <li class="mb-4"><a href="{{ url_for('cadastrar_motorista') }}"><img src="/static/icons/motorista.png" alt="Motorista" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;"> Cadastrar Motorista</a></li>
-        <li class="mb-4"><a href="{{ url_for('cadastrar_veiculo') }}"><img src="/static/icons/carro_check.png" alt="Veículo" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;"> Cadastrar Veículo</a></li>
-        <li class="mb-4"><a href="{{ url_for('iniciar_viagem') }}"><img src="/static/icons/aviao.png" alt="Viagem" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;"> Iniciar Viagem</a></li>
-        <li class="mb-4"><a href="{{ url_for('consultar_viagens') }}"><img src="/static/icons/lupa.png" alt="Consultar" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;"> Consultar Viagens</a></li>
-        <li class="mb-4"><a href="{{ url_for('consultar_motoristas') }}"><img src="/static/icons/lupa.png" alt="Consultar" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;"> Consultar Motoristas</a></li>
-        <li class="mb-4"><a href="{{ url_for('consultar_veiculos') }}"><img src="/static/icons/lupa.png" alt="Consultar" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;"> Consultar Veículos</a></li>
-        <li class="mb-4"><a href="{{ url_for('relatorios') }}"><img src="/static/icons/documento_caneta.png" alt="Relatórios" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;"> Relatórios</a></li>
-    </ul>
-</div>
+        <div id="sidebar" class="p-6 sidebar fixed h-full z-10"">
+            <h1 class="text-2xl font-bold mb-8 text-center text-white">Menu</h1>
+            <ul>
+                <li class="mb-4"><a href="{{ url_for('cadastrar_motorista') }}"><i class="fas fa-user"></i> Cadastrar
+                        Motorista</a></li>
+                <li class="mb-4"><a href="{{ url_for('cadastrar_veiculo') }}"><i class="fas fa-truck"></i> Cadastrar
+                        Veículo</a></li>
+                <li class="mb-4"><a href="{{ url_for('iniciar_viagem') }}"><i class="fas fa-route"></i> Iniciar
+                        Viagem</a></li>
+                <li class="mb-4"><a href="{{ url_for('consultar_viagens') }}"><i class="fas fa-search"></i> Consultar
+                        Viagens</a></li>
+                <li class="mb-4"><a href="{{ url_for('consultar_motoristas') }}"><i class="fas fa-users"></i> Consultar
+                        Motoristas</a></li>
+                <li class="mb-4"><a href="{{ url_for('consultar_veiculos') }}"><i class="fas fa-truck-loading"></i>
+                        Consultar Veículos</a></li>
+                <li class="mb-4"><a href="{{ url_for('relatorios') }}"><i class="fas fa-chart-bar"></i> Relatórios</a>
+                </li>
+            </ul>
+        </div>
 
         <!-- Main Content -->
         <div class="flex-1 p-8 overflow-auto main-content">
@@ -328,43 +484,62 @@
     </div>
 
     <script>
-        // Controle do menu responsivo
+        // Obter referências aos elementos HTML da sidebar e conteúdo principal
         const sidebar = document.getElementById('sidebar');
-        const menuToggle = document.getElementById('menu-toggle');
+        const menuToggle = document.getElementById('menu-toggle'); // ID do botão de menu
         const mainContent = document.querySelector('.main-content');
 
-        menuToggle.addEventListener('click', () => {
+          // Função para controlar o estado da sidebar (aberta/fechada)
+        function toggleSidebar() {
             sidebar.classList.toggle('collapsed');
-            if (sidebar.classList.contains('collapsed')) {
-                mainContent.style.paddingLeft = '1rem'; // Reduz padding quando o menu está colapsado
-            } else {
-                mainContent.style.paddingLeft = '18rem'; // Aumentado para 18rem
+            if (window.innerWidth > 768) { // Desktop
+                if (sidebar.classList.contains('collapsed')) {
+                    mainContent.style.paddingLeft = '1rem'; // Reduz padding quando o menu está colapsado
+                } else {
+                    mainContent.style.paddingLeft = '12rem'; // Ajustado para 12rem
+                }
+            } else { // Mobile
+                if (sidebar.classList.contains('collapsed')) {
+                    sidebar.classList.remove('open'); // Garante que a classe 'open' seja removida
+                } else {
+                    sidebar.classList.add('open'); // Adiciona a classe 'open' para mostrar a sidebar
+                }
             }
-        });
+        }
+
+        // Adicionar listener de evento ao botão de menu
+        menuToggle.addEventListener('click', toggleSidebar);
 
         // Fechar menu ao clicar fora em telas pequenas
         document.addEventListener('click', (e) => {
             if (!sidebar.contains(e.target) && !menuToggle.contains(e.target) && window.innerWidth <= 768) {
                 sidebar.classList.add('collapsed');
+                sidebar.classList.remove('open'); // Garante que a classe 'open' seja removida
+            }
+        });
+
+        // Ajuste inicial do padding e estado da sidebar ao carregar a página
+        window.addEventListener('load', () => {
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('collapsed'); // Sidebar visível no desktop
+                sidebar.classList.remove('open'); // Garante que a classe 'open' seja removida
+                mainContent.style.paddingLeft = '12rem'; // Ajustado para 12rem
+            } else {
+                sidebar.classList.add('collapsed'); // Sidebar colapsada no mobile
+                sidebar.classList.remove('open'); // Garante que a classe 'open' seja removida
                 mainContent.style.paddingLeft = '1rem';
             }
         });
 
-        // Ajuste inicial do padding
-        if (window.innerWidth > 768) {
-            mainContent.style.paddingLeft = '18rem'; // Aumentado para 18rem
-        } else {
-            sidebar.classList.add('collapsed');
-            mainContent.style.paddingLeft = '1rem';
-        }
-
-        // Ajuste responsivo dinâmico
+        // Ajuste responsivo dinâmico ao redimensionar a janela
         window.addEventListener('resize', () => {
             if (window.innerWidth > 768) {
-                sidebar.classList.remove('collapsed');
-                mainContent.style.paddingLeft = '18rem'; // Aumentado para 18rem
+                sidebar.classList.remove('collapsed'); // Sidebar visível no desktop
+                sidebar.classList.remove('open'); // Garante que a classe 'open' seja removida
+                mainContent.style.paddingLeft = '12rem'; // Ajustado para 12rem
             } else {
-                sidebar.classList.add('collapsed');
+                sidebar.classList.add('collapsed'); // Sidebar colapsada no mobile
+                sidebar.classList.remove('open'); // Garante que a classe 'open' seja removida
                 mainContent.style.paddingLeft = '1rem';
             }
         });
