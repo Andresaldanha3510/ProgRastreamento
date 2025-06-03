@@ -1,0 +1,22 @@
+
+{% extends "base.html" %}
+{% block title %}Cadastro via Convite{% endblock %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-6">Cadastro de Novo Usuário</h2>
+<form method="POST" class="space-y-4">
+    <input type="hidden" name="email" value="{{ email }}">
+    <div>
+        <label class="block mb-1 font-medium">Nome:</label>
+        <input type="text" name="nome" required class="w-full border p-2 rounded">
+    </div>
+    <div>
+        <label class="block mb-1 font-medium">Sobrenome:</label>
+        <input type="text" name="sobrenome" required class="w-full border p-2 rounded">
+    </div>
+    <div>
+        <label class="block mb-1 font-medium">Senha:</label>
+        <input type="password" name="senha" required class="w-full border p-2 rounded">
+    </div>
+    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Cadastrar</button>
+</form>
+{% endblock %}

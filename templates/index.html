@@ -318,9 +318,15 @@
             <h1>Transporte de Cargas</h1>
         </div>
     </div>
+    <div class="flex items-center gap-4 text-white">
+    <span class="text-sm hidden sm:inline">Olá, {{ current_user.nome or current_user.email }}</span>
     <a href="{{ url_for('configuracoes') }}" class="user-icon" title="Configurações">
         <i class="fas fa-user-cog"></i>
     </a>
+    <a href="{{ url_for('logout') }}" class="user-icon" title="Sair">
+        <i class="fas fa-sign-out-alt"></i>
+    </a>
+</div>
 </header>
 
 <div class="flex h-screen"> <div id="sidebar" class="sidebar"> <h1 class="text-2xl font-bold mb-8 text-center text-white">Menu</h1> <ul>
