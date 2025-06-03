@@ -5,133 +5,148 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transporte de Cargas</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" xintegrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        /* Estilo personalizado para design premium */
+        /* Estilo personalizado */
         body {
             background: white;
             background-attachment: fixed;
-            color: #f9fafb;
+            color: #1e293b; /* Cor de texto padrão para o body */
             font-family: 'Inter', sans-serif;
             overflow-x: hidden;
-            padding-top: 100px;
+            padding-top: 100px; /* Altura do header */
         }
 
-        /* Estilo do cabeçalho */
-        header {
-            background-color: green; /* Cor de fundo verde */
-            box-shadow: 0px 3px 10px rgb(10, 73, 10); /* Sombra para dar profundidade */
-            backdrop-filter: blur(10px); /* Efeito de desfoque no fundo */
-            width: 100%; /* Garante que o cabeçalho ocupe toda a largura disponível */
-            position: fixed; /* Torna o cabeçalho fixo na tela */
-            top: 0; /* Fixa o cabeçalho no topo */
-            left: 0; /* Fixa o cabeçalho na esquerda */
-            z-index: 30; /* Garante que o cabeçalho fique acima de outros elementos */
-        }
-
-
-        /* Estilo da barra de navegação */
-        .navbar {
-            display: flex; /* Usa flexbox para organizar os itens */
-            justify-content: space-between; /* Espaça os itens nas extremidades (logo/nome à esquerda, outros itens à direita) */
-            padding: 1.5px 4rem; /* Preenchimento interno para espaçamento */
-            align-items: center; /* Alinha verticalmente os itens no centro */
-            flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha em telas menores */
-        }
-
-        /* Contêiner para o logo e o nome (em desktop, lado a lado) */
-        .brand-section {
+        /* Estilo do cabeçalho (baseado no HTML original do usuário) */
+        header.navbar { /* Aplicando diretamente à tag header com classe navbar */
+            background-color: green;
+            box-shadow: 0px 3px 10px rgb(10, 73, 10);
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 30;
+            height: 100px;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 8px; /* Espaçamento entre os itens */
-            flex-shrink: 0;
+            padding: 0 2rem; /* Padding horizontal */
         }
 
-        /* Estilo do título dentro do name-tag */
-        .name-tag h1 {
-            color: white; /* Cor do texto branca */
-            font-size: 1.5rem; /* Tamanho da fonte responsivo */
-            white-space: nowrap; /* Impede que o texto quebre em várias linhas */
-        }
-
-        /* Estilo da imagem do logo */
-        .img-logo img {
-            height: 100px; /* Altura fixa para o logo */
-            width: 100px; /* Largura fixa para o logo */
-            object-fit: contain; /* Garante que a imagem se ajuste sem cortar */
-            border-radius: 8px; /* Cantos arredondados para o logo */
-        }
-
-        /* Estilos da Sidebar */
-        .sidebar {
-            background-color: #1a4d2e; /* Um verde mais escuro para combinar com a navbar */
-            box-shadow: 2px 0px 10px rgba(0, 0, 0, 0.3); /* Sombra para a sidebar */
-            transition: transform 0.3s ease-in-out; /* Transição suave para abrir/fechar */
-            border-top-right-radius: 10px; /* Cantos arredondados */
-            border-bottom-right-radius: 10px; /* Cantos arredondados */
-            position: fixed; /* Torna a sidebar fixa na tela */
-            top: 100px; /* Fixa a sidebar abaixo da navbar */
-            height: calc(100% - 100px); /* Ocupa a altura restante da viewport */
-            z-index: 20; /* Garante que a sidebar fique acima do conteúdo principal */
-            width: 14rem; /* Largura da sidebar ajustada para 14rem (w-56) */
-            overflow-y: auto; /* Adiciona rolagem se o conteúdo for muito grande */
-        }
-
-        .sidebar h1 {
-            color: #e0ffe0; /* Cor do título da sidebar */
-        }
-
-        .sidebar ul li a {
-            color: white; /* Cor do texto dos links */
-            display: block; /* Faz o link ocupar toda a largura do item da lista */
-            padding: 10px 15px; /* Preenchimento para os links */
-            border-radius: 8px; /* Cantos arredondados para os links */
-            transition: background-color 0.2s ease-in-out; /* Transição para o hover */
-            display: flex; /* Permite alinhar ícone e texto */
-            align-items: center; /* Alinha verticalmente ícone e texto */
-            gap: 10px; /* Espaço entre ícone e texto */
-        }
-
-        .sidebar ul li a:hover {
-            background-color: #2e8b57; /* Cor de fundo ao passar o mouse */
-        }
-
-        /* Estilo do botão de menu para mobile */
-        .menu-button {
-            display: none; /* Esconde o botão por padrão em desktop */
+        /* Botão de Menu Mobile (originalmente #menu-toggle) */
+        #menu-toggle {
             background-color: transparent;
             border: none;
             color: white;
             font-size: 1.8rem;
             cursor: pointer;
-            /* Removido position: fixed e top/left/z-index */
-            padding: 10px;
+            padding: 10px; /* Área de clique */
             border-radius: 50%;
             transition: background-color 0.2s ease-in-out;
         }
-
-        .menu-button:hover {
+        #menu-toggle:hover {
             background-color: rgba(255, 255, 255, 0.1);
         }
+        /* md:hidden é uma classe Tailwind, já controla o display */
 
-        .main-content {
+        /* Contêiner para o logo e o nome */
+        .brand-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .img-logo img {
+            height: 60px; /* Ajustado para caber no header */
+            width: 60px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        .name-tag h1 {
+            color: white;
+            font-size: 1.25rem; /* Ajustado */
+            white-space: nowrap;
+        }
+
+        /* Ícone do Usuário (originalmente .user-icon) */
+        a.user-icon { /* Aplicando ao <a> com classe user-icon */
+            color: white; /* Para combinar com o header verde */
+            font-size: 1.5rem;
+            text-decoration: none;
+            transition: color 0.2s ease-in-out;
+        }
+        a.user-icon:hover {
+            color: #e0e0e0;
+        }
+
+        /* Estilos da Sidebar (originalmente div#sidebar) */
+        div#sidebar { /* Aplicando ao div com ID sidebar */
+            background-color: #1a4d2e;
+            box-shadow: 2px 0px 10px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease-in-out;
+            border-top-right-radius: 10px;
+            border-bottom-right-radius: 10px;
+            position: fixed;
+            top: 100px; /* Abaixo do header */
+            left: 0;
+            height: calc(100vh - 100px);
+            z-index: 20; /* Abaixo do header, mas acima do overlay se houver */
+            width: 14rem;
+            overflow-y: auto;
+            /* p-6 (padding: 1.5rem) é classe Tailwind, pode ser mantida no HTML ou adicionada aqui */
+            padding: 1.5rem;
+        }
+
+        div#sidebar h1 { /* Título dentro da sidebar */
+            color: #e0ffe0;
+            font-size: 1.5rem; /* text-2xl */
+            font-weight: bold;
+            margin-bottom: 2rem; /* mb-8 */
+            text-align: center;
+        }
+
+        div#sidebar ul li {
+            margin-bottom: 1rem; /* mb-4 */
+        }
+
+        div#sidebar ul li a {
+            color: white;
+            display: block;
+            padding: 10px 15px;
+            border-radius: 8px;
+            transition: background-color 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            gap: 10px; /* Espaço entre ícone e texto */
+        }
+
+        div#sidebar ul li a:hover {
+            background-color: #2e8b57;
+        }
+        div#sidebar ul li a i {
+            width: 20px; /* Para alinhar o texto mesmo que alguns itens não tenham ícone */
+            text-align: center;
+        }
+
+
+        /* Conteúdo Principal (originalmente div.main-content) */
+        div.main-content { /* Aplicando ao div com classe main-content */
             background: rgba(255, 255, 255, 0.9);
             border-radius: 1rem;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             backdrop-filter: blur(10px);
             color: #1e293b;
-            /* Ajuste de padding à esquerda para evitar sobreposição */
-            padding-left: 18rem;
-            /* Aumentado de 16rem para 18rem */
-            min-height: calc(100vh - 4rem);
-            /* Ajuste para o header de 4rem */
-            transition: padding-left 0.3s ease;
+            min-height: calc(100vh - 100px);
+            transition: margin-left 0.3s ease;
+            /* p-8 (padding: 2rem) é classe Tailwind, pode ser mantida no HTML ou adicionada aqui */
+            padding: 2rem;
+            overflow-y: auto;
         }
 
+        /* Cards de Resumo */
         .card {
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -140,30 +155,44 @@
             animation-delay: calc(0.1s * var(--index));
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-
         .card:hover {
             transform: translateY(-5px);
             box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
         }
 
+        /* Seções do Dashboard */
         .dashboard-section {
-            background-color: #f8f8f8; /* Fundo claro para as seções */
+            background-color: #f8f8f8;
             opacity: 0;
             transform: translateX(-20px);
             animation: slideIn 0.7s ease forwards;
             animation-delay: calc(0.2s * var(--index));
-            border-radius: 10px 0.5rem;
-            overflow: hidden;
+            border-radius: 0.5rem;
+            overflow: hidden; /* Para conter os itens internos e o border-radius */
+            display: flex;
+            flex-direction: column;
         }
 
         .dashboard-section-header {
             font-weight: bold;
             text-align: center;
-            border-top-left-radius: 10px;
-            border-top-right-radius: 10px;
+            border-top-left-radius: 0.5rem; /* Match com .dashboard-section */
+            border-top-right-radius: 0.5rem; /* Match com .dashboard-section */
             padding: 1rem;
             color: white;
-            background-color: #38a169; /* Cor padrão para cabeçalhos de seção */
+        }
+        /* Cores específicas para cada header de seção */
+        .dashboard-section[style*="--index: 1"] .dashboard-section-header { background-color: #ef4444; } /* Em Aberto (Pendente) */
+        .dashboard-section[style*="--index: 2"] .dashboard-section-header { background-color: #22c55e; } /* Em Andamento */
+        .dashboard-section[style*="--index: 3"] .dashboard-section-header { background-color: #eab308; } /* Cargas Finalizadas */
+        .dashboard-section[style*="--index: 4"] .dashboard-section-header { background-color: #166534; } /* Resolvida */
+
+        /* Conteúdo dos cards do dashboard */
+        .dashboard-item-content { /* Renomeado de .mt-2.space-y-3 para clareza */
+            padding: 1rem; /* Espaçamento interno para os itens */
+            overflow-y: auto;
+            flex-grow: 1;
+            space-y: 0.75rem; /* Tailwind space-y-3 */
         }
 
         .dashboard-item {
@@ -172,396 +201,312 @@
             border-radius: 8px;
             padding: 1rem;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-            margin-bottom: 10px; /* Espaçamento entre os itens */
+            /* margin-bottom é tratado pelo space-y-3 no container */
         }
-
-        .dashboard-item:last-child {
-            margin-bottom: 0; /* Remove margem do último item */
-        }
-
         .dashboard-item:hover {
             background: #f9fafb;
             border-color: #d1d5db;
         }
+        /* Botões dentro dos dashboard-item */
+        .dashboard-item .mt-2.flex { /* Seletor mais específico para os botões */
+            flex-wrap: wrap; /* Permite que os botões quebrem a linha */
+            gap: 0.5rem; /* Espaçamento entre os botões (Tailwind: gap-2) */
+        }
+        .dashboard-item .mt-2.flex a { /* Estilo dos botões */
+            font-size: 0.875rem; /* text-sm */
+        }
+
 
         /* Animações */
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-
         @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
         }
 
         /* Estilo para impressão */
         @media print {
-            .header, .sidebar, .card, .print-hide {
-                display: none !important;
+            body { padding-top: 0; background: white; }
+            header.navbar, div#sidebar, .card, .print-hide { display: none !important; }
+            div.main-content {
+                box-shadow: none; backdrop-filter: none; background: white; color: black;
+                margin-left: 0 !important; padding: 1rem !important; min-height: auto;
             }
-            .main-content {
-                box-shadow: none;
-                backdrop-filter: none;
-                background: white;
-                color: black;
-                padding-left: 0; /* Remove padding na impressão */
-            }
-            .dashboard-section {
-                page-break-inside: avoid;
-            }
-            body {
-                background: white;
-            }
+            .dashboard-section { page-break-inside: avoid; animation: none; opacity: 1; transform: none; }
+            .dashboard-section-header { background-color: #ccc !important; color: black !important; }
         }
 
         /* Media Queries para responsividade */
         @media (min-width: 769px) { /* Desktop */
-            .main-content {
-                margin-left: 12rem;
-            }
-            .sidebar {
+            div#sidebar {
                 transform: translateX(0);
-                left: 0;
             }
-            .menu-button { /* Esconde o botão no desktop */
-                display: none;
+            div.main-content {
+                margin-left: 14rem; /* Largura da sidebar */
             }
-        } 
+            /* #menu-toggle é escondido por md:hidden (Tailwind) */
+        }
 
-        /* Ajuste responsivo */
         @media (max-width: 768px) { /* Tablet e Mobile */
-            .navbar {
-                padding: 10px 1rem;
-                justify-content: space-between; /* Alinha o conteúdo da navbar à esquerda no mobile */
-                flex-wrap: nowrap;
+            header.navbar {
+                padding: 0 1rem;
             }
-
-            .brand-section { /* Novo contêiner para logo e nome */
-                flex-direction: column; /* Empilha logo e nome */
-                align-items: center; /* Centraliza logo e nome horizontalmente */
-                flex-grow: 1; /* Permite que ocupe espaço e empurre o botão */
-                gap: 5px; /* Reduz o espaçamento entre logo e nome */
+            .brand-section {
+                /* Ocultar o nome da empresa no mobile para economizar espaço, se necessário */
+                 /* flex-grow: 1; /* Para centralizar logo se o nome sumir e houver botão de menu */
             }
-
             .name-tag h1 {
-                display: none;
+                display: none; /* Esconde o nome da empresa em telas menores */
             }
-
             .img-logo img {
-                height: 80px;
-                width: 80px;
+                 height: 50px;
+                 width: 50px;
             }
-
-            /* Esconde a sidebar por padrão no mobile */
-            .sidebar {
-                transform: translateX(-100%);
-                left: 0;
-                top: 100px; /* Inicia no topo da viewport */
-                height: calc(100% - 100px); /* Ocupa a altura restante da viewport */
-                z-index: 31;
-                width: 70%; /* Ajuste a largura da sidebar para mobile (ex: 70%) */
-                max-width: 14rem; /* Garante que não fique muito larga em tablets */
+            div#sidebar {
+                transform: translateX(-100%); /* Escondida por padrão */
+                width: 80%;
+                max-width: 260px; /* Levemente menor para não ocupar tanto */
+                z-index: 40; /* Acima do conteúdo principal quando aberta */
             }
-
-            /* Mostra a sidebar quando a classe 'open' é adicionada */
-            .sidebar.open {
-                transform: translateX(0);
+            div#sidebar.open {
+                transform: translateX(0); /* Mostra a sidebar */
             }
-
-            /* Mostra o botão de menu no mobile */
-            .menu-button {
-                display: block;
-            }
-
-            /* Ajusta o conteúdo principal para não ter margem extra no mobile */
-            .main-content {
+            /* #menu-toggle (botão) é exibido por padrão abaixo de md (768px) */
+            div.main-content {
                 margin-left: 0;
-                padding-left: 1rem; /* Padding base para o conteúdo em mobile */
+                padding: 1.5rem; /* Padding ajustado para mobile */
+            }
+            a.user-icon {
+                font-size: 1.3rem;
             }
         }
 
-        @media (max-width: 480px) {
-            .navbar {
-                padding: 5px 0.5rem;
+        @media (max-width: 480px) { /* Telas bem pequenas */
+            header.navbar {
+                padding: 0 0.5rem;
             }
-
             .img-logo img {
-                height: 60px;
-                width: 60px;
+                height: 45px; /* Ainda menor */
+                width: 45px;
             }
-
-            .name-tag h1 {
-                font-size: 1rem;
+            div.main-content {
+                padding: 1rem;
             }
-
-            .sidebar {
-                 width: 80%; /* Pode ser um pouco mais larga em telas menores */
+            a.user-icon {
+                font-size: 1.2rem;
+            }
+            div#sidebar {
+                width: 90%; /* Pode ser mais larga em telas muito pequenas */
+                max-width: 280px;
             }
         }
-        .user-icon {
-          position: absolute;
-          top: 20px;
-          right: 20px;
-          font-size: 24px;
-          color: #2c3e50;
-          text-decoration: none;
-        }
-        .user-icon:hover {
-         color: #00a4b4;
-         }
-
     </style>
-    
 </head>
-<body class="flex-container">
-<!-- Header -->
-    <header class="navbar">
-        <button id="menu-toggle" class="text-white md:hidden focus:outline-none">
-            <i class="fas fa-bars"></i>
-        </button>
-        
-        <div class="brand-section">
-            <div class="img-logo">
-                <a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='trackgo_logo.png') }}" alt="Logo TrackGo"></a>
-                <!-- Adicionar no <header> após <h1>Transporte de Cargas</h1> -->
-                <a href="{{ url_for('configuracoes') }}" class="user-icon" title="Configurações">
-                <i class="fas fa-user-cog"></i>
-</a>
-            </div>
-            <div class="name-tag">
-                <h1>Transporte de Cargas</h1>
-            <a href="{{ url_for('configuracoes') }}" class="user-icon" title="Configurações">
-                <i class="fas fa-user-cog"></i>
+<body> <header class="navbar">
+    <button id="menu-toggle" class="text-white md:hidden focus:outline-none">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <div class="brand-section">
+        <div class="img-logo">
+            <a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='trackgo_logo.png') }}" alt="Logo TrackGo"></a>
         </div>
-    </header>
-
-    <div class="flex h-screen">
-        <!-- Sidebar -->
-        <div id="sidebar" class="p-6 sidebar fixed h-full z-10"">
-            <h1 class="text-2xl font-bold mb-8 text-center text-white">Menu</h1>
-            <ul>
-                <li class="mb-4"><a href="{{ url_for('cadastrar_motorista') }}"><i class="fas fa-user"></i> Cadastrar
-                        Motorista</a></li>
-                <li class="mb-4"><a href="{{ url_for('cadastrar_veiculo') }}"><i class="fas fa-truck"></i> Cadastrar
-                        Veículo</a></li>
-                <li class="mb-4"><a href="{{ url_for('iniciar_viagem') }}"><i class="fas fa-route"></i> Iniciar
-                        Viagem</a></li>
-                <li class="mb-4"><a href="{{ url_for('consultar_viagens') }}"><i class="fas fa-search"></i> Consultar
-                        Viagens</a></li>
-                <li class="mb-4"><a href="{{ url_for('consultar_motoristas') }}"><i class="fas fa-users"></i> Consultar
-                        Motoristas</a></li>
-                <li class="mb-4"><a href="{{ url_for('consultar_veiculos') }}"><i class="fas fa-truck-loading"></i>
-                        Consultar Veículos</a></li>
-                <li class="mb-4"><a href="{{ url_for('relatorios') }}"><i class="fas fa-chart-bar"></i> Relatórios</a>
-                </li>
-            </ul>
-        </div>
-
-        <!-- Main Content -->
-        <div class="flex-1 p-8 overflow-auto main-content">
-            <!-- Flash Messages -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="mb-4 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %} print-hide">
-                            {{ message }}
-                            <button onclick="this.parentElement.remove()" class="float-right font-bold">×</button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-
-            <h2 class="text-3xl font-bold mb-6 text-gray-800">Dashboard</h2>
-
-        <!-- Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 print-hide">
-        <a href="{{ url_for('consultar_motoristas') }}" class="bg-white p-6 rounded-lg shadow-md card hover:bg-gray-50" style="--index: 1">
-        <h3 class="text-lg font-semibold mb-2 text-gray-700">Total de Motoristas</h3>
-        <p class="text-2xl font-bold text-gray-900">{{ motoristas | length }}</p>
-         </a>
-        <a href="{{ url_for('consultar_veiculos') }}" class="bg-white p-6 rounded-lg shadow-md card hover:bg-gray-50" style="--index: 2">
-        <h3 class="text-lg font-semibold mb-2 text-gray-700">Total de Veículos</h3>
-        <p class="text-2xl font-bold text-gray-900">{{ veiculos | length }}</p>
-        </a>
-        <a href="{{ url_for('consultar_viagens') }}" class="bg-white p-6 rounded-lg shadow-md card hover:bg-gray-50" style="--index: 3">
-        <h3 class="text-lg font-semibold mb-2 text-gray-700">Total de Viagens</h3>
-        <p class="text-2xl font-bold text-gray-900">{{ viagens | length }}</p>
-    </a>
-</div>
-
-            <!-- Dashboard with Full Trip Information -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <!-- Em Aberto (Pendente) -->
-                <div class="flex flex-col dashboard-section" style="--index: 1">
-                    <div class="bg-red-600 text-white p-4 dashboard-section-header">Em Aberto</div>
-                    <div class="mt-2 space-y-3">
-                        {% for viagem in viagens if viagem.status == 'pendente' %}
-                            <div class="p-4 rounded-lg dashboard-item">
-                                <p class="font-semibold text-gray-800">{{ viagem.cliente }}</p>
-                                <p class="text-sm text-gray-600"><strong>Motorista:</strong> {{ viagem.motorista.nome }}</p>
-                                <p class="text-sm text-gray-600"><strong>Veículo:</strong> {{ viagem.veiculo.placa }} - {{ viagem.veiculo.modelo }}</p>
-                                <p class="text-sm text-gray-600"><strong>Saída:</strong> {{ viagem.endereco_saida }}</p>
-                                <p class="text-sm text-gray-600"><strong>Destino:</strong> {{ viagem.endereco_destino }}</p>
-                                <p class="text-sm text-gray-600"><strong>Início:</strong> {{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</p>
-                                <p class="text-sm text-gray-600"><strong>Status:</strong> {{ viagem.status | capitalize }}</p>
-                                <div class="mt-2 flex space-x-2">
-                                    <a href="{{ url_for('finalizar_viagem', viagem_id=viagem.id) }}" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm">Finalizar</a>
-                                    <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm">Editar</a>
-                                    <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 text-sm" onclick="return confirm('Tem certeza que deseja excluir esta viagem?')">Excluir</a>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- Resolvendo (Em Andamento) -->
-                <div class="flex flex-col dashboard-section" style="--index: 2">
-                    <div class="bg-green-600 text-white p-4 dashboard-section-header">Em Andamento</div>
-                    <div class="mt-2 space-y-3">
-                        {% for viagem in viagens if viagem.status == 'em_andamento' %}
-                            <div class="p-4 rounded-lg dashboard-item">
-                                <p class="font-semibold text-gray-800">{{ viagem.cliente }}</p>
-                                <p class="text-sm text-gray-600"><strong>Motorista:</strong> {{ viagem.motorista.nome }}</p>
-                                <p class="text-sm text-gray-600"><strong>Veículo:</strong> {{ viagem.veiculo.placa }} - {{ viagem.veiculo.modelo }}</p>
-                                <p class="text-sm text-gray-600"><strong>Saída:</strong> {{ viagem.endereco_saida }}</p>
-                                <p class="text-sm text-gray-600"><strong>Destino:</strong> {{ viagem.endereco_destino }}</p>
-                                <p class="text-sm text-gray-600"><strong>Início:</strong> {{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</p>
-                                <p class="text-sm text-gray-600"><strong>Status:</strong> {{ viagem.status | capitalize }}</p>
-                                <div class="mt-2 flex space-x-2">
-                                    <a href="{{ url_for('finalizar_viagem', viagem_id=viagem.id) }}" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm">Finalizar</a>
-                                    <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm">Editar</a>
-                                    <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 text-sm" onclick="return confirm('Tem certeza que deseja excluir esta viagem?')">Excluir</a>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- Em Cargas Finalizadas (Finalizada) -->
-                <div class="flex flex-col dashboard-section" style="--index: 3">
-                    <div class="bg-yellow-600 text-white p-4 dashboard-section-header">Em Cargas Finalizadas</div>
-                    <div class="mt-2 space-y-3">
-                        {% for viagem in viagens if viagem.status == 'finalizada' %}
-                            <div class="p-4 rounded-lg dashboard-item">
-                                <p class="font-semibold text-gray-800">{{ viagem.cliente }}</p>
-                                <p class="text-sm text-gray-600"><strong>Motorista:</strong> {{ viagem.motorista.nome }}</p>
-                                <p class="text-sm text-gray-600"><strong>Veículo:</strong> {{ viagem.veiculo.placa }} - {{ viagem.veiculo.modelo }}</p>
-                                <p class="text-sm text-gray-600"><strong>Saída:</strong> {{ viagem.endereco_saida }}</p>
-                                <p class="text-sm text-gray-600"><strong>Destino:</strong> {{ viagem.endereco_destino }}</p>
-                                <p class="text-sm text-gray-600"><strong>Início:</strong> {{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</p>
-                                <p class="text-sm text-gray-600"><strong>Fim:</strong> {{ viagem.data_fim.strftime('%d/%m/%Y %H:%M') if viagem.data_fim else 'N/A' }}</p>
-                                <p class="text-sm text-gray-600"><strong>Status:</strong> {{ viagem.status | capitalize }}</p>
-                                <div class="mt-2 flex space-x-2">
-                                    <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm">Editar</a>
-                                    <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 text-sm" onclick="return confirm('Tem certeza que deseja excluir esta viagem?')">Excluir</a>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- Resolvida (Concluída) -->
-                <div class="flex flex-col dashboard-section" style="--index: 4">
-                    <div class="bg-green-800 text-white p-4 dashboard-section-header">Resolvida</div>
-                    <div class="mt-2 space-y-3">
-                        {% for viagem in viagens if viagem.status == 'concluida' %}
-                            <div class="p-4 rounded-lg dashboard-item">
-                                <p class="font-semibold text-gray-800">{{ viagem.cliente }}</p>
-                                <p class="text-sm text-gray-600"><strong>Motorista:</strong> {{ viagem.motorista.nome }}</p>
-                                <p class="text-sm text-gray-600"><strong>Veículo:</strong> {{ viagem.veiculo.placa }} - {{ viagem.veiculo.modelo }}</p>
-                                <p class="text-sm text-gray-600"><strong>Saída:</strong> {{ viagem.endereco_saida }}</p>
-                                <p class="text-sm text-gray-600"><strong>Destino:</strong> {{ viagem.endereco_destino }}</p>
-                                <p class="text-sm text-gray-600"><strong>Início:</strong> {{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</p>
-                                <p class="text-sm text-gray-600"><strong>Fim:</strong> {{ viagem.data_fim.strftime('%d/%m/%Y %H:%M') if viagem.data_fim else 'N/A' }}</p>
-                                <p class="text-sm text-gray-600"><strong>Status:</strong> {{ viagem.status | capitalize }}</p>
-                                <div class="mt-2 flex space-x-2">
-                                    <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm">Editar</a>
-                                    <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 text-sm" onclick="return confirm('Tem certeza que deseja excluir esta viagem?')">Excluir</a>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            <div class="mt-6 print-hide">
-                <button onclick="window.print()" class="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 transition duration-300">Imprimir Relatório</button>
-            </div>
+        <div class="name-tag">
+            <h1>Transporte de Cargas</h1>
         </div>
     </div>
+    <a href="{{ url_for('configuracoes') }}" class="user-icon" title="Configurações">
+        <i class="fas fa-user-cog"></i>
+    </a>
+</header>
 
-    <script>
-        // Obter referências aos elementos HTML da sidebar e conteúdo principal
-        const sidebar = document.getElementById('sidebar');
-        const menuToggle = document.getElementById('menu-toggle'); // ID do botão de menu
-        const mainContent = document.querySelector('.main-content');
+<div class="flex h-screen"> <div id="sidebar" class="sidebar"> <h1 class="text-2xl font-bold mb-8 text-center text-white">Menu</h1> <ul>
+            <li class="mb-4"><a href="{{ url_for('cadastrar_motorista') }}"><i class="fas fa-user"></i> Cadastrar Motorista</a></li>
+            <li class="mb-4"><a href="{{ url_for('cadastrar_veiculo') }}"><i class="fas fa-truck"></i> Cadastrar Veículo</a></li>
+            <li class="mb-4"><a href="{{ url_for('iniciar_viagem') }}"><i class="fas fa-route"></i> Iniciar Viagem</a></li>
+            <li class="mb-4"><a href="{{ url_for('consultar_viagens') }}"><i class="fas fa-search"></i> Consultar Viagens</a></li>
+            <li class="mb-4"><a href="{{ url_for('consultar_motoristas') }}"><i class="fas fa-users"></i> Consultar Motoristas</a></li>
+            <li class="mb-4"><a href="{{ url_for('consultar_veiculos') }}"><i class="fas fa-truck-loading"></i> Consultar Veículos</a></li>
+            <li class="mb-4"><a href="{{ url_for('relatorios') }}"><i class="fas fa-chart-bar"></i> Relatórios</a></li>
+        </ul>
+    </div>
 
-          // Função para controlar o estado da sidebar (aberta/fechada)
-        function toggleSidebar() {
-            sidebar.classList.toggle('collapsed');
-            if (window.innerWidth > 768) { // Desktop
-                if (sidebar.classList.contains('collapsed')) {
-                    mainContent.style.paddingLeft = '1rem'; // Reduz padding quando o menu está colapsado
-                } else {
-                    mainContent.style.paddingLeft = '12rem'; // Ajustado para 12rem
-                }
-            } else { // Mobile
-                if (sidebar.classList.contains('collapsed')) {
-                    sidebar.classList.remove('open'); // Garante que a classe 'open' seja removida
-                } else {
-                    sidebar.classList.add('open'); // Adiciona a classe 'open' para mostrar a sidebar
-                }
+    <div class="flex-1 overflow-auto main-content"> {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="mb-4 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %} print-hide">
+                        {{ message }}
+                        <button onclick="this.parentElement.remove()" class="float-right font-bold text-lg leading-none">&times;</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <h2 class="text-3xl font-bold mb-6 text-gray-800">Dashboard</h2>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 print-hide">
+            <a href="{{ url_for('consultar_motoristas') }}" class="bg-white p-6 rounded-lg shadow-md card hover:bg-gray-50" style="--index: 1">
+                <h3 class="text-lg font-semibold mb-2 text-gray-700">Total de Motoristas</h3>
+                <p class="text-2xl font-bold text-gray-900">{{ motoristas | length }}</p>
+            </a>
+            <a href="{{ url_for('consultar_veiculos') }}" class="bg-white p-6 rounded-lg shadow-md card hover:bg-gray-50" style="--index: 2">
+                <h3 class="text-lg font-semibold mb-2 text-gray-700">Total de Veículos</h3>
+                <p class="text-2xl font-bold text-gray-900">{{ veiculos | length }}</p>
+            </a>
+            <a href="{{ url_for('consultar_viagens') }}" class="bg-white p-6 rounded-lg shadow-md card hover:bg-gray-50" style="--index: 3">
+                <h3 class="text-lg font-semibold mb-2 text-gray-700">Total de Viagens</h3>
+                <p class="text-2xl font-bold text-gray-900">{{ viagens | length }}</p>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="dashboard-section" style="--index: 1"> <div class="dashboard-section-header">Em Aberto</div>
+                <div class="dashboard-item-content"> {% for viagem in viagens if viagem.status == 'pendente' %}
+                        <div class="p-4 rounded-lg dashboard-item">
+                            <p class="font-semibold text-gray-800">{{ viagem.cliente }}</p>
+                            <p class="text-sm text-gray-600"><strong>Motorista:</strong> {{ viagem.motorista.nome }}</p>
+                            <p class="text-sm text-gray-600"><strong>Veículo:</strong> {{ viagem.veiculo.placa }} - {{ viagem.veiculo.modelo }}</p>
+                            <p class="text-sm text-gray-600"><strong>Saída:</strong> {{ viagem.endereco_saida }}</p>
+                            <p class="text-sm text-gray-600"><strong>Destino:</strong> {{ viagem.endereco_destino }}</p>
+                            <p class="text-sm text-gray-600"><strong>Início:</strong> {{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</p>
+                            <p class="text-sm text-gray-600"><strong>Status:</strong> <span class="font-medium">{{ viagem.status | capitalize }}</span></p>
+                            <div class="mt-2 flex space-x-2"> <a href="{{ url_for('finalizar_viagem', viagem_id=viagem.id) }}" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">Finalizar</a>
+                                <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Editar</a>
+                                <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700" onclick="return confirm('Tem certeza que deseja excluir esta viagem?')">Excluir</a>
+                            </div>
+                        </div>
+                    {% else %}
+                         <p class="text-sm text-gray-500 text-center py-4">Nenhuma viagem pendente.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="dashboard-section" style="--index: 2">
+                <div class="dashboard-section-header">Em Andamento</div>
+                <div class="dashboard-item-content">
+                    {% for viagem in viagens if viagem.status == 'em_andamento' %}
+                        <div class="p-4 rounded-lg dashboard-item">
+                            <p class="font-semibold text-gray-800">{{ viagem.cliente }}</p>
+                            <p class="text-sm text-gray-600"><strong>Motorista:</strong> {{ viagem.motorista.nome }}</p>
+                            <p class="text-sm text-gray-600"><strong>Veículo:</strong> {{ viagem.veiculo.placa }} - {{ viagem.veiculo.modelo }}</p>
+                            <p class="text-sm text-gray-600"><strong>Saída:</strong> {{ viagem.endereco_saida }}</p>
+                            <p class="text-sm text-gray-600"><strong>Destino:</strong> {{ viagem.endereco_destino }}</p>
+                            <p class="text-sm text-gray-600"><strong>Início:</strong> {{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</p>
+                            <p class="text-sm text-gray-600"><strong>Status:</strong> <span class="font-medium">{{ viagem.status | replace('_', ' ') | capitalize }}</span></p>
+                            <div class="mt-2 flex space-x-2">
+                                <a href="{{ url_for('finalizar_viagem', viagem_id=viagem.id) }}" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">Finalizar</a>
+                                <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Editar</a>
+                                <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700" onclick="return confirm('Tem certeza que deseja excluir esta viagem?')">Excluir</a>
+                            </div>
+                        </div>
+                    {% else %}
+                         <p class="text-sm text-gray-500 text-center py-4">Nenhuma viagem em andamento.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="dashboard-section" style="--index: 3">
+                <div class="dashboard-section-header">Em Cargas Finalizadas</div>
+                 <div class="dashboard-item-content">
+                    {% for viagem in viagens if viagem.status == 'finalizada' %}
+                        <div class="p-4 rounded-lg dashboard-item">
+                            <p class="font-semibold text-gray-800">{{ viagem.cliente }}</p>
+                            <p class="text-sm text-gray-600"><strong>Motorista:</strong> {{ viagem.motorista.nome }}</p>
+                            <p class="text-sm text-gray-600"><strong>Veículo:</strong> {{ viagem.veiculo.placa }} - {{ viagem.veiculo.modelo }}</p>
+                            <p class="text-sm text-gray-600"><strong>Saída:</strong> {{ viagem.endereco_saida }}</p>
+                            <p class="text-sm text-gray-600"><strong>Destino:</strong> {{ viagem.endereco_destino }}</p>
+                            <p class="text-sm text-gray-600"><strong>Início:</strong> {{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</p>
+                            <p class="text-sm text-gray-600"><strong>Fim:</strong> {{ viagem.data_fim.strftime('%d/%m/%Y %H:%M') if viagem.data_fim else 'N/A' }}</p>
+                            <p class="text-sm text-gray-600"><strong>Status:</strong> <span class="font-medium">{{ viagem.status | capitalize }}</span></p>
+                            <div class="mt-2 flex space-x-2">
+                                <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Editar</a>
+                                <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700" onclick="return confirm('Tem certeza que deseja excluir esta viagem?')">Excluir</a>
+                            </div>
+                        </div>
+                    {% else %}
+                         <p class="text-sm text-gray-500 text-center py-4">Nenhuma carga finalizada.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="dashboard-section" style="--index: 4">
+                <div class="dashboard-section-header">Resolvida</div>
+                 <div class="dashboard-item-content">
+                    {% for viagem in viagens if viagem.status == 'concluida' %}
+                        <div class="p-4 rounded-lg dashboard-item">
+                            <p class="font-semibold text-gray-800">{{ viagem.cliente }}</p>
+                            <p class="text-sm text-gray-600"><strong>Motorista:</strong> {{ viagem.motorista.nome }}</p>
+                            <p class="text-sm text-gray-600"><strong>Veículo:</strong> {{ viagem.veiculo.placa }} - {{ viagem.veiculo.modelo }}</p>
+                            <p class="text-sm text-gray-600"><strong>Saída:</strong> {{ viagem.endereco_saida }}</p>
+                            <p class="text-sm text-gray-600"><strong>Destino:</strong> {{ viagem.endereco_destino }}</p>
+                            <p class="text-sm text-gray-600"><strong>Início:</strong> {{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</p>
+                            <p class="text-sm text-gray-600"><strong>Fim:</strong> {{ viagem.data_fim.strftime('%d/%m/%Y %H:%M') if viagem.data_fim else 'N/A' }}</p>
+                            <p class="text-sm text-gray-600"><strong>Status:</strong> <span class="font-medium">{{ viagem.status | capitalize }}</span></p>
+                            <div class="mt-2 flex space-x-2">
+                                <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Editar</a>
+                                <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700" onclick="return confirm('Tem certeza que deseja excluir esta viagem?')">Excluir</a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <p class="text-sm text-gray-500 text-center py-4">Nenhuma viagem resolvida.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-6 print-hide">
+            <button onclick="window.print()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition duration-300">Imprimir Relatório</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Obter referências (usando os IDs e classes do HTML original do usuário)
+    const sidebar = document.getElementById('sidebar');
+    const menuToggle = document.getElementById('menu-toggle');
+    // const mainContent = document.querySelector('.main-content'); // Não é mais necessário para JS ajustar padding/margin
+
+    // Função para alternar a sidebar em telas mobile
+    function toggleMobileSidebar() {
+        if (sidebar) { // Verificar se a sidebar existe
+            sidebar.classList.toggle('open');
+        }
+    }
+
+    // Listener para o botão de menu (apenas mobile)
+    if (menuToggle) {
+        menuToggle.addEventListener('click', (event) => {
+            event.stopPropagation();
+            toggleMobileSidebar();
+        });
+    }
+
+    // Fechar a sidebar mobile ao clicar fora dela
+    document.addEventListener('click', (event) => {
+        if (sidebar && menuToggle && sidebar.classList.contains('open')) { // Executar somente se sidebar existir e estiver aberta
+            const isClickInsideSidebar = sidebar.contains(event.target);
+            const isClickOnMenuToggle = menuToggle.contains(event.target);
+
+            if (window.innerWidth <= 768 && !isClickInsideSidebar && !isClickOnMenuToggle) {
+                sidebar.classList.remove('open');
             }
         }
+    });
 
-        // Adicionar listener de evento ao botão de menu
-        menuToggle.addEventListener('click', toggleSidebar);
-
-        // Fechar menu ao clicar fora em telas pequenas
-        document.addEventListener('click', (e) => {
-            if (!sidebar.contains(e.target) && !menuToggle.contains(e.target) && window.innerWidth <= 768) {
-                sidebar.classList.add('collapsed');
-                sidebar.classList.remove('open'); // Garante que a classe 'open' seja removida
+    // Ajustes em redimensionamento (para garantir o estado correto da sidebar mobile)
+    function handleResize() {
+        if (window.innerWidth > 768) {
+            if (sidebar) { // Verificar se a sidebar existe
+                 sidebar.classList.remove('open'); // Garante que em desktop a classe 'open' (mobile) não esteja ativa
             }
-        });
+        }
+    }
 
-        // Ajuste inicial do padding e estado da sidebar ao carregar a página
-        window.addEventListener('load', () => {
-            if (window.innerWidth > 768) {
-                sidebar.classList.remove('collapsed'); // Sidebar visível no desktop
-                sidebar.classList.remove('open'); // Garante que a classe 'open' seja removida
-                mainContent.style.paddingLeft = '12rem'; // Ajustado para 12rem
-            } else {
-                sidebar.classList.add('collapsed'); // Sidebar colapsada no mobile
-                sidebar.classList.remove('open'); // Garante que a classe 'open' seja removida
-                mainContent.style.paddingLeft = '1rem';
-            }
-        });
-
-        // Ajuste responsivo dinâmico ao redimensionar a janela
-        window.addEventListener('resize', () => {
-            if (window.innerWidth > 768) {
-                sidebar.classList.remove('collapsed'); // Sidebar visível no desktop
-                sidebar.classList.remove('open'); // Garante que a classe 'open' seja removida
-                mainContent.style.paddingLeft = '12rem'; // Ajustado para 12rem
-            } else {
-                sidebar.classList.add('collapsed'); // Sidebar colapsada no mobile
-                sidebar.classList.remove('open'); // Garante que a classe 'open' seja removida
-                mainContent.style.paddingLeft = '1rem';
-            }
-        });
-    </script>
+    window.addEventListener('load', handleResize);
+    window.addEventListener('resize', handleResize);
+</script>
 </body>
 </html>
