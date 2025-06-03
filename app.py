@@ -18,6 +18,9 @@ from openpyxl.styles import Font, Alignment
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_mail import Mail, Message
+
+
 
 # ---- Configurações Iniciais ----
 # Carrega variáveis de ambiente do arquivo .env
@@ -25,6 +28,15 @@ load_dotenv()
 
 # Inicializa o aplicativo Flask
 app = Flask(__name__)
+
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'trackgo789@gmail.com'
+app.config['MAIL_PASSWORD'] = 'mmoa moxc juli sfbe'  # Senha de aplicativo fornecida
+app.config['MAIL_DEFAULT_SENDER'] = 'trackgo789@gmail.com'
+
+mail = Mail(app)
 
 # Configurações do Flask
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///transport.db')  # Banco de dados (SQLite local ou PostgreSQL no Render)
@@ -76,6 +88,19 @@ class Motorista(db.Model):
     anexos = db.Column(db.String(500), nullable=True)  # URLs dos arquivos no Cloudflare R2, separadas por vírgula
     viagens = db.relationship('Viagem', backref='motorista')  # Relacionamento com Viagem
 
+import uuid
+from datetime import datetime, timedelta
+
+# Modelo Convite: armazena informações sobre convites enviados
+class Convite(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), nullable=False, index=True)
+    token = db.Column(db.String(36), unique=True, nullable=False, index=True)
+    usado = db.Column(db.Boolean, default=False)
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+    data_expiracao = db.Column(db.DateTime, nullable=False)
+    criado_por = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
+
 # Modelo Veiculo: armazena informações dos veículos
 class Veiculo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -103,6 +128,7 @@ class Usuario(db.Model, UserMixin):
     idioma = db.Column(db.String(20), default='Português')
     two_factor_enabled = db.Column(db.Boolean, default=False)
     two_factor_phone = db.Column(db.String(11), nullable=True)
+    is_admin = db.Column(db.Boolean, default=False)  # 👈 ADICIONE ESTA LINHA
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def set_password(self, password):
@@ -155,6 +181,18 @@ class Viagem(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     destinos = db.relationship('Destino', backref='viagem', lazy='dynamic', cascade='all, delete-orphan')
 
+from functools import wraps
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash('Acesso restrito ao administrador.', 'error')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 # ---- Funções Utilitárias ----
 # Valida CPF (11 dígitos) ou CNPJ (14 dígitos)
 def validate_cpf_cnpj(cpf_cnpj, pessoa_tipo):
@@ -190,6 +228,44 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
+@app.route('/registrar/<token>', methods=['GET', 'POST'])
+def registrar_com_token(token):
+    convite = Convite.query.filter_by(token=token, usado=False).first()
+
+    if not convite or convite.data_expiracao < datetime.utcnow():
+        flash('Convite inválido ou expirado.', 'error')
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        nome = request.form.get('nome')
+        sobrenome = request.form.get('sobrenome')
+        email = request.form.get('email')
+        senha = request.form.get('senha')
+
+        if email != convite.email:
+            flash('Email diferente do convite.', 'error')
+            return redirect(request.url)
+
+        if Usuario.query.filter_by(email=email).first():
+            flash('Email já cadastrado.', 'error')
+            return redirect(request.url)
+
+        usuario = Usuario(
+            nome=nome,
+            sobrenome=sobrenome,
+            email=email
+        )
+        usuario.set_password(senha)
+        db.session.add(usuario)
+
+        convite.usado = True
+        db.session.commit()
+        flash('Conta criada com sucesso!', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('registrar_token.html', email=convite.email)
+
+
 # Obtém coordenadas de um endereço usando Google Maps Geocoding API
 def get_coordinates(endereco):
     """Obtém coordenadas de um endereço usando Google Maps Geocoding API."""
@@ -209,6 +285,37 @@ def get_coordinates(endereco):
         logger.error(f"Erro ao obter coordenadas: {str(e)}")
         return None, None
 
+@app.route('/enviar_convite', methods=['POST'])
+@login_required
+@admin_required
+def enviar_convite():
+    email = request.form.get('email')
+    if not email:
+        flash('Email é obrigatório.', 'error')
+        return redirect(url_for('configuracoes'))
+
+    token = str(uuid.uuid4())
+    data_expiracao = datetime.utcnow() + timedelta(days=3)
+
+    convite = Convite(email=email, token=token, criado_por=current_user.id, data_expiracao=data_expiracao)
+    db.session.add(convite)
+    db.session.commit()
+
+    link_convite = url_for('registrar_com_token', token=token, _external=True)
+    msg = Message(
+        subject='Convite para acessar o sistema',
+        recipients=[email],
+        body=f'Você foi convidado a se registrar no sistema. Clique no link abaixo:\n{link_convite}'
+    )
+    try:
+        mail.send(msg)
+        flash(f'Convite enviado para {email}!', 'success')
+    except Exception as e:
+        flash(f'Erro ao enviar o e-mail: {str(e)}', 'error')
+
+    return redirect(url_for('configuracoes'))
+
+
 # Valida se o endereço é reconhecido pela Google Maps API
 def validar_endereco(endereco):
     """Valida se o endereço é reconhecido pela Google Maps API."""
@@ -223,6 +330,9 @@ def validar_endereco(endereco):
     except requests.exceptions.RequestException as e:
         logger.error(f"Erro na validação de endereço: {str(e)}")
         return False
+
+
+
 
 # Calcula distância e duração da viagem usando Google Maps Directions API
 def calcular_distancia_e_duracao(enderecos):
@@ -455,30 +565,20 @@ def cadastrar_motorista():
 
     # Renderiza o formulário para GET
     return render_template('cadastrar_motorista.html')
-def create_test_user():
-    with app.app_context():
-        if not Usuario.query.filter_by(email='admin@example.com').first():
-            try:
-                admin = Usuario(
-                    nome='Admin',
-                    sobrenome='Sistema',
-                    email='admin@example.com',
-                    telefone='11999999999'
-                )
-                admin.set_password('admin123')
-                db.session.add(admin)
-                db.session.commit()
-                print("✅ Usuário teste criado: admin@example.com / admin123")
-            except Exception as e:
-                print(f"❌ Erro ao criar usuário teste: {str(e)}")
+@app.route('/criar_admin')
+def criar_admin():
+    if not Usuario.query.filter_by(email='adminadmin@admin.com').first():
+        admin = Usuario(
+            nome='Admin',
+            sobrenome='Master',
+            email='adminadmin@admin.com'
+        )
+        admin.set_password('admin123')
+        db.session.add(admin)
+        db.session.commit()
+        return "Admin criado com sucesso"
+    return "Admin já existe"
 
-
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    flash('Você foi desconectado.', 'success')
-    return redirect(url_for('index'))
 
 # Rota para consultar motoristas
 @app.route('/consultar_motoristas', methods=['GET'])
@@ -550,6 +650,16 @@ def registrar():
             flash(f'Erro ao criar conta: {str(e)}', 'error')
             
     return render_template('registrar.html')
+
+@app.route('/promover_admin')
+def promover_admin():
+    user = Usuario.query.filter_by(email='adminadmin@admin.com').first()
+    if user:
+        user.is_admin = True
+        db.session.commit()
+        return "Admin atualizado!"
+    return "Usuário não encontrado."
+
 
 # Rota para editar motoristas
 @app.route('/editar_motorista/<int:motorista_id>', methods=['GET', 'POST'])
@@ -1585,10 +1695,18 @@ def create_admin():
         return 'Usuário admin criado!'
     return 'Usuário já existe'
 
-# ---- Inicialização do Banco de Dados ----
-# Cria as tabelas no banco de dados, se não existirem
-with app.app_context():
-    db.create_all()
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('Você saiu com sucesso.', 'success')
+    return redirect(url_for('login'))
+
+
+
+
 
 # ---- Execução do Aplicativo ----
 if __name__ == '__main__':
