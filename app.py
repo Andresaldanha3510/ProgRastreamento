@@ -661,62 +661,123 @@ def promover_admin():
     return "Usuário não encontrado."
 
 
+# Filtro Jinja2 para formatar datas
+@app.template_filter('dateformat')
+def dateformat(value):
+    if value:
+        return value.strftime('%Y-%m-%d')
+    return ''
+
 # Rota para editar motoristas
 @app.route('/editar_motorista/<int:motorista_id>', methods=['GET', 'POST'])
 def editar_motorista(motorista_id):
     """Rota para editar motoristas com validação e upload de anexos."""
     motorista = Motorista.query.get_or_404(motorista_id)
+    original_cpf_cnpj = motorista.cpf_cnpj  # Armazena o CPF/CNPJ original para upload de anexos
 
     if request.method == 'POST':
+        # Verificar se é uma edição parcial (apenas nome, via modal)
+        if request.form.get('is_modal') == 'true':  # Usa campo oculto para identificar modal
+            nome = request.form.get('nome', '').strip()
+            if not nome:
+                flash('O nome é obrigatório.', 'error')
+                return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+            motorista.nome = nome
+            try:
+                db.session.commit()
+                flash('Nome atualizado com sucesso!', 'success')
+                return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Erro ao atualizar o nome: {str(e)}', 'error')
+                return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+
+        # Edição completa (formulário principal)
         # Coleta de dados do formulário
-        motorista.nome = request.form.get('nome', '').strip()
+        nome = request.form.get('nome', '').strip()
         data_nascimento = request.form.get('data_nascimento', '').strip()
-        motorista.endereco = request.form.get('endereco', '').strip()
-        motorista.pessoa_tipo = request.form.get('pessoa_tipo', '').strip()
-        motorista.cpf_cnpj = request.form.get('cpf_cnpj', '').strip()
-        motorista.rg = request.form.get('rg', '').strip() or None
-        motorista.telefone = request.form.get('telefone', '').strip()
-        motorista.cnh = request.form.get('cnh', '').strip()
+        endereco = request.form.get('endereco', '').strip()
+        pessoa_tipo = request.form.get('pessoa_tipo', '').strip()
+        cpf_cnpj = request.form.get('cpf_cnpj', '').strip()
+        rg = request.form.get('rg', '').strip() or None
+        telefone = request.form.get('telefone', '').strip()
+        cnh = request.form.get('cnh', '').strip()
         validade_cnh = request.form.get('validade_cnh', '').strip()
         files = request.files.getlist('anexos')
 
-        # Validação dos campos obrigatórios
-        if not all([motorista.nome, data_nascimento, motorista.endereco, motorista.pessoa_tipo, motorista.cpf_cnpj, motorista.telefone, motorista.cnh, validade_cnh]):
-            flash('Todos os campos obrigatórios devem ser preenchidos.', 'error')
+        # Validação condicional dos campos enviados
+        if nome:
+            if not nome:
+                flash('O nome é obrigatório.', 'error')
+                return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+            motorista.nome = nome
+
+        if data_nascimento:
+            try:
+                motorista.data_nascimento = datetime.strptime(data_nascimento, '%Y-%m-%d').date()
+            except ValueError:
+                flash('Formato de data de nascimento inválido.', 'error')
+                return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+
+        if endereco:
+            if not endereco:
+                flash('O endereço é obrigatório.', 'error')
+                return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+            motorista.endereco = endereco
+
+        if pessoa_tipo:
+            if not pessoa_tipo:
+                flash('O tipo de pessoa é obrigatório.', 'error')
+                return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+            motorista.pessoa_tipo = pessoa_tipo
+
+        if cpf_cnpj:
+            if not validate_cpf_cnpj(cpf_cnpj, pessoa_tipo or motorista.pessoa_tipo):
+                flash(f"{'CPF' if (pessoa_tipo or motorista.pessoa_tipo) == 'fisica' else 'CNPJ'} inválido. Deve conter {'11' if (pessoa_tipo or motorista.pessoa_tipo) == 'fisica' else '14'} dígitos numéricos.", 'error')
+                return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+            existing_cpf_cnpj = Motorista.query.filter(Motorista.cpf_cnpj == cpf_cnpj, Motorista.id != motorista_id).first()
+            if existing_cpf_cnpj:
+                flash('CPF/CNPJ já cadastrado.', 'error')
+                return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+            motorista.cpf_cnpj = cpf_cnpj
+
+        if rg is not None:
+            motorista.rg = rg
+
+        if telefone:
+            if not validate_telefone(telefone):
+                flash('Telefone inválido. Deve conter 10 ou 11 dígitos numéricos.', 'error')
+                return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+            motorista.telefone = telefone
+
+        if cnh:
+            if not validate_cnh(cnh):
+                flash('CNH inválida. Deve conter 11 dígitos numéricos.', 'error')
+                return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+            existing_cnh = Motorista.query.filter(Motorista.cnh == cnh, Motorista.id != motorista_id).first()
+            if existing_cnh:
+                flash('CNH já cadastrada.', 'error')
+                return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+            motorista.cnh = cnh
+
+        if validade_cnh:
+            try:
+                motorista.validade_cnh = datetime.strptime(validade_cnh, '%Y-%m-%d').date()
+            except ValueError:
+                flash('Formato de validade da CNH inválido.', 'error')
+                return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+
+        # Verifica se pelo menos um campo foi alterado
+        if not any([nome, data_nascimento, endereco, pessoa_tipo, cpf_cnpj, rg is not None, telefone, cnh, validade_cnh, files and any(f.filename for f in files)]):
+            flash('Nenhum campo foi alterado.', 'error')
             return redirect(url_for('editar_motorista', motorista_id=motorista_id))
 
-        # Validação das datas
-        try:
-            motorista.data_nascimento = datetime.strptime(data_nascimento, '%Y-%m-%d').date()
-            motorista.validade_cnh = datetime.strptime(validade_cnh, '%Y-%m-%d').date()
-        except ValueError:
-            flash('Formato de data inválido.', 'error')
-            return redirect(url_for('editar_motorista', motorista_id=motorista_id))
-
-        # Validação de CPF/CNPJ
-        if not validate_cpf_cnpj(motorista.cpf_cnpj, motorista.pessoa_tipo):
-            flash(f"{'CPF' if motorista.pessoa_tipo == 'fisica' else 'CNPJ'} inválido. Deve conter {'11' if motorista.pessoa_tipo == 'fisica' else '14'} dígitos numéricos.", 'error')
-            return redirect(url_for('editar_motorista', motorista_id=motorista_id))
-
-        # Validação de telefone
-        if not validate_telefone(motorista.telefone):
-            flash('Telefone inválido. Deve conter 10 ou 11 dígitos numéricos.', 'error')
-            return redirect(url_for('editar_motorista', motorista_id=motorista_id))
-
-        # Validação de CNH
-        if not validate_cnh(motorista.cnh):
-            flash('CNH inválida. Deve conter 11 dígitos numéricos.', 'error')
-            return redirect(url_for('editar_motorista', motorista_id=motorista_id))
-
-        # Verificar unicidade
-        existing_cpf_cnpj = Motorista.query.filter(Motorista.cpf_cnpj == motorista.cpf_cnpj, Motorista.id != motorista_id).first()
-        if existing_cpf_cnpj:
-            flash('CPF/CNPJ já cadastrado.', 'error')
-            return redirect(url_for('editar_motorista', motorista_id=motorista_id))
-        existing_cnh = Motorista.query.filter(Motorista.cnh == motorista.cnh, Motorista.id != motorista_id).first()
-        if existing_cnh:
-            flash('CNH já cadastrada.', 'error')
-            return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+        # Verifica campos obrigatórios do modelo antes do commit
+        required_fields = ['nome', 'endereco', 'pessoa_tipo', 'cpf_cnpj', 'telefone', 'cnh']
+        for field in required_fields:
+            if not getattr(motorista, field):
+                flash(f'O campo {field} é obrigatório e não pode estar vazio.', 'error')
+                return redirect(url_for('editar_motorista', motorista_id=motorista_id))
 
         # Upload de novos anexos para Cloudflare R2
         anexos_urls = motorista.anexos.split(',') if motorista.anexos else []
@@ -741,9 +802,10 @@ def editar_motorista(motorista_id):
                             flash(f'Arquivo {file.filename} não permitido. Use PDF, JPG ou PNG.', 'error')
                             continue
 
-                        # Gera nome seguro
+                        # Usa o CPF/CNPJ original para o caminho, a menos que cpf_cnpj tenha sido alterado
+                        s3_cpf_cnpj = cpf_cnpj if cpf_cnpj else original_cpf_cnpj
                         filename = secure_filename(file.filename)
-                        s3_path = f"motoristas/{motorista.cpf_cnpj}/{filename}"
+                        s3_path = f"motoristas/{s3_cpf_cnpj}/{filename}"
 
                         # Faz upload
                         s3_client.upload_fileobj(
@@ -830,7 +892,7 @@ def excluir_motorista(motorista_id):
                     s3_client.delete_object(Bucket=bucket_name, Key=filename)
                 except Exception as e:
                     logger.error(f"Erro ao excluir anexo {filename}: {str(e)}")
-        # Exclui o motorista do banco
+        # Exclui o motorista
         db.session.delete(motorista)
         db.session.commit()
         flash('Motorista excluído com sucesso!', 'success')
