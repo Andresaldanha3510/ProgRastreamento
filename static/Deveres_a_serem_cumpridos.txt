@@ -1,31 +1,38 @@
 Parte Matheus:
-Cadastro Motorista:
 
-Ajustar para funcionar o Botão de anexo
-Auxiliar nas outras telas que o andré pedir
-Ajuste das telas relacionadas a veiculo... exemplo a tela de consulta de veiculo esta errada. Precisa verifica-la pegue como exemplo a tela de consulta de motorista ou viagem <- ajudar joão
-Perfil do Motorista:
-Fazer a tela de editar motorista: feito hoje dia 26/05/2025
-Fazer a tela de perfil de usuario
+1- Parte descritiva das operações: Muitos campos estão com linguagens que podem ser alteradas para algo mais praticos e outras precisam manter padrões: 
+2- Cadastrar Motorista -> Cadastro de Motorista
+3- Cadastrar Veiculo -> Cadastro de Veiculo
+4- Transporte de Cargas -> Gerenciador de Frotas
+5- (LOGO)TrackGo Transporte de Cargas –> (LOGO)TrackGo – Sua Frota na Palma da Mão
+6- Tela de editar motorista e veiculo
+7- Tela de iniciar viagem o Botão Adicionar viagem (+) -> Criar Viagem
 ---------------------------------------
 Parte do joao:
 
-Ajuste das telas relacionadas a veiculo... exemplo a tela de consulta de veiculo esta errada. Precisa verifica-la pegue como exemplo a tela de consulta de motorista ou viagem
-Ajustar a side bar do sistema e a paleta de cores....
-Perfil do veiculo:
+1- Ajustar todas as telas, deixando padronizado;
+2- Responsividade para celular em todas as telas;
+3- Alterações de layout de telas como cores botões etc...
+4- Precisa-se deixar o Kambam com esses nomes iguais os status da Viagem : Pendente, Em Andamento, Concluida e Cancelada. Ajuste a cor deles se necessario
+5- ENFASE NA TELA DE DASH - ESSA TELA PRECISA SER CHAMATIVA PARA OS CLIETES
+
 ---------------------------------------
 Parte do André 
 
-Trajetoria de viagem: Maps
-Impressão do roteiro para o motorista.
-Consultar viangens: Pode ser a mesma tela nova de editar Motorista ou veiculo porem mudando os menus
-Resultado financeiro das viagens.
-Tabela de abastecimento: Media de combustivel. <- É a tela de Dashs
-Bloquear usuarios
-Na tela principal do Kambam, dar para mover a viagem de status por staus... arrastando-os
+1- Monitoramento de Motorista: (EXPLICATIVO DA IDEIA)
+Em vez de exibir a localização do motorista diretamente em um mapa, a proposta é incluir um campo dentro da seção de viagens que informe, em texto, a localização atual do motorista. Por exemplo: "O motorista está em: Rua Exemplo, 123 - Bairro, Cidade".
+Para manter essa informação atualizada, será utilizado um sistema de monitoramento com atualizações a cada 30 minutos, por meio da API da Geoapify. Essa API será responsável por converter as coordenadas geográficas (latitude e longitude) em endereços legíveis (processo conhecido como reverse geocoding).
+
+2- No Kanbam o botao finalizar esta bugado ele tem que mandar a viagem para Concluido
+3- Na tela de Iniciar viagens o botão custo Viagem não esta funcionando
+4- Na tela de Iniciar viagens ao colocar mais de uma viagem o sistema precisa somar os KM e apresentar o total quando for Adicionar viagem (+)
+5- Na tela de iniciar viagem logo a baixo dos botões tem viagens cadastradas.. precisa ter um filtro nessa parte pois quando tiver varias viagens vai ficar inviavel... Pode ser um que mostra as viagens do mes talvez... 
+6- Integrar as telas de Editar motorista e veiculos junto com o Matheus.
+ 
+PLUS SE CONSEGUIR REALIZAR: No Kamban seria legal se voce pudesse mover para as etapas
 ---------------------------------------
-Bugs a serem visto: 
-1- A Side bar esta com problema conforme conversamos
-2- Tela inicial não esta responsiva
-3- Na tela de iniciar viagem ao colocar mais de uma rota e finalizar ele aparece apenas a mensagem de km da primeira rota tem que pegar do circuito todo
-4- Custo de viagem esta bugado.
+Futuro breve a ser pensado: 
+1- Como ira ser para que varios usuarios se conectem na mesma base ? E como que nós ADM conseguimos Navegar entre esses usuarios ?
+2- Os planos precisam aparecer para os usuarios Antes de fazerem o cadastro ou depois de fazerem o cadastro ? DINAMICA DO SISTEMA SE ALTO VENDER
+3- Precisamos comprar o dominio do site antes de testes.
+4- Vamos precisar fazer as permissões funcionarem e como sera a edição ? O mais viavel na minha opinião são os planos... 
