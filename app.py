@@ -564,7 +564,7 @@ def cadastrar_motorista():
             return redirect(url_for('cadastrar_motorista'))
 
     # Renderiza o formulário para GET
-    return render_template('cadastrar_motorista.html')
+    return render_template('cadastrar_motorista.html', active_page='cadastrar_motorista')
 @app.route('/criar_admin')
 def criar_admin():
     if not Usuario.query.filter_by(email='adminadmin@admin.com').first():
@@ -978,7 +978,7 @@ def cadastrar_veiculo():
             db.session.rollback()
             flash(f'Erro ao cadastrar veículo: {str(e)}', 'error')
             print(f"Erro ao cadastrar veículo: {str(e)}")
-    return render_template('cadastrar_veiculo.html')
+    return render_template('cadastrar_veiculo.html', active_page='cadastrar_veiculo')
 
 # Rota para consultar veículos
 @app.route('/consultar_veiculos', methods=['GET'])
@@ -993,7 +993,7 @@ def consultar_veiculos():
         ).all()
     else:
         veiculos = Veiculo.query.all()
-    return render_template('consultar_veiculos.html', veiculos=veiculos, search_query=search_query)
+    return render_template('consultar_veiculos.html', active_page='consultar_veiculos', veiculos=veiculos, search_query=search_query)
 
 # Rota para editar veículos
 @app.route('/editar_veiculo/<int:veiculo_id>', methods=['GET', 'POST'])
@@ -1068,7 +1068,7 @@ def editar_veiculo(veiculo_id):
         except:
             db.session.rollback()
             flash('Erro ao atualizar veículo.', 'error')
-    return render_template('editar_veiculo.html', veiculo=veiculo)
+    return render_template('editar_veiculo.html', active_page='editar_veiculo', veiculo=veiculo)
 
 # Rota para excluir veículos
 @app.route('/excluir_veiculo/<int:veiculo_id>')
@@ -1204,7 +1204,7 @@ def iniciar_viagem():
             'destinos': [{'endereco': destino.endereco, 'ordem': destino.ordem} for destino in viagem.destinos]
         }
         viagens_data.append(viagem_dict)
-    return render_template('iniciar_viagem.html', motoristas=motoristas, veiculos=veiculos, viagens=viagens_data, GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
+    return render_template('iniciar_viagem.html', active_page='iniciar_viagem', motoristas=motoristas, veiculos=veiculos, viagens=viagens_data, GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
 
 # Rota para editar viagens
 @app.route('/editar_viagem/<int:viagem_id>', methods=['GET', 'POST'])
@@ -1311,7 +1311,7 @@ def editar_viagem(viagem_id):
             'destinos': [{'endereco': destino.endereco, 'ordem': destino.ordem} for destino in v.destinos]
         }
         viagens_data.append(viagem_dict)
-    return render_template('iniciar_viagem.html', motoristas=motoristas, veiculos=veiculos, viagens=viagens_data, viagem_edit=viagem, GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
+    return render_template('iniciar_viagem.html', active_page='iniciar_viagem' ,motoristas=motoristas, veiculos=veiculos, viagens=viagens_data, viagem_edit=viagem, GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
 
 # Rota para excluir viagens
 @app.route('/excluir_viagem/<int:viagem_id>')
@@ -1490,6 +1490,7 @@ def consultar_viagens():
         viagens_data.append(viagem_dict)
     return render_template(
         'consultar_viagens.html',
+        active_page='consultar_viagens',
         viagens=viagens_data,
         status_filter=status_filter,
         search_query=search_query,
@@ -1519,7 +1520,7 @@ def finalizar_viagem(viagem_id):
             flash(f'Erro ao finalizar viagem: {str(e)}', 'error')
     
     # Se for GET, mostra o formulário de finalização
-    return render_template('finalizar_viagem.html', viagem=viagem)
+    return render_template('finalizar_viagem.html', active_page='finalizar_viagem', viagem=viagem)
 
 # Rota para relatórios
 @app.route('/relatorios')
@@ -1631,7 +1632,8 @@ def relatorios():
     motoristas_filtro = Motorista.query.all()
 
     return render_template(
-        'relatorios.html',
+        'relatorios.html', 
+        active_page='relatorios',
         total_viagens=total_viagens,
         total_distancia=total_distancia,
         total_receita=total_receita,
