@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 {% block title %}Cadastro via Convite{% endblock %}
 {% block content %}
@@ -14,9 +13,45 @@
         <input type="text" name="sobrenome" required class="w-full border p-2 rounded">
     </div>
     <div>
+        <label class="block mb-1 font-medium">CPF/CNPJ:</label>
+        <input type="text" id="cpf_cnpj" name="cpf_cnpj" required
+               class="w-full border p-2 rounded" placeholder="Digite seu CPF ou CNPJ (apenas números)">
+        <p class="text-sm text-gray-500">Para Pessoa Física, 11 dígitos. Para Pessoa Jurídica, 14 dígitos.</p>
+    </div>
+    <div>
         <label class="block mb-1 font-medium">Senha:</label>
         <input type="password" name="senha" required class="w-full border p-2 rounded">
     </div>
     <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Cadastrar</button>
 </form>
+
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function() {
+        const cpfCnpjInput = document.getElementById('cpf_cnpj');
+
+        cpfCnpjInput.addEventListener('input', function() {
+            // Remove tudo que não for dígito
+            this.value = this.value.replace(/\D/g, '');
+
+            // Limita o tamanho para 14 (CNPJ)
+            if (this.value.length > 14) {
+                this.value = this.value.slice(0, 14);
+            }
+        });
+
+        // Adicionar uma validação básica para quando o campo perder o foco
+        cpfCnpjInput.addEventListener('blur', function() {
+            if (this.value.length !== 11 && this.value.length !== 14) {
+                this.setCustomValidity('CPF deve ter 11 dígitos ou CNPJ 14 dígitos.');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+
+        // Limpa a mensagem de erro quando o usuário digita novamente
+        cpfCnpjInput.addEventListener('keydown', function() {
+            this.setCustomValidity('');
+        });
+    });
+</script>
 {% endblock %}
