@@ -21,10 +21,12 @@ from flask_mail import Mail, Message
 from geopy.geocoders import OpenCage # Mantido se ainda for usado em algum lugar, mas não mais no seeding
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 
+
 # ---- Configurações Iniciais ----
 load_dotenv()
 
 app = Flask(__name__)
+                                                                                                                
 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
@@ -47,6 +49,7 @@ app.config['CLOUDFLARE_R2_ACCESS_KEY'] = os.getenv('CLOUDFLARE_R2_ACCESS_KEY')
 app.config['CLOUDFLARE_R2_SECRET_KEY'] = os.getenv('CLOUDFLARE_R2_SECRET_KEY')
 app.config['CLOUDFLARE_R2_BUCKET'] = os.getenv('CLOUDFLARE_R2_BUCKET')
 app.config['CLOUDFLARE_R2_PUBLIC_URL'] = os.getenv('CLOUDFLARE_R2_PUBLIC_URL')
+
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -1511,29 +1514,24 @@ from datetime import datetime
 @login_required
 def finalizar_viagem(viagem_id):
     viagem = Viagem.query.get_or_404(viagem_id)
-    
-    # Verifica se o usuário logado tem permissão para concluir a viagem
-    if (viagem.motorista_cpf_cnpj and viagem.motorista_cpf_cnpj != current_user.cpf_cnpj) or \
-       (viagem.motorista_id and viagem.motorista_id != (current_user.motorista.id if current_user.motorista else None)):
-        return jsonify({'success': False, 'message': 'Você não tem permissão para concluir esta viagem.'}), 403
 
     try:
-        data = request.get_json()
-        valor_recebido = float(data.get('valor_recebido', 0)) if data.get('valor_recebido') else 0
-        viagem.status = 'concluido'
         viagem.data_fim = datetime.utcnow()
-        viagem.valor_recebido = valor_recebido
-        
-        # Libera o veículo associado, se existir
-        if viagem.veiculo and not Viagem.query.filter_by(veiculo_id=viagem.veiculo_id, data_fim=None).filter(Viagem.id != viagem_id).first():
-            viagem.veiculo.disponivel = True
+        viagem.status = 'concluida'
+        viagem.veiculo.disponivel = True
+
+        # Aqui você pode capturar o valor_recebido da requisição se quiser
+        data = request.get_json()
+        if data and 'valor_recebido' in data:
+            viagem.valor_recebido = float(data['valor_recebido'])
 
         db.session.commit()
-        return jsonify({'success': True, 'message': 'Viagem concluída com sucesso.'})
+
+        return jsonify(success=True, message='Viagem finalizada com sucesso.')
     except Exception as e:
         db.session.rollback()
-        logger.error(f'Erro ao finalizar viagem {viagem_id}: {str(e)}')
-        return jsonify({'success': False, 'message': f'Erro ao concluir viagem: {str(e)}'}), 500
+        return jsonify(success=False, message=str(e)), 500
+
     
 
 @app.route('/relatorios')
@@ -2388,6 +2386,8 @@ def ultima_localizacao(viagem_id):
     if localizacao:
         return jsonify({'success': True, 'endereco': localizacao.endereco})
     return jsonify({'success': False, 'message': 'Nenhuma localização encontrada para esta viagem.'})
+
+
 
 
 # ---- Execução do Aplicativo ----
