@@ -414,8 +414,8 @@
                             <p class="text-sm text-gray-600"><strong>Motorista:</strong> {{ viagem.motorista_nome }}</p>
                             <p class="text-sm text-gray-600"><strong>Veículo:</strong> {{ viagem.veiculo_placa }} - {{ viagem.veiculo_modelo }}</p>                                              
                             <p class="text-sm text-gray-600"><strong>Início:</strong> {{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</p>
-                            <img src="{{ url_for('static', filename='localizacaoanimado.gif') }}" alt="Ícone de Localização" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 5px;">
-                             Endereço Atual: <span id="endereco-atual-{{ viagem.id }}">Carregando...</span>                           
+                            <img src="{{ url_for('static', filename='localizacaoanimado.gif') }}" alt="Ícone de Localização" style="width: 28px; height: 28px; vertical-align: middle; margin-right: 5px;">
+                             <p class="text-sm text-gray-600" id="endereco-atual-{{ viagem.id }}">Endereço Atual: Carregando...</p>                        
                             <div class="mt-2 flex space-x-2">
                                 <a href="{{ url_for('finalizar_viagem', viagem_id=viagem.id) }}" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">Finalizar</a>
                                 <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Editar</a>
@@ -479,7 +479,7 @@
 
 <!-- Script para gerenciar a sidebar -->
 <script>
-    // Obter referências (usando os IDs e classes do HTML original do usuário)
+    // Script para gerenciamento da sidebar
     const sidebar = document.getElementById('sidebar');
     const menuToggle = document.getElementById('menu-toggle');
 
@@ -514,19 +514,23 @@
     function handleResize() {
         if (window.innerWidth > 768) {
             if (sidebar) { // Verificar se a sidebar existe
-                 sidebar.classList.remove('open'); // Garante que em desktop a classe 'open' (mobile) não esteja ativa
+                sidebar.classList.remove('open'); // Garante que em desktop a classe 'open' (mobile) não esteja ativa
             }
         }
     }
 
     window.addEventListener('load', handleResize);
     window.addEventListener('resize', handleResize);
-</script>
 
-<!-- Script para atualizar endereço em tempo real -->
-'<script>
+    // Script para atualizar endereço em tempo real
     document.addEventListener('DOMContentLoaded', function () {
         function atualizarLocalizacao(viagemId) {
+            const enderecoSpan = document.getElementById(`endereco-atual-${viagemId}`);
+            if (!enderecoSpan) {
+                console.warn(`Elemento com id endereco-atual-${viagemId} não encontrado.`);
+                return;
+            }
+
             fetch(`/ultima_localizacao/${viagemId}`, {
                 method: 'GET',
                 headers: {
@@ -535,16 +539,15 @@
             })
             .then(response => response.json())
             .then(data => {
-                const enderecoSpan = document.getElementById(`endereco-atual-${viagemId}`);
                 if (data.success) {
-                    enderecoSpan.textContent = data.endereco;
+                    enderecoSpan.textContent = `Endereço Atual: ${data.endereco}`;
                 } else {
-                    enderecoSpan.textContent = 'Nenhuma localização disponível';
+                    enderecoSpan.textContent = 'Endereço Atual: Nenhuma localização disponível';
                 }
             })
             .catch(error => {
-                console.error('Erro ao atualizar localização:', error);
-                document.getElementById(`endereco-atual-${viagemId}`).textContent = 'Erro ao carregar localização';
+                console.error(`Erro ao atualizar localização para viagem ${viagemId}:`, error);
+                enderecoSpan.textContent = 'Endereço Atual: Erro ao carregar localização';
             });
         }
 
@@ -554,9 +557,8 @@
             // Atualiza a cada 30 segundos
             setInterval(() => atualizarLocalizacao({{ viagem.id }}), 30000);
         {% endfor %}
-    });'
+    });
 </script>
-
 
 </body>
 </html>
