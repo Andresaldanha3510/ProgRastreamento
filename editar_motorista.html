@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Motorista</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f3f4f6;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            display: flex;
+            gap: 20px;
+        }
+
+        .left-section, .main-section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .left-section {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .main-section {
+            flex: 2;
+            min-width: 300px;
+        }
+
+        .back-button {
+            background-color: #6b7280;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            display: inline-block;
+            font-size: 12px;
+            text-decoration: none;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: border-bottom 0.3s;
+        }
+
+        .tab.active {
+            border-bottom: 2px solid #00a4b4;
+            color: #00a4b4;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .item {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .add-btn {
+            background-color: #00a4b4;
+            color: #fff;
+            padding: 3px 6px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: inline-block;
+            font-size: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-decoration: none;
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .profile-header img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .edit-icon {
+            margin-left: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .save-button {
+            background-color: #00a4b4;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: none;
+            cursor: pointer;
+        }
+
+        .cancel-button {
+            background-color: #6b7280;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .space-y-4 > * + * {
+            margin-top: 1rem;
+        }
+
+        .block {
+            display: block;
+        }
+
+        .text-gray-700 {
+            color: #374151;
+        }
+
+        .text-gray-500 {
+            color: #6b7280;
+        }
+
+        .text-red-700 {
+            color: #b91c1c;
+        }
+
+        .text-green-700 {
+            color: #047857;
+        }
+
+        .text-xl {
+            font-size: 1.25rem;
+        }
+
+        .font-bold {
+            font-weight: 700;
+        }
+
+        .w-full {
+            width: 100%;
+        }
+
+        .p-2 {
+            padding: 0.5rem;
+        }
+
+        .border {
+            border: 1px solid #d1d5db;
+        }
+
+        .rounded {
+            border-radius: 0.25rem;
+        }
+
+        .bg-red-100 {
+            background-color: #fee2e2;
+        }
+
+        .border-red-400 {
+            border-color: #f87171;
+        }
+
+        .px-4 {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .py-3 {
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+        }
+
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .justify-end {
+            justify-content: flex-end;
+        }
+
+        .space-x-2 > * + * {
+            margin-left: 0.5rem;
+        }
+
+        .dashboard {
+            margin-bottom: 20px;
+        }
+
+        .dashboard-card {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .dashboard-card h4 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .text-3xl {
+            font-size: 1.875rem;
+        }
+
+        .text-teal-500 {
+            color: #14b8a6;
+        }
+
+        .time-toggle {
+            background-color: #6b7280;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .time-toggle.active {
+            background-color: #00a4b4;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .left-section, .main-section {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Seção à Esquerda (Informações do Motorista) -->
+        <div class="left-section">
+            <a href="{{ url_for('consultar_motoristas') }}" class="back-button">&lt; Perfil Motorista</a>
+            <div class="profile-header">
+                <img src="https://via.placeholder.com/50" alt="Foto do Motorista">
+                <h2 class="text-xl font-bold">{{ motorista.nome }} <span class="edit-icon" onclick="openModal()">✏️</span></h2>
+            </div>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                        {% for category, message in messages %}
+                            <p class="{{ 'text-red-700' if category == 'error' else 'text-green-700' }}">{{ message }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            <form action="{{ url_for('editar_motorista', motorista_id=motorista.id) }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                <div>
+                    <label class="block text-gray-700">Nome</label>
+                    <input type="text" name="nome" value="{{ motorista.nome }}" required class="w-full p-2 border rounded">
+                </div>
+                <div>
+                    <label class="block text-gray-700">Data de Nascimento</label>
+                    <input type="date" name="data_nascimento" value="{{ motorista.data_nascimento | dateformat }}" required class="w-full p-2 border rounded">
+                </div>
+                <div>
+                    <label class="block text-gray-700">Endereço</label>
+                    <input type="text" name="endereco" value="{{ motorista.endereco }}" required class="w-full p-2 border rounded">
+                </div>
+                <div>
+                    <label class="block text-gray-700">Pessoa Física ou Jurídica</label>
+                    <select id="pessoa_tipo" name="pessoa_tipo" required class="w-full p-2 border rounded">
+                        <option value="fisica" {{ 'selected' if motorista.pessoa_tipo == 'fisica' }}>Pessoa Física</option>
+                        <option value="juridica" {{ 'selected' if motorista.pessoa_tipo == 'juridica' }}>Pessoa Jurídica</option>
+                    </select>
+                </div>
+                <div>
+                    <label id="cpf_cnpj_label" class="block text-gray-700">{{ 'CPF' if motorista.pessoa_tipo == 'fisica' else 'CNPJ' }}</label>
+                    <input type="text" id="cpf_cnpj" name="cpf_cnpj" value="{{ motorista.cpf_cnpj }}" required class="w-full p-2 border rounded" pattern="{{ '\d{11}' if motorista.pessoa_tipo == 'fisica' else '\d{14}' }}" placeholder="{{ 'Digite o CPF (11 dígitos)' if motorista.pessoa_tipo == 'fisica' else 'Digite o CNPJ (14 dígitos)' }}">
+                </div>
+                <div>
+                    <label class="block text-gray-700">RG</label>
+                    <input type="text" id="rg" name="rg" value="{{ motorista.rg or '' }}" class="w-full p-2 border rounded" maxlength="9">
+                </div>
+                <div>
+                    <label class="block text-gray-700">Telefone/WhatsApp</label>
+                    <input type="text" id="telefone" name="telefone" value="{{ motorista.telefone }}" required class="w-full p-2 border rounded" pattern="\d{10,11}">
+                </div>
+                <div>
+                    <label class="block text-gray-700">CNH</label>
+                    <input type="text" id="cnh" name="cnh" value="{{ motorista.cnh }}" required class="w-full p-2 border rounded" pattern="\d{11}">
+                </div>
+                <div>
+                    <label class="block text-gray-700">Validade da CNH</label>
+                    <input type="date" name="validade_cnh" value="{{ motorista.validade_cnh | dateformat }}" required class="w-full p-2 border rounded">
+                </div>
+                <div>
+                    <label class="block text-gray-700">Anexo de Arquivos</label>
+                    <input type="file" name="anexos" multiple accept=".pdf,.jpg,.jpeg,.png" class="w-full p-2 border rounded">
+                    <p class="text-sm text-gray-500">Selecione arquivos (PDF, JPG, PNG)</p>
+                </div>
+                <button type="submit" class="save-button">Salvar</button>
+            </form>
+            <!-- Modal para editar nome -->
+            <div id="nameModal" class="modal">
+                <form action="{{ url_for('editar_motorista', motorista_id=motorista.id) }}" method="POST" class="space-y-2">
+                    <label class="block text-gray-700">Editar Nome</label>
+                    <input type="text" name="nome" value="{{ motorista.nome }}" class="w-full p-2 border rounded" required>
+                    <input type="hidden" name="data_nascimento" value="{{ motorista.data_nascimento | dateformat }}">
+                    <input type="hidden" name="endereco" value="{{ motorista.endereco }}">
+                    <input type="hidden" name="pessoa_tipo" value="{{ motorista.pessoa_tipo }}">
+                    <input type="hidden" name="cpf_cnpj" value="{{ motorista.cpf_cnpj }}">
+                    <input type="hidden" name="rg" value="{{ motorista.rg or '' }}">
+                    <input type="hidden" name="telefone" value="{{ motorista.telefone }}">
+                    <input type="hidden" name="cnh" value="{{ motorista.cnh }}">
+                    <input type="hidden" name="validade_cnh" value="{{ motorista.validade_cnh | dateformat }}">
+                    <div class="flex justify-end space-x-2">
+                        <button type="button" class="cancel-button" onclick="closeModal()">Cancelar</button>
+                        <button type="submit" class="save-button">Salvar</button>
+                    </div>
+                </form>
+            </div>
+            <div id="modalOverlay" class="modal-overlay" onclick="closeModal()"></div>
+        </div>
+        <!-- Seção Central -->
+        <div class="main-section">
+            <div class="profile-header">
+                <h3 class="text-xl font-bold">Perfil de Motorista</h3>
+            </div>
+            <div class="tabs">
+                <div class="tab active" onclick="openTab('activities')">Atividades</div>
+                <div class="tab" onclick="openTab('observations')">Observações</div>
+                <div class="tab" onclick="openTab('tasks')">Tarefas</div>
+            </div>
+            <div id="activities" class="tab-content active">
+                <div class="dashboard">
+                    <div class="dashboard-card">
+                        <h4>Total de Viagens Realizadas</h4>
+                        <p class="text-3xl font-bold text-teal-500">42</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <h4>Viagens por Semana/Mês</h4>
+                        <div class="flex space-x-2 mb-4">
+                            <button class="time-toggle active" onclick="toggleTimeFrame('week')">Semana</button>
+                            <button class="time-toggle" onclick="toggleTimeFrame('month')">Mês</button>
+                        </div>
+                        <canvas id="tripsChart" height="200"></canvas>
+                    </div>
+                    <div class="dashboard-card">
+                        <h4>Veículos Utilizados com Frequência</h4>
+                        <canvas id="vehiclesChart" height="200"></canvas>
+                    </div>
+                </div>
+                <div class="item">Nenhuma atividade registrada.</div>
+                <a href="#" class="add-btn">Adicionar Atividade</a>
+            </div>
+            <div id="observations" class="tab-content">
+                <div class="item">Nenhuma observação registrada.</div>
+                <a href="#" class="add-btn">Adicionar Observação</a>
+            </div>
+            <div id="tasks" class="tab-content">
+                <div class="item">Nenhuma tarefa registrada.</div>
+                <a href="#" class="add-btn">Adicionar Tarefa</a>
+            </div>
+        </div>
+    </div>
+    <script>
+        function openTab(tabName) {
+            var tabcontent = document.getElementsByClassName("tab-content");
+            var tabs = document.getElementsByClassName("tab");
+
+            for (var i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("active");
+            }
+            for (var i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove("active");
+            }
+
+            document.getElementById(tabName).classList.add("active");
+            event.currentTarget.classList.add("active");
+        }
+
+        function openModal() {
+            document.getElementById('nameModal').style.display = 'block';
+            document.getElementById('modalOverlay').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('nameModal').style.display = 'none';
+            document.getElementById('modalOverlay').style.display = 'none';
+        }
+
+        // Dados fictícios para os gráficos
+        let tripsData = {
+            week: {
+                labels: ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4'],
+                data: [10, 15, 8, 12]
+            },
+            month: {
+                labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai'],
+                data: [50, 45, 60, 55, 70]
+            }
+        };
+
+        const vehiclesData = {
+            labels: ['Caminhão A', 'Caminhão B', 'Van C', 'Carro D'],
+            data: [20, 15, 10, 5]
+        };
+
+        let tripsChartInstance = null;
+
+        function toggleTimeFrame(frame) {
+            const buttons = document.getElementsByClassName('time-toggle');
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].classList.remove('active');
+            }
+            event.currentTarget.classList.add('active');
+
+            if (tripsChartInstance) {
+                tripsChartInstance.destroy();
+            }
+
+            const ctx = document.getElementById('tripsChart').getContext('2d');
+            tripsChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: tripsData[frame].labels,
+                    datasets: [{
+                        label: 'Viagens',
+                        data: tripsData[frame].data,
+                        backgroundColor: '#00a4b4',
+                        borderColor: '#00a4b4',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Número de Viagens'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: frame === 'week' ? 'Semana' : 'Mês'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const pessoaTipo = document.getElementById('pessoa_tipo');
+            const cpfCnpjLabel = document.getElementById('cpf_cnpj_label');
+            const cpfCnpjInput = document.getElementById('cpf_cnpj');
+
+            pessoaTipo.addEventListener('change', function() {
+                if (pessoaTipo.value === 'fisica') {
+                    cpfCnpjLabel.textContent = 'CPF';
+                    cpfCnpjInput.placeholder = 'Digite o CPF (11 dígitos)';
+                    cpfCnpjInput.pattern = '\\d{11}';
+                    cpfCnpjInput.title = 'CPF deve ter 11 dígitos';
+                } else {
+                    cpfCnpjLabel.textContent = 'CNPJ';
+                    cpfCnpjInput.placeholder = 'Digite o CNPJ (14 dígitos)';
+                    cpfCnpjInput.pattern = '\\d{14}';
+                    cpfCnpjInput.title = 'CNPJ deve ter 14 dígitos';
+                }
+            });
+
+            const telefoneInput = document.getElementById('telefone');
+            telefoneInput.addEventListener('input', function() {
+                this.value = this.value.replace(/\D/g, '');
+                if (this.value.length > 11) {
+                    this.value = this.value.slice(0, 11);
+                }
+            });
+
+            const rgInput = document.getElementById('rg');
+            rgInput.addEventListener('input', function() {
+                this.value = this.value.replace(/\D/g, '');
+                if (this.value.length > 9) {
+                    this.value = this.value.slice(0, 9);
+                }
+            });
+
+            const cnhInput = document.getElementById('cnh');
+            cnhInput.addEventListener('input', function() {
+                this.value = this.value.replace(/\D/g, '');
+                if (this.value.length > 11) {
+                    this.value = this.value.slice(0, 11);
+                }
+            });
+
+            // Inicializar o gráfico de viagens por semana
+            toggleTimeFrame('week');
+
+            // Inicializar o gráfico de veículos
+            const vehiclesCtx = document.getElementById('vehiclesChart').getContext('2d');
+            new Chart(vehiclesCtx, {
+                type: 'bar',
+                data: {
+                    labels: vehiclesData.labels,
+                    datasets: [{
+                        label: 'Uso de Veículos',
+                        data: vehiclesData.data,
+                        backgroundColor: '#10b981',
+                        borderColor: '#10b981',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Número de Viagens'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Veículo'
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

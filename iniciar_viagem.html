@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Viagem</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Maps Places API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ Maps_API_KEY }}&libraries=places"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+            margin-top: 20px;
+        }
+        .form-section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .destino-container {
+            margin-bottom: 15px;
+        }
+        .btn-excluir {
+            margin-left: 10px;
+        }
+        .viagens-list {
+            margin-top: 30px;
+        }
+        .viagem-item {
+            background-color: #fff;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+        .pac-container {
+            z-index: 1050 !important; /* Garante que o autocomplete apareça acima do modal do Bootstrap */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Exibir mensagens flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}" role="alert">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <h1 class="mb-4">Iniciar Viagem</h1>
+
+        <!-- Formulário para iniciar/editar viagem -->
+        <div class="form-section">
+            <form method="POST" action="{{ url_for('iniciar_viagem') if not viagem_edit else url_for('editar_viagem', viagem_id=viagem_edit.id) }}">
+                <!-- Motorista -->
+                <div class="mb-3">
+                    <label for="motorista_id" class="form-label">Motorista</label>
+                    <select class="form-select" id="motorista_id" name="motorista_id">
+                        <option value="">Selecione um motorista</option>
+                        {% for motorista in motoristas %}
+                            <option value="{{ motorista.id }}" {% if viagem_edit and viagem_edit.motorista_id == motorista.id %}selected{% endif %}>
+                                {{ motorista.nome }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Veículo -->
+                <div class="mb-3">
+                    <label for="veiculo_id" class="form-label">Veículo</label>
+                    <select class="form-select" id="veiculo_id" name="veiculo_id" required>
+                        <option value="">Selecione um veículo</option>
+                        {% for veiculo in veiculos %}
+                            <option value="{{ veiculo.id }}" {% if viagem_edit and viagem_edit.veiculo_id == veiculo.id %}selected{% endif %}>
+                                {{ veiculo.placa }} - {{ veiculo.modelo }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Nome do Cliente -->
+                <div class="mb-3">
+                    <label for="cliente" class="form-label">Nome do Cliente</label>
+                    <input type="text" class="form-control" id="cliente" name="cliente" value="{{ viagem_edit.cliente if viagem_edit else '' }}" required>
+                </div>
+
+                <!-- Endereço de Saída -->
+                <div class="mb-3">
+                    <label for="endereco_saida" class="form-label">Endereço de Saída</label>
+                    <input type="text" class="form-control autocomplete" id="endereco_saida" name="endereco_saida" value="{{ viagem_edit.endereco_saida if viagem_edit else '' }}" required>
+                </div>
+
+                <!-- Endereços de Destino -->
+                <div class="mb-3">
+                    <label class="form-label">Endereços de Destino</label>
+                    <div id="destinos-container">
+                        {% if viagem_edit and viagem_edit.destinos %}
+                            {% for destino in viagem_edit.destinos %}
+                                <div class="destino-container input-group mb-2">
+                                    <input type="text" class="form-control autocomplete" name="enderecos_destino[]" value="{{ destino.endereco }}" required>
+                                    <button type="button" class="btn btn-danger btn-excluir">Excluir</button>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="destino-container input-group mb-2">
+                                <input type="text" class="form-control autocomplete" name="enderecos_destino[]" placeholder="Digite o endereço de destino" required>
+                                <button type="button" class="btn btn-danger btn-excluir">Excluir</button>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <button type="button" class="btn btn-primary" id="adicionar-destino">Adicionar Destino</button>
+                </div>
+
+                <!-- Data e Hora da Viagem -->
+                <div class="mb-3">
+                    <label for="data_inicio" class="form-label">Data e Hora da Viagem</label>
+                    <input type="datetime-local" class="form-control" id="data_inicio" name="data_inicio" value="{{ viagem_edit.data_inicio.strftime('%Y-%m-%dT%H:%M') if viagem_edit and viagem_edit.data_inicio else '' }}" required>
+                </div>
+
+                <!-- Forma de Pagamento -->
+                <div class="mb-3">
+                    <label for="forma_pagamento" class="form-label">Forma de Pagamento</label>
+                    <select class="form-select" id="forma_pagamento" name="forma_pagamento" required>
+                        <option value="">Selecione a forma de pagamento</option>
+                        <option value="dinheiro" {% if viagem_edit and viagem_edit.forma_pagamento == 'dinheiro' %}selected{% endif %}>Dinheiro</option>
+                        <option value="cartao_credito" {% if viagem_edit and viagem_edit.forma_pagamento == 'cartao_credito' %}selected{% endif %}>Cartão de Crédito</option>
+                        <option value="cartao_debito" {% if viagem_edit and viagem_edit.forma_pagamento == 'cartao_debito' %}selected{% endif %}>Cartão de Débito</option>
+                        <option value="pix" {% if viagem_edit and viagem_edit.forma_pagamento == 'pix' %}selected{% endif %}>PIX</option>
+                    </select>
+                </div>
+
+                <!-- Status da Viagem -->
+                <div class="mb-3">
+                    <label for="status" class="form-label">Status da Viagem</label>
+                    <select class="form-select" id="status" name="status" required>
+                        <option value="pendente" {% if viagem_edit and viagem_edit.status == 'pendente' %}selected{% endif %}>Pendente</option>
+                        <option value="em_andamento" {% if viagem_edit and viagem_edit.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
+                        <option value="concluida" {% if viagem_edit and viagem_edit.status == 'concluida' %}selected{% endif %}>Concluída</option>
+                        <option value="cancelada" {% if viagem_edit and viagem_edit.status == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                    </select>
+                </div>
+
+                <!-- Observações -->
+                <div class="mb-3">
+                    <label for="observacoes" class="form-label">Observações</label>
+                    <textarea class="form-control" id="observacoes" name="observacoes" rows="4">{{ viagem_edit.observacoes if viagem_edit else '' }}</textarea>
+ </div>
+
+                <!-- Botões -->
+                <button type="submit" class="btn btn-success">Adicionar Viagem</button>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">Voltar</a>
+            </form>
+        </div>
+
+        <!-- Lista de Viagens Cadastradas -->
+        <h2 class="mt-5">Viagens Cadastradas</h2>
+        <div class="viagens-list">
+            {% for viagem in viagens %}
+                <div class="viagem-item">
+                    <h5>Viagem #{{ viagem.id }} - {{ viagem.cliente }} ({{ viagem.status|title }})</h5>
+                    <p><strong>Motorista:</strong> {{ viagem.motorista_nome }}</p>
+                    <p><strong>Veículo:</strong> {{ viagem.veiculo_placa }} - {{ viagem.veiculo_modelo }}</p>
+                    <p><strong>Cliente:</strong> {{ viagem.cliente }}</p>
+                    <p><strong>Endereço de Saída:</strong> {{ viagem.endereco_saida }}</p>
+                    <p><strong>Endereços de Destino:</strong></p>
+                    <ul>
+                        {% for destino in viagem.destinos %}
+                            <li>Endereço de Destino {{ destino.ordem }}: {{ destino.endereco }}</li>
+                        {% endfor %}
+                    </ul>
+                    <p><strong>Distância:</strong> {{ viagem.distancia_km|round(2) if viagem.distancia_km else 'Não calculado' }} km</p>
+                    <p><strong>Data/Hora Início:</strong> {{ viagem.data_inicio[:-3] }}</p>
+                    <p><strong>Horário Estimado de Chegada:</strong> {{ viagem.horario_chegada }}</p>
+                    <p><strong>Duração Estimada:</strong> {{ (viagem.duracao_segundos // 60) if viagem.duracao_segundos else 'Não informado' }} minutos</p>
+                    <p><strong>Custo:</strong> R$ {{ viagem.custo|round(2) if viagem.custo else 'Não informado' }}</p>
+                    <p><strong>Forma de Pagamento:</strong> {{ viagem.forma_pagamento|title if viagem.forma_pagamento else 'Não informado' }}</p>
+                    <p><strong>Status:</strong> {{ viagem.status|title }}</p>
+                    <p><strong>Observações:</strong> {{ viagem.observacoes if viagem.observacoes else 'Nenhuma' }}</p>
+                    <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="btn btn-primary btn-sm">Editar</a>
+                    <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Tem certeza que deseja excluir esta viagem?');">Excluir</a>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Bootstrap JS e JavaScript para autocomplete e adicionar destinos -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Função para inicializar o autocomplete do Google Maps
+        function initAutocomplete() {
+            // Inicializar autocomplete para o campo endereço de saída
+            const enderecoSaidaInput = document.getElementById('endereco_saida');
+            if (enderecoSaidaInput) {
+                new google.maps.places.Autocomplete(enderecoSaidaInput, {
+                    types: ['geocode'], // Restringe a endereços geográficos
+                    componentRestrictions: { country: 'br' } // Restringe ao Brasil
+                });
+            }
+
+            // Inicializar autocomplete para todos os campos de destino
+            document.querySelectorAll('.autocomplete[name="enderecos_destino[]"]').forEach(input => {
+                new google.maps.places.Autocomplete(input, {
+                    types: ['geocode'],
+                    componentRestrictions: { country: 'br' }
+                });
+            });
+        }
+
+        // Função para adicionar novos campos de destino
+        document.getElementById('adicionar-destino').addEventListener('click', function() {
+            const container = document.getElementById('destinos-container');
+            const newDestino = document.createElement('div');
+            newDestino.className = 'destino-container input-group mb-2';
+            newDestino.innerHTML = `
+                <input type="text" class="form-control autocomplete" name="enderecos_destino[]" placeholder="Digite o endereço de destino" required>
+                <button type="button" class="btn btn-danger btn-excluir">Excluir</button>
+            `;
+            container.appendChild(newDestino);
+
+            // Inicializar autocomplete para o novo campo
+            const newInput = newDestino.querySelector('input');
+            new google.maps.places.Autocomplete(newInput, {
+                types: ['geocode'],
+                componentRestrictions: { country: 'br' }
+            });
+
+            // Adicionar evento de exclusão ao novo botão
+            newDestino.querySelector('.btn-excluir').addEventListener('click', function() {
+                if (container.querySelectorAll('.destino-container').length > 1) {
+                    newDestino.remove();
+                } else {
+                    alert('É necessário pelo menos um endereço de destino.');
+                }
+            });
+        });
+
+        // Adicionar eventos de exclusão aos botões existentes
+        document.querySelectorAll('.btn-excluir').forEach(button => {
+            button.addEventListener('click', function() {
+                const container = document.getElementById('destinos-container');
+                if (container.querySelectorAll('.destino-container').length > 1) {
+                    button.closest('.destino-container').remove();
+                } else {
+                    alert('É necessário pelo menos um endereço de destino.');
+                }
+            });
+        });
+
+        // Inicializar autocomplete ao carregar a página
+        document.addEventListener('DOMContentLoaded', initAutocomplete);
+    </script>
+</body>
+</html>
