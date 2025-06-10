@@ -584,7 +584,7 @@ def cadastrar_motorista():
             flash(f'Erro ao cadastrar motorista: {str(e)}', 'error')
             return redirect(url_for('cadastrar_motorista'))
 
-    return render_template('cadastrar_motorista.html')
+    return render_template('cadastrar_motorista.html', active_page='cadastrar_motorista')
 
 @app.route('/criar_admin')
 def criar_admin():
@@ -611,7 +611,7 @@ def consultar_motoristas():
             (Motorista.cpf_cnpj.ilike(f'%{search_query}%'))
         )
     motoristas = query.order_by(Motorista.nome.asc()).all()
-    return render_template('consultar_motoristas.html', motoristas=motoristas, search_query=search_query)
+    return render_template('consultar_motoristas.html', motoristas=motoristas, search_query=search_query, active_page='consultar_motoristas')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -971,7 +971,7 @@ def cadastrar_veiculo():
             db.session.rollback()
             flash(f'Erro ao cadastrar veículo: {str(e)}', 'error')
             print(f"Erro ao cadastrar veículo: {str(e)}")
-    return render_template('cadastrar_veiculo.html')
+    return render_template('cadastrar_veiculo.html', active_page='cadastrar_veiculo')
 
 @app.route('/consultar_veiculos', methods=['GET'])
 def consultar_veiculos():
@@ -985,7 +985,7 @@ def consultar_veiculos():
         ).all()
     else:
         veiculos = Veiculo.query.all()
-    return render_template('consultar_veiculos.html', veiculos=veiculos, search_query=search_query)
+    return render_template('consultar_veiculos.html', veiculos=veiculos, search_query=search_query, active_page='consultar_veiculos')
 
 @app.route('/editar_veiculo/<int:veiculo_id>', methods=['GET', 'POST'])
 def editar_veiculo(veiculo_id):
@@ -1059,7 +1059,7 @@ def editar_veiculo(veiculo_id):
         except:
             db.session.rollback()
             flash('Erro ao atualizar veículo.', 'error')
-    return render_template('editar_veiculo.html', veiculo=veiculo)
+    return render_template('editar_veiculo.html', veiculo=veiculo, active_page='editar_veiculo')
 
 @app.route('/excluir_veiculo/<int:veiculo_id>')
 def excluir_veiculo(veiculo_id):
@@ -1500,6 +1500,7 @@ def consultar_viagens():
         viagens_data.append(viagem_dict)
     return render_template(
         'consultar_viagens.html',
+        active_page='consultar_viagens',
         viagens=viagens_data,
         status_filter=status_filter,
         search_query=search_query,
@@ -1646,6 +1647,7 @@ def relatorios():
 
     return render_template(
         'relatorios.html',
+        active_page='relatorios',
         total_viagens=total_viagens,
         total_distancia=total_distancia,
         total_receita=total_receita,
