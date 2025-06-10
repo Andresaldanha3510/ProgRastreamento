@@ -5,54 +5,248 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cadastrar Motorista</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script type="text/javascript">
-        document.addEventListener('DOMContentLoaded', function() {
-            const pessoaTipo = document.getElementById('pessoa_tipo');
-            const cpfCnpjLabel = document.getElementById('cpf_cnpj_label');
-            const cpfCnpjInput = document.getElementById('cpf_cnpj');
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" xintegrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        
+        body {
+            background: white;
+            background-attachment: fixed;
+            color: #1e293b; /* Cor de texto padrão para o body */
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            padding-top: 100px; /* Altura do header */
+        }
 
-            pessoaTipo.addEventListener('change', function() {
-                if (pessoaTipo.value === 'fisica') {
-                    cpfCnpjLabel.textContent = 'CPF';
-                    cpfCnpjInput.placeholder = 'Digite o CPF (11 dígitos)';
-                    cpfCnpjInput.pattern = '\\d{11}';
-                    cpfCnpjInput.title = 'CPF deve ter 11 dígitos';
-                } else {
-                    cpfCnpjLabel.textContent = 'CNPJ';
-                    cpfCnpjInput.placeholder = 'Digite o CNPJ (14 dígitos)';
-                    cpfCnpjInput.pattern = '\\d{14}';
-                    cpfCnpjInput.title = 'CNPJ deve ter 14 dígitos';
-                }
-            });
+        /* Estilo do cabeçalho (baseado no HTML original do usuário) */
+        header.navbar { /* Aplicando diretamente à tag header com classe navbar */
+            background: linear-gradient(135deg, #2e7d32, #2e7d32);
+            box-shadow: 0px 3px 6px rgb(10, 73, 10);
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 30;
+            height: 100px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem; /* Padding horizontal */
+        }
 
-            const telefoneInput = document.getElementById('telefone');
-            telefoneInput.addEventListener('input', function() {
-                this.value = this.value.replace(/\D/g, '');
-                if (this.value.length > 11) {
-                    this.value = this.value.slice(0, 11);
-                }
-            });
+        /* Botão de Menu Mobile (originalmente #menu-toggle) */
+        #menu-toggle {
+            background-color: transparent;
+            border: none;
+            color: white;
+            font-size: 1.8rem;
+            cursor: pointer;
+            padding: 10px; /* Área de clique */
+            border-radius: 50%;
+            transition: background-color 0.2s ease-in-out;
+        }
+        #menu-toggle:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        /* md:hidden é uma classe Tailwind, já controla o display */
 
-            const rgInput = document.getElementById('rg');
-            rgInput.addEventListener('input', function() {
-                this.value = this.value.replace(/\D/g, '');
-                if (this.value.length > 9) {
-                    this.value = this.value.slice(0, 9);
-                }
-            });
+        /* Contêiner para o logo e o nome */
+        .brand-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
 
-            const cnhInput = document.getElementById('cnh');
-            cnhInput.addEventListener('input', function() {
-                this.value = this.value.replace(/\D/g, '');
-                if (this.value.length > 11) {
-                    this.value = this.value.slice(0, 11);
-                }
-            });
-        });
-    </script>
+        .img-logo img {
+            height: 60px; /* Ajustado para caber no header */
+            width: 60px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        .name-tag h1 {
+            color: white;
+            font-size: 1.25rem; /* Ajustado */
+            white-space: nowrap;
+        }
+
+        /* Ícone do Usuário (originalmente .user-icon) */
+        a.user-icon { /* Aplicando ao <a> com classe user-icon */
+            color: white; /* Para combinar com o header verde */
+            font-size: 1.5rem;
+            text-decoration: none;
+            transition: color 0.2s ease-in-out;
+        }
+        a.user-icon:hover {
+            color: #e0e0e0;
+        }
+
+        /* Estilos da Sidebar (originalmente div#sidebar) */
+        div#sidebar { /* Aplicando ao div com ID sidebar */
+            background-color: #2F3640;
+            box-shadow: 2px 0px 10px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease-in-out;
+            border-top-right-radius: 10px;
+            border-bottom-right-radius: 10px;
+            position: fixed;
+            top: 100px; /* Abaixo do header */
+            left: 0;
+            height: calc(100vh - 100px);
+            z-index: 20; /* Abaixo do header, mas acima do overlay se houver */
+            width: 14rem;
+            overflow-y: auto;
+            /* p-6 (padding: 1.5rem) é classe Tailwind, pode ser mantida no HTML ou adicionada aqui */
+            padding: 1.5rem;
+        }
+
+        div#sidebar h1 { /* Título dentro da sidebar */
+            color: #ffffff;
+            font-size: 1.5rem; /* text-2xl */
+            font-weight: bold;
+            margin-bottom: 2rem; /* mb-8 */
+            text-align: center;
+        }
+
+        div#sidebar ul li {
+            margin-bottom: 1rem; /* mb-4 */
+        }
+
+        div#sidebar ul li a {
+            color: white;
+            display: block;
+            padding: 10px 15px;
+            border-radius: 8px;
+            transition: background-color 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            gap: 10px; /* Espaço entre ícone e texto */
+        }
+
+        div#sidebar ul li a:hover {
+            background-color: #2e8b57;
+        }
+        /*Adiciona a animação ao passar o mouse encima */
+        div#sidebar ul li a.active {
+            background-color: #2e8b57;
+            font-weight: 600;
+            box-shadow: inset 3px 0 0 0 #ffffff;
+        }
+        /*Evitar que o link ativo mude de cor ao passar o mouse */
+        div#sidebar ul li a:not(.active):hover {
+            background-color: #2e8b57;
+        }
+
+        div#sidebar ul li a i {
+            width: 20px; /* Para alinhar o texto mesmo que alguns itens não tenham ícone */
+            text-align: center;
+        }
+
+        /* Media Queries para responsividade */
+        @media (min-width: 769px) { /* Desktop */
+            div#sidebar {
+                transform: translateX(0);
+            }
+        }
+
+        @media (max-width: 768px) { /* Tablet e Mobile */
+            header.navbar {
+                padding: 0 1rem;
+            }
+            .brand-section {
+                /* Ocultar o nome da empresa no mobile para economizar espaço, se necessário */
+                 /* flex-grow: 1; /* Para centralizar logo se o nome sumir e houver botão de menu */
+            }
+            .name-tag h1 {
+                display: none; /* Esconde o nome da empresa em telas menores */
+            }
+            .img-logo img {
+                 height: 50px;
+                 width: 50px;
+            }
+            div#sidebar {
+                transform: translateX(-100%); /* Escondida por padrão */
+                width: 80%;
+                max-width: 260px; /* Levemente menor para não ocupar tanto */
+                z-index: 40; /* Acima do conteúdo principal quando aberta */
+            }
+            div#sidebar.open {
+                transform: translateX(0); /* Mostra a sidebar */
+            }
+            /* #menu-toggle (botão) é exibido por padrão abaixo de md (768px) */
+            div.main-content {
+                margin-left: 0;
+                padding: 1.5rem; /* Padding ajustado para mobile */
+            }
+            a.user-icon {
+                font-size: 1.3rem;
+            }
+        }
+        
+        @media (max-width: 480px) { /* Telas bem pequenas */
+            header.navbar {
+                padding: 0 0.5rem;
+            }
+            .img-logo img {
+                height: 45px; /* Ainda menor */
+                width: 45px;
+            }
+            div.main-content {
+                padding: 1rem;
+            }
+            a.user-icon {
+                font-size: 1.2rem;
+            }
+            div#sidebar {
+                width: 90%; /* Pode ser mais larga em telas muito pequenas */
+                max-width: 280px;
+            }
+        }
+
+    </style>
+
+    
 </head>
 <body class="bg-gray-100">
-    <div class="container mx-auto p-4">
+
+    <header class="navbar">
+        <button id="menu-toggle" class="text-white md:hidden focus:outline-none">
+            <i class="fas fa-bars"></i>
+        </button>
+        
+        <div class="brand-section">
+            <div class="img-logo">
+                <a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='brasão.png') }}" alt="Logo TrackGo"></a>
+            </div>
+            <div class="name-tag">
+                <h1>TrackGo</h1>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 text-white">
+        <span class="text-sm hidden sm:inline">Olá, {{ current_user.nome or current_user.email }}</span>
+        <a href="{{ url_for('configuracoes') }}" class="user-icon" title="Configurações">
+            <i class="fas fa-user-cog"></i>
+        </a>
+        <a href="{{ url_for('logout') }}" class="user-icon" title="Sair">
+            <i class="fas fa-sign-out-alt"></i>
+        </a>
+    </div>
+    </header>
+
+    <div class="flex h-screen"> <div id="sidebar" class="sidebar"> <h1 class="text-2xl font-bold mb-8 text-center text-white">Menu</h1>
+        <ul>
+            <li class="mb-4"><a href="{{ url_for('cadastrar_motorista') }}" class="{% if active_page == 'cadastrar_motorista' %}active{% endif %}" ><i class="fas fa-user"></i> Cadastrar Motorista</a></li>
+            <li class="mb-4"><a href="{{ url_for('cadastrar_veiculo') }}" class="{% if active_page == 'cadastrar_veiculo' %}active{% endif %}"><i class="fas fa-truck"></i> Cadastrar Veículo</a></li>
+            <li class="mb-4"><a href="{{ url_for('iniciar_viagem') }}" class="{% if active_page == 'iniciar_viagem' %}active{% endif %}"><i class="fas fa-route"></i> Iniciar Viagem</a></li>
+            <li class="mb-4"><a href="{{ url_for('consultar_viagens') }}" class="{% if active_page == 'consultar_viagens' %}active{% endif %}"><i class="fas fa-search"></i> Consultar Viagens</a></li>
+            <li class="mb-4"><a href="{{ url_for('consultar_motoristas') }}" class="{% if active_page == 'consultar_motoristas' %}active{% endif %}"><i class="fas fa-users"></i> Consultar Motoristas</a></li>
+            <li class="mb-4"><a href="{{ url_for('consultar_veiculos') }}" class="{% if active_page == 'consultar_veiculos' %}active{% endif %}"><i class="fas fa-truck-loading"></i> Consultar Veículos</a></li>
+            <li class="mb-4"><a href="{{ url_for('relatorios') }}" class="{% if active_page == 'relatorios' %}active{% endif %}"><i class="fas fa-chart-bar"></i> Relatórios</a></li>
+        </ul>
+    </div>   
+
+    <div class="container md:ml-60 transition-all duration-300 mt-6">
         <h1 class="text-2xl font-bold mb-4">Cadastrar Motorista</h1>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -124,5 +318,96 @@
             <a href="{{ url_for('index') }}" class="bg-gray-500 text-white px-4 py-2 rounded ml-2">Voltar</a>
         </form>
     </div>
+
+<script type="text/javascript">
+    // Obter referências (usando os IDs e classes do HTML original do usuário)
+    const sidebar = document.getElementById('sidebar');
+    const menuToggle = document.getElementById('menu-toggle');
+    // const mainContent = document.querySelector('.main-content'); // Não é mais necessário para JS ajustar padding/margin
+
+    // Função para alternar a sidebar em telas mobile
+    function toggleMobileSidebar() {
+        if (sidebar) { // Verificar se a sidebar existe
+            sidebar.classList.toggle('open');
+        }
+    }
+
+    // Listener para o botão de menu (apenas mobile)
+    if (menuToggle) {
+        menuToggle.addEventListener('click', (event) => {
+            event.stopPropagation();
+            toggleMobileSidebar();
+        });
+    }
+
+    // Fechar a sidebar mobile ao clicar fora dela
+    document.addEventListener('click', (event) => {
+        if (sidebar && menuToggle && sidebar.classList.contains('open')) { // Executar somente se sidebar existir e estiver aberta
+            const isClickInsideSidebar = sidebar.contains(event.target);
+            const isClickOnMenuToggle = menuToggle.contains(event.target);
+
+            if (window.innerWidth <= 768 && !isClickInsideSidebar && !isClickOnMenuToggle) {
+                sidebar.classList.remove('open');
+            }
+        }
+    });
+
+    // Ajustes em redimensionamento (para garantir o estado correto da sidebar mobile)
+    function handleResize() {
+        if (window.innerWidth > 768) {
+            if (sidebar) { // Verificar se a sidebar existe
+                 sidebar.classList.remove('open'); // Garante que em desktop a classe 'open' (mobile) não esteja ativa
+            }
+        }
+    }
+
+    window.addEventListener('load', handleResize);
+    window.addEventListener('resize', handleResize);
+
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const pessoaTipo = document.getElementById('pessoa_tipo');
+        const cpfCnpjLabel = document.getElementById('cpf_cnpj_label');
+        const cpfCnpjInput = document.getElementById('cpf_cnpj');
+
+        pessoaTipo.addEventListener('change', function() {
+            if (pessoaTipo.value === 'fisica') {
+                cpfCnpjLabel.textContent = 'CPF';
+                cpfCnpjInput.placeholder = 'Digite o CPF (11 dígitos)';
+                cpfCnpjInput.pattern = '\\d{11}';
+                cpfCnpjInput.title = 'CPF deve ter 11 dígitos';
+            } else {
+                cpfCnpjLabel.textContent = 'CNPJ';
+                cpfCnpjInput.placeholder = 'Digite o CNPJ (14 dígitos)';
+                cpfCnpjInput.pattern = '\\d{14}';
+                cpfCnpjInput.title = 'CNPJ deve ter 14 dígitos';
+            }
+        });
+
+        const telefoneInput = document.getElementById('telefone');
+        telefoneInput.addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, '');
+            if (this.value.length > 11) {
+                this.value = this.value.slice(0, 11);
+            }
+        });
+
+        const rgInput = document.getElementById('rg');
+        rgInput.addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, '');
+            if (this.value.length > 9) {
+                this.value = this.value.slice(0, 9);
+            }
+        });
+
+        const cnhInput = document.getElementById('cnh');
+        cnhInput.addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, '');
+            if (this.value.length > 11) {
+                this.value = this.value.slice(0, 11);
+            }
+        });
+    });
+</script>
 </body>
 </html>

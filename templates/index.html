@@ -19,13 +19,6 @@
             padding-top: 100px; /* Altura do header */
         }
 
-        .card-text img {
-        margin-top: 5px;
-        }
-        .card-text span {
-        font-weight: bold;
-        }
-
         /* Estilo do cabeçalho (baseado no HTML original do usuário) */
         header.navbar { /* Aplicando diretamente à tag header com classe navbar */
             background: linear-gradient(135deg, #2e7d32, #2e7d32);
@@ -178,6 +171,13 @@
             box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
         }
 
+        .card-text img {
+        margin-top: 5px;
+        }
+        .card-text span {
+        font-weight: bold;
+        }
+
         /* Seções do Dashboard */
         .dashboard-section {
             background-color: #f8f8f8;
@@ -205,7 +205,7 @@
         .dashboard-section[style*="--index: 3"] .dashboard-section-header { background-color: #166534; } /* Cargas Finalizadas */
         .dashboard-section[style*="--index: 4"] .dashboard-section-header { background-color: #ef4444; } /* Resolvida */
 
-        /* Conteúdo dos cards do dashboard */
+         /* Conteúdo dos cards do dashboard */
         .dashboard-item-content { /* Renomeado de .mt-2.space-y-3 para clareza */
             padding: 1rem; /* Espaçamento interno para os itens */
             overflow-y: auto;
@@ -330,10 +330,10 @@
     
     <div class="brand-section">
         <div class="img-logo">
-            <a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='trackgo_logo.png') }}" alt="Logo TrackGo"></a>
+            <a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='brasão.png') }}" alt="Logo TrackGo"></a>
         </div>
         <div class="name-tag">
-            <h1>Transporte de Cargas</h1>
+            <h1>TrackGo</h1>
         </div>
     </div>
     <div class="flex items-center gap-4 text-white">
@@ -344,18 +344,19 @@
     <a href="{{ url_for('logout') }}" class="user-icon" title="Sair">
         <i class="fas fa-sign-out-alt"></i>
     </a>
-</div>
-</header>
+    </div>
+    </header>
 
-<div class="flex h-screen"> <div id="sidebar" class="sidebar"> <h1 class="text-2xl font-bold mb-8 text-center text-white">Menu</h1> <ul>
-            <li class="mb-4"><a href="{{ url_for('cadastrar_motorista') }}"><i class="fas fa-user"></i> Cadastrar Motorista</a></li>
-            <li class="mb-4"><a href="{{ url_for('cadastrar_veiculo') }}"><i class="fas fa-truck"></i> Cadastrar Veículo</a></li>
-            <li class="mb-4"><a href="{{ url_for('iniciar_viagem') }}"><i class="fas fa-route"></i> Iniciar Viagem</a></li>
-            <li class="mb-4"><a href="{{ url_for('consultar_viagens') }}"><i class="fas fa-search"></i> Consultar Viagens</a></li>
-            <li class="mb-4"><a href="{{ url_for('consultar_motoristas') }}"><i class="fas fa-users"></i> Consultar Motoristas</a></li>
-            <li class="mb-4"><a href="{{ url_for('consultar_veiculos') }}"><i class="fas fa-truck-loading"></i> Consultar Veículos</a></li>
-            <li class="mb-4"><a href="{{ url_for('relatorios') }}"><i class="fas fa-chart-bar"></i> Relatórios</a></li>
-        </ul>
+    <div class="flex h-screen"> <div id="sidebar" class="sidebar"> <h1 class="text-2xl font-bold mb-8 text-center text-white">Menu</h1>
+        <ul>
+                <li class="mb-4"><a href="{{ url_for('cadastrar_motorista') }}" class="{% if active_page == 'cadastrar_motorista' %}active{% endif %}" ><i class="fas fa-user"></i> Cadastrar Motorista</a></li>
+                <li class="mb-4"><a href="{{ url_for('cadastrar_veiculo') }}" class="{% if active_page == 'cadastrar_veiculo' %}active{% endif %}"><i class="fas fa-truck"></i> Cadastrar Veículo</a></li>
+                <li class="mb-4"><a href="{{ url_for('iniciar_viagem') }}" class="{% if active_page == 'iniciar_viagem' %}active{% endif %}"><i class="fas fa-route"></i> Iniciar Viagem</a></li>
+                <li class="mb-4"><a href="{{ url_for('consultar_viagens') }}" class="{% if active_page == 'consultar_viagens' %}active{% endif %}"><i class="fas fa-search"></i> Consultar Viagens</a></li>
+                <li class="mb-4"><a href="{{ url_for('consultar_motoristas') }}" class="{% if active_page == 'consultar_motoristas' %}active{% endif %}"><i class="fas fa-users"></i> Consultar Motoristas</a></li>
+                <li class="mb-4"><a href="{{ url_for('consultar_veiculos') }}" class="{% if active_page == 'consultar_veiculos' %}active{% endif %}"><i class="fas fa-truck-loading"></i> Consultar Veículos</a></li>
+                <li class="mb-4"><a href="{{ url_for('relatorios') }}" class="{% if active_page == 'relatorios' %}active{% endif %}"><i class="fas fa-chart-bar"></i> Relatórios</a></li>
+            </ul>
     </div>
 
     <div class="flex-1 overflow-auto main-content"> {% with messages = get_flashed_messages(with_categories=true) %}
@@ -387,7 +388,7 @@
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div class="dashboard-section" style="--index: 1"> <div class="dashboard-section-header">Em Aberto</div>
+            <div class="dashboard-section" style="--index: 1"> <div class="dashboard-section-header">Pendentes</div>
                 <div class="dashboard-item-content"> {% for viagem in viagens if viagem.status == 'pendente' %}
                         <div class="p-4 rounded-lg dashboard-item">
                             <p class="font-semibold text-gray-800">{{ viagem.cliente }}</p>
@@ -429,9 +430,9 @@
             </div>
 
             <div class="dashboard-section" style="--index: 3">
-                <div class="dashboard-section-header">Em Cargas Finalizadas</div>
+                <div class="dashboard-section-header">Concluídas</div>
                  <div class="dashboard-item-content">
-                    {% for viagem in viagens if viagem.status == 'finalizada' %}
+                    {% for viagem in viagens if viagem.status == 'concluida' %}
                         <div class="p-4 rounded-lg dashboard-item">
                             <p class="font-semibold text-gray-800">{{ viagem.cliente }}</p>
                             <p class="text-sm text-gray-600"><strong>Motorista:</strong> {{ viagem.motorista_nome }}</p>
@@ -444,15 +445,15 @@
                             </div>
                         </div>
                     {% else %}
-                         <p class="text-sm text-gray-500 text-center py-4">Nenhuma carga finalizada.</p>
+                         <p class="text-sm text-gray-500 text-center py-4">Nenhuma carga concluída.</p>
                     {% endfor %}
                 </div>
             </div>
 
             <div class="dashboard-section" style="--index: 4">
-                <div class="dashboard-section-header">Resolvida</div>
+                <div class="dashboard-section-header">Canceladas</div>
                  <div class="dashboard-item-content">
-                    {% for viagem in viagens if viagem.status == 'concluida' %}
+                    {% for viagem in viagens if viagem.status == 'cancelada' %}
                         <div class="p-4 rounded-lg dashboard-item">
                             <p class="font-semibold text-gray-800">{{ viagem.cliente }}</p>
                             <p class="text-sm text-gray-600"><strong>Motorista:</strong> {{ viagem.motorista_nome }}</p>
@@ -465,7 +466,7 @@
                             </div>
                         </div>
                     {% else %}
-                        <p class="text-sm text-gray-500 text-center py-4">Nenhuma viagem resolvida.</p>
+                        <p class="text-sm text-gray-500 text-center py-4">Nenhuma viagem cancelada.</p>
                     {% endfor %}
                 </div>
             </div>
