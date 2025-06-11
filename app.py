@@ -18,8 +18,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_mail import Mail, Message
-from geopy.geocoders import OpenCage # Mantido se ainda for usado em algum lugar, mas não mais no seeding
-from geopy.exc import GeocoderTimedOut, GeocoderServiceError
+
 
 
 # ---- Configurações Iniciais ----
