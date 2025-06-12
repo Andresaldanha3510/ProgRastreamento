@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Perfil de {{ motorista.nome }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Você pode copiar os estilos do cabeçalho e sidebar de 'consultar_motoristas.html' para cá */
+        body { background-color: #f4f7f6; }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-7xl mx-auto">
+
+        <div class="bg-white shadow-lg rounded-lg p-6 mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">Perfil de {{ motorista.nome }}</h1>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-gray-600">
+                <p><strong>CPF/CNPJ:</strong> {{ motorista.cpf_cnpj }}</p>
+                <p><strong>Telefone:</strong> {{ motorista.telefone }}</p>
+                <p><strong>CNH:</strong> {{ motorista.cnh }} (Validade: {{ motorista.validade_cnh.strftime('%d/%m/%Y') }})</p>
+                <p><strong>Endereço:</strong> {{ motorista.endereco }}</p>
+            </div>
+        </div>
+
+        <div class="bg-white shadow-lg rounded-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Estatísticas Gerais</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-center">
+                <div class="bg-blue-100 p-4 rounded-lg">
+                    <p class="text-3xl font-bold text-blue-800">{{ stats.total_viagens }}</p>
+                    <p class="text-blue-600">Viagens Realizadas</p>
+                </div>
+                <div class="bg-green-100 p-4 rounded-lg">
+                    <p class="text-3xl font-bold text-green-800">R$ {{ '%.2f'|format(stats.total_receita) }}</p>
+                    <p class="text-green-600">Receita Total</p>
+                </div>
+                <div class="bg-red-100 p-4 rounded-lg">
+                    <p class="text-3xl font-bold text-red-800">R$ {{ '%.2f'|format(stats.total_custo) }}</p>
+                    <p class="text-red-600">Custo Total</p>
+                </div>
+                <div class="bg-yellow-100 p-4 rounded-lg">
+                    <p class="text-3xl font-bold text-yellow-800">R$ {{ '%.2f'|format(stats.lucro_total) }}</p>
+                    <p class="text-yellow-600">Lucro Total</p>
+                </div>
+                <div class="bg-indigo-100 p-4 rounded-lg">
+                    <p class="text-3xl font-bold text-indigo-800">{{ stats.total_distancia }} km</p>
+                    <p class="text-indigo-600">Distância Percorrida</p>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="bg-white shadow-lg rounded-lg p-6">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Histórico de Viagens</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="bg-gray-200 text-gray-700">
+                            <th class="p-3">ID Viagem</th>
+                            <th class="p-3">Cliente</th>
+                            <th class="p-3">Data</th>
+                            <th class="p-3">Origem</th>
+                            <th class="p-3">Destino</th>
+                            <th class="p-3">Receita</th>
+                            <th class="p-3">Custo</th>
+                            <th class="p-3">Lucro</th>
+                            <th class="p-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for viagem in viagens %}
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="p-3">{{ viagem.id }}</td>
+                            <td class="p-3">{{ viagem.cliente }}</td>
+                            <td class="p-3">{{ viagem.data_inicio.strftime('%d/%m/%Y') }}</td>
+                            <td class="p-3">{{ viagem.endereco_saida }}</td>
+                            <td class="p-3">{{ viagem.endereco_destino }}</td>
+                            <td class="p-3 text-green-600">R$ {{ '%.2f'|format(viagem.valor_recebido or 0) }}</td>
+                            <td class="p-3 text-red-600">R$ {{ '%.2f'|format(viagem.custo or 0) }}</td>
+                            <td class="p-3 font-semibold">R$ {{ '%.2f'|format((viagem.valor_recebido or 0) - (viagem.custo or 0)) }}</td>
+                            <td class="p-3">
+                                {% if viagem.status == 'concluida' %}
+                                    <span class="px-2 py-1 text-xs font-semibold text-green-800 bg-green-200 rounded-full">Concluída</span>
+                                {% elif viagem.status == 'em_andamento' %}
+                                    <span class="px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-200 rounded-full">Em Andamento</span>
+                                {% elif viagem.status == 'cancelada' %}
+                                    <span class="px-2 py-1 text-xs font-semibold text-red-800 bg-red-200 rounded-full">Cancelada</span>
+                                {% else %}
+                                    <span class="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-200 rounded-full">{{ viagem.status|capitalize }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="p-4 text-center text-gray-500">Nenhuma viagem encontrada para este motorista.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mt-8">
+            <a href="{{ url_for('consultar_motoristas') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
+                &larr; Voltar para a Consulta
+            </a>
+        </div>
+
+    </div>
+</body>
+</html>

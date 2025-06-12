@@ -10,18 +10,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        
         body {
             background: white;
             background-attachment: fixed;
-            color: #1e293b; /* Cor de texto padrão para o body */
+            color: #1e293b;
             font-family: 'Inter', sans-serif;
             overflow-x: hidden;
-            padding-top: 100px; /* Altura do header */
+            padding-top: 100px;
         }
-
-        /* Estilo do cabeçalho (baseado no HTML original do usuário) */
-        header.navbar { /* Aplicando diretamente à tag header com classe navbar */
+        header.navbar {
             background: linear-gradient(135deg, #2e7d32, #2e7d32);
             box-shadow: 0px 3px 6px rgb(10, 73, 10);
             width: 100%;
@@ -33,177 +30,78 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 2rem; /* Padding horizontal */
+            padding: 0 2rem;
         }
-
-        /* Botão de Menu Mobile (originalmente #menu-toggle) */
         #menu-toggle {
-            background-color: transparent;
-            border: none;
-            color: white;
-            font-size: 1.8rem;
-            cursor: pointer;
-            padding: 10px; /* Área de clique */
-            border-radius: 50%;
-            transition: background-color 0.2s ease-in-out;
+            background-color: transparent; border: none; color: white;
+            font-size: 1.8rem; cursor: pointer; padding: 10px;
+            border-radius: 50%; transition: background-color 0.2s ease-in-out;
         }
-        #menu-toggle:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        /* md:hidden é uma classe Tailwind, já controla o display */
-
-        /* Contêiner para o logo e o nome */
-        .brand-section {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .img-logo img {
-            height: 60px; /* Ajustado para caber no header */
-            width: 60px;
-            object-fit: contain;
-            border-radius: 8px;
-        }
-
-        .name-tag h1 {
-            color: white;
-            font-size: 1.25rem; /* Ajustado */
-            white-space: nowrap;
-        }
-
-        /* Ícone do Usuário (originalmente .user-icon) */
-        a.user-icon { /* Aplicando ao <a> com classe user-icon */
-            color: white; /* Para combinar com o header verde */
-            font-size: 1.5rem;
-            text-decoration: none;
+        #menu-toggle:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .brand-section { display: flex; align-items: center; gap: 12px; }
+        .img-logo img { height: 60px; width: 60px; object-fit: contain; border-radius: 8px; }
+        .name-tag h1 { color: white; font-size: 1.25rem; white-space: nowrap; }
+        a.user-icon {
+            color: white; font-size: 1.5rem; text-decoration: none;
             transition: color 0.2s ease-in-out;
         }
-        a.user-icon:hover {
-            color: #e0e0e0;
-        }
-
-        /* Estilos da Sidebar (originalmente div#sidebar) */
-        div#sidebar { /* Aplicando ao div com ID sidebar */
+        a.user-icon:hover { color: #e0e0e0; }
+        div#sidebar {
             background-color: #2F3640;
             box-shadow: 2px 0px 10px rgba(0, 0, 0, 0.3);
             transition: transform 0.3s ease-in-out;
             border-top-right-radius: 10px;
             border-bottom-right-radius: 10px;
-            position: fixed;
-            top: 100px; /* Abaixo do header */
-            left: 0;
-            height: calc(100vh - 100px);
-            z-index: 20; /* Abaixo do header, mas acima do overlay se houver */
-            width: 14rem;
-            overflow-y: auto;
-            /* p-6 (padding: 1.5rem) é classe Tailwind, pode ser mantida no HTML ou adicionada aqui */
-            padding: 1.5rem;
+            position: fixed; top: 100px; left: 0;
+            height: calc(100vh - 100px); z-index: 20; width: 14rem;
+            overflow-y: auto; padding: 1.5rem;
         }
-
-        div#sidebar h1 { /* Título dentro da sidebar */
-            color: #ffffff;
-            font-size: 1.5rem; /* text-2xl */
-            font-weight: bold;
-            margin-bottom: 2rem; /* mb-8 */
-            text-align: center;
+        div#sidebar h1 {
+            color: #ffffff; font-size: 1.5rem; font-weight: bold;
+            margin-bottom: 2rem; text-align: center;
         }
-
-        div#sidebar ul li {
-            margin-bottom: 1rem; /* mb-4 */
-        }
-
+        div#sidebar ul li { margin-bottom: 1rem; }
         div#sidebar ul li a {
-            color: white;
-            display: block;
-            padding: 10px 15px;
-            border-radius: 8px;
-            transition: background-color 0.2s ease-in-out;
-            display: flex;
-            align-items: center;
-            gap: 10px; /* Espaço entre ícone e texto */
+            color: white; display: block; padding: 10px 15px;
+            border-radius: 8px; transition: background-color 0.2s ease-in-out;
+            display: flex; align-items: center; gap: 10px;
         }
-
-        div#sidebar ul li a:hover {
-            background-color: #2e8b57;
-        }
-        /*Adiciona a animação ao passar o mouse encima */
+        div#sidebar ul li a:hover { background-color: #2e8b57; }
         div#sidebar ul li a.active {
-            background-color: #2e8b57;
-            font-weight: 600;
+            background-color: #2e8b57; font-weight: 600;
             box-shadow: inset 3px 0 0 0 #ffffff;
         }
-        /*Evitar que o link ativo mude de cor ao passar o mouse */
-        div#sidebar ul li a:not(.active):hover {
-            background-color: #2e8b57;
-        }
-
-        div#sidebar ul li a i {
-            width: 20px; /* Para alinhar o texto mesmo que alguns itens não tenham ícone */
-            text-align: center;
-        }
-
-        /* Media Queries para responsividade */
-        @media (min-width: 769px) { /* Desktop */
-            div#sidebar {
-                transform: translateX(0);
-            }
-        }
-
-        @media (max-width: 768px) { /* Tablet e Mobile */
-            header.navbar {
-                padding: 0 1rem;
-            }
-            .brand-section {
-                /* Ocultar o nome da empresa no mobile para economizar espaço, se necessário */
-                 /* flex-grow: 1; /* Para centralizar logo se o nome sumir e houver botão de menu */
-            }
-            .name-tag h1 {
-                display: none; /* Esconde o nome da empresa em telas menores */
-            }
-            .img-logo img {
-                 height: 50px;
-                 width: 50px;
-            }
-            div#sidebar {
-                transform: translateX(-100%); /* Escondida por padrão */
-                width: 80%;
-                max-width: 260px; /* Levemente menor para não ocupar tanto */
-                z-index: 40; /* Acima do conteúdo principal quando aberta */
-            }
-            div#sidebar.open {
-                transform: translateX(0); /* Mostra a sidebar */
-            }
-            /* #menu-toggle (botão) é exibido por padrão abaixo de md (768px) */
-            div.main-content {
-                margin-left: 0;
-                padding: 1.5rem; /* Padding ajustado para mobile */
-            }
-            a.user-icon {
-                font-size: 1.3rem;
-            }
+        div#sidebar ul li a:not(.active):hover { background-color: #2e8b57; }
+        div#sidebar ul li a i { width: 20px; text-align: center; }
+        
+        /* ESTILOS ADICIONAIS PARA OS MODAIS E ABAS */
+        .modal { transition: opacity 0.3s ease; }
+        .tab-button.active {
+            border-bottom: 2px solid #2e7d32;
+            color: #2e7d32;
+            font-weight: 600;
         }
         
-        @media (max-width: 480px) { /* Telas bem pequenas */
-            header.navbar {
-                padding: 0 0.5rem;
-            }
-            .img-logo img {
-                height: 45px; /* Ainda menor */
-                width: 45px;
-            }
-            div.main-content {
-                padding: 1rem;
-            }
-            a.user-icon {
-                font-size: 1.2rem;
-            }
+        @media (min-width: 769px) { div#sidebar { transform: translateX(0); } }
+        @media (max-width: 768px) {
+            header.navbar { padding: 0 1rem; }
+            .name-tag h1 { display: none; }
+            .img-logo img { height: 50px; width: 50px; }
             div#sidebar {
-                width: 90%; /* Pode ser mais larga em telas muito pequenas */
-                max-width: 280px;
+                transform: translateX(-100%); width: 80%;
+                max-width: 260px; z-index: 40;
             }
+            div#sidebar.open { transform: translateX(0); }
+            div.main-content { margin-left: 0; padding: 1.5rem; }
+            a.user-icon { font-size: 1.3rem; }
         }
-
+        @media (max-width: 480px) {
+            header.navbar { padding: 0 0.5rem; }
+            .img-logo img { height: 45px; width: 45px; }
+            div.main-content { padding: 1rem; }
+            a.user-icon { font-size: 1.2rem; }
+            div#sidebar { width: 90%; max-width: 280px; }
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -211,7 +109,6 @@
         <button id="menu-toggle" class="text-white md:hidden focus:outline-none">
             <i class="fas fa-bars"></i>
         </button>
-        
         <div class="brand-section">
             <div class="img-logo">
                 <a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='brasão.png') }}" alt="Logo TrackGo"></a>
@@ -221,137 +118,262 @@
             </div>
         </div>
         <div class="flex items-center gap-4 text-white">
-        <span class="text-sm hidden sm:inline">Olá, {{ current_user.nome or current_user.email }}</span>
-        <a href="{{ url_for('configuracoes') }}" class="user-icon" title="Configurações">
-            <i class="fas fa-user-cog"></i>
-        </a>
-        <a href="{{ url_for('logout') }}" class="user-icon" title="Sair">
-            <i class="fas fa-sign-out-alt"></i>
-        </a>
-    </div>
+            <span class="text-sm hidden sm:inline">Olá, {{ current_user.nome or current_user.email }}</span>
+            <a href="{{ url_for('configuracoes') }}" class="user-icon" title="Configurações">
+                <i class="fas fa-user-cog"></i>
+            </a>
+            <a href="{{ url_for('logout') }}" class="user-icon" title="Sair">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
     </header>
 
-    <div class="flex h-screen"> <div id="sidebar" class="sidebar"> <h1 class="text-2xl font-bold mb-8 text-center text-white">Menu</h1>
-        <ul>
-            <li class="mb-4"><a href="{{ url_for('cadastrar_motorista') }}" class="{% if active_page == 'cadastrar_motorista' %}active{% endif %}" ><i class="fas fa-user"></i> Cadastrar Motorista</a></li>
-            <li class="mb-4"><a href="{{ url_for('cadastrar_veiculo') }}" class="{% if active_page == 'cadastrar_veiculo' %}active{% endif %}"><i class="fas fa-truck"></i> Cadastrar Veículo</a></li>
-            <li class="mb-4"><a href="{{ url_for('iniciar_viagem') }}" class="{% if active_page == 'iniciar_viagem' %}active{% endif %}"><i class="fas fa-route"></i> Iniciar Viagem</a></li>
-            <li class="mb-4"><a href="{{ url_for('consultar_viagens') }}" class="{% if active_page == 'consultar_viagens' %}active{% endif %}"><i class="fas fa-search"></i> Consultar Viagens</a></li>
-            <li class="mb-4"><a href="{{ url_for('consultar_motoristas') }}" class="{% if active_page == 'consultar_motoristas' %}active{% endif %}"><i class="fas fa-users"></i> Consultar Motoristas</a></li>
-            <li class="mb-4"><a href="{{ url_for('consultar_veiculos') }}" class="{% if active_page == 'consultar_veiculos' %}active{% endif %}"><i class="fas fa-truck-loading"></i> Consultar Veículos</a></li>
-            <li class="mb-4"><a href="{{ url_for('relatorios') }}" class="{% if active_page == 'relatorios' %}active{% endif %}"><i class="fas fa-chart-bar"></i> Relatórios</a></li>
-        </ul>
-    </div>
-    <div class="container mx-auto p-6 md:ml-56 transition-all duration-300">
-        <h1 class="text-2xl font-bold text-gray-800 mb-6">Consultar Veículos</h1>
+    <div class="flex h-screen">
+        <div id="sidebar" class="sidebar">
+            <h1 class="text-2xl font-bold mb-8 text-center text-white">Menu</h1>
+            <ul>
+                <li class="mb-4"><a href="{{ url_for('cadastrar_motorista') }}" class="{% if active_page == 'cadastrar_motorista' %}active{% endif %}" ><i class="fas fa-user"></i> Cadastrar Motorista</a></li>
+                <li class="mb-4"><a href="{{ url_for('cadastrar_veiculo') }}" class="{% if active_page == 'cadastrar_veiculo' %}active{% endif %}"><i class="fas fa-truck"></i> Cadastrar Veículo</a></li>
+                <li class="mb-4"><a href="{{ url_for('iniciar_viagem') }}" class="{% if active_page == 'iniciar_viagem' %}active{% endif %}"><i class="fas fa-route"></i> Iniciar Viagem</a></li>
+                <li class="mb-4"><a href="{{ url_for('consultar_viagens') }}" class="{% if active_page == 'consultar_viagens' %}active{% endif %}"><i class="fas fa-search"></i> Consultar Viagens</a></li>
+                <li class="mb-4"><a href="{{ url_for('consultar_motoristas') }}" class="{% if active_page == 'consultar_motoristas' %}active{% endif %}"><i class="fas fa-users"></i> Consultar Motoristas</a></li>
+                <li class="mb-4"><a href="{{ url_for('consultar_veiculos') }}" class="{% if active_page == 'consultar_veiculos' %}active{% endif %}"><i class="fas fa-truck-loading"></i> Consultar Veículos</a></li>
+                <li class="mb-4"><a href="{{ url_for('relatorios') }}" class="{% if active_page == 'relatorios' %}active{% endif %}"><i class="fas fa-chart-bar"></i> Relatórios</a></li>
+            </ul>
+        </div>
+        <div class="container mx-auto p-6 md:ml-56 transition-all duration-300">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6">Consultar Veículos</h1>
 
-        <!-- Mensagens de feedback -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
                 <div class="mb-4">
                     {% for category, message in messages %}
-                        <div class="p-4 rounded-lg text-white {% if category == 'error' %}bg-red-500{% elif category == 'success' %}bg-green-500{% else %}bg-blue-500{% endif %}">
-                            {{ message }}
-                        </div>
+                    <div class="p-4 rounded-lg text-white {% if category == 'error' %}bg-red-500{% elif category == 'success' %}bg-green-500{% else %}bg-blue-500{% endif %}">
+                        {{ message }}
+                    </div>
                     {% endfor %}
                 </div>
-            {% endif %}
-        {% endwith %}
+                {% endif %}
+            {% endwith %}
 
-        <!-- Formulário de busca -->
-        <form method="GET" class="mb-6 flex flex-col sm:flex-row gap-4">
-            <input type="text" name="search" placeholder="Buscar por placa ou modelo" value="{{ search_query }}" class="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex-grow">
-            <button type="submit" class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition">Buscar</button>
-        </form>
+            <form method="GET" class="mb-6 flex flex-col sm:flex-row gap-4">
+                <input type="text" name="search" placeholder="Buscar por placa ou modelo" value="{{ search_query }}" class="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex-grow">
+                <button type="submit" class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition">Buscar</button>
+            </form>
 
-        <!-- Tabela de veículos -->
-        <div class="overflow-x-auto bg-white shadow-md rounded-lg">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Placa</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modelo</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ano</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km Rodados</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Última Manutenção</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Disponível</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for veiculo in veiculos %}
+            <div class="overflow-x-auto bg-white shadow-md rounded-lg">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Placa</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modelo</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km Rodados</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Disponível</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for veiculo in veiculos %}
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ veiculo.placa }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ veiculo.categoria or '-' }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ veiculo.modelo }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ veiculo.ano or '-' }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ veiculo.valor or '-' }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ veiculo.km_rodados or '-' }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ veiculo.ultima_manutencao.strftime('%d/%m/%Y') if veiculo.ultima_manutencao else '-' }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ 'Sim' if veiculo.disponivel else 'Não' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {% if veiculo.disponivel %}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Sim</span>
+                                {% else %}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Não</span>
+                                {% endif %}
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <a href="{{ url_for('editar_veiculo', veiculo_id=veiculo.id) }}" class="text-blue-500 hover:underline">Editar</a>
-                                <a href="{{ url_for('excluir_veiculo', veiculo_id=veiculo.id) }}" onclick="return confirm('Tem certeza que deseja excluir este veículo?')" class="text-red-500 hover:underline ml-4">Excluir</a>
+                                <button onclick="openVehicleModal({{ veiculo.id }})" class="text-indigo-600 hover:text-indigo-900">Detalhes</button>
+                                <a href="{{ url_for('excluir_veiculo', veiculo_id=veiculo.id) }}" onclick="return confirm('Tem certeza que deseja excluir este veículo?')" class="text-red-600 hover:text-red-900 ml-4">Excluir</a>
                             </td>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                        {% else %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">ABC-1234</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Mercedes-Benz Atego</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">75.000</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Sim</span></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <button onclick="openVehicleModal(1)" class="text-indigo-600 hover:text-indigo-900">Detalhes</button>
+                                <a href="#" onclick="return confirm('Tem certeza?')" class="text-red-600 hover:text-red-900 ml-4">Excluir</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
 
-        <!-- Botão Voltar -->
-        <div class="mt-6">
-            <a href="{{ url_for('index') }}" class="bg-gray-500 text-white p-2 rounded-lg hover:bg-gray-600 transition">Voltar</a>
+            <div class="mt-6">
+                <a href="{{ url_for('index') }}" class="bg-gray-500 text-white p-2 rounded-lg hover:bg-gray-600 transition">Voltar</a>
+            </div>
         </div>
     </div>
 
-<script type="text/javascript">
-    // Obter referências (usando os IDs e classes do HTML original do usuário)
+    <div id="vehicleModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <header class="flex justify-between items-center p-4 border-b">
+                <h2 class="text-xl font-bold text-gray-800">Detalhes do Veículo - <span id="modalVehiclePlate">ABC-1234</span></h2>
+                <button onclick="closeVehicleModal()" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </header>
+            <div class="border-b">
+                <nav class="flex space-x-4 p-4">
+                    <button id="tab-dados" class="tab-button active" onclick="switchTab('dados')">Dados Gerais</button>
+                    <button id="tab-atividades" class="tab-button" onclick="switchTab('atividades')">Atividades</button>
+                    <button id="tab-manutencao" class="tab-button" onclick="switchTab('manutencao')">Manutenção</button>
+                </nav>
+            </div>
+            <div class="p-6 overflow-y-auto flex-grow">
+                <div id="content-dados" class="tab-content">
+                    <form>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="block text-sm font-medium text-gray-700">Placa</label><input type="text" value="ABC-1234" class="w-full p-2 border rounded mt-1 bg-gray-50"></div>
+                            <div><label class="block text-sm font-medium text-gray-700">Categoria</label><input type="text" value="Caminhão Toco" class="w-full p-2 border rounded mt-1 bg-gray-50"></div>
+                            <div><label class="block text-sm font-medium text-gray-700">Modelo</label><input type="text" value="Mercedes-Benz Atego" class="w-full p-2 border rounded mt-1 bg-gray-50"></div>
+                            <div><label class="block text-sm font-medium text-gray-700">Ano</label><input type="number" value="2022" class="w-full p-2 border rounded mt-1 bg-gray-50"></div>
+                            <div><label class="block text-sm font-medium text-gray-700">Valor do Veículo</label><input type="text" value="R$ 350.000,00" class="w-full p-2 border rounded mt-1 bg-gray-50"></div>
+                            <div><label class="block text-sm font-medium text-gray-700">KM do Veículo</label><input type="number" value="75000" class="w-full p-2 border rounded mt-1 bg-gray-50"></div>
+                        </div>
+                    </form>
+                </div>
+                <div id="content-atividades" class="tab-content hidden">
+                     <h3 class="text-lg font-semibold mb-4 text-gray-700">Painel de Atividades</h3>
+                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-gray-100 p-4 rounded-lg shadow"><h4 class="font-bold">Consumo Médio</h4><p class="text-2xl">4.5 km/L</p></div>
+                        <div class="bg-gray-100 p-4 rounded-lg shadow"><h4 class="font-bold">KM Rodados (Mês)</h4><p class="text-2xl">5.200 km</p></div>
+                        <div class="bg-gray-100 p-4 rounded-lg shadow"><h4 class="font-bold">Próxima Revisão</h4><p class="text-2xl">80.000 km</p></div>
+                     </div>
+                </div>
+                <div id="content-manutencao" class="tab-content hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-700">Histórico de Manutenções</h3>
+                        <button onclick="openMaintenanceModal()" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 text-sm">
+                            <i class="fas fa-plus"></i> Registrar Manutenção
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto border rounded-lg mb-6">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-100"><tr><th class="p-2 text-left">Data</th><th class="p-2 text-left">Tipo</th><th class="p-2 text-left">Descrição</th><th class="p-2 text-left">Custo</th><th class="p-2 text-left">Status</th></tr></thead>
+                            <tbody>
+                                <tr class="border-b"><td class="p-2">10/06/2025</td><td class="p-2">Corretiva</td><td class="p-2">Troca de pneu dianteiro</td><td class="p-2">R$ 1.250,00</td><td class="p-2"><span class="bg-green-200 text-green-800 px-2 py-1 rounded-full text-xs">Concluído</span></td></tr>
+                                <tr class="border-b"><td class="p-2">25/07/2025</td><td class="p-2">Preventiva</td><td class="p-2">Revisão de 80.000 km</td><td class="p-2">R$ 1.500,00</td><td class="p-2"><span class="bg-yellow-200 text-yellow-800 px-2 py-1 rounded-full text-xs">Agendado</span></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <footer class="flex justify-end p-4 border-t bg-gray-50">
+                <button onclick="closeVehicleModal()" class="bg-gray-600 text-white px-4 py-2 rounded-md mr-2 hover:bg-gray-700">Fechar</button>
+                <button class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Salvar Alterações</button>
+            </footer>
+        </div>
+    </div>
+
+    <div id="maintenanceModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center p-4 z-[60] hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <header class="flex justify-between items-center p-4 border-b">
+                <h2 class="text-xl font-bold text-gray-800">Registrar Nova Manutenção</h2>
+                <button onclick="closeMaintenanceModal()" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </header>
+            <form class="flex-grow overflow-y-auto p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label class="block text-sm font-medium text-gray-700">Data</label><input type="date" class="w-full p-2 border rounded-md mt-1"></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Tipo</label><select class="w-full p-2 border rounded-md mt-1"><option>Preventiva</option><option>Corretiva</option><option>Revisão</option></select></div>
+                    <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700">Descrição</label><textarea rows="3" class="w-full p-2 border rounded-md mt-1" placeholder="Ex: Troca de óleo e filtros..."></textarea></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Oficina</label><input type="text" class="w-full p-2 border rounded-md mt-1"></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Status</label><select class="w-full p-2 border rounded-md mt-1"><option selected>Agendado</option><option>Em Andamento</option><option>Concluído</option></select></div>
+                    <hr class="md:col-span-2 my-2">
+                    <div><label class="block text-sm font-medium text-gray-700">Custo Mão de Obra</label><input type="number" step="0.01" class="w-full p-2 border rounded-md mt-1" placeholder="R$"></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Custo Peças</label><input type="number" step="0.01" class="w-full p-2 border rounded-md mt-1" placeholder="R$"></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Garantia</label><input type="text" class="w-full p-2 border rounded-md mt-1" placeholder="Ex: 90 dias"></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Anexar Nota</label><input type="file" class="w-full text-sm text-gray-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 mt-1"/></div>
+                </div>
+            </form>
+            <footer class="flex justify-end p-4 border-t bg-gray-50">
+                <button type="button" onclick="closeMaintenanceModal()" class="bg-gray-600 text-white px-4 py-2 rounded-md mr-2 hover:bg-gray-700">Cancelar</button>
+                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Salvar Manutenção</button>
+            </footer>
+        </div>
+    </div>
+    
+    <script type="text/javascript">
+    // Script original da sidebar
     const sidebar = document.getElementById('sidebar');
     const menuToggle = document.getElementById('menu-toggle');
-    // const mainContent = document.querySelector('.main-content'); // Não é mais necessário para JS ajustar padding/margin
-
-    // Função para alternar a sidebar em telas mobile
     function toggleMobileSidebar() {
-        if (sidebar) { // Verificar se a sidebar existe
-            sidebar.classList.toggle('open');
-        }
+        if (sidebar) { sidebar.classList.toggle('open'); }
     }
-
-    // Listener para o botão de menu (apenas mobile)
     if (menuToggle) {
         menuToggle.addEventListener('click', (event) => {
             event.stopPropagation();
             toggleMobileSidebar();
         });
     }
-
-    // Fechar a sidebar mobile ao clicar fora dela
     document.addEventListener('click', (event) => {
-        if (sidebar && menuToggle && sidebar.classList.contains('open')) { // Executar somente se sidebar existir e estiver aberta
+        if (sidebar && menuToggle && sidebar.classList.contains('open')) {
             const isClickInsideSidebar = sidebar.contains(event.target);
             const isClickOnMenuToggle = menuToggle.contains(event.target);
-
             if (window.innerWidth <= 768 && !isClickInsideSidebar && !isClickOnMenuToggle) {
                 sidebar.classList.remove('open');
             }
         }
     });
-
-    // Ajustes em redimensionamento (para garantir o estado correto da sidebar mobile)
     function handleResize() {
-        if (window.innerWidth > 768) {
-            if (sidebar) { // Verificar se a sidebar existe
-                 sidebar.classList.remove('open'); // Garante que em desktop a classe 'open' (mobile) não esteja ativa
-            }
+        if (window.innerWidth > 768 && sidebar) {
+            sidebar.classList.remove('open');
         }
     }
-
     window.addEventListener('load', handleResize);
     window.addEventListener('resize', handleResize);
     
+    // ########## INÍCIO DO SCRIPT NOVO: MODAIS E ABAS ##########
+
+    // Referências aos elementos dos modais e abas
+    const vehicleModal = document.getElementById('vehicleModal');
+    const maintenanceModal = document.getElementById('maintenanceModal');
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    // Funções para controlar o modal principal de detalhes do veículo
+    function openVehicleModal(veiculoId) {
+        // No futuro, você pode usar o veiculoId para buscar os dados do veículo via API/Fetch
+        // e preencher o modal dinamicamente.
+        console.log("Abrindo detalhes para o veículo ID:", veiculoId);
+        vehicleModal.classList.remove('hidden');
+    }
+
+    function closeVehicleModal() {
+        vehicleModal.classList.add('hidden');
+    }
+
+    // Funções para controlar o modal de criação de manutenção
+    function openMaintenanceModal() {
+        maintenanceModal.classList.remove('hidden');
+    }
+
+    function closeMaintenanceModal() {
+        maintenanceModal.classList.add('hidden');
+    }
+
+    // Função para alternar entre as abas dentro do modal principal
+    function switchTab(tabName) {
+        tabContents.forEach(content => content.classList.add('hidden'));
+        tabButtons.forEach(button => button.classList.remove('active'));
+        document.getElementById(`content-${tabName}`).classList.remove('hidden');
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+    }
+    
+    // Event listeners para fechar os modais ao clicar no fundo escuro
+    vehicleModal.addEventListener('click', (event) => {
+        if (event.target === vehicleModal) closeVehicleModal();
+    });
+    maintenanceModal.addEventListener('click', (event) => {
+        if (event.target === maintenanceModal) closeMaintenanceModal();
+    });
+    
+    // ########## FIM DO SCRIPT NOVO ##########
 </script>
 </body>
 </html>
