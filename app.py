@@ -2389,6 +2389,41 @@ def ultima_localizacao(viagem_id):
     return jsonify({'success': False, 'message': 'Nenhuma localização encontrada para esta viagem.'})
 
 
+@app.route('/motorista/<int:motorista_id>/perfil', endpoint='perfil_motorista')
+@login_required # Garante que apenas usuários logados acessem
+def perfil_motorista(motorista_id):
+    # 1. Busca o motorista no banco de dados. Se não encontrar, retorna erro 404.
+    motorista = Motorista.query.get_or_404(motorista_id)
+
+    # 2. Busca todas as viagens associadas a este motorista.
+    #    A consulta usa 'or_' para pegar viagens vinculadas tanto pelo ID formal 
+    #    quanto pelo CPF/CNPJ (cobrir todos os casos).
+    viagens = Viagem.query.filter(
+        or_(
+            Viagem.motorista_id == motorista.id,
+            Viagem.motorista_cpf_cnpj == motorista.cpf_cnpj
+        )
+    ).order_by(Viagem.data_inicio.desc()).all() # Ordena da mais recente para a mais antiga
+
+    # 3. Calcula estatísticas para exibir no perfil (opcional, mas muito útil)
+    total_viagens = len(viagens)
+    total_distancia = sum(v.distancia_km or 0 for v in viagens)
+    total_receita = sum(v.valor_recebido or 0 for v in viagens)
+    total_custo = sum(v.custo or 0 for v in viagens)
+    lucro_total = total_receita - total_custo
+
+    stats = {
+        'total_viagens': total_viagens,
+        'total_distancia': round(total_distancia, 2),
+        'total_receita': round(total_receita, 2),
+        'total_custo': round(total_custo, 2),
+        'lucro_total': round(lucro_total, 2)
+    }
+
+    # 4. Renderiza um novo template HTML, passando os dados do motorista e suas viagens.
+    return render_template('perfil_motorista.html', motorista=motorista, viagens=viagens, stats=stats)
+
+
 
 
 # ---- Execução do Aplicativo ----
