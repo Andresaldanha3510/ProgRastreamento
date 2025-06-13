@@ -18,7 +18,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_mail import Mail, Message
-
+from flask import jsonify
 
 
 # ---- Configurações Iniciais ----
@@ -82,13 +82,27 @@ class Motorista(db.Model):
     validade_cnh = db.Column(db.Date, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     anexos = db.Column(db.String(500), nullable=True)
-
+    
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=True)
     usuario = db.relationship('Usuario', backref='motorista', uselist=False)
-
-    # backref 'motorista_formal' cria a propriedade viagem.motorista_formal
     viagens = db.relationship('Viagem', backref='motorista_formal')
 
+    #
+    # O método está aqui, DENTRO da classe.
+    #
+    def to_dict(self):
+        """Converte o objeto Motorista para um dicionário serializável."""
+        return {
+            'id': self.id,
+            'nome': self.nome,
+            'data_nascimento': self.data_nascimento.isoformat() if self.data_nascimento else None,
+            'endereco': self.endereco,
+            'cpf_cnpj': self.cpf_cnpj,
+            'telefone': self.telefone,
+            'cnh': self.cnh,
+            'validade_cnh': self.validade_cnh.isoformat() if self.validade_cnh else None,
+            'anexos': self.anexos.split(',') if self.anexos else []
+        }
 
 import uuid
 from datetime import datetime, timedelta
@@ -437,7 +451,6 @@ def get_address_geoapify(lat, lon):
         logger.error(f"Erro na geocodificação Geoapify: {str(e)}")
     return "Endereço não encontrado"
 
-
 # ---- Rotas do Aplicativo ----
 @app.route('/')
 def index():
@@ -612,11 +625,64 @@ def consultar_motoristas():
     motoristas = query.order_by(Motorista.nome.asc()).all()
     return render_template('consultar_motoristas.html', motoristas=motoristas, search_query=search_query, active_page='consultar_motoristas')
 
+@app.route('/api/motorista/<int:motorista_id>/details')
+@login_required # Protege a rota, garantindo que apenas usuários logados possam acessá-la.
+def motorista_details_api(motorista_id):
+    """Retorna os detalhes (estatísticas e viagens) de um motorista em formato JSON."""
+    
+    # 1. Busca o motorista específico no banco de dados.
+    motorista = Motorista.query.get_or_404(motorista_id)
+    
+    # 2. Usa a relação 'viagens' que já existe na sua classe para pegar as viagens.
+    viagens = motorista.viagens
+    
+    # 3. Calcula as estatísticas com base nas viagens encontradas.
+    total_receita = sum(v.valor_recebido or 0 for v in viagens)
+    # Supondo que você tenha um campo 'custo' no seu modelo Viagem.
+    # Se não tiver, ajuste ou remova esta linha.
+    total_custo = sum(getattr(v, 'custo', 0) or 0 for v in viagens)
+    total_distancia = sum(getattr(v, 'distancia_km', 0) or 0 for v in viagens)
+
+    stats = {
+        'total_viagens': len(viagens),
+        'total_receita': total_receita,
+        'total_custo': total_custo,
+        'lucro_total': total_receita - total_custo,
+        'total_distancia': total_distancia
+    }
+
+    # 4. Prepara os dados das viagens para serem enviados como JSON.
+    viagens_data = []
+    for v in viagens:
+        viagens_data.append({
+            'cliente': v.cliente,
+            'data_inicio': v.data_inicio.isoformat() if v.data_inicio else None,
+            'endereco_saida': v.endereco_saida,
+            'endereco_destino': v.endereco_destino,
+            'status': v.status
+        })
+
+    # 5. Retorna um dicionário contendo as estatísticas e as viagens.
+    #    A função jsonify() do Flask converte o dicionário para uma resposta JSON.
+    return jsonify({
+        'stats': stats,
+        'viagens': viagens_data
+    })
+
+
+# Em app.py
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form.get('email')
         senha = request.form.get('senha')
+        
+        # --- DEBUG: As linhas abaixo nos ajudarão a ver o que está acontecendo ---
+        print("\n--- TENTATIVA DE LOGIN ---")
+        print(f"--> Email digitado: '{email}'")
+        print(f"--> Senha digitada: '{senha}'")
+        # --- Fim do DEBUG ---
         
         if not email or not senha:
             flash('Preencha todos os campos', 'error')
@@ -625,20 +691,26 @@ def login():
         usuario = Usuario.query.filter_by(email=email).first()
         
         if not usuario:
+            print("!!! PROBLEMA: Usuário com este email NÃO foi encontrado no banco.")
             flash('Usuário não encontrado', 'error')
             return redirect(url_for('login'))
             
+        print(f"OK: Usuário encontrado: {usuario.email}")
+
         if not usuario.check_password(senha):
+            print("!!! PROBLEMA: A senha está INCORRETA.")
             flash('Senha incorreta', 'error')
             return redirect(url_for('login'))
             
+        print("OK: Login e senha corretos. Logando...")
         login_user(usuario)
         flash('Login realizado com sucesso!', 'success')
         
         if usuario.role == 'Motorista':
-            return redirect(url_for('motorista_dashboard'))
+            # Se você não tem a rota 'motorista_dashboard', mude para 'index'
+            return redirect(url_for('index')) 
         return redirect(url_for('index'))
-        
+            
     return render_template('login.html')
 
 @app.route('/registrar', methods=['GET', 'POST'])
