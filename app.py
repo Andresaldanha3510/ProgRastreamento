@@ -1,4 +1,3 @@
-# ---- Importações ----
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -19,10 +18,20 @@ from sqlalchemy import or_
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_mail import Mail, Message
 from flask import jsonify
+from fpdf import FPDF
+from fpdf.enums import XPos, YPos
+from flask import make_response
 
 
 # ---- Configurações Iniciais ----
 load_dotenv()
+
+import os
+print("ENDPOINT:", os.getenv('CLOUDFLARE_R2_ENDPOINT'))
+print("ACCESS_KEY:", os.getenv('CLOUDFLARE_R2_ACCESS_KEY'))
+print("SECRET_KEY:", os.getenv('CLOUDFLARE_R2_SECRET_KEY'))
+print("BUCKET:", os.getenv('CLOUDFLARE_R2_BUCKET'))
+print("PUBLIC_URL:", os.getenv('CLOUDFLARE_R2_PUBLIC_URL'))
 
 app = Flask(__name__)
                                                                                                                 
@@ -116,6 +125,41 @@ class Convite(db.Model):
     data_expiracao = db.Column(db.DateTime, nullable=False)
     criado_por = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
     role = db.Column(db.String(20), nullable=False, default='Motorista')
+
+class Romaneio(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    # Usaremos o ID como número do romaneio para simplificar
+    data_emissao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    observacoes = db.Column(db.Text, nullable=True)
+    
+    # Chave estrangeira para vincular o romaneio à viagem
+    viagem_id = db.Column(db.Integer, db.ForeignKey('viagem.id'), nullable=False, unique=True)
+    viagem = db.relationship('Viagem', backref=db.backref('romaneio', uselist=False))
+    
+    # Relação com os itens da carga
+    itens = db.relationship('ItemRomaneio', backref='romaneio', lazy=True, cascade="all, delete-orphan")
+
+    @property
+    def total_volumes(self):
+        return len(self.itens) if self.itens else 0
+
+    @property
+    def peso_total(self):
+        return sum(item.peso_total_item for item in self.itens) if self.itens else 0.0
+
+class ItemRomaneio(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    produto_descricao = db.Column(db.String(255), nullable=False)
+    quantidade = db.Column(db.Integer, nullable=False, default=1)
+    embalagem = db.Column(db.String(50), nullable=True)
+    peso_kg = db.Column(db.Float, nullable=True, default=0.0)
+    
+    # Chave estrangeira para vincular ao romaneio
+    romaneio_id = db.Column(db.Integer, db.ForeignKey('romaneio.id'), nullable=False)
+
+    @property
+    def peso_total_item(self):
+        return (self.peso_kg or 0.0) * (self.quantidade or 0)
 
 class Veiculo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -547,7 +591,8 @@ def cadastrar_motorista():
                     's3',
                     endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
                     aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
-                    aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY']
+                    aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
+                    region_name='auto'
                 )
                 bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
 
@@ -707,9 +752,10 @@ def login():
         flash('Login realizado com sucesso!', 'success')
         
         if usuario.role == 'Motorista':
-            # Se você não tem a rota 'motorista_dashboard', mude para 'index'
-            return redirect(url_for('index')) 
-        return redirect(url_for('index'))
+         return redirect(url_for('motorista_dashboard'))
+        else: # Redireciona Admin, Master e outros para a página inicial
+         return redirect(url_for('index'))
+        
             
     return render_template('login.html')
 
@@ -870,7 +916,8 @@ def editar_motorista(motorista_id):
                     's3',
                     endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
                     aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
-                    aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY']
+                    aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
+                    region_name='auto'
                 )
                 bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
 
@@ -920,7 +967,8 @@ def excluir_anexo(motorista_id, anexo):
                 's3',
                 endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
                 aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
-                aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY']
+                aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
+                region_name='auto'
             )
             bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
             filename = anexo.replace(app.config['CLOUDFLARE_R2_PUBLIC_URL'] + '/', '')
@@ -950,7 +998,8 @@ def excluir_motorista(motorista_id):
                 's3',
                 endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
                 aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
-                aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY']
+                aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
+                region_name='auto'
             )
             bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
             for anexo in motorista.anexos.split(','):
@@ -1402,65 +1451,88 @@ def excluir_viagem(viagem_id):
         flash(f'Erro ao excluir viagem: {str(e)}', 'error')
     return redirect(url_for('index'))
 
-@app.route('/salvar_custo_viagem', methods=['POST'])
-def salvar_custo_viagem():
-    try:
-        viagem_id = request.form.get('viagem_id')
-        viagem = Viagem.query.get_or_404(viagem_id)
+# Em app.py
 
+# Em app.py, substitua a função salvar_custo_viagem por esta:
+
+@app.route('/salvar_custo_viagem', methods=['POST'])
+@login_required
+def salvar_custo_viagem():
+    viagem_id = request.form.get('viagem_id')
+    if not viagem_id:
+        return jsonify({'success': False, 'message': 'ID da viagem não fornecido.'}), 400
+
+    try:
+        viagem = Viagem.query.get_or_404(viagem_id)
         custo = CustoViagem.query.filter_by(viagem_id=viagem_id).first()
-        if custo:
-            custo.combustivel = float(request.form.get('combustivel') or custo.combustivel)
-            custo.pedagios = float(request.form.get('pedagios') or custo.pedagios)
-            custo.alimentacao = float(request.form.get('alimentacao') or custo.alimentacao)
-            custo.hospedagem = float(request.form.get('hospedagem') or custo.hospedagem)
-            custo.outros = float(request.form.get('outros') or custo.outros)
-            custo.descricao_outros = request.form.get('descricao_outros') or custo.descricao_outros
-        else:
-            custo = CustoViagem(
-                viagem_id=viagem_id,
-                combustivel=float(request.form.get('combustivel') or 0),
-                pedagios=float(request.form.get('pedagios') or 0),
-                alimentacao=float(request.form.get('alimentacao') or 0),
-                hospedagem=float(request.form.get('hospedagem') or 0),
-                outros=float(request.form.get('outros') or 0),
-                descricao_outros=request.form.get('descricao_outros')
-            )
+        if not custo:
+            custo = CustoViagem(viagem_id=viagem_id)
             db.session.add(custo)
 
-        custo_total = (custo.combustivel or 0) + (custo.pedagios or 0) + (custo.alimentacao or 0) + (custo.hospedagem or 0) + (custo.outros or 0)
-        viagem.custo = custo_total
+        # Atualiza os valores de custo
+        custo.combustivel = float(request.form.get('combustivel') or custo.combustivel or 0)
+        custo.pedagios = float(request.form.get('pedagios') or custo.pedagios or 0)
+        custo.alimentacao = float(request.form.get('alimentacao') or custo.alimentacao or 0)
+        custo.hospedagem = float(request.form.get('hospedagem') or custo.hospedagem or 0)
+        custo.outros = float(request.form.get('outros') or custo.outros or 0)
+        custo.descricao_outros = request.form.get('descricao_outros') or custo.descricao_outros
 
-        files = request.files.getlist('anexos')
-        anexos_urls = []
+        # Soma os custos totais e atualiza na viagem
+        viagem.custo = (custo.combustivel or 0) + (custo.pedagios or 0) + (custo.alimentacao or 0) + (custo.hospedagem or 0) + (custo.outros or 0)
+
+        # --- NOVA LÓGICA PARA UPLOAD DE ANEXOS ---
+        files = request.files.getlist('anexos_despesa')
         allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png'}
+        
+        # Pega anexos já existentes para não sobrescrevê-los
+        anexos_urls = custo.anexos.split(',') if custo.anexos else []
+
         if files and any(f.filename for f in files):
-            s3_client = boto3.client(
-                's3',
-                endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
-                aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
-                aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY']
-            )
-            bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
-            for file in files:
-                if file and file.filename:
-                    extension = os.path.splitext(file.filename)[1].lower()
-                    if extension not in allowed_extensions:
-                        flash(f'Arquivo {file.filename} não permitido. Use PDF, JPG ou PNG.', 'error')
-                        continue
-                    filename = secure_filename(file.filename)
-                    s3_path = f"custos_viagem/{viagem_id}/{filename}"
-                    s3_client.upload_fileobj(file, bucket_name, s3_path)
-                    public_url = f"{app.config['CLOUDFLARE_R2_PUBLIC_URL']}/{s3_path}"
-                    anexos_urls.append(public_url)
-            custo.anexos = ','.join(anexos_urls) if anexos_urls else None
+            try:
+                s3_client = boto3.client(
+                    's3',
+                    endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+                    aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+                    aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
+                    region_name='auto'
+                )
+                bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
+
+                for file in files:
+                    if file and file.filename:
+                        extension = os.path.splitext(file.filename)[1].lower()
+                        if extension not in allowed_extensions:
+                            # Não retorna erro, apenas ignora o arquivo inválido
+                            logger.warning(f"Arquivo com extensão não permitida ignorado: {file.filename}")
+                            continue
+
+                        filename = secure_filename(file.filename)
+                        s3_path = f"custos_viagem/{viagem_id}/{uuid.uuid4()}-{filename}"
+
+                        s3_client.upload_fileobj(
+                            file,
+                            bucket_name,
+                            s3_path,
+                            ExtraArgs={'ContentType': file.content_type}
+                        )
+                        public_url = f"{app.config['CLOUDFLARE_R2_PUBLIC_URL']}/{s3_path}"
+                        anexos_urls.append(public_url)
+
+            except Exception as e:
+                logger.error(f'Erro no upload para R2: {str(e)}')
+                return jsonify({'success': False, 'message': f'Erro ao fazer upload dos arquivos: {str(e)}'}), 500
+        
+        # Salva a lista de URLs (novas e antigas) no banco de dados
+        custo.anexos = ','.join(anexos_urls) if anexos_urls else None
+        # --- FIM DA LÓGICA DE UPLOAD ---
 
         db.session.commit()
-        flash('Custo da viagem salvo com sucesso!', 'success')
+        return jsonify({'success': True, 'message': 'Despesas salvas com sucesso!'})
+
     except Exception as e:
         db.session.rollback()
-        flash(f'Erro ao salvar custo da viagem: {str(e)}', 'error')
-    return redirect(url_for('consultar_viagens'))
+        logger.error(f"Erro ao salvar custo da viagem {viagem_id}: {str(e)}")
+        return jsonify({'success': False, 'message': f'Erro interno do servidor: {str(e)}'}), 500
 
 @app.route('/consultar_despesas/<int:viagem_id>', methods=['GET'])
 def consultar_despesas(viagem_id):
@@ -1503,80 +1575,78 @@ def atualizar_status_viagem(viagem_id):
         logger.error(f"Erro ao atualizar status da viagem {viagem_id}: {str(e)}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
+# Em app.py, SUBSTITUA a função consultar_viagens inteira por esta:
+
 @app.route('/consultar_viagens')
+@login_required # Adicionado para proteger a rota
 def consultar_viagens():
+    # 1. Captura de todos os filtros da URL
     status_filter = request.args.get('status', '')
     search_query = request.args.get('search', '')
     data_inicio = request.args.get('data_inicio', '')
     data_fim = request.args.get('data_fim', '')
+    motorista_id_filter = request.args.get('motorista_id', type=int)
+    veiculo_id_filter = request.args.get('veiculo_id', type=int)
+
     query = Viagem.query
+
+    # 2. Aplicação dos filtros na query do SQLAlchemy
     if status_filter:
-        query = query.filter_by(status=status_filter)
+        query = query.filter(Viagem.status == status_filter)
+    if motorista_id_filter:
+        query = query.filter(Viagem.motorista_id == motorista_id_filter)
+    if veiculo_id_filter:
+        query = query.filter(Viagem.veiculo_id == veiculo_id_filter)
+
     if search_query:
-        query = query.outerjoin(Motorista).outerjoin(Usuario).filter( # outerjoin para não excluir viagens sem motorista formal
+        query = query.outerjoin(Motorista, Viagem.motorista_id == Motorista.id).outerjoin(Usuario, Motorista.usuario_id == Usuario.id).filter(
             (Viagem.cliente.ilike(f'%{search_query}%')) |
-            (Usuario.nome.ilike(f'%{search_query}%')) | # Pesquisa pelo nome do usuário
-            (Motorista.nome.ilike(f'%{search_query}%')) | # Pesquisa pelo nome do motorista formal
+            (Usuario.nome.ilike(f'%{search_query}%')) |
+            (Motorista.nome.ilike(f'%{search_query}%')) |
+            (Viagem.veiculo.has(Veiculo.placa.ilike(f'%{search_query}%'))) |
             (Viagem.endereco_saida.ilike(f'%{search_query}%')) |
             (Viagem.endereco_destino.ilike(f'%{search_query}%'))
         )
+        
     if data_inicio:
         try:
             query = query.filter(Viagem.data_inicio >= datetime.strptime(data_inicio, '%Y-%m-%d'))
         except ValueError:
             flash('Data de início inválida.', 'error')
+            
     if data_fim:
         try:
-            query = query.filter(Viagem.data_inicio <= datetime.strptime(data_fim, '%Y-%m-%d'))
+            data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d') + timedelta(days=1, seconds=-1)
+            query = query.filter(Viagem.data_inicio <= data_fim_obj)
         except ValueError:
             flash('Data de fim inválida.', 'error')
-    viagens = query.order_by(Viagem.data_inicio.desc()).all()
-    viagens_data = []
-    for v in viagens:
-        horario_chegada = (v.data_inicio + timedelta(seconds=v.duracao_segundos)).strftime('%d/%m/%Y %H:%M') if v.duracao_segundos and not v.data_fim else 'Concluída'
-        
-        motorista_nome = 'N/A'
-        if v.motorista_id:
-            motorista_nome = v.motorista_formal.nome if v.motorista_formal else 'N/A'
-        elif v.motorista_cpf_cnpj:
-            usuario_com_cpf = Usuario.query.filter_by(cpf_cnpj=v.motorista_cpf_cnpj).first()
-            if usuario_com_cpf:
-                motorista_nome = f"{usuario_com_cpf.nome} {usuario_com_cpf.sobrenome}"
-            else:
-                motorista_formal_cpf = Motorista.query.filter_by(cpf_cnpj=v.motorista_cpf_cnpj).first()
-                if motorista_formal_cpf:
-                    motorista_nome = motorista_formal_cpf.nome
 
-        viagem_dict = {
-            'id': v.id,
-            'motorista_id': v.motorista_id,
-            'motorista_cpf_cnpj': v.motorista_cpf_cnpj,
-            'veiculo_id': v.veiculo_id,
-            'cliente': v.cliente,
-            'endereco_saida': v.endereco_saida,
-            'endereco_destino': v.endereco_destino,
-            'data_inicio': v.data_inicio.strftime('%d/%m/%Y %H:%M'),
-            'data_fim': v.data_fim.strftime('%d/%m/%Y %H:%M') if v.data_fim else 'Em andamento',
-            'duracao_segundos': v.duracao_segundos,
-            'custo': v.custo,
-            'forma_pagamento': v.forma_pagamento,
-            'status': v.status,
-            'observacoes': v.observacoes,
-            'motorista_nome': motorista_nome,
-            'veiculo_placa': v.veiculo.placa,
-            'veiculo_modelo': v.veiculo.modelo,
-            'distancia_km': v.distancia_km,
-            'horario_chegada': horario_chegada
-        }
-        viagens_data.append(viagem_dict)
+    # Executa a query final
+    viagens_objetos = query.order_by(Viagem.data_inicio.desc()).all()
+
+    # Adiciona o nome do motorista a cada objeto, para facilitar no template
+    for v in viagens_objetos:
+        v.motorista_nome = 'N/A' # Atributo temporário
+        if v.motorista_id:
+            v.motorista_nome = v.motorista_formal.nome if v.motorista_formal else 'N/A'
+        elif v.motorista_cpf_cnpj:
+            usuario = Usuario.query.filter_by(cpf_cnpj=v.motorista_cpf_cnpj).first()
+            if usuario:
+                v.motorista_nome = f"{usuario.nome} {usuario.sobrenome}"
+
+    # 3. Busca de dados para os menus de filtro
+    motoristas_filtro = Motorista.query.order_by(Motorista.nome).all()
+    veiculos_filtro = Veiculo.query.order_by(Veiculo.placa).all()
+    
+    # 4. Renderização do template com os dados necessários
     return render_template(
         'consultar_viagens.html',
         active_page='consultar_viagens',
-        viagens=viagens_data,
-        status_filter=status_filter,
-        search_query=search_query,
-        data_inicio=data_inicio,
-        data_fim=data_fim
+        viagens=viagens_objetos,  # Passando a lista de OBJETOS Viagem
+        motoristas=motoristas_filtro,
+        veiculos=veiculos_filtro,
+        # Passando os valores dos filtros de volta para manter os campos preenchidos
+        request=request # Passa o objeto request inteiro para fácil acesso no template
     )
 
 from flask import jsonify, request
@@ -2154,6 +2224,121 @@ def viagens_pendentes():
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+@app.route('/romaneio/pdf/<int:romaneio_id>')
+@login_required
+def gerar_pdf_romaneio(romaneio_id):
+    romaneio = Romaneio.query.get_or_404(romaneio_id)
+    viagem = romaneio.viagem
+
+    class PDF(FPDF):
+        def header(self):
+            logo_path = os.path.join(app.static_folder, 'brasão.png')
+            if os.path.exists(logo_path):
+                self.image(logo_path, 10, 8, 25)
+            
+            self.set_font('Helvetica', 'B', 15)
+            self.cell(0, 10, 'ROMANEIO DE CARGA', align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            self.set_font('Helvetica', '', 10)
+            self.cell(0, 5, 'TrackGo - Soluções em Logística', align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            self.ln(15)
+
+        def footer(self):
+            self.set_y(-15)
+            self.set_font('Helvetica', 'I', 8)
+            self.cell(0, 10, f'Página {self.page_no()}', align='C')
+
+    pdf = PDF()
+    pdf.add_page()
+    pdf.set_font('Helvetica', '', 12)
+
+    def create_field(title, content):
+        pdf.set_font('Helvetica', 'B', 10)
+        pdf.cell(40, 8, title)
+        pdf.set_font('Helvetica', '', 10)
+        pdf.cell(0, 8, str(content), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+    pdf.set_font('Helvetica', 'B', 12)
+    pdf.cell(0, 10, 'Dados Gerais', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(2)
+    create_field('Nº Romaneio:', romaneio.id)
+    create_field('Data de Emissão:', romaneio.data_emissao.strftime('%d/%m/%Y'))
+    create_field('Viagem Vinculada:', f"Viagem #{viagem.id}")
+    pdf.ln(5)
+
+    pdf.set_font('Helvetica', 'B', 12)
+    pdf.cell(0, 10, 'Dados do Destinatário', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(2)
+    create_field('Nome / Razão Social:', viagem.cliente)
+    create_field('Endereço de Entrega:', viagem.endereco_destino)
+    pdf.ln(5)
+
+    pdf.set_font('Helvetica', 'B', 12)
+    pdf.cell(0, 10, 'Dados do Transporte', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(2)
+    motorista_nome = viagem.motorista_formal.nome if viagem.motorista_formal else "Não informado"
+    create_field('Motorista:', motorista_nome)
+    create_field('Placa do Veículo:', viagem.veiculo.placa)
+    pdf.ln(10)
+
+    pdf.set_font('Helvetica', 'B', 12)
+    pdf.cell(0, 10, 'Itens da Carga', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(2)
+
+    pdf.set_fill_color(230, 230, 230)
+    pdf.set_font('Helvetica', 'B', 10)
+    pdf.cell(95, 8, 'Produto / Descrição', border=1, align='C', fill=True)
+    pdf.cell(25, 8, 'Quantidade', border=1, align='C', fill=True)
+    pdf.cell(35, 8, 'Embalagem', border=1, align='C', fill=True)
+    pdf.cell(35, 8, 'Peso (kg)', border=1, align='C', fill=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+    pdf.set_font('Helvetica', '', 10)
+    total_peso = 0
+    total_volumes = 0
+    for item in romaneio.itens:
+        pdf.cell(95, 8, item.produto_descricao, border=1)
+        pdf.cell(25, 8, str(item.quantidade), border=1, align='C')
+        pdf.cell(35, 8, item.embalagem, border=1, align='C')
+        pdf.cell(35, 8, f"{item.peso_kg:.2f}", border=1, align='R', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        total_peso += (item.peso_kg or 0) * (item.quantidade or 0)
+        total_volumes += item.quantidade
+    
+    pdf.set_font('Helvetica', 'B', 10)
+    pdf.cell(95, 8, 'TOTAIS', border=1, align='R', fill=True)
+    pdf.cell(25, 8, str(total_volumes), border=1, align='C', fill=True)
+    pdf.cell(35, 8, '', border=1, align='C', fill=True)
+    pdf.cell(35, 8, f"{total_peso:.2f}", border=1, align='R', fill=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.ln(10)
+
+    if romaneio.observacoes:
+        pdf.set_font('Helvetica', 'B', 12)
+        pdf.cell(0, 10, 'Observações', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+        pdf.ln(2)
+        pdf.set_font('Helvetica', '', 10)
+        pdf.multi_cell(0, 5, romaneio.observacoes, border=1, align='L')
+        pdf.ln(5)
+
+    pdf.ln(20)
+    y_assinatura = pdf.get_y()
+    pdf.line(20, y_assinatura, 80, y_assinatura)
+    pdf.line(130, y_assinatura, 190, y_assinatura)
+    pdf.ln(2)
+    pdf.cell(100, 5, 'Assinatura do Motorista', align='C')
+    pdf.cell(80, 5, 'Assinatura do Destinatário', align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+    # Correção: Remover .encode('latin1'), pois pdf.output(dest='S') já retorna bytearray
+    pdf_bytes = pdf.output(dest='S')
+    response = make_response(pdf_bytes)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'inline; filename=romaneio_{romaneio.id}.pdf'
+    
+    return response
+
 def seed_database(force=False):
     """Semeia o banco de dados local com dados iniciais para testes."""
     try:
@@ -2494,6 +2679,98 @@ def perfil_motorista(motorista_id):
 
     # 4. Renderiza um novo template HTML, passando os dados do motorista e suas viagens.
     return render_template('perfil_motorista.html', motorista=motorista, viagens=viagens, stats=stats)
+
+# Adicione esta nova rota em app.py
+
+@app.route('/romaneio/viagem/<int:viagem_id>', methods=['GET', 'POST'])
+@login_required
+def gerar_romaneio(viagem_id):
+    viagem = Viagem.query.get_or_404(viagem_id)
+    romaneio = Romaneio.query.filter_by(viagem_id=viagem_id).first()
+
+    if request.method == 'POST':
+        # Esta seção agora lida com CRIAR e ATUALIZAR
+        data_emissao_str = request.form.get('data_emissao')
+        observacoes = request.form.get('observacoes')
+        data_emissao = datetime.strptime(data_emissao_str, '%Y-%m-%d').date() if data_emissao_str else datetime.utcnow().date()
+
+        if romaneio:
+            # --- LÓGICA DE ATUALIZAÇÃO ---
+            romaneio.data_emissao = data_emissao
+            romaneio.observacoes = observacoes
+            
+            # Remove itens antigos para adicionar os novos (maneira mais simples de sincronizar)
+            ItemRomaneio.query.filter_by(romaneio_id=romaneio.id).delete()
+            flash_message = 'Romaneio atualizado com sucesso!'
+        else:
+            # --- LÓGICA DE CRIAÇÃO ---
+            romaneio = Romaneio(
+                viagem_id=viagem.id,
+                data_emissao=data_emissao,
+                observacoes=observacoes
+            )
+            db.session.add(romaneio)
+            db.session.flush() # Necessário para obter o romaneio.id para os itens
+            flash_message = 'Romaneio salvo com sucesso!'
+
+        # Processar/Reprocessar os itens da carga
+        item_counter = 1
+        while f'produto_{item_counter}' in request.form:
+            produto = request.form.get(f'produto_{item_counter}')
+            if produto: # Processa apenas se o campo produto não estiver vazio
+                item = ItemRomaneio(
+                    romaneio_id=romaneio.id,
+                    produto_descricao=produto,
+                    quantidade=int(request.form.get(f'qtd_{item_counter}', 1)),
+                    embalagem=request.form.get(f'embalagem_{item_counter}'),
+                    peso_kg=float(request.form.get(f'peso_{item_counter}', 0))
+                )
+                db.session.add(item)
+            item_counter += 1
+            
+        db.session.commit()
+        flash(flash_message, 'success')
+        
+        # Padrão Post/Redirect/Get: Redireciona para a mesma página com o método GET
+        return redirect(url_for('gerar_romaneio', viagem_id=viagem_id))
+
+    # --- LÓGICA GET (Carregar a página) ---
+    if romaneio:
+        # Se um romaneio já existe, passa o objeto para o template
+        return render_template('cadastro_romaneio.html', viagem=viagem, romaneio=romaneio)
+    else:
+        # Se não existe, prepara os dados para um novo romaneio
+        motorista_nome = 'N/A'
+        if viagem.motorista_id:
+            motorista_nome = viagem.motorista_formal.nome if viagem.motorista_formal else 'N/A'
+        elif viagem.motorista_cpf_cnpj:
+            usuario = Usuario.query.filter_by(cpf_cnpj=viagem.motorista_cpf_cnpj).first()
+            if usuario: motorista_nome = f"{usuario.nome} {usuario.sobrenome}"
+        
+        dados_novo_romaneio = {
+            'dest_nome': viagem.cliente,
+            'dest_endereco': viagem.endereco_destino,
+            'transportadora': motorista_nome,
+            'placa_veiculo': viagem.veiculo.placa
+        }
+        # Gera um número de romaneio sequencial (pode ser o próximo ID)
+        ultimo_id = db.session.query(db.func.max(Romaneio.id)).scalar() or 0
+        
+        return render_template('cadastro_romaneio.html', 
+                               viagem=viagem, 
+                               romaneio=None, # Importante: envia None para indicar que é novo
+                               dados=dados_novo_romaneio,
+                               numero_romaneio=ultimo_id + 1)
+    
+@app.route('/consultar_romaneios')
+@login_required
+def consultar_romaneios():
+    # No futuro, aqui você vai consultar os romaneios do banco
+    romaneios = Romaneio.query.order_by(Romaneio.id.desc()).all()
+    # Você precisará criar um template para 'consultar_romaneios.html'
+    # return render_template('consultar_romaneios.html', romaneios=romaneios)
+    flash('Tela de consulta de romaneios em construção.', 'info')
+    return redirect(url_for('index'))
 
 
 
