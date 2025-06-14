@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Romaneio de Carga #{{ romaneio.id }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            color: #333;
+        }
+        .printable-area {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            border: 1px solid #e2e8f0;
+            background-color: white;
+        }
+        .header, .footer {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .header img {
+            max-width: 100px;
+            margin-bottom: 1rem;
+        }
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 0.5rem;
+        }
+        .info-grid .label {
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 0.75rem;
+            text-align: left;
+        }
+        thead {
+            background-color: #f1f5f9;
+        }
+        .totals-table {
+            width: 50%;
+            margin-left: auto;
+            margin-top: 1rem;
+        }
+        .signature-lines {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 5rem;
+        }
+        .signature-line {
+            border-top: 1px solid #333;
+            width: 40%;
+            text-align: center;
+            padding-top: 0.5rem;
+        }
+        .no-print {
+            text-align: center;
+            margin-top: 2rem;
+        }
+        @media print {
+            body {
+                background-color: white;
+            }
+            .printable-area {
+                border: none;
+                box-shadow: none;
+                margin: 0;
+                padding: 0;
+                max-width: 100%;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="printable-area">
+        <header class="header">
+            <img src="{{ url_for('static', filename='brasão.png') }}" alt="Logo da Empresa">
+            <h1 class="text-2xl font-bold">ROMANEIO DE CARGA</h1>
+            <p>TrackGo - Soluções em Logística</p>
+        </header>
+
+        <main>
+            <div class="section-title">Dados Gerais</div>
+            <div class="info-grid">
+                <span class="label">Nº Romaneio:</span>
+                <span>{{ romaneio.id }}</span>
+                <span class="label">Data de Emissão:</span>
+                <span>{{ romaneio.data_emissao.strftime('%d/%m/%Y') }}</span>
+                <span class="label">Viagem Vinculada:</span>
+                <span>#{{ romaneio.viagem.id }}</span>
+            </div>
+
+            <div class="section-title">Dados do Destinatário</div>
+            <div class="info-grid">
+                <span class="label">Nome / Razão Social:</span>
+                <span>{{ romaneio.viagem.cliente }}</span>
+                <span class="label">Endereço de Entrega:</span>
+                <span>{{ romaneio.viagem.endereco_destino }}</span>
+            </div>
+
+            <div class="section-title">Dados do Transporte</div>
+            <div class="info-grid">
+                <span class="label">Motorista:</span>
+                <span>{{ romaneio.viagem.motorista_formal.nome if romaneio.viagem.motorista_formal else 'Não informado' }}</span>
+                <span class="label">Placa do Veículo:</span>
+                <span>{{ romaneio.viagem.veiculo.placa }}</span>
+            </div>
+
+            <div class="section-title">Itens da Carga</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Produto / Descrição</th>
+                        <th class="text-center">Quantidade</th>
+                        <th>Embalagem</th>
+                        <th class="text-right">Peso (kg)</th>
+                        <th class="text-right">Peso Total (kg)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in romaneio.itens %}
+                    <tr>
+                        <td>{{ item.produto_descricao }}</td>
+                        <td class="text-center">{{ item.quantidade }}</td>
+                        <td>{{ item.embalagem or 'N/A' }}</td>
+                        <td class="text-right">{{ "%.2f"|format(item.peso_kg or 0) }}</td>
+                        <td class="text-right">{{ "%.2f"|format(item.peso_total_item) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <table class="totals-table">
+                <tbody>
+                    <tr>
+                        <td class="font-bold">Total de Volumes:</td>
+                        <td class="text-right">{{ romaneio.total_volumes }}</td>
+                    </tr>
+                    <tr>
+                        <td class="font-bold">Peso Total da Carga:</td>
+                        <td class="text-right">{{ "%.2f"|format(romaneio.peso_total) }} kg</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            {% if romaneio.observacoes %}
+            <div class="section-title">Observações</div>
+            <p class="border p-4 rounded-md bg-gray-50">{{ romaneio.observacoes }}</p>
+            {% endif %}
+
+            <div class="signature-lines">
+                <div class="signature-line">Assinatura do Motorista</div>
+                <div class="signature-line">Assinatura do Destinatário</div>
+            </div>
+        </main>
+    </div>
+
+    <div class="no-print">
+        <button onclick="window.print()" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+            <i class="fas fa-print mr-2"></i> Imprimir / Salvar PDF
+        </button>
+        <button onclick="window.history.back()" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i> Voltar
+        </button>
+    </div>
+
+</body>
+</html>

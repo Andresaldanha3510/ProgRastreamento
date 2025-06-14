@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" xintegrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- CSS -->
     <style>
         * {
             box-sizing: border-box;
@@ -244,20 +243,7 @@
             color: white;
             font-weight: bold;
         }
-        /* Definição de larguras fixas para colunas */
-        .col-id { width: 5%; }
-        .col-motorista { width: 10%; }
-        .col-veiculo { width: 12%; }
-        .col-cliente { width: 10%; }
-        .col-saida { width: 12%; }
-        .col-destino { width: 12%; }
-        .col-inicio { width: 10%; }
-        .col-fim { width: 10%; }
-        .col-status { width: 10%; }
-        .col-custo { width: 8%; }
-        .col-despesas { width: 10%; }
-        .col-acoes { width: 25%; }
-
+        
         tr:hover {
             background-color: #f9f9f9;
         }
@@ -317,11 +303,11 @@
             background-color: #b0b0b0;
         }
         .btn-warning {
-            background-color: #FFD700;
+            background-color: #FFC107; /* Amarelo um pouco mais forte */
             color: black;
         }
         .btn-warning:hover {
-            background-color: #e6c200;
+            background-color: #e6af00;
         }
         .btn-danger {
             background-color: #f44336;
@@ -343,8 +329,8 @@
             cursor: not-allowed;
         }
         .btn-small {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.85rem;
+            padding: 0.35rem 0.6rem;
+            font-size: 0.8rem;
         }
         .action-buttons {
             display: flex;
@@ -452,44 +438,34 @@
             }
             .action-buttons {
                 flex-direction: column;
-                gap: 0.25rem;
-            }
-            .action-group {
-                flex-direction: column;
+                align-items: flex-start;
             }
             .modal-content {
                 width: 95%;
-                max-width: 95%;
             }
 
             header.navbar {
                 padding: 0 1rem;
             }
-
-            .brand-section {
-                /* Ocultar o nome da empresa no mobile para economizar espaço, se necessário */
-                 /* flex-grow: 1; /* Para centralizar logo se o nome sumir e houver botão de menu */
-            }
             .name-tag h1 {
-                display: none; /* Esconde o nome da empresa em telas menores */
+                display: none;
             }
             .img-logo img {
                  height: 50px;
                  width: 50px;
             }
             div#sidebar {
-                transform: translateX(-100%); /* Escondida por padrão */
+                transform: translateX(-100%);
                 width: 80%;
-                max-width: 260px; /* Levemente menor para não ocupar tanto */
-                z-index: 40; /* Acima do conteúdo principal quando aberta */
+                max-width: 260px;
+                z-index: 40;
             }
             div#sidebar.open {
-                transform: translateX(0); /* Mostra a sidebar */
+                transform: translateX(0);
             }
-            /* #menu-toggle (botão) é exibido por padrão abaixo de md (768px) */
             div.main-content {
                 margin-left: 0;
-                padding: 1.5rem; /* Padding ajustado para mobile */
+                padding: 1.5rem;
             }
             a.user-icon {
                 font-size: 1.3rem;
@@ -501,7 +477,7 @@
                 padding: 0 0.5rem;
             }
             .img-logo img {
-                height: 45px; /* Ainda menor */
+                height: 45px;
                 width: 45px;
             }
             div.main-content {
@@ -511,7 +487,7 @@
                 font-size: 1.2rem;
             }
             div#sidebar {
-                width: 90%; /* Pode ser mais larga em telas muito pequenas */
+                width: 90%;
                 max-width: 280px;
             }
         }
@@ -542,204 +518,205 @@
     </div>
     </header>
 
-    <div class="flex h-screen"> <div id="sidebar" class="sidebar"> <h1 class="text-2xl font-bold mb-8 text-center text-white">Menu</h1>
-        <ul>
-            <li class="mb-4"><a href="{{ url_for('cadastrar_motorista') }}" class="{% if active_page == 'cadastrar_motorista' %}active{% endif %}" ><i class="fas fa-user"></i> Cadastrar Motorista</a></li>
-            <li class="mb-4"><a href="{{ url_for('cadastrar_veiculo') }}" class="{% if active_page == 'cadastrar_veiculo' %}active{% endif %}"><i class="fas fa-truck"></i> Cadastrar Veículo</a></li>
-            <li class="mb-4"><a href="{{ url_for('iniciar_viagem') }}" class="{% if active_page == 'iniciar_viagem' %}active{% endif %}"><i class="fas fa-route"></i> Iniciar Viagem</a></li>
-            <li class="mb-4"><a href="{{ url_for('consultar_viagens') }}" class="{% if active_page == 'consultar_viagens' %}active{% endif %}"><i class="fas fa-search"></i> Consultar Viagens</a></li>
-            <li class="mb-4"><a href="{{ url_for('consultar_motoristas') }}" class="{% if active_page == 'consultar_motoristas' %}active{% endif %}"><i class="fas fa-users"></i> Consultar Motoristas</a></li>
-            <li class="mb-4"><a href="{{ url_for('consultar_veiculos') }}" class="{% if active_page == 'consultar_veiculos' %}active{% endif %}"><i class="fas fa-truck-loading"></i> Consultar Veículos</a></li>
-            <li class="mb-4"><a href="{{ url_for('relatorios') }}" class="{% if active_page == 'relatorios' %}active{% endif %}"><i class="fas fa-chart-bar"></i> Relatórios</a></li>
-        </ul>
-    </div>
-
-    <div class="container md:ml-60 transition-all duration-300 mt-6">
-        <h1 class="text-2xl font-bold mb-4"><i class="fas fa-search"></i> Consultar Viagens</h1>
-
-        <!-- Mensagens de Feedback -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="messages">
-                    {% for category, message in messages %}
-                        <p class="message {{ category }}">{{ message }}</p>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
-
-        <!-- Filtro de Viagens -->
-        <div class="filter-section">
-            <form method="GET" action="{{ url_for('consultar_viagens') }}" class="filter-form">
-                <div class="form-group">
-                    <label for="status">Status:</label>
-                    <select id="status" name="status">
-                        <option value="">Todos os Status</option>
-                        <option value="pendente" {% if status_filter == 'pendente' %}selected{% endif %}>Pendente</option>
-                        <option value="em_andamento" {% if status_filter == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
-                        <option value="concluida" {% if status_filter == 'concluida' %}selected{% endif %}>Concluída</option>
-                        <option value="cancelada" {% if status_filter == 'cancelada' %}selected{% endif %}>Cancelada</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="search">Buscar:</label>
-                    <input type="text" id="search" name="search" placeholder="Cliente, motorista, veículo..." value="{{ search_query }}">
-                </div>
-                <div class="form-group">
-                    <label for="data_inicio">Data Início:</label>
-                    <input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio }}">
-                </div>
-                <div class="form-group">
-                    <label for="data_fim">Data Fim:</label>
-                    <input type="date" id="data_fim" name="data_fim" value="{{ data_fim }}">
-                </div>
-                <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Filtrar</button>
-                <a href="{{ url_for('exportar_relatorio') }}" class="btn btn-secondary"><i class="fas fa-file-excel"></i> Exportar para Excel</a>
-            </form>
+    <div class="flex h-screen">
+        <div id="sidebar" class="sidebar">
+            <h1 class="text-2xl font-bold mb-8 text-center text-white">Menu</h1>
+            <ul>
+                <li class="mb-4"><a href="{{ url_for('cadastrar_motorista') }}" class="{% if active_page == 'cadastrar_motorista' %}active{% endif %}" ><i class="fas fa-user"></i> Cadastrar Motorista</a></li>
+                <li class="mb-4"><a href="{{ url_for('cadastrar_veiculo') }}" class="{% if active_page == 'cadastrar_veiculo' %}active{% endif %}"><i class="fas fa-truck"></i> Cadastrar Veículo</a></li>
+                <li class="mb-4"><a href="{{ url_for('iniciar_viagem') }}" class="{% if active_page == 'iniciar_viagem' %}active{% endif %}"><i class="fas fa-route"></i> Iniciar Viagem</a></li>
+                <li class="mb-4"><a href="{{ url_for('consultar_viagens') }}" class="{% if active_page == 'consultar_viagens' %}active{% endif %}"><i class="fas fa-search"></i> Consultar Viagens</a></li>
+                <li class="mb-4"><a href="{{ url_for('consultar_motoristas') }}" class="{% if active_page == 'consultar_motoristas' %}active{% endif %}"><i class="fas fa-users"></i> Consultar Motoristas</a></li>
+                <li class="mb-4"><a href="{{ url_for('consultar_veiculos') }}" class="{% if active_page == 'consultar_veiculos' %}active{% endif %}"><i class="fas fa-truck-loading"></i> Consultar Veículos</a></li>
+                <li class="mb-4"><a href="{{ url_for('relatorios') }}" class="{% if active_page == 'relatorios' %}active{% endif %}"><i class="fas fa-chart-bar"></i> Relatórios</a></li>
+            </ul>
         </div>
 
-        <!-- Tabela de Viagens -->
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th class="col-id">ID</th>
-                        <th class="col-motorista">Motorista</th>
-                        <th class="col-veiculo">Veículo</th>
-                        <th class="col-cliente">Cliente</th>
-                        <th class="col-saida">Saída</th>
-                        <th class="col-destino">Destino</th>
-                        <th class="col-inicio">Início</th>
-                        <th class="col-fim">Fim</th>
-                        <th class="col-status">Status</th>
-                        <th class="col-custo">Custo Total</th>
-                        <th class="col-despesas">Despesas</th>
-                        <th class="col-acoes">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for viagem in viagens %}
-                    <tr>
-                        <td class="col-id">{{ viagem.id }}</td>
-                        <td class="col-motorista">{{ viagem.motorista_nome }}</td>
-                        <td class="col-veiculo">{{ viagem.veiculo_placa }} - {{ viagem.veiculo_modelo }}</td>
-                        <td class="col-cliente">{{ viagem.cliente }}</td>
-                        <td class="col-saida">{{ viagem.endereco_saida }}</td>
-                        <td class="col-destino">{{ viagem.endereco_destino }}</td>
-                        <td class="col-inicio">{{ viagem.data_inicio }}</td>
-                        <td class="col-fim">{{ viagem.data_fim if viagem.data_fim else 'Em andamento' }}</td>
-                        <td class="col-status">
-                            <select class="status-select" data-viagem-id="{{ viagem.id }}" onchange="atualizarStatus(this)">
-                                <option value="pendente" {% if viagem.status == 'pendente' %}selected{% endif %}>Pendente</option>
-                                <option value="em_andamento" {% if viagem.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
-                                <option value="concluida" {% if viagem.status == 'concluida' %}selected{% endif %}>Concluída</option>
-                                <option value="cancelada" {% if viagem.status == 'cancelada' %}selected{% endif %}>Cancelada</option>
-                            </select>
-                        </td>
-                        <td class="col-custo">R$ {{ viagem.custo|round(2) if viagem.custo else '0.00' }}</td>
-                        <td class="col-despesas">
-                            {% set custo_viagem = viagem.custo_viagem %}
-                            {% if custo_viagem %}
-                                <span class="expense-tag">Atribuído</span>
-                                <button class="btn btn-info btn-small" onclick="visualizarDespesas({{ viagem.id }})"><i class="fas fa-eye"></i> Ver</button>
-                            {% else %}
-                                <span class="expense-tag pending">Pendente</span>
-                            {% endif %}
-                        </td>
-                        <td class="col-acoes">
-                            <div class="action-buttons">
-                                <div class="action-group">
-                                    <button class="btn btn-warning" onclick="abrirModalAtribuirDespesa({{ viagem.id }})"><i class="fas fa-dollar-sign"></i> Despesa</button>
-                                    <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="btn btn-primary"><i class="fas fa-edit"></i> Editar</a>
-                                </div>
-                                <div class="action-group">
-                                    {% if viagem.status != 'concluida' %}
-                                        <a href="{{ url_for('finalizar_viagem', viagem_id=viagem.id) }}" class="btn btn-secondary"><i class="fas fa-check"></i> Finalizar</a>
-                                    {% else %}
-                                        <span class="btn btn-disabled"><i class="fas fa-check"></i> Finalizar</span>
-                                    {% endif %}
-                                    <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja excluir esta viagem?');"><i class="fas fa-trash"></i> Excluir</a>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        <div class="container md:ml-60 transition-all duration-300 mt-6 p-4 md:p-6">
+            <h1 class="text-2xl font-bold mb-4"><i class="fas fa-search"></i> Consultar Viagens</h1>
 
-        <!-- Modal para Atribuir Despesa -->
-        <div id="atribuirDespesaModal" class="modal">
-            <div class="modal-content">
-                <h2><i class="fas fa-dollar-sign"></i> Atribuir Despesa à Viagem</h2>
-                <form id="atribuirDespesaForm" method="POST" action="{{ url_for('salvar_custo_viagem') }}" enctype="multipart/form-data" onsubmit="return validarFormulario()">
-                    <input type="hidden" name="viagem_id" id="viagem_id">
-                    <div class="form-group">
-                        <label for="combustivel">Combustível (R$):</label>
-                        <input type="number" id="combustivel" name="combustivel" step="0.01" min="0" placeholder="0.00">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="messages">
+                        {% for category, message in messages %}
+                            <p class="message {{ category }}">{{ message }}</p>
+                        {% endfor %}
                     </div>
+                {% endif %}
+            {% endwith %}
+
+            <div class="filter-section">
+                <form method="GET" action="{{ url_for('consultar_viagens') }}" class="filter-form">
                     <div class="form-group">
-                        <label for="pedagios">Pedágios (R$):</label>
-                        <input type="number" id="pedagios" name="pedagios" step="0.01" min="0" placeholder="0.00">
-                    </div>
-                    <div class="form-group">
-                        <label for="alimentacao">Alimentação (R$):</label>
-                        <input type="number" id="alimentacao" name="alimentacao" step="0.01" min="0" placeholder="0.00">
-                    </div>
-                    <div class="form-group">
-                        <label for="hospedagem">Hospedagem (R$):</label>
-                        <input type="number" id="hospedagem" name="hospedagem" step="0.01" min="0" placeholder="0.00">
-                    </div>
-                    <div class="form-group">
-                        <label for="outros">Outros (R$):</label>
-                        <input type="number" id="outros" name="outros" step="0.01" min="0" placeholder="0.00">
+                        <label for="status">Status:</label>
+                        <select id="status" name="status">
+                            <option value="">Todos os Status</option>
+                            <option value="pendente" {% if status_filter == 'pendente' %}selected{% endif %}>Pendente</option>
+                            <option value="em_andamento" {% if status_filter == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
+                            <option value="concluida" {% if status_filter == 'concluida' %}selected{% endif %}>Concluída</option>
+                            <option value="cancelada" {% if status_filter == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                        </select>
                     </div>
                     <div class="form-group">
-                        <label for="descricao_outros">Descrição dos Outros:</label>
-                        <textarea id="descricao_outros" name="descricao_outros" placeholder="Descreva outros custos..."></textarea>
+                        <label for="motorista_id">Motorista:</label>
+                        <select id="motorista_id" name="motorista_id">
+                            <option value="">Todos os Motoristas</option>
+                            {% for motorista in motoristas %}
+                                <option value="{{ motorista.id }}" {% if request.args.get('motorista_id')|int == motorista.id %}selected{% endif %}>{{ motorista.nome }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div class="form-group">
-                        <label for="anexos">Arquivos (PDF/JPG/PNG):</label>
-                        <input type="file" id="anexos" name="anexos" multiple accept=".pdf,.jpg,.jpeg,.png">
+                        <label for="search">Buscar:</label>
+                        <input type="text" id="search" name="search" placeholder="Cliente, endereço..." value="{{ search_query }}">
                     </div>
-                    <div class="modal-buttons">
-                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar Despesa</button>
-                        <button type="button" class="btn btn-secondary" onclick="fecharModal('atribuirDespesaModal')"><i class="fas fa-times"></i> Fechar</button>
+                    <div class="form-group">
+                        <label for="data_inicio">Data Início:</label>
+                        <input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio }}">
                     </div>
+                    <div class="form-group">
+                        <label for="data_fim">Data Fim:</label>
+                        <input type="date" id="data_fim" name="data_fim" value="{{ data_fim }}">
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Filtrar</button>
+                    <a href="{{ url_for('exportar_relatorio', **request.args) }}" class="btn btn-secondary"><i class="fas fa-file-excel"></i> Exportar</a>
                 </form>
             </div>
-        </div>
 
-        <!-- Modal para Visualizar Despesas -->
-        <div id="visualizarDespesasModal" class="modal">
-            <div class="modal-content">
-                <h2><i class="fas fa-eye"></i> Detalhes das Despesas</h2>
-                <div id="despesasContent"></div>
-                <div class="modal-buttons">
-                    <button type="button" class="btn btn-secondary" onclick="fecharModal('visualizarDespesasModal')"><i class="fas fa-times"></i> Fechar</button>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Motorista</th>
+                            <th>Veículo</th>
+                            <th>Cliente</th>
+                            <th>Saída</th>
+                            <th>Destino</th>
+                            <th>Início</th>
+                            <th>Fim</th>
+                            <th>Status</th>
+                            <th>Custo Total</th>
+                            <th>Despesas</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    {% for viagem in viagens %}
+    <tr>
+        <td>{{ viagem.id }}</td>
+        <td>{{ viagem.motorista_nome }}</td>
+        <td>{{ viagem.veiculo.placa }} - {{ viagem.veiculo.modelo }}</td>
+        <td>{{ viagem.cliente }}</td>
+        <td>{{ viagem.endereco_saida }}</td>
+        <td>{{ viagem.endereco_destino }}</td>
+        <td>{{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</td>
+        <td>{{ viagem.data_fim.strftime('%d/%m/%Y %H:%M') if viagem.data_fim else 'Em andamento' }}</td>
+        <td>
+            <select class="status-select" data-viagem-id="{{ viagem.id }}" onchange="atualizarStatus(this)">
+                <option value="pendente" {% if viagem.status == 'pendente' %}selected{% endif %}>Pendente</option>
+                <option value="em_andamento" {% if viagem.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
+                <option value="concluida" {% if viagem.status == 'concluida' %}selected{% endif %}>Concluída</option>
+                <option value="cancelada" {% if viagem.status == 'cancelada' %}selected{% endif %}>Cancelada</option>
+            </select>
+        </td>
+        <td>R$ {{ viagem.custo|round(2) if viagem.custo else '0.00' }}</td>
+        <td>
+            {% if viagem.custo %}
+                <span class="px-2 py-1 text-xs rounded-full bg-green-200 text-green-800">Atribuído</span>
+            {% else %}
+                <span class="px-2 py-1 text-xs rounded-full bg-red-200 text-red-800">Pendente</span>
+            {% endif %}
+        </td>
+        <td>
+            <div class="action-buttons">
+                <button class="btn btn-warning btn-small" onclick="abrirModalAtribuirDespesa({{ viagem.id }})"><i class="fas fa-dollar-sign"></i> Despesa</button>
+                <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="btn btn-primary btn-small"><i class="fas fa-edit"></i> Editar</a>
+                <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="btn btn-danger btn-small" onclick="return confirm('Tem certeza?');"><i class="fas fa-trash"></i> Excluir</a>
+                
+                {% if viagem.status in ['em_andamento', 'concluida'] %}
+                    <a href="{{ url_for('gerar_romaneio', viagem_id=viagem.id) }}" class="btn btn-info btn-small">
+                        <i class="fas fa-file-invoice"></i>
+                        {% if viagem.romaneio %}
+                            Editar Romaneio
+                        {% else %}
+                            Gerar Romaneio
+                        {% endif %}
+                    </a>
+                {% endif %}
+            </div>
+        </td>
+    </tr>
+    {% endfor %}
+</tbody>
+                </table>
+            </div>
+
+            <div id="atribuirDespesaModal" class="modal">
+                <div class="modal-content">
+                    <h2><i class="fas fa-dollar-sign"></i> Atribuir Despesa à Viagem</h2>
+                    <form id="atribuirDespesaForm" method="POST" action="{{ url_for('salvar_custo_viagem') }}" enctype="multipart/form-data" onsubmit="return validarFormulario()">
+                        <input type="hidden" name="viagem_id" id="viagem_id">
+                        <div class="form-group">
+                            <label for="combustivel">Combustível (R$):</label>
+                            <input type="number" id="combustivel" name="combustivel" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="pedagios">Pedágios (R$):</label>
+                            <input type="number" id="pedagios" name="pedagios" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="alimentacao">Alimentação (R$):</label>
+                            <input type="number" id="alimentacao" name="alimentacao" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="hospedagem">Hospedagem (R$):</label>
+                            <input type="number" id="hospedagem" name="hospedagem" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="outros">Outros (R$):</label>
+                            <input type="number" id="outros" name="outros" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="descricao_outros">Descrição dos Outros:</label>
+                            <textarea id="descricao_outros" name="descricao_outros" placeholder="Descreva outros custos..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="anexos_despesa">Arquivos (PDF/JPG/PNG):</label>
+                            <input type="file" id="anexos_despesa" name="anexos_despesa" multiple accept=".pdf,.jpg,.jpeg,.png">
+                        </div>
+                        <div class="modal-buttons">
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar Despesa</button>
+                            <button type="button" class="btn btn-secondary" onclick="fecharModal('atribuirDespesaModal')"><i class="fas fa-times"></i> Fechar</button>
+                        </div>
+                    </form>
                 </div>
             </div>
-        </div>
 
-        <!-- Botão Voltar -->
-        <a href="{{ url_for('index') }}" class="btn btn-secondary back-btn"><i class="fas fa-arrow-left"></i> Voltar</a>
+            <div id="visualizarDespesasModal" class="modal">
+                <div class="modal-content">
+                    <h2><i class="fas fa-eye"></i> Detalhes das Despesas</h2>
+                    <div id="despesasContent"></div>
+                    <div class="modal-buttons">
+                        <button type="button" class="btn btn-secondary" onclick="fecharModal('visualizarDespesasModal')"><i class="fas fa-times"></i> Fechar</button>
+                    </div>
+                </div>
+            </div>
+
+            <a href="{{ url_for('index') }}" class="btn btn-secondary back-btn"><i class="fas fa-arrow-left"></i> Voltar</a>
+        </div>
     </div>
 
-    <!-- JavaScript -->
-<script type="text/javascript">
-    // Obter referências (usando os IDs e classes do HTML original do usuário)
+    <script type="text/javascript">
     const sidebar = document.getElementById('sidebar');
     const menuToggle = document.getElementById('menu-toggle');
-    // const mainContent = document.querySelector('.main-content'); // Não é mais necessário para JS ajustar padding/margin
 
-    // Função para alternar a sidebar em telas mobile
     function toggleMobileSidebar() {
-        if (sidebar) { // Verificar se a sidebar existe
+        if (sidebar) {
             sidebar.classList.toggle('open');
         }
     }
 
-    // Listener para o botão de menu (apenas mobile)
     if (menuToggle) {
         menuToggle.addEventListener('click', (event) => {
             event.stopPropagation();
@@ -747,9 +724,8 @@
         });
     }
 
-    // Fechar a sidebar mobile ao clicar fora dela
     document.addEventListener('click', (event) => {
-        if (sidebar && menuToggle && sidebar.classList.contains('open')) { // Executar somente se sidebar existir e estiver aberta
+        if (sidebar && menuToggle && sidebar.classList.contains('open')) {
             const isClickInsideSidebar = sidebar.contains(event.target);
             const isClickOnMenuToggle = menuToggle.contains(event.target);
 
@@ -759,11 +735,10 @@
         }
     });
 
-    // Ajustes em redimensionamento (para garantir o estado correto da sidebar mobile)
     function handleResize() {
         if (window.innerWidth > 768) {
-            if (sidebar) { // Verificar se a sidebar existe
-                 sidebar.classList.remove('open'); // Garante que em desktop a classe 'open' (mobile) não esteja ativa
+            if (sidebar) {
+                 sidebar.classList.remove('open');
             }
         }
     }
@@ -773,39 +748,27 @@
 
     function abrirModalAtribuirDespesa(viagemId) {
         document.getElementById('viagem_id').value = viagemId;
-        document.getElementById('atribuirDespesaForm').reset();
+        const form = document.getElementById('atribuirDespesaForm');
+        form.reset(); // Limpa o formulário
+        
+        // Requisição para buscar despesas existentes e preencher o modal
+        fetch(`/consultar_despesas/${viagemId}`)
+            .then(response => response.json())
+            .then(data => {
+                if(data){
+                    form.querySelector('#combustivel').value = data.combustivel || '';
+                    form.querySelector('#pedagios').value = data.pedagios || '';
+                    form.querySelector('#alimentacao').value = data.alimentacao || '';
+                    form.querySelector('#hospedagem').value = data.hospedagem || '';
+                    form.querySelector('#outros').value = data.outros || '';
+                    form.querySelector('#descricao_outros').value = data.descricao_outros || '';
+                }
+            })
+            .catch(err => console.log('Sem despesas anteriores ou erro:', err));
+
         document.getElementById('atribuirDespesaModal').style.display = 'flex';
     }
 
-    function visualizarDespesas(viagemId) {
-        fetch(`/consultar_despesas/${viagemId}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erro ao carregar despesas');
-                }
-                return response.json();
-            })
-            .then(data => {
-                const content = `
-                    <p><strong>Combustível (R$):</strong> ${data.combustivel.toFixed(2)}</p>
-                    <p><strong>Pedágios (R$):</strong> ${data.pedagios.toFixed(2)}</p>
-                    <p><strong>Alimentação (R$):</strong> ${data.alimentacao.toFixed(2)}</p>
-                    <p><strong>Hospedagem (R$):</strong> ${data.hospedagem.toFixed(2)}</p>
-                    <p><strong>Outros (R$):</strong> ${data.outros.toFixed(2)}</p>
-                    <p><strong>Descrição dos Outros:</strong> ${data.descricao_outros || 'Nenhuma'}</p>
-                    <p><strong>Arquivos:</strong> ${
-                        data.anexos.length > 0
-                            ? data.anexos.map(anexo => `<a href="${anexo}" target="_blank">${anexo.split('/').pop()}</a>`).join(', ')
-                            : 'Nenhum arquivo'
-                    }</p>
-                `;
-                document.getElementById('despesasContent').innerHTML = content;
-                document.getElementById('visualizarDespesasModal').style.display = 'flex';
-            })
-            .catch(error => {
-                alert('Erro ao carregar despesas: ' + error.message);
-            });
-    }
 
     function atualizarStatus(selectElement) {
         const viagemId = selectElement.getAttribute('data-viagem-id');
@@ -813,28 +776,21 @@
 
         fetch(`/atualizar_status_viagem/${viagemId}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: novoStatus }),
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Erro ao atualizar o status');
-            }
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Status atualizado com sucesso!');
-                location.reload(); // Recarrega a página para refletir as mudanças
+                // Em vez de alert, podemos mostrar uma notificação mais suave no futuro
+                window.location.reload();
             } else {
                 throw new Error(data.message || 'Erro desconhecido');
             }
         })
         .catch(error => {
             alert('Erro ao atualizar o status: ' + error.message);
-            selectElement.value = selectElement.getAttribute('data-original-status'); // Reverte a seleção
+            selectElement.value = selectElement.getAttribute('data-original-status');
         });
     }
 
@@ -853,7 +809,6 @@
         return true;
     }
 
-    // Fechar modais ao clicar fora
     document.querySelectorAll('.modal').forEach(modal => {
         modal.onclick = function(event) {
             if (event.target === modal) {
@@ -862,7 +817,6 @@
         };
     });
 
-    // Armazenar o status original para possível reversão
     document.querySelectorAll('.status-select').forEach(select => {
         select.setAttribute('data-original-status', select.value);
     });
