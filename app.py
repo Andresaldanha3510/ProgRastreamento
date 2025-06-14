@@ -2225,120 +2225,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-@app.route('/romaneio/pdf/<int:romaneio_id>')
-@login_required
-def gerar_pdf_romaneio(romaneio_id):
-    romaneio = Romaneio.query.get_or_404(romaneio_id)
-    viagem = romaneio.viagem
-
-    class PDF(FPDF):
-        def header(self):
-            logo_path = os.path.join(app.static_folder, 'brasão.png')
-            if os.path.exists(logo_path):
-                self.image(logo_path, 10, 8, 25)
-            
-            self.set_font('Helvetica', 'B', 15)
-            self.cell(0, 10, 'ROMANEIO DE CARGA', align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-            self.set_font('Helvetica', '', 10)
-            self.cell(0, 5, 'TrackGo - Soluções em Logística', align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-            self.ln(15)
-
-        def footer(self):
-            self.set_y(-15)
-            self.set_font('Helvetica', 'I', 8)
-            self.cell(0, 10, f'Página {self.page_no()}', align='C')
-
-    pdf = PDF()
-    pdf.add_page()
-    pdf.set_font('Helvetica', '', 12)
-
-    def create_field(title, content):
-        pdf.set_font('Helvetica', 'B', 10)
-        pdf.cell(40, 8, title)
-        pdf.set_font('Helvetica', '', 10)
-        pdf.cell(0, 8, str(content), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-
-    pdf.set_font('Helvetica', 'B', 12)
-    pdf.cell(0, 10, 'Dados Gerais', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.ln(2)
-    create_field('Nº Romaneio:', romaneio.id)
-    create_field('Data de Emissão:', romaneio.data_emissao.strftime('%d/%m/%Y'))
-    create_field('Viagem Vinculada:', f"Viagem #{viagem.id}")
-    pdf.ln(5)
-
-    pdf.set_font('Helvetica', 'B', 12)
-    pdf.cell(0, 10, 'Dados do Destinatário', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.ln(2)
-    create_field('Nome / Razão Social:', viagem.cliente)
-    create_field('Endereço de Entrega:', viagem.endereco_destino)
-    pdf.ln(5)
-
-    pdf.set_font('Helvetica', 'B', 12)
-    pdf.cell(0, 10, 'Dados do Transporte', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.ln(2)
-    motorista_nome = viagem.motorista_formal.nome if viagem.motorista_formal else "Não informado"
-    create_field('Motorista:', motorista_nome)
-    create_field('Placa do Veículo:', viagem.veiculo.placa)
-    pdf.ln(10)
-
-    pdf.set_font('Helvetica', 'B', 12)
-    pdf.cell(0, 10, 'Itens da Carga', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.ln(2)
-
-    pdf.set_fill_color(230, 230, 230)
-    pdf.set_font('Helvetica', 'B', 10)
-    pdf.cell(95, 8, 'Produto / Descrição', border=1, align='C', fill=True)
-    pdf.cell(25, 8, 'Quantidade', border=1, align='C', fill=True)
-    pdf.cell(35, 8, 'Embalagem', border=1, align='C', fill=True)
-    pdf.cell(35, 8, 'Peso (kg)', border=1, align='C', fill=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-
-    pdf.set_font('Helvetica', '', 10)
-    total_peso = 0
-    total_volumes = 0
-    for item in romaneio.itens:
-        pdf.cell(95, 8, item.produto_descricao, border=1)
-        pdf.cell(25, 8, str(item.quantidade), border=1, align='C')
-        pdf.cell(35, 8, item.embalagem, border=1, align='C')
-        pdf.cell(35, 8, f"{item.peso_kg:.2f}", border=1, align='R', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        total_peso += (item.peso_kg or 0) * (item.quantidade or 0)
-        total_volumes += item.quantidade
-    
-    pdf.set_font('Helvetica', 'B', 10)
-    pdf.cell(95, 8, 'TOTAIS', border=1, align='R', fill=True)
-    pdf.cell(25, 8, str(total_volumes), border=1, align='C', fill=True)
-    pdf.cell(35, 8, '', border=1, align='C', fill=True)
-    pdf.cell(35, 8, f"{total_peso:.2f}", border=1, align='R', fill=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.ln(10)
-
-    if romaneio.observacoes:
-        pdf.set_font('Helvetica', 'B', 12)
-        pdf.cell(0, 10, 'Observações', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-        pdf.ln(2)
-        pdf.set_font('Helvetica', '', 10)
-        pdf.multi_cell(0, 5, romaneio.observacoes, border=1, align='L')
-        pdf.ln(5)
-
-    pdf.ln(20)
-    y_assinatura = pdf.get_y()
-    pdf.line(20, y_assinatura, 80, y_assinatura)
-    pdf.line(130, y_assinatura, 190, y_assinatura)
-    pdf.ln(2)
-    pdf.cell(100, 5, 'Assinatura do Motorista', align='C')
-    pdf.cell(80, 5, 'Assinatura do Destinatário', align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-
-    # Correção: Remover .encode('latin1'), pois pdf.output(dest='S') já retorna bytearray
-    pdf_bytes = pdf.output(dest='S')
-    response = make_response(pdf_bytes)
-    response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = f'inline; filename=romaneio_{romaneio.id}.pdf'
-    
-    return response
-
 def seed_database(force=False):
     """Semeia o banco de dados local com dados iniciais para testes."""
     try:
@@ -2765,12 +2651,36 @@ def gerar_romaneio(viagem_id):
 @app.route('/consultar_romaneios')
 @login_required
 def consultar_romaneios():
-    # No futuro, aqui você vai consultar os romaneios do banco
-    romaneios = Romaneio.query.order_by(Romaneio.id.desc()).all()
-    # Você precisará criar um template para 'consultar_romaneios.html'
-    # return render_template('consultar_romaneios.html', romaneios=romaneios)
-    flash('Tela de consulta de romaneios em construção.', 'info')
-    return redirect(url_for('index'))
+    search_query = request.args.get('search', '').strip()
+    query = Romaneio.query.join(Viagem)  # Join com Viagem para filtros adicionais
+    
+    if search_query:
+        query = query.filter(
+            or_(
+                Viagem.cliente.ilike(f'%{search_query}%'),
+                Viagem.motorista_formal.has(Motorista.nome.ilike(f'%{search_query}%')),
+                Viagem.veiculo.has(Veiculo.placa.ilike(f'%{search_query}%'))
+            )
+        )
+    
+    romaneios = query.order_by(Romaneio.data_emissao.desc()).all()
+    
+    return render_template(
+        'consultar_romaneios.html',
+        romaneios=romaneios,
+        search_query=search_query,
+        active_page='consultar_romaneios'
+    )
+
+@app.template_filter('get_usuario')
+def get_usuario(cpf_cnpj):
+    return Usuario.query.filter_by(cpf_cnpj=cpf_cnpj).first()
+
+@app.route('/romaneio/<int:romaneio_id>', methods=['GET'])
+@login_required
+def visualizar_romaneio(romaneio_id):
+    romaneio = Romaneio.query.get_or_404(romaneio_id)
+    return render_template('visualizar_romaneio.html', romaneio=romaneio, active_page='consultar_romaneios')
 
 
 
