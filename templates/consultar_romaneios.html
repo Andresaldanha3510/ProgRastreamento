@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultar Romaneios - TrackGo</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <header>
+        <h1>TrackGo</h1>
+        <div class="user-info">
+            Olá, {{ current_user.nome or current_user.email }}
+            <a href="{{ url_for('logout') }}">Sair</a>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="{{ url_for('cadastrar_motorista') }}">Cadastrar Motorista</a></li>
+            <li><a href="{{ url_for('cadastrar_veiculo') }}">Cadastrar Veículo</a></li>
+            <li><a href="{{ url_for('iniciar_viagem') }}">Iniciar Viagem</a></li>
+            <li><a href="{{ url_for('consultar_viagens') }}">Consultar Viagens</a></li>
+            <li><a href="{{ url_for('consultar_motoristas') }}">Consultar Motoristas</a></li>
+            <li><a href="{{ url_for('consultar_veiculos') }}">Consultar Veículos</a></li>
+            <li><a href="{{ url_for('relatorios') }}">Relatórios</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <h2>Consultar Romaneios</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="messages">
+                    {% for category, message in messages %}
+                        <div class="alert {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="GET" action="{{ url_for('consultar_romaneios') }}">
+            <input type="text" name="search" placeholder="Buscar por cliente, motorista ou placa" value="{{ search_query }}">
+            <button type="submit">Buscar</button>
+        </form>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID Romaneio</th>
+                    <th>Data de Emissão</th>
+                    <th>Viagem ID</th>
+                    <th>Cliente</th>
+                    <th>Motorista</th>
+                    <th>Veículo</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for romaneio in romaneios %}
+                    <tr>
+                        <td>{{ romaneio.id }}</td>
+                        <td>{{ romaneio.data_emissao.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ romaneio.viagem.id }}</td>
+                        <td>{{ romaneio.viagem.cliente }}</td>
+                        <td>
+                            {% if romaneio.viagem.motorista_formal %}
+                                {{ romaneio.viagem.motorista_formal.nome }}
+                            {% elif romaneio.viagem.motorista_cpf_cnpj %}
+                                {% set usuario = romaneio.viagem.motorista_cpf_cnpj | get_usuario %}
+                                {{ usuario.nome + ' ' + usuario.sobrenome if usuario else 'N/A' }}
+                            {% else %}
+                                Não informado
+                            {% endif %}
+                        </td>
+                        <td>{{ romaneio.viagem.veiculo.placa }}</td>
+                        <td>
+                            <a href="{{ url_for('visualizar_romaneio', romaneio_id=romaneio.id) }}">Visualizar / Imprimir</a>
+                            
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="7">Nenhum romaneio encontrado.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <a href="{{ url_for('index') }}">Voltar</a>
+    </main>
+</body>
+</html>

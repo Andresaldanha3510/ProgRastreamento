@@ -1,190 +1,196 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Romaneio de Carga #{{ romaneio.id }}</title>
+    <title>Romaneio de Carga #{{ romaneio.id }} - TrackGo</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            color: #333;
+        /* Estilos gerais da página, copiados do index.html */
+        body { background: #f4f7fa; background-attachment: fixed; color: #1e293b; font-family: 'Inter', sans-serif; overflow-x: hidden; padding-top: 100px; }
+        header.navbar { background: linear-gradient(135deg, #2e7d32, #2e7d32); box-shadow: 0px 3px 6px rgb(10, 73, 10); width: 100%; position: fixed; top: 0; left: 0; z-index: 30; height: 100px; display: flex; justify-content: space-between; align-items: center; padding: 0 2rem; }
+        #menu-toggle { background-color: transparent; border: none; color: white; font-size: 1.8rem; cursor: pointer; padding: 10px; border-radius: 50%; transition: background-color 0.2s ease-in-out; }
+        .brand-section { display: flex; align-items: center; gap: 12px; }
+        .img-logo img { height: 60px; width: 60px; object-fit: contain; border-radius: 8px; }
+        .name-tag h1 { color: white; font-size: 1.25rem; white-space: nowrap; }
+        a.user-icon { color: white; font-size: 1.5rem; text-decoration: none; }
+        div#sidebar { background-color: #2F3640; box-shadow: 2px 0px 10px rgba(0, 0, 0, 0.3); transition: transform 0.3s ease-in-out; border-top-right-radius: 10px; border-bottom-right-radius: 10px; position: fixed; top: 100px; left: 0; height: calc(100vh - 100px); z-index: 20; width: 14rem; overflow-y: auto; padding: 1.5rem; }
+        div#sidebar h1 { color: #ffffff; font-size: 1.5rem; font-weight: bold; margin-bottom: 2rem; text-align: center; }
+        div#sidebar ul li { margin-bottom: 1rem; }
+        div#sidebar ul li a { color: white; display: block; padding: 10px 15px; border-radius: 8px; transition: background-color 0.2s ease-in-out; display: flex; align-items: center; gap: 10px; }
+        div#sidebar ul li a:hover, div#sidebar ul li a:not(.active):hover { background-color: #2e8b57; }
+        div#sidebar ul li a.active { background-color: #2e8b57; font-weight: 600; }
+        div#sidebar ul li a i { width: 20px; text-align: center; }
+        .container { transition: all 0.3s ease-in-out; }
+
+        /* Estilos do romaneio */
+        .romaneio-section h3 { font-size: 1.25rem; font-semibold; margin-top: 1.5rem; margin-bottom: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; }
+        .romaneio-section p { margin-bottom: 0.5rem; }
+        .signature { margin-top: 3rem; display: flex; justify-content: space-around; page-break-inside: avoid; }
+        .signature p { margin-top: 2rem; }
+
+        @media (min-width: 769px) { 
+            div#sidebar { transform: translateX(0); }
+            .container { margin-left: 14rem; }
         }
-        .printable-area {
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 2rem;
-            border: 1px solid #e2e8f0;
-            background-color: white;
-        }
-        .header, .footer {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        .header img {
-            max-width: 100px;
-            margin-bottom: 1rem;
-        }
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: bold;
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 0.5rem;
-            margin-top: 1.5rem;
-            margin-bottom: 1rem;
-        }
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 0.5rem;
-        }
-        .info-grid .label {
-            font-weight: bold;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-        }
-        th, td {
-            border: 1px solid #cbd5e1;
-            padding: 0.75rem;
-            text-align: left;
-        }
-        thead {
-            background-color: #f1f5f9;
-        }
-        .totals-table {
-            width: 50%;
-            margin-left: auto;
-            margin-top: 1rem;
-        }
-        .signature-lines {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 5rem;
-        }
-        .signature-line {
-            border-top: 1px solid #333;
-            width: 40%;
-            text-align: center;
-            padding-top: 0.5rem;
-        }
-        .no-print {
-            text-align: center;
-            margin-top: 2rem;
-        }
+        @media (max-width: 768px) { .name-tag h1 { display: none; } div#sidebar { transform: translateX(-100%); z-index: 40; } div#sidebar.open { transform: translateX(0); } .container { margin-left: 0; } }
+
+        /* Estilo para Impressão */
         @media print {
-            body {
-                background-color: white;
-            }
-            .printable-area {
-                border: none;
-                box-shadow: none;
-                margin: 0;
-                padding: 0;
-                max-width: 100%;
-            }
-            .no-print {
-                display: none;
-            }
+            body { padding-top: 0; }
+            header.navbar, div#sidebar, .no-print { display: none !important; }
+            .container { margin-left: 0 !important; }
+            main { box-shadow: none; padding: 0 !important; }
+            .signature { page-break-inside: avoid; }
         }
     </style>
+    <script>
+        function printPage() {
+            window.print();
+        }
+    </script>
 </head>
 <body class="bg-gray-100">
 
-    <div class="printable-area">
-        <header class="header">
-            <img src="{{ url_for('static', filename='brasão.png') }}" alt="Logo da Empresa">
-            <h1 class="text-2xl font-bold">ROMANEIO DE CARGA</h1>
-            <p>TrackGo - Soluções em Logística</p>
-        </header>
-
-        <main>
-            <div class="section-title">Dados Gerais</div>
-            <div class="info-grid">
-                <span class="label">Nº Romaneio:</span>
-                <span>{{ romaneio.id }}</span>
-                <span class="label">Data de Emissão:</span>
-                <span>{{ romaneio.data_emissao.strftime('%d/%m/%Y') }}</span>
-                <span class="label">Viagem Vinculada:</span>
-                <span>#{{ romaneio.viagem.id }}</span>
+    <header class="navbar no-print">
+        <button id="menu-toggle" class="text-white md:hidden focus:outline-none"><i class="fas fa-bars"></i></button>
+        <div class="brand-section">
+            <div class="img-logo">
+                <a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='brasão.png') }}" alt="Logo TrackGo"></a>
             </div>
+            <div class="name-tag"><h1>TrackGo</h1></div>
+        </div>
+        <div class="flex items-center gap-4 text-white">
+            <span class="hidden text-sm sm:inline">Olá, {{ current_user.nome or current_user.email }}</span>
+            <a href="{{ url_for('configuracoes') }}" class="user-icon" title="Configurações"><i class="fas fa-user-cog"></i></a>
+            <a href="{{ url_for('logout') }}" class="user-icon" title="Sair"><i class="fas fa-sign-out-alt"></i></a>
+        </div>
+    </header>
 
-            <div class="section-title">Dados do Destinatário</div>
-            <div class="info-grid">
-                <span class="label">Nome / Razão Social:</span>
-                <span>{{ romaneio.viagem.cliente }}</span>
-                <span class="label">Endereço de Entrega:</span>
-                <span>{{ romaneio.viagem.endereco_destino }}</span>
-            </div>
+    <div class="flex h-screen">
+        <div id="sidebar" class="sidebar no-print">
+            <h1 class="text-2xl font-bold mb-8 text-center text-white">Menu</h1>
+            <ul>
+                <li class="mb-4"><a href="{{ url_for('cadastrar_motorista') }}"><i class="fas fa-user"></i> Cadastrar Motorista</a></li>
+                <li class="mb-4"><a href="{{ url_for('cadastrar_veiculo') }}"><i class="fas fa-truck"></i> Cadastrar Veículo</a></li>
+                <li class="mb-4"><a href="{{ url_for('iniciar_viagem') }}"><i class="fas fa-route"></i> Iniciar Viagem</a></li>
+                <li class="mb-4"><a href="{{ url_for('consultar_viagens') }}"><i class="fas fa-search"></i> Consultar Viagens</a></li>
+                <li class="mb-4"><a href="{{ url_for('consultar_motoristas') }}"><i class="fas fa-users"></i> Consultar Motoristas</a></li>
+                <li class="mb-4"><a href="{{ url_for('consultar_veiculos') }}"><i class="fas fa-truck-loading"></i> Consultar Veículos</a></li>
+                <li class="mb-4"><a href="{{ url_for('relatorios') }}"><i class="fas fa-chart-bar"></i> Relatórios</a></li>
+            </ul>
+        </div>
 
-            <div class="section-title">Dados do Transporte</div>
-            <div class="info-grid">
-                <span class="label">Motorista:</span>
-                <span>{{ romaneio.viagem.motorista_formal.nome if romaneio.viagem.motorista_formal else 'Não informado' }}</span>
-                <span class="label">Placa do Veículo:</span>
-                <span>{{ romaneio.viagem.veiculo.placa }}</span>
-            </div>
+        <div class="container mt-6 p-4 md:p-6">
+            <main class="bg-white p-8 rounded-lg shadow-md">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold">ROMANEIO DE CARGA</h2>
+                    <p class="text-gray-500">TrackGo - Soluções em Logística</p>
+                </div>
 
-            <div class="section-title">Itens da Carga</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Produto / Descrição</th>
-                        <th class="text-center">Quantidade</th>
-                        <th>Embalagem</th>
-                        <th class="text-right">Peso (kg)</th>
-                        <th class="text-right">Peso Total (kg)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in romaneio.itens %}
-                    <tr>
-                        <td>{{ item.produto_descricao }}</td>
-                        <td class="text-center">{{ item.quantidade }}</td>
-                        <td>{{ item.embalagem or 'N/A' }}</td>
-                        <td class="text-right">{{ "%.2f"|format(item.peso_kg or 0) }}</td>
-                        <td class="text-right">{{ "%.2f"|format(item.peso_total_item) }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            
-            <table class="totals-table">
-                <tbody>
-                    <tr>
-                        <td class="font-bold">Total de Volumes:</td>
-                        <td class="text-right">{{ romaneio.total_volumes }}</td>
-                    </tr>
-                    <tr>
-                        <td class="font-bold">Peso Total da Carga:</td>
-                        <td class="text-right">{{ "%.2f"|format(romaneio.peso_total) }} kg</td>
-                    </tr>
-                </tbody>
-            </table>
-            
-            {% if romaneio.observacoes %}
-            <div class="section-title">Observações</div>
-            <p class="border p-4 rounded-md bg-gray-50">{{ romaneio.observacoes }}</p>
-            {% endif %}
+                <section class="romaneio-section">
+                    <h3>Dados Gerais</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <p><strong>Nº Romaneio:</strong> {{ romaneio.id }}</p>
+                        <p><strong>Data de Emissão:</strong> {{ romaneio.data_emissao.strftime('%d/%m/%Y') }}</p>
+                        <p><strong>Viagem Vinculada:</strong> #{{ romaneio.viagem.id }}</p>
+                    </div>
+                </section>
 
-            <div class="signature-lines">
-                <div class="signature-line">Assinatura do Motorista</div>
-                <div class="signature-line">Assinatura do Destinatário</div>
-            </div>
-        </main>
+                <section class="romaneio-section">
+                    <h3>Dados do Destinatário</h3>
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <p><strong>Nome / Razão Social:</strong> {{ romaneio.viagem.cliente }}</p>
+                        <p><strong>Endereço de Entrega:</strong> {{ romaneio.viagem.endereco_destino }}</p>
+                    </div>
+                </section>
+
+                <section class="romaneio-section">
+                    <h3>Dados do Transporte</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <p><strong>Motorista:</strong> {{ romaneio.viagem.motorista_formal.nome if romaneio.viagem.motorista_formal else 'Não informado' }}</p>
+                        <p><strong>Placa do Veículo:</strong> {{ romaneio.viagem.veiculo.placa }}</p>
+                    </div>
+                </section>
+
+                <section class="romaneio-section">
+                    <h3>Itens da Carga</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm text-left text-gray-500">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                                <tr>
+                                    <th class="py-3 px-6">Produto / Descrição</th>
+                                    <th class="py-3 px-6">Quantidade</th>
+                                    <th class="py-3 px-6">Embalagem</th>
+                                    <th class="py-3 px-6 text-right">Peso (kg)</th>
+                                    <th class="py-3 px-6 text-right">Peso Total (kg)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in romaneio.itens %}
+                                    <tr class="bg-white border-b">
+                                        <td class="py-4 px-6 font-medium text-gray-900">{{ item.produto_descricao }}</td>
+                                        <td class="py-4 px-6">{{ item.quantidade }}</td>
+                                        <td class="py-4 px-6">{{ item.embalagem or 'N/A' }}</td>
+                                        <td class="py-4 px-6 text-right">{{ "%.2f"|format(item.peso_kg or 0) }}</td>
+                                        <td class="py-4 px-6 text-right">{{ "%.2f"|format(item.peso_total_item) }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="font-semibold text-gray-700 bg-gray-100">
+                                <tr>
+                                    <td colspan="3" class="py-3 px-6 text-right">Total de Volumes:</td>
+                                    <td colspan="2" class="py-3 px-6 text-right">{{ romaneio.total_volumes }}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="py-3 px-6 text-right">Peso Total da Carga:</td>
+                                    <td colspan="2" class="py-3 px-6 text-right">{{ "%.2f"|format(romaneio.peso_total) }} kg</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </section>
+
+                {% if romaneio.observacoes %}
+                <section class="romaneio-section">
+                    <h3>Observações</h3>
+                    <p class="p-4 bg-gray-50 rounded-md border">{{ romaneio.observacoes }}</p>
+                </section>
+                {% endif %}
+
+                <section class="signature">
+                    <div>
+                        <p>___________________________</p>
+                        <p class="text-center">Assinatura do Motorista</p>
+                    </div>
+                    <div>
+                        <p>___________________________</p>
+                        <p class="text-center">Assinatura do Destinatário</p>
+                    </div>
+                </section>
+
+                <div class="mt-8 flex justify-center gap-4 no-print">
+                    <button onclick="printPage()" class="bg-blue-600 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-print mr-2"></i>Imprimir
+                    </button>
+                    <a href="{{ url_for('consultar_viagens') }}" class="bg-gray-500 text-white px-6 py-2 rounded-lg shadow hover:bg-gray-600 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>Voltar
+                    </a>
+                </div>
+            </main>
+        </div>
     </div>
 
-    <div class="no-print">
-        <button onclick="window.print()" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
-            <i class="fas fa-print mr-2"></i> Imprimir / Salvar PDF
-        </button>
-        <button onclick="window.history.back()" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors">
-            <i class="fas fa-arrow-left mr-2"></i> Voltar
-        </button>
-    </div>
-
+    <script type="text/javascript">
+        const sidebar = document.getElementById('sidebar');
+        const menuToggle = document.getElementById('menu-toggle');
+        if (menuToggle) {
+            menuToggle.addEventListener('click', () => sidebar && sidebar.classList.toggle('open'));
+        }
+    </script>
 </body>
 </html>

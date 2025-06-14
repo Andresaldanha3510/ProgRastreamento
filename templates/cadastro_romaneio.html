@@ -175,15 +175,30 @@
                     <textarea name="observacoes" rows="3" class="w-full p-2 border rounded" placeholder="Instruções especiais...">{{ romaneio.observacoes if romaneio else '' }}</textarea>
                 </div>
 
-                <div class="mt-8 flex justify-start gap-4">
+                <div class="mt-8 flex justify-start items-center gap-4">
+                    
+                    {# Botão de Salvar (agora verde e com ícone) #}
+                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg shadow hover:bg-green-700 transition-colors">
+                        <i class="fas fa-save mr-2"></i>{% if romaneio %}Salvar Alterações{% else %}Salvar Romaneio{% endif %}
+                    </button>
+
+                    {# Lógica do botão Imprimir: ativo se o romaneio existe, desativado se for novo #}
                     {% if romaneio %}
-                        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-700 transition-colors">Salvar Alterações</button>
-                        <a href="{{ url_for('gerar_pdf_romaneio', romaneio_id=romaneio.id) }}" class="bg-teal-600 text-white px-6 py-2 rounded-lg shadow hover:bg-teal-700 transition-colors">Gerar PDF</a>
-                        <a href="{{ url_for('consultar_viagens') }}" class="bg-gray-500 text-white px-6 py-2 rounded-lg shadow hover:bg-gray-600 transition-colors">Voltar</a>
+                        {# Botão Ativo #}
+                        <a href="{{ url_for('visualizar_romaneio', romaneio_id=romaneio.id) }}" target="_blank" class="bg-blue-600 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-print mr-2"></i>Imprimir
+                        </a>
                     {% else %}
-                        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-700 transition-colors">Salvar Romaneio</button>
-                        <a href="{{ url_for('consultar_viagens') }}" class="bg-gray-500 text-white px-6 py-2 rounded-lg shadow hover:bg-gray-600 transition-colors">Voltar</a>
+                        {# Botão Desabilitado #}
+                        <button type="button" disabled class="bg-gray-400 text-white px-6 py-2 rounded-lg cursor-not-allowed" title="Salve o romaneio para poder imprimir">
+                            <i class="fas fa-print mr-2"></i>Imprimir
+                        </button>
                     {% endif %}
+
+                    {# Botão Voltar (com ícone) #}
+                    <a href="{{ url_for('consultar_viagens') }}" class="bg-gray-500 text-white px-6 py-2 rounded-lg shadow hover:bg-gray-600 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>Voltar
+                    </a>
                 </div>
             </form>
         </div>
