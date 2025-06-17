@@ -21,6 +21,7 @@ from flask import jsonify
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 from flask import make_response
+from sqlalchemy import UniqueConstraint
 
 
 # ---- Configurações Iniciais ----
@@ -125,6 +126,27 @@ class Convite(db.Model):
     data_expiracao = db.Column(db.DateTime, nullable=False)
     criado_por = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
     role = db.Column(db.String(20), nullable=False, default='Motorista')
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=True)
+
+class Empresa(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    razao_social = db.Column(db.String(200), nullable=False)
+    nome_fantasia = db.Column(db.String(200), nullable=True)
+    cnpj = db.Column(db.String(14), unique=True, nullable=False, index=True)
+    inscricao_estadual = db.Column(db.String(20), nullable=True)
+    endereco = db.Column(db.String(255), nullable=False)
+    cidade = db.Column(db.String(100), nullable=False)
+    estado = db.Column(db.String(2), nullable=False)
+    cep = db.Column(db.String(8), nullable=False)
+    telefone = db.Column(db.String(11), nullable=True)
+    email_contato = db.Column(db.String(120), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relacionamento reverso para acessar os usuários de uma empresa
+    usuarios = db.relationship('Usuario', backref='empresa', lazy=True)
+
+    def __repr__(self):
+        return f'<Empresa {self.razao_social}>'
 
 class Romaneio(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -193,6 +215,10 @@ class Usuario(db.Model, UserMixin):
     
     cpf_cnpj = db.Column(db.String(14), unique=True, nullable=True, index=True)
 
+    # CAMPO ADICIONADO: Chave estrangeira para a empresa.
+    # Um usuário pertence a uma empresa.
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=True)
+
     def set_password(self, password):
         self.senha_hash = generate_password_hash(password)
 
@@ -218,6 +244,37 @@ class CustoViagem(db.Model):
     anexos = db.Column(db.String(500), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     viagem = db.relationship('Viagem', backref=db.backref('custo_viagem', uselist=False))
+
+class Cliente(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    pessoa_tipo = db.Column(db.String(10), nullable=False)  # 'fisica' ou 'juridica'
+    nome_razao_social = db.Column(db.String(200), nullable=False)
+    nome_fantasia = db.Column(db.String(200), nullable=True)
+    cpf_cnpj = db.Column(db.String(14), unique=True, nullable=False, index=True)
+    inscricao_estadual = db.Column(db.String(20), nullable=True)
+
+    cep = db.Column(db.String(8), nullable=False)
+    logradouro = db.Column(db.String(255), nullable=False)
+    numero = db.Column(db.String(20), nullable=False)
+    complemento = db.Column(db.String(100), nullable=True)
+    bairro = db.Column(db.String(100), nullable=False)
+    cidade = db.Column(db.String(100), nullable=False)
+    estado = db.Column(db.String(2), nullable=False)
+
+    email = db.Column(db.String(120), nullable=False)
+    telefone = db.Column(db.String(11), nullable=False)
+    contato_principal = db.Column(db.String(100), nullable=True)
+
+  
+    anexos = db.Column(db.String(1000), nullable=True)  
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    
+    cadastrado_por_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
+    cadastrado_por = db.relationship('Usuario', backref='clientes_cadastrados')
+
+    def __repr__(self):
+        return f'<Cliente {self.id}: {self.nome_razao_social}>'
 
 class Viagem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -291,6 +348,122 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
+@app.route('/cadastrar_cliente', methods=['GET', 'POST'])
+@login_required
+def cadastrar_cliente():
+    if request.method == 'POST':
+        try:
+            # 1. Coletar dados do formulário
+            pessoa_tipo = request.form.get('pessoa_tipo')
+            nome_razao_social = request.form.get('nome_razao_social')
+            nome_fantasia = request.form.get('nome_fantasia') if pessoa_tipo == 'juridica' else None
+            # Remove caracteres não numéricos do CPF/CNPJ, telefone e CEP
+            cpf_cnpj = re.sub(r'\D', '', request.form.get('cpf_cnpj', ''))
+            inscricao_estadual = request.form.get('inscricao_estadual') if pessoa_tipo == 'juridica' else None
+            cep = re.sub(r'\D', '', request.form.get('cep', ''))
+            logradouro = request.form.get('logradouro')
+            numero = request.form.get('numero')
+            complemento = request.form.get('complemento')
+            bairro = request.form.get('bairro')
+            cidade = request.form.get('cidade')
+            estado = request.form.get('estado')
+            email = request.form.get('email')
+            telefone = re.sub(r'\D', '', request.form.get('telefone', ''))
+            contato_principal = request.form.get('contato_principal')
+
+            # 2. Validação dos dados
+            if not all([pessoa_tipo, nome_razao_social, cpf_cnpj, cep, logradouro, numero, bairro, cidade, estado, email, telefone]):
+                flash('Erro: Todos os campos principais são obrigatórios.', 'error')
+                return redirect(url_for('cadastrar_cliente'))
+
+            if Cliente.query.filter_by(cpf_cnpj=cpf_cnpj).first():
+                flash('Erro: Este CPF/CNPJ já está cadastrado.', 'error')
+                return redirect(url_for('cadastrar_cliente'))
+
+            # 3. Lógica para upload de anexos (similar ao cadastro de motorista)
+            anexos_urls = []
+            files = request.files.getlist('anexos')
+            if files and any(f.filename for f in files):
+                s3_client = boto3.client(
+                    's3',
+                    endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+                    aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+                    aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
+                    region_name='auto'
+                )
+                bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
+                for file in files:
+                    if file and file.filename:
+                        filename = secure_filename(file.filename)
+                        # Salva em uma pasta específica para clientes, organizada por CPF/CNPJ
+                        s3_path = f"clientes/{cpf_cnpj}/{filename}"
+                        s3_client.upload_fileobj(file, bucket_name, s3_path, ExtraArgs={'ContentType': file.content_type})
+                        public_url = f"{app.config['CLOUDFLARE_R2_PUBLIC_URL']}/{s3_path}"
+                        anexos_urls.append(public_url)
+
+            # 4. Criar e salvar o novo cliente no banco
+            novo_cliente = Cliente(
+                pessoa_tipo=pessoa_tipo,
+                nome_razao_social=nome_razao_social,
+                nome_fantasia=nome_fantasia,
+                cpf_cnpj=cpf_cnpj,
+                inscricao_estadual=inscricao_estadual,
+                cep=cep,
+                logradouro=logradouro,
+                numero=numero,
+                complemento=complemento,
+                bairro=bairro,
+                cidade=cidade,
+                estado=estado,
+                email=email,
+                telefone=telefone,
+                contato_principal=contato_principal,
+                anexos=','.join(anexos_urls) if anexos_urls else None,
+                cadastrado_por_id=current_user.id  # Associa o cliente ao usuário logado
+            )
+
+            db.session.add(novo_cliente)
+            db.session.commit()
+            
+            flash('Cliente cadastrado com sucesso!', 'success')
+            return redirect(url_for('consultar_clientes')) # Redireciona para a nova página de consulta
+
+        except IntegrityError:
+            db.session.rollback()
+            flash('Erro de integridade de dados. O CPF/CNPJ provavelmente já existe.', 'error')
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Erro ao cadastrar cliente: {e}", exc_info=True)
+            flash(f'Ocorreu um erro inesperado: {e}', 'error')
+
+    # Se a requisição for GET, apenas renderiza a página
+    return render_template('cadastrar_cliente.html', active_page='cadastrar_cliente')
+
+@app.route('/consultar_clientes')
+@login_required
+def consultar_clientes():
+    search_query = request.args.get('search', '').strip()
+    query = Cliente.query
+
+    if search_query:
+        search_filter = f"%{search_query}%"
+        # Filtra por nome, cpf/cnpj ou cidade
+        query = query.filter(
+            or_(
+                Cliente.nome_razao_social.ilike(search_filter),
+                Cliente.cpf_cnpj.ilike(search_filter),
+                Cliente.cidade.ilike(search_filter)
+            )
+        )
+    
+    # Ordena os clientes por nome
+    clientes = query.order_by(Cliente.nome_razao_social.asc()).all()
+    
+    return render_template('consultar_clientes.html', 
+                           clientes=clientes, 
+                           search_query=search_query, 
+                           active_page='consultar_clientes')
+
 @app.route('/registrar/<token>', methods=['GET', 'POST'])
 def registrar_com_token(token):
     convite = Convite.query.filter_by(token=token, usado=False).first()
@@ -322,13 +495,15 @@ def registrar_com_token(token):
             flash('CPF/CNPJ já cadastrado para outro usuário.', 'error')
             return redirect(request.url)
 
+        # LÓGICA ATUALIZADA: Associa o novo usuário à empresa vinda do convite
         usuario = Usuario(
             nome=nome,
             sobrenome=sobrenome,
             email=email,
             role=convite.role,
             is_admin=convite.role == 'Admin',
-            cpf_cnpj=cpf_cnpj
+            cpf_cnpj=cpf_cnpj,
+            empresa_id=convite.empresa_id
         )
         usuario.set_password(senha)
         db.session.add(usuario)
@@ -397,8 +572,15 @@ def enviar_convite():
     token = str(uuid.uuid4())
     data_expiracao = datetime.utcnow() + timedelta(days=3)
 
-    convite = Convite(email=email, token=token, criado_por=current_user.id, 
-                     data_expiracao=data_expiracao, role=role)
+    # LÓGICA ATUALIZADA: Associa o convite à empresa do admin atual
+    convite = Convite(
+        email=email, 
+        token=token, 
+        criado_por=current_user.id, 
+        data_expiracao=data_expiracao, 
+        role=role,
+        empresa_id=current_user.empresa_id
+    )
     db.session.add(convite)
     db.session.commit()
 
@@ -643,6 +825,49 @@ def cadastrar_motorista():
 
     return render_template('cadastrar_motorista.html', active_page='cadastrar_motorista')
 
+
+@app.route('/editar_cliente/<int:cliente_id>', methods=['GET', 'POST'])
+@login_required
+def editar_cliente(cliente_id):
+    cliente = Cliente.query.get_or_404(cliente_id)
+
+    if request.method == 'POST':
+        try:
+            novo_cpf_cnpj = re.sub(r'\D', '', request.form.get('cpf_cnpj', ''))
+
+            cliente_existente = Cliente.query.filter(Cliente.cpf_cnpj == novo_cpf_cnpj, Cliente.id != cliente_id).first()
+            if cliente_existente:
+                flash('Erro: O CPF/CNPJ informado já pertence a outro cliente.', 'error')
+                return redirect(url_for('editar_cliente', cliente_id=cliente_id))
+
+            cliente.pessoa_tipo = request.form.get('pessoa_tipo')
+            cliente.nome_razao_social = request.form.get('nome_razao_social')
+            cliente.nome_fantasia = request.form.get('nome_fantasia') if cliente.pessoa_tipo == 'juridica' else None
+            cliente.cpf_cnpj = novo_cpf_cnpj
+            cliente.inscricao_estadual = request.form.get('inscricao_estadual') if cliente.pessoa_tipo == 'juridica' else None
+            cliente.cep = re.sub(r'\D', '', request.form.get('cep', ''))
+            cliente.logradouro = request.form.get('logradouro')
+            cliente.numero = request.form.get('numero')
+            cliente.complemento = request.form.get('complemento')
+            cliente.bairro = request.form.get('bairro')
+            cliente.cidade = request.form.get('cidade')
+            cliente.estado = request.form.get('estado')
+            cliente.email = request.form.get('email')
+            cliente.telefone = re.sub(r'\D', '', request.form.get('telefone', ''))
+            cliente.contato_principal = request.form.get('contato_principal')
+
+            db.session.commit()
+            flash('Cliente atualizado com sucesso!', 'success')
+            return redirect(url_for('consultar_clientes'))
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Erro ao editar cliente: {e}", exc_info=True)
+            flash(f'Ocorreu um erro inesperado ao salvar as alterações: {e}', 'error')
+            return redirect(url_for('editar_cliente', cliente_id=cliente_id))
+
+    return render_template('editar_cliente.html', cliente=cliente, active_page='consultar_clientes')
+
 @app.route('/criar_admin')
 def criar_admin():
     if not Usuario.query.filter_by(email='adminadmin@admin.com').first():
@@ -675,13 +900,11 @@ def consultar_motoristas():
 def motorista_details_api(motorista_id):
     """Retorna os detalhes (estatísticas e viagens) de um motorista em formato JSON."""
     
-    # 1. Busca o motorista específico no banco de dados.
+
     motorista = Motorista.query.get_or_404(motorista_id)
     
-    # 2. Usa a relação 'viagens' que já existe na sua classe para pegar as viagens.
     viagens = motorista.viagens
     
-    # 3. Calcula as estatísticas com base nas viagens encontradas.
     total_receita = sum(v.valor_recebido or 0 for v in viagens)
     # Supondo que você tenha um campo 'custo' no seu modelo Viagem.
     # Se não tiver, ajuste ou remova esta linha.
@@ -696,7 +919,6 @@ def motorista_details_api(motorista_id):
         'total_distancia': total_distancia
     }
 
-    # 4. Prepara os dados das viagens para serem enviados como JSON.
     viagens_data = []
     for v in viagens:
         viagens_data.append({
@@ -707,15 +929,12 @@ def motorista_details_api(motorista_id):
             'status': v.status
         })
 
-    # 5. Retorna um dicionário contendo as estatísticas e as viagens.
-    #    A função jsonify() do Flask converte o dicionário para uma resposta JSON.
     return jsonify({
         'stats': stats,
         'viagens': viagens_data
     })
 
 
-# Em app.py
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -723,11 +942,10 @@ def login():
         email = request.form.get('email')
         senha = request.form.get('senha')
         
-        # --- DEBUG: As linhas abaixo nos ajudarão a ver o que está acontecendo ---
         print("\n--- TENTATIVA DE LOGIN ---")
         print(f"--> Email digitado: '{email}'")
         print(f"--> Senha digitada: '{senha}'")
-        # --- Fim do DEBUG ---
+
         
         if not email or not senha:
             flash('Preencha todos os campos', 'error')
@@ -1954,7 +2172,7 @@ def configuracoes():
         if not nome or not sobrenome:
             flash('Nome e sobrenome são obrigatórios.', 'error')
             return redirect(url_for('configuracoes'))
-
+        
         if idioma not in ['Português', 'Inglês', 'Espanhol']:
             flash('Idioma inválido.', 'error')
             return redirect(url_for('configuracoes'))
@@ -1965,7 +2183,7 @@ def configuracoes():
 
         try:
             db.session.commit()
-            flash('Configurações gerais atualizadas com sucesso!', 'success')
+            flash('Configurações pessoais atualizadas com sucesso!', 'success')
         except Exception as e:
             db.session.rollback()
             flash(f'Erro ao atualizar configurações: {str(e)}', 'error')
@@ -1973,10 +2191,18 @@ def configuracoes():
         return redirect(url_for('configuracoes'))
 
     usuarios = []
-    if current_user.is_admin:
-        usuarios = Usuario.query.all()
+    empresa = None
 
-    return render_template('configuracoes.html', usuario=current_user, usuarios=usuarios)
+    if current_user.empresa_id:
+        empresa = db.session.get(Empresa, current_user.empresa_id)
+
+    if current_user.is_admin and current_user.empresa_id:
+        usuarios = Usuario.query.filter_by(empresa_id=current_user.empresa_id).all()
+    elif current_user.is_admin:
+        usuarios = [current_user]
+
+    return render_template('configuracoes.html', usuarios=usuarios, empresa=empresa)
+
 
 @app.route('/editar_usuario/<int:usuario_id>', methods=['GET', 'POST'])
 @login_required
@@ -2028,6 +2254,81 @@ def editar_usuario(usuario_id):
             return redirect(url_for('editar_usuario', usuario_id=usuario_id))
 
     return render_template('editar_usuario.html', usuario=usuario)
+
+
+
+
+@app.route('/gerenciar_empresa', methods=['GET', 'POST'])
+@login_required
+def gerenciar_empresa():
+    
+    if current_user.role not in ['Admin', 'Master']:
+        flash('Acesso negado. Apenas administradores podem gerenciar a empresa.', 'error')
+        return redirect(url_for('index'))
+
+    empresa = db.session.get(Empresa, current_user.empresa_id) if current_user.empresa_id else None
+
+    if request.method == 'POST':
+        cnpj = re.sub(r'\D', '', request.form.get('cnpj', '')) 
+
+        if not validate_cpf_cnpj(cnpj, 'juridica'):
+            flash('CNPJ inválido. Deve conter 14 dígitos numéricos.', 'error')
+            
+            return render_template('gerenciar_empresa.html', empresa=request.form)
+
+        
+        empresa_existente = Empresa.query.filter(Empresa.cnpj == cnpj).first()
+        if empresa_existente and (not empresa or empresa.id != empresa_existente.id):
+            flash('Este CNPJ já está cadastrado em outra empresa.', 'error')
+            return render_template('gerenciar_empresa.html', empresa=request.form)
+
+        if empresa:
+            # --- LÓGICA DE ATUALIZAÇÃO ---
+            empresa.razao_social = request.form.get('razao_social').strip()
+            empresa.nome_fantasia = request.form.get('nome_fantasia').strip()
+            empresa.cnpj = cnpj
+            empresa.inscricao_estadual = request.form.get('inscricao_estadual').strip()
+            empresa.endereco = request.form.get('endereco').strip()
+            empresa.cidade = request.form.get('cidade').strip()
+            empresa.estado = request.form.get('estado').strip().upper()
+            empresa.cep = re.sub(r'\D', '', request.form.get('cep', ''))
+            empresa.telefone = re.sub(r'\D', '', request.form.get('telefone', ''))
+            empresa.email_contato = request.form.get('email_contato').strip()
+            flash('Dados da empresa atualizados com sucesso!', 'success')
+        else:
+            # --- LÓGICA DE CRIAÇÃO ---
+            nova_empresa = Empresa(
+                razao_social=request.form.get('razao_social').strip(),
+                nome_fantasia=request.form.get('nome_fantasia').strip(),
+                cnpj=cnpj,
+                inscricao_estadual=request.form.get('inscricao_estadual').strip(),
+                endereco=request.form.get('endereco').strip(),
+                cidade=request.form.get('cidade').strip(),
+                estado=request.form.get('estado').strip().upper(),
+                cep=re.sub(r'\D', '', request.form.get('cep', '')),
+                telefone=re.sub(r'\D', '', request.form.get('telefone', '')),
+                email_contato=request.form.get('email_contato').strip()
+            )
+            db.session.add(nova_empresa)
+            db.session.flush() 
+
+            
+            current_user.empresa_id = nova_empresa.id
+            flash('Empresa cadastrada com sucesso!', 'success')
+        
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ocorreu um erro ao salvar os dados: {e}', 'error')
+            return render_template('gerenciar_empresa.html', empresa=request.form)
+            
+        return redirect(url_for('configuracoes'))
+
+    # --- LÓGICA GET ---
+    # Mostra o formulário preenchido para edição ou vazio para criação
+    return render_template('gerenciar_empresa.html', empresa=empresa)
+
 
 @app.route('/excluir_usuario/<int:usuario_id>')
 @login_required
@@ -2226,7 +2527,6 @@ logger = logging.getLogger(__name__)
 
 
 def seed_database(force=False):
-    """Semeia o banco de dados local com dados iniciais para testes."""
     try:
         if force:
             logger.info("Forçando limpeza do banco de dados...")
@@ -2235,7 +2535,7 @@ def seed_database(force=False):
             logger.info("Banco de dados limpo e recriado.")
 
         inspector = db.inspect(db.engine)
-        required_tables = ['usuario', 'motorista', 'veiculo', 'viagem', 'destino', 'custo_viagem', 'localizacao', 'convite'] # Adicionado convite
+        required_tables = ['usuario', 'empresa', 'cliente', 'motorista', 'veiculo', 'viagem', 'destino', 'custo_viagem', 'localizacao', 'convite']
         existing_tables = inspector.get_table_names()
         for table in required_tables:
             if table not in existing_tables:
@@ -2243,12 +2543,29 @@ def seed_database(force=False):
                 return
 
         if not force and Usuario.query.count() > 0:
-            logger.info("Banco de dados já contém usuários. Use force=True para sobrescrever.")
+            logger.info("Banco de dados já contém dados. Use force=True para sobrescrever.")
             return
 
-        logger.info("Iniciando semeação do banco de dados...")
+        logger.info("Iniciando semeação completa do banco de dados...")
 
-        # Criar Usuários
+        # 1. Criar Empresa de Exemplo
+        empresa_exemplo = Empresa(
+            razao_social="TrackGo Logistica LTDA",
+            nome_fantasia="TrackGo",
+            cnpj="11222333000144",
+            inscricao_estadual="123456789",
+            endereco="Rua da Tecnologia, 123",
+            cidade="Curitiba",
+            estado="PR",
+            cep="80000100",
+            telefone="41999998888",
+            email_contato="contato@trackgo.com"
+        )
+        db.session.add(empresa_exemplo)
+        db.session.commit()
+        logger.info("Empresa de exemplo criada.")
+
+        # 2. Criar Usuários e VINCULAR à Empresa
         admin = Usuario(
             nome="João",
             sobrenome="Admin",
@@ -2256,7 +2573,8 @@ def seed_database(force=False):
             role="Admin",
             is_admin=True,
             telefone="11987654321",
-            cpf_cnpj="00000000000"
+            cpf_cnpj="00000000000",
+            empresa_id=empresa_exemplo.id
         )
         admin.set_password("admin123")
 
@@ -2266,7 +2584,8 @@ def seed_database(force=False):
             email="master@trackgo.com",
             role="Master",
             telefone="11987654322",
-            cpf_cnpj="11111111111"
+            cpf_cnpj="11111111111",
+            empresa_id=empresa_exemplo.id
         )
         master.set_password("master123")
 
@@ -2276,7 +2595,8 @@ def seed_database(force=False):
             email="carlos@trackgo.com",
             role="Motorista",
             telefone="11987654323",
-            cpf_cnpj="12345678901"
+            cpf_cnpj="12345678901",
+            empresa_id=empresa_exemplo.id
         )
         motorista1.set_password("motorista123")
 
@@ -2286,15 +2606,52 @@ def seed_database(force=False):
             email="ana@trackgo.com",
             role="Motorista",
             telefone="21987654321",
-            cpf_cnpj="98765432109"
+            cpf_cnpj="98765432109",
+            empresa_id=empresa_exemplo.id
         )
         motorista2.set_password("motorista123")
-
+        
         db.session.add_all([admin, master, motorista1, motorista2])
         db.session.commit()
-        logger.info("Usuários criados com sucesso.")
+        logger.info("Usuários criados e vinculados à empresa.")
 
-        # Criar Motoristas formais (vinculados aos usuários)
+        # 3. Criar Clientes de Exemplo
+        cliente_exemplo_1 = Cliente(
+            pessoa_tipo="juridica",
+            nome_razao_social="Indústrias ACME S.A.",
+            nome_fantasia="ACME",
+            cpf_cnpj="99888777000166",
+            inscricao_estadual="ISENTO",
+            cep="80230010",
+            logradouro="Avenida Sete de Setembro",
+            numero="3000",
+            bairro="Centro",
+            cidade="Curitiba",
+            estado="PR",
+            email="compras@acme.com",
+            telefone="4133221100",
+            cadastrado_por_id=admin.id
+        )
+
+        cliente_exemplo_2 = Cliente(
+            pessoa_tipo="fisica",
+            nome_razao_social="Maria Joaquina de Amaral Pereira",
+            cpf_cnpj="11122233344",
+            cep="80420000",
+            logradouro="Rua Comendador Araújo",
+            numero="500",
+            bairro="Batel",
+            cidade="Curitiba",
+            estado="PR",
+            email="maria.joaquina@email.com",
+            telefone="41988776655",
+            cadastrado_por_id=admin.id
+        )
+        db.session.add_all([cliente_exemplo_1, cliente_exemplo_2])
+        db.session.commit()
+        logger.info("Clientes de exemplo criados.")
+
+        # 4. Criar Motoristas formais (vinculados aos usuários)
         motorista1_db = Motorista(
             nome="Carlos Silva",
             data_nascimento=datetime.strptime("1985-05-15", '%Y-%m-%d').date(),
@@ -2305,8 +2662,7 @@ def seed_database(force=False):
             telefone="11987654323",
             cnh="98765432101",
             validade_cnh=datetime.strptime("2026-12-31", '%Y-%m-%d').date(),
-            anexos="https://example.com/motorista/carlos/cnh.pdf",
-            usuario_id=motorista1.id # Correção: Vincula ao ID do usuário Carlos
+            usuario_id=motorista1.id
         )
 
         motorista2_db = Motorista(
@@ -2319,58 +2675,26 @@ def seed_database(force=False):
             telefone="21987654321",
             cnh="12345678902",
             validade_cnh=datetime.strptime("2025-10-15", '%Y-%m-%d').date(),
-            anexos="https://example.com/motorista/ana/cnh.pdf",
-            usuario_id=motorista2.id # Correção: Vincula ao ID do usuário Ana
+            usuario_id=motorista2.id
         )
-
         db.session.add_all([motorista1_db, motorista2_db])
         db.session.commit()
-        logger.info("Motoristas criados com sucesso.")
+        logger.info("Motoristas formais criados.")
 
-        # Criar Veículos
-        veiculo1 = Veiculo(
-            placa="ABC1234",
-            categoria="Caminhão",
-            modelo="Volvo FH",
-            ano=2020,
-            valor=250000.00,
-            km_rodados=150000.0,
-            ultima_manutencao=datetime.strptime("2025-01-10", '%Y-%m-%d').date(),
-            disponivel=True
-        )
-
-        veiculo2 = Veiculo(
-            placa="XYZ5678",
-            categoria="Van",
-            modelo="Mercedes Sprinter",
-            ano=2018,
-            valor=120000.00,
-            km_rodados=200000.0,
-            ultima_manutencao=datetime.strptime("2024-11-20", '%Y-%m-%d').date(),
-            disponivel=True
-        )
-
-        veiculo3 = Veiculo(
-            placa="DEF9012",
-            categoria="Carro",
-            modelo="Fiat Toro",
-            ano=2022,
-            valor=150000.00,
-            km_rodados=80000.0,
-            ultima_manutencao=datetime.strptime("2025-03-15", '%Y-%m-%d').date(),
-            disponivel=False
-        )
-
+        # 5. Criar Veículos
+        veiculo1 = Veiculo(placa="ABC1234", categoria="Caminhão", modelo="Volvo FH", ano=2020)
+        veiculo2 = Veiculo(placa="XYZ5678", categoria="Van", modelo="Mercedes Sprinter", ano=2018)
+        veiculo3 = Veiculo(placa="DEF9012", categoria="Carro", modelo="Fiat Toro", ano=2022, disponivel=False)
         db.session.add_all([veiculo1, veiculo2, veiculo3])
         db.session.commit()
-        logger.info("Veículos criados com sucesso.")
+        logger.info("Veículos criados.")
 
-        # Criar Viagens
+        # 6. Criar Viagens
         viagem1 = Viagem(
-            motorista_id=motorista1_db.id, # Vincula a um motorista formal
-            motorista_cpf_cnpj=motorista1.cpf_cnpj, # Vincula ao CPF do Usuario Carlos
+            motorista_id=motorista1_db.id,
+            motorista_cpf_cnpj=motorista1.cpf_cnpj,
             veiculo_id=veiculo1.id,
-            cliente="Cliente A",
+            cliente=cliente_exemplo_1.nome_razao_social, # Usando cliente semeado
             endereco_saida="Rua das Palmeiras, 100, São Paulo, SP",
             endereco_destino="Avenida Paulista, 2000, São Paulo, SP",
             distancia_km=10.5,
@@ -2380,128 +2704,70 @@ def seed_database(force=False):
             custo=150.00,
             valor_recebido=300.00,
             forma_pagamento="Pix",
-            status="concluida",
-            observacoes="Entrega de mercadorias."
+            status="concluida"
         )
-
         viagem2 = Viagem(
-            motorista_id=motorista2_db.id, # Vincula a um motorista formal
-            motorista_cpf_cnpj=motorista2.cpf_cnpj, # Vincula ao CPF do Usuario Ana
+            motorista_id=motorista2_db.id,
+            motorista_cpf_cnpj=motorista2.cpf_cnpj,
             veiculo_id=veiculo2.id,
-            cliente="Cliente B",
+            cliente=cliente_exemplo_2.nome_razao_social, # Usando cliente semeado
             endereco_saida="Rua do Comércio, 50, Rio de Janeiro, RJ",
             endereco_destino="Copacabana, 300, Rio de Janeiro, RJ",
             distancia_km=15.0,
             data_inicio=datetime.strptime("2025-06-05 09:00", '%Y-%m-%d %H:%M'),
             duracao_segundos=7200,
             status="em_andamento",
-            forma_pagamento="Cartão",
-            observacoes="Transporte de passageiros."
+            forma_pagamento="Cartão"
         )
-
         viagem3 = Viagem(
-            motorista_id=None, # Esta viagem não tem motorista formal pré-atribuído
-            motorista_cpf_cnpj=motorista1.cpf_cnpj, # Será iniciada pelo CPF do usuário Carlos
+            motorista_cpf_cnpj=motorista1.cpf_cnpj,
             veiculo_id=veiculo3.id,
-            cliente="Cliente C",
+            cliente="Cliente Avulso C",
             endereco_saida="Rua Central, 200, Belo Horizonte, MG",
             endereco_destino="Praça da Liberdade, 500, Belo Horizonte, MG",
             distancia_km=8.0,
             data_inicio=datetime.strptime("2025-06-10 10:00", '%Y-%m-%d %H:%M'),
             duracao_segundos=3600,
             status="pendente",
-            forma_pagamento="Boleto",
-            observacoes="Entrega urgente."
+            forma_pagamento="Boleto"
         )
-
         db.session.add_all([viagem1, viagem2, viagem3])
         db.session.commit()
-        logger.info("Viagens criadas com sucesso.")
+        logger.info("Viagens criadas.")
 
-        # Criar Destinos
-        destino1 = Destino(
-            viagem_id=viagem1.id,
-            endereco="Avenida Paulista, 2000, São Paulo, SP",
-            ordem=1
-        )
-
-        destino2 = Destino(
-            viagem_id=viagem2.id,
-            endereco="Copacabana, 300, Rio de Janeiro, RJ",
-            ordem=1
-        )
-
-        destino3 = Destino(
-            viagem_id=viagem3.id,
-            endereco="Praça da Liberdade, 500, Belo Horizonte, MG",
-            ordem=1
-        )
-
-        db.session.add_all([destino1, destino2, destino3])
+        # 7. Criar Destinos
+        db.session.add_all([
+            Destino(viagem_id=viagem1.id, endereco="Avenida Paulista, 2000, São Paulo, SP", ordem=1),
+            Destino(viagem_id=viagem2.id, endereco="Copacabana, 300, Rio de Janeiro, RJ", ordem=1),
+            Destino(viagem_id=viagem3.id, endereco="Praça da Liberdade, 500, Belo Horizonte, MG", ordem=1)
+        ])
         db.session.commit()
-        logger.info("Destinos criados com sucesso.")
+        logger.info("Destinos criados.")
 
-        # Criar Custos
-        custo1 = CustoViagem(
-            viagem_id=viagem1.id,
-            combustivel=100.00,
-            pedagios=30.00,
-            alimentacao=20.00,
-            hospedagem=0.00,
-            outros=0.00,
-            descricao_outros=None
-        )
-
-        db.session.add(custo1)
+        # 8. Criar Custos
+        db.session.add(CustoViagem(viagem_id=viagem1.id, combustivel=100.00, pedagios=30.00, alimentacao=20.00))
         db.session.commit()
-        logger.info("Custos criados com sucesso.")
+        logger.info("Custos criados.")
 
-        # Criar Localizações
-        # Usando get_address_geoapify, não OpenCage
-        localizacoes = [
-            {
-                'motorista_id': motorista1_db.id,
-                'viagem_id': viagem1.id,
-                'latitude': -23.5505,
-                'longitude': -46.6333,
-                'timestamp': datetime.strptime("2025-06-01 09:00", '%Y-%m-%d %H:%M')
-            },
-            {
-                'motorista_id': motorista2_db.id,
-                'viagem_id': viagem2.id,
-                'latitude': -22.9068,
-                'longitude': -43.1729,
-                'timestamp': datetime.strptime("2025-06-05 10:00", '%Y-%m-%d %H:%M')
-            }
+        # 9. Criar Localizações
+        localizacoes_data = [
+            {'motorista_id': motorista1_db.id, 'viagem_id': viagem1.id, 'latitude': -23.5505, 'longitude': -46.6333, 'timestamp': datetime.strptime("2025-06-01 09:00", '%Y-%m-%d %H:%M')},
+            {'motorista_id': motorista2_db.id, 'viagem_id': viagem2.id, 'latitude': -22.9068, 'longitude': -43.1729, 'timestamp': datetime.strptime("2025-06-05 10:00", '%Y-%m-%d %H:%M')}
         ]
-
-        for loc in localizacoes:
-            try:
-                endereco = get_address_geoapify(loc['latitude'], loc['longitude'])
-                localizacao = Localizacao(
-                    motorista_id=loc['motorista_id'],
-                    viagem_id=loc['viagem_id'],
-                    latitude=loc['latitude'],
-                    longitude=loc['longitude'],
-                    endereco=endereco,
-                    timestamp=loc['timestamp']
-                )
-                db.session.add(localizacao)
-            except Exception as e:
-                logger.error(f"Erro na geocodificação reversa para lat={loc['latitude']}, lng={loc['longitude']} usando Geoapify: {str(e)}", exc_info=True)
-                localizacao = Localizacao(
-                    motorista_id=loc['motorista_id'],
-                    viagem_id=loc['viagem_id'],
-                    latitude=loc['latitude'],
-                    longitude=loc['longitude'],
-                    endereco="Erro ao obter endereço (Geoapify)",
-                    timestamp=loc['timestamp']
-                )
-                db.session.add(localizacao)
-
+        for loc_data in localizacoes_data:
+            endereco = get_address_geoapify(loc_data['latitude'], loc_data['longitude'])
+            db.session.add(Localizacao(
+                motorista_id=loc_data['motorista_id'],
+                viagem_id=loc_data['viagem_id'],
+                latitude=loc_data['latitude'],
+                longitude=loc_data['longitude'],
+                endereco=endereco,
+                timestamp=loc_data['timestamp']
+            ))
         db.session.commit()
-        logger.info("Localizações criadas com sucesso.")
+        logger.info("Localizações criadas.")
         logger.info("Semeação do banco de dados concluída com sucesso!")
+
     except Exception as e:
         db.session.rollback()
         logger.error(f"Erro ao semear o banco de dados: {str(e)}", exc_info=True)
@@ -2511,7 +2777,7 @@ def get_address_geoapify(lat, lon):
     try:
         url = f'https://api.geoapify.com/v1/geocode/reverse?lat={lat}&lon={lon}&apiKey={GEOAPIFY_API_KEY}'
         response = requests.get(url)
-        response.raise_for_status() # Lança exceção para status de erro (4xx ou 5xx)
+        response.raise_for_status() 
         data = response.json()
         if data['features']:
             return data['features'][0]['properties']['formatted']
@@ -2521,7 +2787,7 @@ def get_address_geoapify(lat, lon):
         logger.error(f"Erro inesperado na geocodificação Geoapify: {str(e)}", exc_info=True)
     return "Endereço não encontrado"
 
-# Adicione este bloco de código ao seu app.py
+
 
 @app.route('/ultima_localizacao/<int:viagem_id>', methods=['GET'])
 def ultima_localizacao(viagem_id):
@@ -2533,20 +2799,17 @@ def ultima_localizacao(viagem_id):
 
 
 @app.route('/motorista/<int:motorista_id>/perfil', endpoint='perfil_motorista')
-@login_required # Garante que apenas usuários logados acessem
+@login_required 
 def perfil_motorista(motorista_id):
-    # 1. Busca o motorista no banco de dados. Se não encontrar, retorna erro 404.
+    
     motorista = Motorista.query.get_or_404(motorista_id)
 
-    # 2. Busca todas as viagens associadas a este motorista.
-    #    A consulta usa 'or_' para pegar viagens vinculadas tanto pelo ID formal 
-    #    quanto pelo CPF/CNPJ (cobrir todos os casos).
     viagens = Viagem.query.filter(
         or_(
             Viagem.motorista_id == motorista.id,
             Viagem.motorista_cpf_cnpj == motorista.cpf_cnpj
         )
-    ).order_by(Viagem.data_inicio.desc()).all() # Ordena da mais recente para a mais antiga
+    ).order_by(Viagem.data_inicio.desc()).all() 
 
     # 3. Calcula estatísticas para exibir no perfil (opcional, mas muito útil)
     total_viagens = len(viagens)
