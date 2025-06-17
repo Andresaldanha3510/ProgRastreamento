@@ -18,8 +18,6 @@ from sqlalchemy import or_
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_mail import Mail, Message
 from flask import jsonify
-from fpdf import FPDF
-from fpdf.enums import XPos, YPos
 from flask import make_response
 from sqlalchemy import UniqueConstraint
 
