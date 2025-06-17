@@ -337,7 +337,12 @@
         </div>
     </div>
     <div class="flex items-center gap-4 text-white">
-    <span class="text-sm hidden sm:inline">Olá, {{ current_user.nome or current_user.email }}</span>
+    <div class="hidden sm:flex items-center gap-3">
+    <span class="text-sm">Olá, {{ current_user.nome or current_user.email }}</span>
+    {% if current_user.empresa %}
+        <span class="text-xs bg-white/20 px-2 py-0.5 rounded-full">Empresa: {{ current_user.empresa.nome_fantasia or current_user.empresa.razao_social }}</span>
+    {% endif %}
+</div>
     <a href="{{ url_for('configuracoes') }}" class="user-icon" title="Configurações">
         <i class="fas fa-user-cog"></i>
     </a>
@@ -351,6 +356,8 @@
         <ul>
                 <li class="mb-4"><a href="{{ url_for('cadastrar_motorista') }}" class="{% if active_page == 'cadastrar_motorista' %}active{% endif %}" ><i class="fas fa-user"></i> Cadastrar Motorista</a></li>
                 <li class="mb-4"><a href="{{ url_for('cadastrar_veiculo') }}" class="{% if active_page == 'cadastrar_veiculo' %}active{% endif %}"><i class="fas fa-truck"></i> Cadastrar Veículo</a></li>
+                <li class="mb-4"><a href="{{ url_for('cadastrar_cliente') }}" class="{% if active_page == 'cadastrar_cliente' %}active{% endif %}"><i class="fas fa-user-tie"></i> Cadastrar Cliente</a></li>
+                <li class="mb-4"><a href="{{ url_for('consultar_clientes') }}" class="{% if active_page == 'consultar_clientes' %}active{% endif %}"><i class="fas fa-search-dollar"></i> Consultar Clientes</a></li>
                 <li class="mb-4"><a href="{{ url_for('iniciar_viagem') }}" class="{% if active_page == 'iniciar_viagem' %}active{% endif %}"><i class="fas fa-route"></i> Iniciar Viagem</a></li>
                 <li class="mb-4"><a href="{{ url_for('consultar_viagens') }}" class="{% if active_page == 'consultar_viagens' %}active{% endif %}"><i class="fas fa-search"></i> Consultar Viagens</a></li>
                 <li class="mb-4"><a href="{{ url_for('consultar_motoristas') }}" class="{% if active_page == 'consultar_motoristas' %}active{% endif %}"><i class="fas fa-users"></i> Consultar Motoristas</a></li>

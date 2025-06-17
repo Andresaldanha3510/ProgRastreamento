@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultar Clientes</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { background: white; background-attachment: fixed; color: #1e293b; font-family: 'Inter', sans-serif; overflow-x: hidden; padding-top: 100px; }
+        header.navbar { background: linear-gradient(135deg, #2e7d32, #2e7d32); box-shadow: 0px 3px 6px rgb(10, 73, 10); width: 100%; position: fixed; top: 0; left: 0; z-index: 30; height: 100px; display: flex; justify-content: space-between; align-items: center; padding: 0 2rem; }
+        #menu-toggle { background-color: transparent; border: none; color: white; font-size: 1.8rem; cursor: pointer; padding: 10px; border-radius: 50%; transition: background-color 0.2s ease-in-out; }
+        #menu-toggle:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .brand-section { display: flex; align-items: center; gap: 12px; }
+        .img-logo img { height: 60px; width: 60px; object-fit: contain; border-radius: 8px; }
+        .name-tag h1 { color: white; font-size: 1.25rem; white-space: nowrap; }
+        a.user-icon { color: white; font-size: 1.5rem; text-decoration: none; transition: color 0.2s ease-in-out; }
+        a.user-icon:hover { color: #e0e0e0; }
+        div#sidebar { background-color: #2F3640; box-shadow: 2px 0px 10px rgba(0, 0, 0, 0.3); transition: transform 0.3s ease-in-out; border-top-right-radius: 10px; border-bottom-right-radius: 10px; position: fixed; top: 100px; left: 0; height: calc(100vh - 100px); z-index: 20; width: 14rem; overflow-y: auto; padding: 1.5rem; }
+        div#sidebar h1 { color: #ffffff; font-size: 1.5rem; font-weight: bold; margin-bottom: 2rem; text-align: center; }
+        div#sidebar ul li { margin-bottom: 1rem; }
+        div#sidebar ul li a { color: white; display: block; padding: 10px 15px; border-radius: 8px; transition: background-color 0.2s ease-in-out; display: flex; align-items: center; gap: 10px; }
+        div#sidebar ul li a:hover, div#sidebar ul li a:not(.active):hover { background-color: #2e8b57; }
+        div#sidebar ul li a.active { background-color: #2e8b57; font-weight: 600; box-shadow: inset 3px 0 0 0 #ffffff; }
+        div#sidebar ul li a i { width: 20px; text-align: center; }
+        @media (min-width: 769px) { div#sidebar { transform: translateX(0); } }
+        @media (max-width: 768px) { header.navbar { padding: 0 1rem; } .name-tag h1 { display: none; } .img-logo img { height: 50px; width: 50px; } div#sidebar { transform: translateX(-100%); width: 80%; max-width: 260px; z-index: 40; } div#sidebar.open { transform: translateX(0); } .container { margin-left: 0; } a.user-icon { font-size: 1.3rem; } }
+        @media (max-width: 480px) { header.navbar { padding: 0 0.5rem; } .img-logo img { height: 45px; width: 45px; } .container { padding: 1rem; } a.user-icon { font-size: 1.2rem; } div#sidebar { width: 90%; max-width: 280px; } }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <header class="navbar">
+        <button id="menu-toggle" class="md:hidden text-white focus:outline-none"><i class="fas fa-bars"></i></button>
+        <div class="brand-section">
+            <div class="img-logo">
+                <a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='brasão.png') }}" alt="Logo TrackGo"></a>
+            </div>
+            <div class="name-tag"><h1>TrackGo</h1></div>
+        </div>
+        <div class="flex items-center gap-4 text-white">
+            <div class="hidden sm:flex items-center gap-3">
+                <span class="text-sm">Olá, {{ current_user.nome or current_user.email }}</span>
+                {% if current_user.empresa %}
+                    <span class="text-xs bg-white/20 px-2 py-0.5 rounded-full">Empresa: {{ current_user.empresa.nome_fantasia or current_user.empresa.razao_social }}</span>
+                {% endif %}
+            </div>
+            <a href="{{ url_for('configuracoes') }}" class="user-icon" title="Configurações"><i class="fas fa-user-cog"></i></a>
+            <a href="{{ url_for('logout') }}" class="user-icon" title="Sair"><i class="fas fa-sign-out-alt"></i></a>
+        </div>
+    </header>
+    <div class="flex h-screen">
+        <div id="sidebar" class="sidebar">
+            <h1 class="text-2xl font-bold mb-8 text-center text-white">Menu</h1>
+            <ul>
+                <li class="mb-4">
+                    <a href="{{ url_for('cadastrar_cliente') }}" class="{% if active_page == 'cadastrar_cliente' %}active{% endif %}">
+                        <i class="fas fa-user-tie"></i> Cadastrar Cliente
+                    </a>
+                </li>
+                <li class="mb-4">
+                    <a href="{{ url_for('consultar_clientes') }}" class="{% if active_page == 'consultar_clientes' %}active{% endif %}">
+                        <i class="fas fa-search-dollar"></i> Consultar Clientes
+                    </a>
+                </li>
+                <hr class="border-gray-500 my-4">
+                <li class="mb-4"><a href="{{ url_for('cadastrar_motorista') }}" class="{% if active_page == 'cadastrar_motorista' %}active{% endif %}" ><i class="fas fa-user"></i> Cadastrar Motorista</a></li>
+                <li class="mb-4"><a href="{{ url_for('cadastrar_veiculo') }}" class="{% if active_page == 'cadastrar_veiculo' %}active{% endif %}"><i class="fas fa-truck"></i> Cadastrar Veículo</a></li>
+                <li class="mb-4"><a href="{{ url_for('iniciar_viagem') }}" class="{% if active_page == 'iniciar_viagem' %}active{% endif %}"><i class="fas fa-route"></i> Iniciar Viagem</a></li>
+                <li class="mb-4"><a href="{{ url_for('consultar_viagens') }}" class="{% if active_page == 'consultar_viagens' %}active{% endif %}"><i class="fas fa-search"></i> Consultar Viagens</a></li>
+                <li class="mb-4"><a href="{{ url_for('consultar_motoristas') }}" class="{% if active_page == 'consultar_motoristas' %}active{% endif %}"><i class="fas fa-users"></i> Consultar Motoristas</a></li>
+                <li class="mb-4"><a href="{{ url_for('consultar_veiculos') }}" class="{% if active_page == 'consultar_veiculos' %}active{% endif %}"><i class="fas fa-truck-loading"></i> Consultar Veículos</a></li>
+                <li class="mb-4"><a href="{{ url_for('relatorios') }}" class="{% if active_page == 'relatorios' %}active{% endif %}"><i class="fas fa-chart-bar"></i> Relatórios</a></li>
+            </ul>
+        </div>
+        <div class="container md:ml-60 transition-all duration-300 mt-6 p-4 md:p-6">
+            <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+                <h1 class="text-2xl font-bold">Consultar Clientes</h1>
+                <div class="flex items-center gap-2">
+                    <a href="{{ url_for('cadastrar_cliente') }}" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Novo Cliente
+                    </a>
+                    <a href="{{ url_for('index') }}" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <form method="GET" action="{{ url_for('consultar_clientes') }}">
+                    <div class="relative">
+                        <input type="text" name="search" value="{{ search_query }}" placeholder="Buscar por Nome, CPF/CNPJ ou Cidade..." class="w-full p-3 pl-10 border rounded-lg shadow-sm focus:ring-2 focus:ring-green-500">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="bg-white p-6 rounded-lg shadow-md overflow-x-auto">
+                <table class="w-full text-left table-auto">
+                    <thead class="bg-gray-200">
+                        <tr>
+                            <th class="p-3">Nome / Razão Social</th>
+                            <th class="p-3">CPF / CNPJ</th>
+                            <th class="p-3">Telefone</th>
+                            <th class="p-3">Email</th>
+                            <th class="p-3">Cidade</th>
+                            <th class="p-3 text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cliente in clientes %}
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="p-3">{{ cliente.nome_razao_social }}</td>
+                            <td class="p-3">{{ cliente.cpf_cnpj }}</td>
+                            <td class="p-3">{{ cliente.telefone }}</td>
+                            <td class="p-3">{{ cliente.email }}</td>
+                            <td class="p-3">{{ cliente.cidade }} / {{ cliente.estado }}</td>
+                            <td class="p-3 text-center">
+                                <a href="{{ url_for('editar_cliente', cliente_id=cliente.id) }}" class="text-blue-500 hover:text-blue-700 mx-2" title="Editar"><i class="fas fa-edit"></i></a>
+                                
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="p-4 text-center text-gray-500">Nenhum cliente encontrado.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const menuToggle = document.getElementById('menu-toggle');
+        if (menuToggle) {
+            menuToggle.addEventListener('click', () => sidebar && sidebar.classList.toggle('open'));
+        }
+    </script>
+</body>
+</html>
