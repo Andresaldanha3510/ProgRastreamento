@@ -20,6 +20,7 @@ from flask_mail import Mail, Message
 from flask import jsonify
 from flask import make_response
 from sqlalchemy import UniqueConstraint
+from num2words import num2words
 
 
 # ---- Configurações Iniciais ----
@@ -739,15 +740,16 @@ def gerar_cobranca():
                 data_vencimento=datetime.strptime(data_vencimento_str, '%Y-%m-%d').date(),
                 observacoes=observacoes
             )
+            
             db.session.add(nova_cobranca)
             
-            # Associa as viagens à nova cobrança
             for viagem in viagens_selecionadas:
                 viagem.cobranca_id = nova_cobranca.id
             
             db.session.commit()
-            flash('Cobrança gerada com sucesso!', 'success')
-            return redirect(url_for('consultar_cobrancas'))
+            
+            flash('Cobrança gerada com sucesso! Visualizando a Nota de Débito.', 'success')
+            return redirect(url_for('visualizar_nota_debito', cobranca_id=nova_cobranca.id))
 
         except Exception as e:
             db.session.rollback()
@@ -1001,6 +1003,34 @@ def editar_cliente(cliente_id):
             return redirect(url_for('editar_cliente', cliente_id=cliente_id))
 
     return render_template('editar_cliente.html', cliente=cliente, active_page='consultar_clientes')
+
+@app.route('/nota_debito/<int:cobranca_id>')
+@login_required
+def visualizar_nota_debito(cobranca_id):
+    """
+    Exibe uma Nota de Débito específica com todos os dados para visualização e impressão.
+    """
+    cobranca = db.session.get(Cobranca, cobranca_id)
+    if not cobranca:
+        flash('Cobrança não encontrada.', 'error')
+        return redirect(url_for('consultar_cobrancas'))
+
+
+    empresa_emissora = None
+    if cobranca.usuario and cobranca.usuario.empresa_id:
+        empresa_emissora = db.session.get(Empresa, cobranca.usuario.empresa_id)
+
+
+    valor_por_extenso = num2words(cobranca.valor_total, lang='pt_BR', to='currency')
+
+    return render_template(
+        'nota_debito.html',
+        cobranca=cobranca,
+        cliente=cobranca.cliente,
+        viagens=cobranca.viagens.all(),
+        empresa=empresa_emissora,
+        valor_extenso=valor_por_extenso
+    )
 
 @app.route('/criar_admin')
 def criar_admin():
