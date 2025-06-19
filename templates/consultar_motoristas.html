@@ -1,250 +1,271 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consultar Motoristas</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { background: white; background-attachment: fixed; color: #1e293b; font-family: 'Inter', sans-serif; overflow-x: hidden; padding-top: 100px; }
-        header.navbar { background: linear-gradient(135deg, #2e7d32, #2e7d32); box-shadow: 0px 3px 6px rgb(10, 73, 10); width: 100%; position: fixed; top: 0; left: 0; z-index: 30; height: 100px; display: flex; justify-content: space-between; align-items: center; padding: 0 2rem; }
-        #menu-toggle { background-color: transparent; border: none; color: white; font-size: 1.8rem; cursor: pointer; padding: 10px; border-radius: 50%; transition: background-color 0.2s ease-in-out; }
-        #menu-toggle:hover { background-color: rgba(255, 255, 255, 0.1); }
-        .brand-section { display: flex; align-items: center; gap: 12px; }
-        .img-logo img { height: 60px; width: 60px; object-fit: contain; border-radius: 8px; }
-        .name-tag h1 { color: white; font-size: 1.25rem; white-space: nowrap; }
-        a.user-icon { color: white; font-size: 1.5rem; text-decoration: none; transition: color 0.2s ease-in-out; }
-        a.user-icon:hover { color: #e0e0e0; }
-        div#sidebar { background-color: #2F3640; box-shadow: 2px 0px 10px rgba(0, 0, 0, 0.3); transition: transform 0.3s ease-in-out; border-top-right-radius: 10px; border-bottom-right-radius: 10px; position: fixed; top: 100px; left: 0; height: calc(100vh - 100px); z-index: 20; width: 14rem; overflow-y: auto; padding: 1.5rem; }
-        div#sidebar h1 { color: #ffffff; font-size: 1.5rem; font-weight: bold; margin-bottom: 2rem; text-align: center; }
-        div#sidebar ul li { margin-bottom: 1rem; }
-        div#sidebar ul li a { color: white; display: block; padding: 10px 15px; border-radius: 8px; transition: background-color 0.2s ease-in-out; display: flex; align-items: center; gap: 10px; }
-        div#sidebar ul li a:hover { background-color: #2e8b57; }
-        div#sidebar ul li a.active { background-color: #2e8b57; font-weight: 600; box-shadow: inset 3px 0 0 0 #ffffff; }
-        div#sidebar ul li a:not(.active):hover { background-color: #2e8b57; }
-        div#sidebar ul li a i { width: 20px; text-align: center; }
-        .modal { transition: opacity 0.3s ease; }
-        .tab-button.active { border-bottom: 2px solid #2e7d32; color: #2e7d32; font-weight: 600; }
-        @media (min-width: 769px) { div#sidebar { transform: translateX(0); } }
-        @media (max-width: 768px) {
-            header.navbar { padding: 0 1rem; }
-            .name-tag h1 { display: none; }
-            .img-logo img { height: 50px; width: 50px; }
-            div#sidebar { transform: translateX(-100%); width: 80%; max-width: 260px; z-index: 40; }
-            div#sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0 !important; padding: 1.5rem; }
-            a.user-icon { font-size: 1.3rem; }
+{% extends "base.html" %}
+
+{% block title %}Consultar Motoristas{% endblock %}
+
+{% block styles %}
+<style>
+    /* --- Abas do Modal --- */
+    .tab-button.active {
+        border-bottom: 2px solid #2e7d32;
+        color: #2e7d32;
+        font-weight: 600;
+    }
+    /* --- Animação do Modal --- */
+    .modal.hidden {
+        display: none;
+    }
+    .modal {
+        animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
         }
-        @media (max-width: 480px) {
-            header.navbar { padding: 0 0.5rem; }
-            .img-logo img { height: 45px; width: 45px; }
-            .main-content { padding: 1rem; }
-            a.user-icon { font-size: 1.2rem; }
-            div#sidebar { width: 90%; max-width: 280px; }
+        to {
+            opacity: 1;
         }
-    </style>
-</head>
-<body class="bg-gray-100">
-    <header class="navbar">
-        <button id="menu-toggle" class="text-white md:hidden focus:outline-none"><i class="fas fa-bars"></i></button>
-        <div class="brand-section">
-            <div class="img-logo"><a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='brasão.png') }}" alt="Logo TrackGo"></a></div>
-            <div class="name-tag"><h1>TrackGo</h1></div>
-        </div>
-        <div class="flex items-center gap-4 text-white">
-            <span class="text-sm hidden sm:inline">Olá, {{ current_user.nome or current_user.email }}</span>
-            <a href="{{ url_for('configuracoes') }}" class="user-icon" title="Configurações"><i class="fas fa-user-cog"></i></a>
-            <a href="{{ url_for('logout') }}" class="user-icon" title="Sair"><i class="fas fa-sign-out-alt"></i></a>
-        </div>
-    </header>
+    }
+    /* --- Estilos da Tabela Responsiva (Cards em Mobile) --- */
+    @media (max-width: 767px) {
+        .responsive-table thead {
+            display: none;
+            /* Esconde o cabeçalho da tabela */
+        }
+        .responsive-table tbody, .responsive-table tr {
+            display: block;
+            /* Faz a linha se comportar como um bloco */
+        }
+        .responsive-table tr {
+            background: white;
+            border: 1px solid #e2e8f0;
+            /* Borda do card */
+            border-radius: 0.5rem;
+            /* Cantos arredondados */
+            margin-bottom: 1rem;
+            /* Espaço entre os cards */
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            padding: 0.5rem;
+            /* Padding interno */
+        }
+        .responsive-table td {
+            display: flex;
+            /* Alinha rótulo e valor */
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            text-align: right;
+            /* Alinha o valor à direita */
+        }
+        .responsive-table td:not(:last-child) {
+            border-bottom: 1px solid #f1f5f9;
+            /* Linha divisória entre os campos */
+        }
+        .responsive-table td::before {
+            content: attr(data-label);
+            /* Pega o rótulo do atributo data-label */
+            font-weight: 600;
+            text-align: left;
+            margin-right: 1rem;
+            color: #475569;
+            /* text-slate-600 */
+        }
+        .responsive-table td[data-label="Ações"] {
+            justify-content: flex-end;
+            /* Alinha os botões à direita no card */
+        }
+        .responsive-table td[data-label="Ações"]::before {
+            content: none;
+        }
+    }
+</style>
+{% endblock %}
 
-    <div class="flex h-screen">
-        <div id="sidebar" class="sidebar">
-            <h1 class="text-2xl font-bold mb-8 text-center text-white">Menu</h1>
-            <ul>
-                <li class="mb-4"><a href="{{ url_for('cadastrar_motorista') }}" class="{% if active_page == 'cadastrar_motorista' %}active{% endif %}" ><i class="fas fa-user"></i> Cadastrar Motorista</a></li>
-                <li class="mb-4"><a href="{{ url_for('cadastrar_veiculo') }}" class="{% if active_page == 'cadastrar_veiculo' %}active{% endif %}"><i class="fas fa-truck"></i> Cadastrar Veículo</a></li>
-                <li class="mb-4"><a href="{{ url_for('iniciar_viagem') }}" class="{% if active_page == 'iniciar_viagem' %}active{% endif %}"><i class="fas fa-route"></i> Iniciar Viagem</a></li>
-                <li class="mb-4"><a href="{{ url_for('consultar_viagens') }}" class="{% if active_page == 'consultar_viagens' %}active{% endif %}"><i class="fas fa-search"></i> Consultar Viagens</a></li>
-                <li class="mb-4"><a href="{{ url_for('consultar_motoristas') }}" class="active"><i class="fas fa-users"></i> Consultar Motoristas</a></li>
-                <li class="mb-4"><a href="{{ url_for('consultar_veiculos') }}" class="{% if active_page == 'consultar_veiculos' %}active{% endif %}"><i class="fas fa-truck-loading"></i> Consultar Veículos</a></li>
-                <li class="mb-4"><a href="{{ url_for('relatorios') }}" class="{% if active_page == 'relatorios' %}active{% endif %}"><i class="fas fa-chart-bar"></i> Relatórios</a></li>
-            </ul>
-        </div>
+{% block content %}
 
-        <div class="main-content container mx-auto p-6 md:ml-56 transition-all duration-300">
-            <h1 class="text-2xl font-bold text-gray-800 mb-6">Consultar Motoristas</h1>
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                <div class="mb-4">
-                    {% for category, message in messages %}
-                    <div class="p-4 rounded-lg text-white {% if category == 'error' %}bg-red-500{% elif category == 'success' %}bg-green-500{% else %}bg-blue-500{% endif %}">{{ message }}</div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            {% endwith %}
+<h1 class="text-3xl font-bold text-gray-800 mb-6">Consultar Motoristas</h1>
 
-            <form method="GET" class="mb-6 flex flex-col sm:flex-row gap-4">
-                <input type="text" name="search" placeholder="Buscar por nome ou CPF/CNPJ" value="{{ search_query or '' }}" class="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex-grow">
-                <button type="submit" class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition">Buscar</button>
-            </form>
-
-            <div class="overflow-x-auto bg-white shadow-md rounded-lg">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data de Nasc.</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Endereço</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CPF/CNPJ</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RG</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telefone</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CNH</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Validade CNH</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for motorista in motoristas %}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ motorista.id }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ motorista.nome }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ motorista.data_nascimento.strftime('%d/%m/%Y') }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ motorista.endereco }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ 'Física' if motorista.pessoa_tipo == 'fisica' else 'Jurídica' }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ motorista.cpf_cnpj }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ motorista.rg or '-' }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ motorista.telefone }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ motorista.cnh }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ motorista.validade_cnh.strftime('%d/%m/%Y') }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <button
-                                    data-motorista='{{ motorista.to_dict() | tojson | e }}'
-                                    onclick='openDriverModal(this)'
-                                    class="text-indigo-600 hover:text-indigo-900">
-                                    Detalhes
-                                </button>
-                                <a href="{{ url_for('excluir_motorista', motorista_id=motorista.id) }}" class="text-red-600 hover:text-red-900 ml-4" onclick="return confirm('Tem certeza que deseja excluir?')">Excluir</a>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="11" class="px-6 py-4 text-center text-sm text-gray-500">Nenhum motorista encontrado.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            <div class="mt-6"><a href="{{ url_for('index') }}" class="bg-gray-500 text-white p-2 rounded-lg hover:bg-gray-600 transition">Voltar</a></div>
-        </div>
+<!-- Mensagens Flash -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="mb-4">
+    {% for category, message in messages %}
+    <div class="p-4 rounded-lg text-white shadow-md {% if category == 'error' %}bg-red-500{% elif category == 'success' %}bg-green-500{% else %}bg-blue-500{% endif %}">
+        {{ message }}
     </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
 
-    <div id="driverModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
-            <header class="flex justify-between items-center p-4 border-b">
-                <h2 class="text-xl font-bold text-gray-800">Detalhes / Editar Motorista: <span id="modal-driver-name"></span></h2>
-                <button onclick="closeDriverModal()" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
-            </header>
-            <div class="border-b">
-                <nav class="flex space-x-4 p-4">
-                    <button id="tab-dados" class="tab-button active" onclick="switchTab('dados')">Dados & Edição</button>
-                    <button id="tab-stats" class="tab-button" onclick="switchTab('stats')">Estatísticas</button>
-                    <button id="tab-viagens" class="tab-button" onclick="switchTab('viagens')">Histórico de Viagens</button>
-                </nav>
-            </div>
-            
-            <div class="p-6 overflow-y-auto flex-grow">
-                <div id="content-dados" class="tab-content">
-                    <form id="edit-driver-form" method="POST" action="" enctype="multipart/form-data">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label for="edit-nome" class="block text-sm font-medium text-gray-700">Nome Completo</label>
-                                <input type="text" name="nome" id="edit-nome" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
-                            </div>
-                            <div>
-                                <label for="edit-data_nascimento" class="block text-sm font-medium text-gray-700">Data de Nascimento</label>
-                                <input type="date" name="data_nascimento" id="edit-data_nascimento" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
-                            </div>
-                            <div class="md:col-span-2">
-                                <label for="edit-endereco" class="block text-sm font-medium text-gray-700">Endereço</label>
-                                <input type="text" name="endereco" id="edit-endereco" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
-                            </div>
-                             <div>
-                                <label for="edit-cpf_cnpj" class="block text-sm font-medium text-gray-700">CPF/CNPJ</label>
-                                <input type="text" name="cpf_cnpj" id="edit-cpf_cnpj" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100" readonly>
-                            </div>
-                            <div>
-                                <label for="edit-telefone" class="block text-sm font-medium text-gray-700">Telefone</label>
-                                <input type="text" name="telefone" id="edit-telefone" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
-                            </div>
-                            <div>
-                                <label for="edit-cnh" class="block text-sm font-medium text-gray-700">CNH</label>
-                                <input type="text" name="cnh" id="edit-cnh" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100" readonly>
-                            </div>
-                             <div>
-                                <label for="edit-validade_cnh" class="block text-sm font-medium text-gray-700">Validade da CNH</label>
-                                <input type="date" name="validade_cnh" id="edit-validade_cnh" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
-                            </div>
-                            <div class="md:col-span-2 mt-4">
-                                <h3 class="text-lg font-medium text-gray-900 mb-2">Anexos</h3>
-                                <div id="existing-attachments" class="mb-4 p-4 border rounded-md bg-gray-50"></div>
-                                <label for="anexos" class="block text-sm font-medium text-gray-700">Adicionar Novos Anexos (PDF, JPG, PNG)</label>
-                                <input type="file" name="anexos" id="anexos" multiple class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                            </div>
-                        </div>
-                    </form>
-                </div>
+    <!-- Formulário de Busca -->
+    <form method="GET" class="mb-6 flex flex-col sm:flex-row gap-3">
+        <input type="text" name="search" placeholder="Buscar por nome ou CPF/CNPJ" value="{{ search_query or '' }}"
+            class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 flex-grow shadow-sm">
+        <button type="submit"
+            class="bg-green-600 text-white p-3 rounded-lg hover:bg-green-700 transition shadow font-semibold">Buscar</button>
+    </form>
 
-                <div id="content-stats" class="tab-content hidden">
-                    <div id="modal-driver-stats" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-center"></div>
-                </div>
-
-                <div id="content-viagens" class="tab-content hidden">
-                     <div class="overflow-x-auto border rounded-lg">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origem/Destino</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="modal-driver-trips" class="bg-white divide-y divide-gray-200"></tbody>
-                        </table>
+    <!-- Tabela de Motoristas -->
+<div class="md:bg-white md:shadow-lg md:rounded-lg md:overflow-hidden">
+    <table class="w-full responsive-table">
+        <thead class="bg-gray-50 hidden md:table-header-group">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data de Nasc.
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CPF/CNPJ</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telefone</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Validade CNH
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+            </tr>
+        </thead>
+        <tbody class="md:divide-y md:divide-gray-200">
+            {% for motorista in motoristas %}
+            <tr>
+                <td data-label="Nome" class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{
+                    motorista.nome }}</td>
+                <td data-label="Data Nasc." class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{
+                    motorista.data_nascimento.strftime('%d/%m/%Y') }}</td>
+                <td data-label="CPF/CNPJ" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{
+                    motorista.cpf_cnpj }}</td>
+                <td data-label="Telefone" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{
+                    motorista.telefone }}</td>
+                <td data-label="Telefone" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{
+                    motorista.validade_cnh }}</td>
+                <td data-label="Telefone" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">Inativo/Ativo</td>
+                <td data-label="Ações" class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div class="flex items-center gap-4 justify-start">
+                        <button data-motorista='{{ motorista.to_dict() | tojson | e }}' onclick='openDriverModal(this)'
+                            class="text-green-600 hover:text-green-800 transition">
+                            Detalhes
+                        </button>
                     </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">Nenhum motorista encontrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<div class="mt-6">
+    <a href="{{ url_for('index') }}" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">Voltar</a>
+</div>
+
+
+    <!-- Modal de Detalhes do Motorista -->
+<div id="driverModal" class="modal fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[2000] hidden">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <!-- Header do Modal -->
+        <header class="flex justify-between items-center p-4 border-b">
+            <h2 class="text-lg sm:text-xl font-bold text-gray-800">Detalhes: <span id="modal-driver-name"></span></h2>
+            <button onclick="closeDriverModal()" class="text-gray-400 hover:text-gray-700 text-3xl font-light">&times;</button>
+        </header>
+        
+         <!-- Abas de Navegação do Modal -->
+        <div class="border-b">
+            <nav class="flex flex-wrap -mb-px px-4">
+                <button id="tab-dados" class="tab-button py-3 px-4" onclick="switchTab('dados')">Dados & Edição</button>
+                <button id="tab-stats" class="tab-button py-3 px-4" onclick="switchTab('stats')">Estatísticas</button>
+                <button id="tab-viagens" class="tab-button py-3 px-4" onclick="switchTab('viagens')">Histórico de Viagens</button>
+            </nav>
+        </div>
+        
+        <!-- Conteúdo do Modal (com scroll) -->
+        <div class="p-4 sm:p-6 overflow-y-auto flex-grow">
+            <!-- Conteúdo da Aba Dados e Edição -->
+            <div id="content-dados" class="tab-content">
+                <form id="edit-driver-form" method="POST" action="" enctype="multipart/form-data">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                        <!-- Campos do formulário -->
+                        <div class="sm:col-span-2">
+                            <label for="edit-nome" class="block text-sm font-medium text-gray-700">Nome Completo</label>
+                            <input type="text" name="nome" id="edit-nome" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm" required>
+                        </div>
+                        <div>
+                            <label for="edit-data_nascimento" class="block text-sm font-medium text-gray-700">Data de Nascimento</label>
+                            <input type="date" name="data_nascimento" id="edit-data_nascimento" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm" required>
+                        </div>
+                         <div>
+                            <label for="edit-telefone" class="block text-sm font-medium text-gray-700">Telefone</label>
+                            <input type="text" name="telefone" id="edit-telefone" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label for="edit-endereco" class="block text-sm font-medium text-gray-700">Endereço</label>
+                            <input type="text" name="endereco" id="edit-endereco" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm" required>
+                        </div>
+                        <div>
+                            <label for="edit-cpf_cnpj" class="block text-sm font-medium text-gray-700">CPF/CNPJ</label>
+                            <input type="text" name="cpf_cnpj" id="edit-cpf_cnpj" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100" readonly>
+                        </div>
+                        <div>
+                            <label for="edit-cnh" class="block text-sm font-medium text-gray-700">CNH</label>
+                            <input type="text" name="cnh" id="edit-cnh" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100" readonly>
+                        </div>
+                        <div>
+                            <label for="edit-validade_cnh" class="block text-sm font-medium text-gray-700">Validade da CNH</label>
+                            <input type="date" name="validade_cnh" id="edit-validade_cnh" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                        </div>
+                        <div class="sm:col-span-2 mt-4">
+                            <h3 class="text-lg font-medium text-gray-900 mb-2">Anexos</h3>
+                            <div id="existing-attachments" class="mb-4 p-4 border rounded-md bg-gray-50 min-h-[50px]"></div>
+                            <label for="anexos" class="block text-sm font-medium text-gray-700">Adicionar Novos Anexos</label>
+                            <input type="file" name="anexos" id="anexos" multiple class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <!-- Conteúdo da Aba Estatísticas -->
+            <div id="content-stats" class="tab-content hidden">
+                <div id="modal-driver-stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-center"></div>
+            </div>
+            <!-- Conteúdo da Aba Histórico de Viagens -->
+            <div id="content-viagens" class="tab-content hidden">
+                 <div class="overflow-x-auto border rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rota</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal-driver-trips" class="bg-white divide-y divide-gray-200"></tbody>
+                    </table>
                 </div>
             </div>
-            
-            <footer class="flex justify-end p-4 border-t bg-gray-50">
-                <button onclick="closeDriverModal()" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-md mr-2 hover:bg-gray-300">Cancelar</button>
-                <button type="submit" form="edit-driver-form" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Salvar Alterações</button>
-            </footer>
         </div>
+        
+        <!-- Footer do Modal -->
+        <footer class="flex flex-col-reverse sm:flex-row justify-end gap-3 p-4 border-t bg-gray-50">
+            <button onclick="closeDriverModal()" class="w-full sm:w-auto bg-gray-200 text-gray-800 px-5 py-2 rounded-md hover:bg-gray-300 transition">Cancelar</button>
+            <button type="submit" form="edit-driver-form" class="w-full sm:w-auto bg-green-600 text-white px-5 py-2 rounded-md hover:bg-green-700 transition">Salvar Alterações</button>
+        </footer>
     </div>
+</div>
+{% endblock %}
 
-    <script type="text/javascript">
-        const sidebar = document.getElementById('sidebar');
-        const menuToggle = document.getElementById('menu-toggle');
-        if (menuToggle) { menuToggle.addEventListener('click', (event) => { event.stopPropagation(); sidebar.classList.toggle('open'); }); }
-        document.addEventListener('click', (event) => { if (sidebar && sidebar.classList.contains('open')) { const isClickInside = sidebar.contains(event.target) || menuToggle.contains(event.target); if (window.innerWidth <= 768 && !isClickInside) { sidebar.classList.remove('open'); } } });
-        window.addEventListener('resize', () => { if (window.innerWidth > 768) sidebar.classList.remove('open'); });
 
+{% block scripts %}
+<script type="text/javascript">
+
+        // --- Lógica do Modal ---
         const driverModal = document.getElementById('driverModal');
         const editForm = document.getElementById('edit-driver-form');
 
         function openDriverModal(buttonElement) {
             const motorista = JSON.parse(buttonElement.dataset.motorista);
             
+            // Configura o formulário
             editForm.action = `/editar_motorista/${motorista.id}`;
             document.getElementById('modal-driver-name').innerText = motorista.nome || 'N/A';
             
+            // Preenche os campos do formulário
             document.getElementById('edit-nome').value = motorista.nome || '';
             document.getElementById('edit-data_nascimento').value = motorista.data_nascimento ? motorista.data_nascimento.split('T')[0] : '';
             document.getElementById('edit-endereco').value = motorista.endereco || '';
@@ -253,18 +274,21 @@
             document.getElementById('edit-cnh').value = motorista.cnh || '';
             document.getElementById('edit-validade_cnh').value = motorista.validade_cnh ? motorista.validade_cnh.split('T')[0] : '';
             
+            // Preenche a lista de anexos existentes
             const attachmentsContainer = document.getElementById('existing-attachments');
             attachmentsContainer.innerHTML = '';
             if (motorista.anexos && motorista.anexos.length > 0) {
                 const list = document.createElement('ul');
-                list.className = 'list-disc list-inside';
+                list.className = 'list-disc list-inside space-y-1';
                 motorista.anexos.forEach(anexoUrl => {
                     if (!anexoUrl) return;
-                    const filename = anexoUrl.split('/').pop();
+                    const filename = decodeURIComponent(anexoUrl.split('/').pop());
                     const listItem = document.createElement('li');
-                    listItem.className = 'flex justify-between items-center mb-1';
+                    listItem.className = 'flex justify-between items-center text-sm';
                     const deleteUrl = `/excluir_anexo/${motorista.id}?anexo=${encodeURIComponent(anexoUrl)}`;
-                    listItem.innerHTML = `<a href="${anexoUrl}" target="_blank" class="text-blue-600 hover:underline">${decodeURIComponent(filename)}</a> <a href="${deleteUrl}" class="text-red-500 hover:text-red-700 text-sm font-semibold" onclick="return confirm('Tem certeza que deseja excluir o anexo ${decodeURIComponent(filename)}?')">Excluir</a>`;
+                    listItem.innerHTML = `
+                        <a href="${anexoUrl}" target="_blank" class="text-blue-600 hover:underline">${filename}</a> 
+                        <a href="${deleteUrl}" class="text-red-500 hover:text-red-700 font-semibold" onclick="return confirm('Tem certeza que deseja excluir o anexo ${filename}?')">Excluir</a>`;
                     list.appendChild(listItem);
                 });
                 attachmentsContainer.appendChild(list);
@@ -272,32 +296,51 @@
                 attachmentsContainer.innerHTML = '<p class="text-sm text-gray-500">Nenhum anexo cadastrado.</p>';
             }
 
+            // Inicia o carregamento dos dados das outras abas
             const statsContainer = document.getElementById('modal-driver-stats');
             const tripsContainer = document.getElementById('modal-driver-trips');
             statsContainer.innerHTML = `<p class="text-center text-gray-500 col-span-full">Carregando estatísticas...</p>`;
             tripsContainer.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500 p-4">Carregando viagens...</td></tr>`;
 
+            // Mostra o modal e define a aba inicial
             switchTab('dados');
             driverModal.classList.remove('hidden');
 
+            // Busca os detalhes (estatísticas e viagens) via API
             fetch(`/api/motorista/${motorista.id}/details`)
                 .then(response => {
                     if (!response.ok) { throw new Error('Erro na rede ou resposta não OK'); }
                     return response.json();
                 })
                 .then(data => {
+                    // Preenche as estatísticas
                     statsContainer.innerHTML = '';
-                    tripsContainer.innerHTML = '';
                     const stats = data.stats;
                     if (stats) {
-                        statsContainer.innerHTML = `<div class="bg-blue-100 p-4 rounded-lg"><p class="text-2xl font-bold text-blue-800">${stats.total_viagens || 0}</p><p class="text-blue-600 text-sm">Viagens</p></div><div class="bg-green-100 p-4 rounded-lg"><p class="text-2xl font-bold text-green-800">R$ ${Number(stats.total_receita || 0).toFixed(2)}</p><p class="text-green-600 text-sm">Receita Total</p></div><div class="bg-red-100 p-4 rounded-lg"><p class="text-2xl font-bold text-red-800">R$ ${Number(stats.total_custo || 0).toFixed(2)}</p><p class="text-red-600 text-sm">Custo Total</p></div><div class="bg-yellow-100 p-4 rounded-lg"><p class="text-2xl font-bold text-yellow-800">R$ ${Number(stats.lucro_total || 0).toFixed(2)}</p><p class="text-yellow-600 text-sm">Lucro Total</p></div><div class="bg-indigo-100 p-4 rounded-lg"><p class="text-2xl font-bold text-indigo-800">${stats.total_distancia || 0} km</p><p class="text-indigo-600 text-sm">Distância</p></div>`;
+                        statsContainer.innerHTML = `
+                            <div class="bg-blue-100 p-4 rounded-lg shadow"><p class="text-2xl font-bold text-blue-800">${stats.total_viagens || 0}</p><p class="text-blue-600 text-sm font-medium">Viagens</p></div>
+                            <div class="bg-green-100 p-4 rounded-lg shadow"><p class="text-2xl font-bold text-green-800">R$ ${Number(stats.total_receita || 0).toFixed(2)}</p><p class="text-green-600 text-sm font-medium">Receita Total</p></div>
+                            <div class="bg-red-100 p-4 rounded-lg shadow"><p class="text-2xl font-bold text-red-800">R$ ${Number(stats.total_custo || 0).toFixed(2)}</p><p class="text-red-600 text-sm font-medium">Custo Total</p></div>
+                            <div class="bg-yellow-100 p-4 rounded-lg shadow"><p class="text-2xl font-bold text-yellow-800">R$ ${Number(stats.lucro_total || 0).toFixed(2)}</p><p class="text-yellow-600 text-sm font-medium">Lucro Total</p></div>
+                            <div class="bg-indigo-100 p-4 rounded-lg shadow col-span-1 sm:col-span-2 lg:col-span-1"><p class="text-2xl font-bold text-indigo-800">${stats.total_distancia || 0} km</p><p class="text-indigo-600 text-sm font-medium">Distância</p></div>`;
+                    } else {
+                         statsContainer.innerHTML = '<p class="text-center text-gray-500 col-span-full">Não há estatísticas para exibir.</p>';
                     }
+
+                    // Preenche o histórico de viagens
+                    tripsContainer.innerHTML = '';
                     const viagens = data.viagens;
                     if (viagens && viagens.length > 0) {
                         viagens.forEach(viagem => {
                             const statusClass = { 'concluida': 'bg-green-100 text-green-800', 'em_andamento': 'bg-blue-100 text-blue-800', 'cancelada': 'bg-red-100 text-red-800' };
                             const statusText = { 'concluida': 'Concluída', 'em_andamento': 'Em Andamento', 'cancelada': 'Cancelada' };
-                            const row = `<tr><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${viagem.cliente}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${new Date(viagem.data_inicio).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${viagem.endereco_saida} &rarr; ${viagem.endereco_destino}</td><td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass[viagem.status] || 'bg-gray-100 text-gray-800'}">${statusText[viagem.status] || viagem.status}</span></td></tr>`;
+                            const row = `
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${viagem.cliente}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${new Date(viagem.data_inicio).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${viagem.endereco_saida} &rarr; ${viagem.endereco_destino}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass[viagem.status] || 'bg-gray-100 text-gray-800'}">${statusText[viagem.status] || viagem.status}</span></td>
+                                </tr>`;
                             tripsContainer.innerHTML += row;
                         });
                     } else {
@@ -311,14 +354,22 @@
                 });
         }
 
-        function closeDriverModal() { driverModal.classList.add('hidden'); }
+        function closeDriverModal() {
+            driverModal.classList.add('hidden');
+        }
+
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
             document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
             document.getElementById(`content-${tabName}`).classList.remove('hidden');
             document.getElementById(`tab-${tabName}`).classList.add('active');
         }
-        driverModal.addEventListener('click', (event) => { if (event.target === driverModal) closeDriverModal(); });
-    </script>
-</body>
-</html>
+
+        // Fecha o modal se clicar fora da área do conteúdo
+        driverModal.addEventListener('click', (event) => {
+            if (event.target === driverModal) {
+                closeDriverModal();
+            }
+        });
+</script>
+{% endblock %}
