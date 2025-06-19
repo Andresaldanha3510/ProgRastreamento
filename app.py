@@ -145,6 +145,35 @@ class Empresa(db.Model):
 
     def __repr__(self):
         return f'<Empresa {self.razao_social}>'
+    
+# Em app.py, adicione este novo modelo junto com os outros (Cliente, Viagem, etc.)
+
+class Cobranca(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id'), nullable=False)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False) # Quem gerou a cobrança
+
+    valor_total = db.Column(db.Float, nullable=False)
+    data_emissao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_vencimento = db.Column(db.Date, nullable=False)
+    data_pagamento = db.Column(db.DateTime, nullable=True)
+
+    status = db.Column(db.String(20), nullable=False, default='Pendente', index=True) # Pendente, Paga, Vencida
+    meio_pagamento = db.Column(db.String(50), nullable=True)
+    observacoes = db.Column(db.Text, nullable=True)
+
+    # Relacionamentos
+    cliente = db.relationship('Cliente', backref='cobrancas')
+    usuario = db.relationship('Usuario', backref='cobrancas_geradas')
+    viagens = db.relationship('Viagem', backref='cobranca', lazy='dynamic')
+
+    @property
+    def is_vencida(self):
+        """Verifica se a cobrança está vencida."""
+        return self.data_vencimento < datetime.utcnow().date() and self.status == 'Pendente'
+
+    def __repr__(self):
+        return f'<Cobranca {self.id} - Cliente {self.cliente.nome_razao_social}>'
 
 class Romaneio(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -295,6 +324,7 @@ class Viagem(db.Model):
     observacoes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     destinos = db.relationship('Destino', backref='viagem', lazy='dynamic', cascade='all, delete-orphan')
+    cobranca_id = db.Column(db.Integer, db.ForeignKey('cobranca.id'), nullable=True)
 
     # Removido: motorista_formal = db.relationship('Motorista', backref='viagens_por_id', foreign_keys=[motorista_id])
     # O backref 'motorista_formal' em Motorista já cria viagem.motorista_formal
@@ -663,6 +693,93 @@ def calcular_distancia_e_duracao(enderecos):
         flash(f'Erro de conexão com a API do Google Maps: {str(e)}', 'error')
         return None, None
 
+@app.route('/cobrancas')
+@login_required
+def consultar_cobrancas():
+    # Query para buscar todas as cobranças, trazendo o cliente junto para evitar N+1 queries
+    cobrancas = Cobranca.query.options(db.joinedload(Cobranca.cliente)).order_by(Cobranca.data_vencimento.desc()).all()
+    
+    # Atualiza o status para 'Vencida' se necessário
+    for cobranca in cobrancas:
+        if cobranca.is_vencida:
+            cobranca.status = 'Vencida'
+    db.session.commit()
+
+    total_pendente = sum(c.valor_total for c in cobrancas if c.status in ['Pendente', 'Vencida'])
+    total_pago = sum(c.valor_total for c in cobrancas if c.status == 'Paga')
+
+    return render_template('consultar_cobrancas.html', 
+                           cobrancas=cobrancas,
+                           total_pendente=total_pendente,
+                           total_pago=total_pago,
+                           active_page='cobrancas')
+
+
+@app.route('/cobranca/gerar', methods=['GET', 'POST'])
+@login_required
+def gerar_cobranca():
+    if request.method == 'POST':
+        try:
+            cliente_id = request.form.get('cliente_id')
+            viagem_ids = request.form.getlist('viagem_ids')
+            data_vencimento_str = request.form.get('data_vencimento')
+            observacoes = request.form.get('observacoes')
+
+            if not all([cliente_id, viagem_ids, data_vencimento_str]):
+                flash('Cliente, data de vencimento e ao menos uma viagem são obrigatórios.', 'error')
+                return redirect(url_for('gerar_cobranca'))
+
+            viagens_selecionadas = Viagem.query.filter(Viagem.id.in_(viagem_ids)).all()
+            valor_total = sum(v.valor_recebido or 0 for v in viagens_selecionadas)
+
+            nova_cobranca = Cobranca(
+                cliente_id=cliente_id,
+                usuario_id=current_user.id,
+                valor_total=valor_total,
+                data_vencimento=datetime.strptime(data_vencimento_str, '%Y-%m-%d').date(),
+                observacoes=observacoes
+            )
+            db.session.add(nova_cobranca)
+            
+            # Associa as viagens à nova cobrança
+            for viagem in viagens_selecionadas:
+                viagem.cobranca_id = nova_cobranca.id
+            
+            db.session.commit()
+            flash('Cobrança gerada com sucesso!', 'success')
+            return redirect(url_for('consultar_cobrancas'))
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Erro ao gerar cobrança: {e}", exc_info=True)
+            flash(f'Ocorreu um erro ao gerar a cobrança: {e}', 'error')
+    
+    clientes = Cliente.query.order_by(Cliente.nome_razao_social).all()
+    return render_template('gerar_cobranca.html', clientes=clientes, active_page='cobrancas')
+
+@app.route('/api/cobranca/<int:cobranca_id>/marcar_paga', methods=['POST'])
+@login_required
+def api_marcar_paga(cobranca_id):
+    cobranca = Cobranca.query.get_or_404(cobranca_id)
+    try:
+        data = request.get_json()
+        meio_pagamento = data.get('meio_pagamento')
+
+        if not meio_pagamento:
+            return jsonify({'success': False, 'message': 'Meio de pagamento é obrigatório.'}), 400
+
+        cobranca.status = 'Paga'
+        cobranca.data_pagamento = datetime.utcnow()
+        cobranca.meio_pagamento = meio_pagamento
+        db.session.commit()
+
+        return jsonify({'success': True, 'message': 'Cobrança marcada como paga.'})
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao marcar cobrança como paga: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 def get_address_geoapify(lat, lon):
     try:
         url = f'https://api.geoapify.com/v1/geocode/reverse?lat={lat}&lon={lon}&apiKey={GEOAPIFY_API_KEY}'
@@ -675,7 +792,26 @@ def get_address_geoapify(lat, lon):
         logger.error(f"Erro na geocodificação Geoapify: {str(e)}")
     return "Endereço não encontrado"
 
-# ---- Rotas do Aplicativo ----
+@app.route('/api/cliente/<int:cliente_id>/viagens_nao_cobradas')
+@login_required
+def api_viagens_nao_cobradas(cliente_id):
+    viagens = Viagem.query.filter_by(
+        cliente=Cliente.query.get(cliente_id).nome_razao_social, 
+        cobranca_id=None,
+        status='concluida' # Apenas viagens concluídas podem ser cobradas
+    ).all()
+    
+    viagens_data = [{
+        'id': v.id,
+        'data_inicio': v.data_inicio.strftime('%d/%m/%Y'),
+        'destino': v.endereco_destino,
+        'valor': v.valor_recebido or 0.0,
+        'valor_formatado': f"R$ {v.valor_recebido:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    } for v in viagens]
+    
+    return jsonify(viagens_data)
+
+
 @app.route('/')
 def index():
     motoristas = Motorista.query.all()
@@ -1667,10 +1803,6 @@ def excluir_viagem(viagem_id):
         flash(f'Erro ao excluir viagem: {str(e)}', 'error')
     return redirect(url_for('index'))
 
-# Em app.py
-
-# Em app.py, substitua a função salvar_custo_viagem por esta:
-
 @app.route('/salvar_custo_viagem', methods=['POST'])
 @login_required
 def salvar_custo_viagem():
@@ -1686,68 +1818,102 @@ def salvar_custo_viagem():
             db.session.add(custo)
 
         # Atualiza os valores de custo
-        custo.combustivel = float(request.form.get('combustivel') or custo.combustivel or 0)
-        custo.pedagios = float(request.form.get('pedagios') or custo.pedagios or 0)
-        custo.alimentacao = float(request.form.get('alimentacao') or custo.alimentacao or 0)
-        custo.hospedagem = float(request.form.get('hospedagem') or custo.hospedagem or 0)
-        custo.outros = float(request.form.get('outros') or custo.outros or 0)
-        custo.descricao_outros = request.form.get('descricao_outros') or custo.descricao_outros
+        custo.combustivel = float(request.form.get('combustivel') or 0)
+        custo.pedagios = float(request.form.get('pedagios') or 0)
+        custo.alimentacao = float(request.form.get('alimentacao') or 0)
+        custo.hospedagem = float(request.form.get('hospedagem') or 0)
+        custo.outros = float(request.form.get('outros') or 0)
+        custo.descricao_outros = request.form.get('descricao_outros')
 
-        # Soma os custos totais e atualiza na viagem
-        viagem.custo = (custo.combustivel or 0) + (custo.pedagios or 0) + (custo.alimentacao or 0) + (custo.hospedagem or 0) + (custo.outros or 0)
-
-        # --- NOVA LÓGICA PARA UPLOAD DE ANEXOS ---
+        # Lógica para upload de novos anexos
         files = request.files.getlist('anexos_despesa')
-        allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png'}
-        
-        # Pega anexos já existentes para não sobrescrevê-los
         anexos_urls = custo.anexos.split(',') if custo.anexos else []
-
-        if files and any(f.filename for f in files):
-            try:
-                s3_client = boto3.client(
-                    's3',
-                    endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
-                    aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
-                    aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
-                    region_name='auto'
-                )
-                bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
-
-                for file in files:
-                    if file and file.filename:
-                        extension = os.path.splitext(file.filename)[1].lower()
-                        if extension not in allowed_extensions:
-                            # Não retorna erro, apenas ignora o arquivo inválido
-                            logger.warning(f"Arquivo com extensão não permitida ignorado: {file.filename}")
-                            continue
-
-                        filename = secure_filename(file.filename)
-                        s3_path = f"custos_viagem/{viagem_id}/{uuid.uuid4()}-{filename}"
-
-                        s3_client.upload_fileobj(
-                            file,
-                            bucket_name,
-                            s3_path,
-                            ExtraArgs={'ContentType': file.content_type}
-                        )
-                        public_url = f"{app.config['CLOUDFLARE_R2_PUBLIC_URL']}/{s3_path}"
-                        anexos_urls.append(public_url)
-
-            except Exception as e:
-                logger.error(f'Erro no upload para R2: {str(e)}')
-                return jsonify({'success': False, 'message': f'Erro ao fazer upload dos arquivos: {str(e)}'}), 500
         
-        # Salva a lista de URLs (novas e antigas) no banco de dados
-        custo.anexos = ','.join(anexos_urls) if anexos_urls else None
-        # --- FIM DA LÓGICA DE UPLOAD ---
+        if files and any(f.filename for f in files):
+            s3_client = boto3.client(
+                's3',
+                endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+                aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+                aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
+                region_name='auto'
+            )
+            bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
+            for file in files:
+                if file and file.filename:
+                    filename = secure_filename(file.filename)
+                    # Adiciona um UUID para garantir nomes de arquivo únicos
+                    s3_path = f"custos_viagem/{viagem_id}/{uuid.uuid4()}-{filename}"
+                    s3_client.upload_fileobj(
+                        file, bucket_name, s3_path,
+                        ExtraArgs={'ContentType': file.content_type}
+                    )
+                    public_url = f"{app.config['CLOUDFLARE_R2_PUBLIC_URL']}/{s3_path}"
+                    anexos_urls.append(public_url)
 
+        custo.anexos = ','.join(anexos_urls) if anexos_urls else None
+
+        # Soma os custos totais e atualiza na viagem principal
+        custo_total = (custo.combustivel or 0) + (custo.pedagios or 0) + (custo.alimentacao or 0) + (custo.hospedagem or 0) + (custo.outros or 0)
+        viagem.custo = custo_total
+        
         db.session.commit()
-        return jsonify({'success': True, 'message': 'Despesas salvas com sucesso!'})
+
+        # Retorna uma resposta JSON para o JavaScript
+        return jsonify({
+            'success': True, 
+            'message': 'Despesas salvas com sucesso!',
+            'custo_total_formatado': f'R$ {custo_total:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.'), # Formato brasileiro
+            'anexos': anexos_urls
+        })
 
     except Exception as e:
         db.session.rollback()
         logger.error(f"Erro ao salvar custo da viagem {viagem_id}: {str(e)}")
+        return jsonify({'success': False, 'message': f'Erro interno do servidor: {str(e)}'}), 500
+
+    
+
+@app.route('/excluir_anexo_custo', methods=['POST'])
+@login_required
+def excluir_anexo_custo():
+    data = request.get_json()
+    viagem_id = data.get('viagem_id')
+    anexo_url = data.get('anexo_url')
+
+    if not viagem_id or not anexo_url:
+        return jsonify({'success': False, 'message': 'Dados incompletos.'}), 400
+
+    try:
+        custo = CustoViagem.query.filter_by(viagem_id=viagem_id).first()
+        if not custo or not custo.anexos:
+            return jsonify({'success': False, 'message': 'Anexo não encontrado.'}), 404
+
+        anexos_atuais = custo.anexos.split(',')
+        if anexo_url not in anexos_atuais:
+            return jsonify({'success': False, 'message': 'URL do anexo não corresponde.'}), 404
+
+        # 1. Excluir do Cloudflare R2
+        s3_client = boto3.client(
+            's3',
+            endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+            aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+            aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
+            region_name='auto'
+        )
+        bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
+        key = anexo_url.replace(app.config['CLOUDFLARE_R2_PUBLIC_URL'] + '/', '')
+        s3_client.delete_object(Bucket=bucket_name, Key=key)
+
+        # 2. Excluir do Banco de Dados
+        anexos_atuais.remove(anexo_url)
+        custo.anexos = ','.join(anexos_atuais) if anexos_atuais else None
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Anexo excluído com sucesso!'})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao excluir anexo da viagem {viagem_id}: {str(e)}")
         return jsonify({'success': False, 'message': f'Erro interno do servidor: {str(e)}'}), 500
 
 @app.route('/consultar_despesas/<int:viagem_id>', methods=['GET'])
