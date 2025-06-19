@@ -551,10 +551,10 @@
                         <label for="status">Status:</label>
                         <select id="status" name="status">
                             <option value="">Todos os Status</option>
-                            <option value="pendente" {% if status_filter == 'pendente' %}selected{% endif %}>Pendente</option>
-                            <option value="em_andamento" {% if status_filter == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
-                            <option value="concluida" {% if status_filter == 'concluida' %}selected{% endif %}>Concluída</option>
-                            <option value="cancelada" {% if status_filter == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                            <option value="pendente" {% if request.args.get('status') == 'pendente' %}selected{% endif %}>Pendente</option>
+                            <option value="em_andamento" {% if request.args.get('status') == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
+                            <option value="concluida" {% if request.args.get('status') == 'concluida' %}selected{% endif %}>Concluída</option>
+                            <option value="cancelada" {% if request.args.get('status') == 'cancelada' %}selected{% endif %}>Cancelada</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -568,15 +568,15 @@
                     </div>
                     <div class="form-group">
                         <label for="search">Buscar:</label>
-                        <input type="text" id="search" name="search" placeholder="Cliente, endereço..." value="{{ search_query }}">
+                        <input type="text" id="search" name="search" placeholder="Cliente, endereço..." value="{{ request.args.get('search', '') }}">
                     </div>
                     <div class="form-group">
                         <label for="data_inicio">Data Início:</label>
-                        <input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio }}">
+                        <input type="date" id="data_inicio" name="data_inicio" value="{{ request.args.get('data_inicio', '') }}">
                     </div>
                     <div class="form-group">
                         <label for="data_fim">Data Fim:</label>
-                        <input type="date" id="data_fim" name="data_fim" value="{{ data_fim }}">
+                        <input type="date" id="data_fim" name="data_fim" value="{{ request.args.get('data_fim', '') }}">
                     </div>
                     <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Filtrar</button>
                     <a href="{{ url_for('exportar_relatorio', **request.args) }}" class="btn btn-secondary"><i class="fas fa-file-excel"></i> Exportar</a>
@@ -596,66 +596,61 @@
                             <th>Início</th>
                             <th>Fim</th>
                             <th>Status</th>
-                            <th>Custo Total</th>
-                            <th>Despesas</th>
+                            <th>Custo</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
-    {% for viagem in viagens %}
-    <tr>
-        <td>{{ viagem.id }}</td>
-        <td>{{ viagem.motorista_nome }}</td>
-        <td>{{ viagem.veiculo.placa }} - {{ viagem.veiculo.modelo }}</td>
-        <td>{{ viagem.cliente }}</td>
-        <td>{{ viagem.endereco_saida }}</td>
-        <td>{{ viagem.endereco_destino }}</td>
-        <td>{{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</td>
-        <td>{{ viagem.data_fim.strftime('%d/%m/%Y %H:%M') if viagem.data_fim else 'Em andamento' }}</td>
-        <td>
-            <select class="status-select" data-viagem-id="{{ viagem.id }}" onchange="atualizarStatus(this)">
-                <option value="pendente" {% if viagem.status == 'pendente' %}selected{% endif %}>Pendente</option>
-                <option value="em_andamento" {% if viagem.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
-                <option value="concluida" {% if viagem.status == 'concluida' %}selected{% endif %}>Concluída</option>
-                <option value="cancelada" {% if viagem.status == 'cancelada' %}selected{% endif %}>Cancelada</option>
-            </select>
-        </td>
-        <td>R$ {{ viagem.custo|round(2) if viagem.custo else '0.00' }}</td>
-        <td>
-            {% if viagem.custo %}
-                <span class="px-2 py-1 text-xs rounded-full bg-green-200 text-green-800">Atribuído</span>
-            {% else %}
-                <span class="px-2 py-1 text-xs rounded-full bg-red-200 text-red-800">Pendente</span>
-            {% endif %}
-        </td>
-        <td>
-            <div class="action-buttons">
-                <button class="btn btn-warning btn-small" onclick="abrirModalAtribuirDespesa({{ viagem.id }})"><i class="fas fa-dollar-sign"></i> Despesa</button>
-                <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="btn btn-primary btn-small"><i class="fas fa-edit"></i> Editar</a>
-                <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="btn btn-danger btn-small" onclick="return confirm('Tem certeza?');"><i class="fas fa-trash"></i> Excluir</a>
-                
-                {% if viagem.status in ['em_andamento', 'concluida'] %}
-                    <a href="{{ url_for('gerar_romaneio', viagem_id=viagem.id) }}" class="btn btn-info btn-small">
-                        <i class="fas fa-file-invoice"></i>
-                        {% if viagem.romaneio %}
-                            Editar Romaneio
-                        {% else %}
-                            Gerar Romaneio
-                        {% endif %}
-                    </a>
-                {% endif %}
-            </div>
-        </td>
-    </tr>
-    {% endfor %}
-</tbody>
+                        {% for viagem in viagens %}
+                        <tr>
+                            <td>{{ viagem.id }}</td>
+                            <td>{{ viagem.motorista_nome }}</td>
+                            <td>{{ viagem.veiculo.placa }} - {{ viagem.veiculo.modelo }}</td>
+                            <td>{{ viagem.cliente }}</td>
+                            <td>{{ viagem.endereco_saida }}</td>
+                            <td>{{ viagem.endereco_destino }}</td>
+                            <td>{{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>{{ viagem.data_fim.strftime('%d/%m/%Y %H:%M') if viagem.data_fim else 'Em andamento' }}</td>
+                            <td>
+                                <select class="status-select" data-viagem-id="{{ viagem.id }}" onchange="atualizarStatus(this)">
+                                    <option value="pendente" {% if viagem.status == 'pendente' %}selected{% endif %}>Pendente</option>
+                                    <option value="em_andamento" {% if viagem.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
+                                    <option value="concluida" {% if viagem.status == 'concluida' %}selected{% endif %}>Concluída</option>
+                                    <option value="cancelada" {% if viagem.status == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                                </select>
+                            </td>
+                            <td>
+                                <button id="custo-viagem-{{ viagem.id }}" class="text-blue-600 hover:underline font-medium" onclick="abrirModalAtribuirDespesa({{ viagem.id }})">
+                                    R$ {{ "%.2f"|format(viagem.custo)|replace('.', ',') if viagem.custo else '0,00' }}
+                                </button>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="btn btn-primary btn-small"><i class="fas fa-edit"></i> Editar</a>
+                                    <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="btn btn-danger btn-small" onclick="return confirm('Tem certeza?');"><i class="fas fa-trash"></i> Excluir</a>
+                                    
+                                    {% if viagem.status in ['em_andamento', 'concluida'] %}
+                                        <a href="{{ url_for('gerar_romaneio', viagem_id=viagem.id) }}" class="btn btn-info btn-small">
+                                            <i class="fas fa-file-invoice"></i>
+                                            {% if viagem.romaneio %}
+                                                Editar Romaneio
+                                            {% else %}
+                                                Gerar Romaneio
+                                            {% endif %}
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
                 </table>
             </div>
 
             <div id="atribuirDespesaModal" class="modal">
                 <div class="modal-content">
-                    <h2><i class="fas fa-dollar-sign"></i> Atribuir Despesa à Viagem</h2>
-                    <form id="atribuirDespesaForm" method="POST" action="{{ url_for('salvar_custo_viagem') }}" enctype="multipart/form-data" onsubmit="return validarFormulario()">
+                    <h2><i class="fas fa-dollar-sign"></i> Gerenciar Despesas da Viagem</h2>
+                    <form id="atribuirDespesaForm" method="POST" action="{{ url_for('salvar_custo_viagem') }}" enctype="multipart/form-data" onsubmit="salvarDespesasAjax(event)">
                         <input type="hidden" name="viagem_id" id="viagem_id">
                         <div class="form-group">
                             <label for="combustivel">Combustível (R$):</label>
@@ -681,10 +676,18 @@
                             <label for="descricao_outros">Descrição dos Outros:</label>
                             <textarea id="descricao_outros" name="descricao_outros" placeholder="Descreva outros custos..."></textarea>
                         </div>
+
                         <div class="form-group">
-                            <label for="anexos_despesa">Arquivos (PDF/JPG/PNG):</label>
+                            <label for="listaAnexos">Anexos Salvos:</label>
+                            <div id="listaAnexos" class="p-2 border rounded bg-gray-50 min-h-[50px]">
+                                </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="anexos_despesa">Adicionar Novos Arquivos (PDF/JPG/PNG):</label>
                             <input type="file" id="anexos_despesa" name="anexos_despesa" multiple accept=".pdf,.jpg,.jpeg,.png">
                         </div>
+
                         <div class="modal-buttons">
                             <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar Despesa</button>
                             <button type="button" class="btn btn-secondary" onclick="fecharModal('atribuirDespesaModal')"><i class="fas fa-times"></i> Fechar</button>
@@ -708,119 +711,164 @@
     </div>
 
     <script type="text/javascript">
-    const sidebar = document.getElementById('sidebar');
-    const menuToggle = document.getElementById('menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const menuToggle = document.getElementById('menu-toggle');
 
-    function toggleMobileSidebar() {
-        if (sidebar) {
-            sidebar.classList.toggle('open');
+        function toggleMobileSidebar() { if (sidebar) sidebar.classList.toggle('open'); }
+
+        if (menuToggle) {
+            menuToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleMobileSidebar(); });
         }
-    }
-
-    if (menuToggle) {
-        menuToggle.addEventListener('click', (event) => {
-            event.stopPropagation();
-            toggleMobileSidebar();
-        });
-    }
-
-    document.addEventListener('click', (event) => {
-        if (sidebar && menuToggle && sidebar.classList.contains('open')) {
-            const isClickInsideSidebar = sidebar.contains(event.target);
-            const isClickOnMenuToggle = menuToggle.contains(event.target);
-
-            if (window.innerWidth <= 768 && !isClickInsideSidebar && !isClickOnMenuToggle) {
+        document.addEventListener('click', (e) => {
+            if (sidebar && menuToggle && sidebar.classList.contains('open') && window.innerWidth <= 768 && !sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
                 sidebar.classList.remove('open');
             }
-        }
-    });
-
-    function handleResize() {
-        if (window.innerWidth > 768) {
-            if (sidebar) {
-                 sidebar.classList.remove('open');
-            }
-        }
-    }
-
-    window.addEventListener('load', handleResize);
-    window.addEventListener('resize', handleResize);
-
-    function abrirModalAtribuirDespesa(viagemId) {
-        document.getElementById('viagem_id').value = viagemId;
-        const form = document.getElementById('atribuirDespesaForm');
-        form.reset(); // Limpa o formulário
-        
-        // Requisição para buscar despesas existentes e preencher o modal
-        fetch(`/consultar_despesas/${viagemId}`)
-            .then(response => response.json())
-            .then(data => {
-                if(data){
-                    form.querySelector('#combustivel').value = data.combustivel || '';
-                    form.querySelector('#pedagios').value = data.pedagios || '';
-                    form.querySelector('#alimentacao').value = data.alimentacao || '';
-                    form.querySelector('#hospedagem').value = data.hospedagem || '';
-                    form.querySelector('#outros').value = data.outros || '';
-                    form.querySelector('#descricao_outros').value = data.descricao_outros || '';
-                }
-            })
-            .catch(err => console.log('Sem despesas anteriores ou erro:', err));
-
-        document.getElementById('atribuirDespesaModal').style.display = 'flex';
-    }
-
-
-    function atualizarStatus(selectElement) {
-        const viagemId = selectElement.getAttribute('data-viagem-id');
-        const novoStatus = selectElement.value;
-
-        fetch(`/atualizar_status_viagem/${viagemId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: novoStatus }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Em vez de alert, podemos mostrar uma notificação mais suave no futuro
-                window.location.reload();
-            } else {
-                throw new Error(data.message || 'Erro desconhecido');
-            }
-        })
-        .catch(error => {
-            alert('Erro ao atualizar o status: ' + error.message);
-            selectElement.value = selectElement.getAttribute('data-original-status');
         });
-    }
+        window.addEventListener('resize', () => { if (window.innerWidth > 768 && sidebar) sidebar.classList.remove('open'); });
 
-    function fecharModal(modalId) {
-        document.getElementById(modalId).style.display = 'none';
-    }
+        // --- NOVA LÓGICA DINÂMICA PARA MODAL E DESPESAS ---
 
-    function validarFormulario() {
-        const inputs = document.querySelectorAll('#atribuirDespesaForm input[type="number"]');
-        for (let input of inputs) {
-            if (input.value < 0) {
-                alert('Os valores de custo não podem ser negativos.');
-                return false;
+        function fecharModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function abrirModalAtribuirDespesa(viagemId) {
+            const modal = document.getElementById('atribuirDespesaModal');
+            const form = document.getElementById('atribuirDespesaForm');
+            form.reset();
+            
+            document.getElementById('viagem_id').value = viagemId;
+            const listaAnexosDiv = document.getElementById('listaAnexos');
+            listaAnexosDiv.innerHTML = `<p class="text-gray-500 text-sm p-2">Carregando...</p>`;
+            
+            try {
+                const response = await fetch(`/consultar_despesas/${viagemId}`);
+                if (!response.ok) throw new Error('Falha ao buscar dados.');
+                const data = await response.json();
+                
+                form.querySelector('#combustivel').value = data.combustivel || '';
+                form.querySelector('#pedagios').value = data.pedagios || '';
+                form.querySelector('#alimentacao').value = data.alimentacao || '';
+                form.querySelector('#hospedagem').value = data.hospedagem || '';
+                form.querySelector('#outros').value = data.outros || '';
+                form.querySelector('#descricao_outros').value = data.descricao_outros || '';
+                
+                renderizarAnexos(listaAnexosDiv, data.anexos || [], viagemId);
+            } catch (error) {
+                console.error('Erro ao buscar despesas:', error);
+                listaAnexosDiv.innerHTML = `<p class="text-red-500 text-sm p-2">Erro ao carregar anexos.</p>`;
+            }
+            
+            modal.style.display = 'flex';
+        }
+
+        function renderizarAnexos(container, anexos, viagemId) {
+            container.innerHTML = '';
+            if (anexos.length > 0) {
+                anexos.forEach(anexoUrl => {
+                    const anexoElement = document.createElement('div');
+                    anexoElement.className = 'flex justify-between items-center p-2 bg-white border rounded mb-1';
+                    const fileName = decodeURIComponent(anexoUrl.split('/').pop().substring(37));
+                    anexoElement.innerHTML = `
+                        <a href="${anexoUrl}" target="_blank" class="text-blue-600 hover:underline truncate mr-2" title="${fileName}">
+                            <i class="fas fa-file-alt mr-1 text-gray-500"></i>${fileName || 'Anexo'}
+                        </a>
+                        <button type="button" class="text-red-500 hover:text-red-700 p-1" onclick="excluirAnexo(this, '${anexoUrl}', ${viagemId})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    `;
+                    container.appendChild(anexoElement);
+                });
+            } else {
+                container.innerHTML = `<p class="text-gray-500 text-sm p-2">Nenhum anexo salvo.</p>`;
             }
         }
-        return true;
-    }
 
-    document.querySelectorAll('.modal').forEach(modal => {
-        modal.onclick = function(event) {
-            if (event.target === modal) {
-                modal.style.display = 'none';
+        async function excluirAnexo(buttonElement, anexoUrl, viagemId) {
+            if (!confirm('Tem certeza que deseja excluir este anexo? A ação não pode ser desfeita.')) return;
+            
+            const anexoDiv = buttonElement.parentElement;
+            anexoDiv.style.opacity = '0.5';
+
+            try {
+                const response = await fetch('/excluir_anexo_custo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ viagem_id: viagemId, anexo_url: anexoUrl }),
+                });
+                const data = await response.json();
+                if (!data.success) throw new Error(data.message);
+                
+                anexoDiv.remove();
+            } catch (error) {
+                alert('Erro ao excluir anexo: ' + error.message);
+                anexoDiv.style.opacity = '1';
             }
-        };
-    });
+        }
 
-    document.querySelectorAll('.status-select').forEach(select => {
-        select.setAttribute('data-original-status', select.value);
-    });
-</script>
+        async function salvarDespesasAjax(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            const viagemId = formData.get('viagem_id');
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Salvando...`;
+
+            try {
+                const response = await fetch(form.action, { method: 'POST', body: formData });
+                const data = await response.json();
+                if (!data.success) throw new Error(data.message);
+                
+                const custoCell = document.getElementById(`custo-viagem-${viagemId}`);
+                if (custoCell) {
+                    custoCell.innerText = data.custo_total_formatado;
+                }
+                fecharModal('atribuirDespesaModal');
+            } catch (error) {
+                alert('Erro ao salvar despesas: ' + error.message);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.innerHTML = `<i class="fas fa-save"></i> Salvar Despesa`;
+            }
+        }
+
+        async function atualizarStatus(selectElement) {
+            const viagemId = selectElement.dataset.viagemId;
+            const novoStatus = selectElement.value;
+            const originalStatus = selectElement.dataset.originalStatus;
+
+            try {
+                const response = await fetch(`/atualizar_status_viagem/${viagemId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: novoStatus }),
+                });
+                const data = await response.json();
+                if (!data.success) throw new Error(data.message);
+                
+                selectElement.dataset.originalStatus = novoStatus;
+                selectElement.style.borderColor = 'green';
+                setTimeout(() => { selectElement.style.borderColor = ''; }, 2000);
+            } catch (error) {
+                alert('Erro ao atualizar status: ' + error.message);
+                selectElement.value = originalStatus;
+            }
+        }
+
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.onclick = function(event) {
+                if (event.target === modal) {
+                    fecharModal(modal.id);
+                }
+            };
+        });
+
+        document.querySelectorAll('.status-select').forEach(select => {
+            select.dataset.originalStatus = select.value;
+        });
+    </script>
 
 </body>
 </html>
