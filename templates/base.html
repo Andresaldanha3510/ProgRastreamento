@@ -151,6 +151,7 @@
                 <li class="mb-2"><a href="{{ url_for('consultar_viagens') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'consultar_viagens' %}active{% endif %}"><i class="fas fa-search w-6 text-center"></i> <span>Consultar Viagens</span></a></li>
                 <li class="mb-2"><a href="{{ url_for('consultar_motoristas') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'consultar_motoristas' %}active{% endif %}"><i class="fas fa-users w-6 text-center"></i> <span>Consultar Motoristas</span></a></li>
                 <li class="mb-2"><a href="{{ url_for('consultar_veiculos') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'consultar_veiculos' %}active{% endif %}"><i class="fas fa-truck-loading w-6 text-center"></i> <span>Consultar Veículos</span></a></li>
+                <li class="mb-2"><a href="{{ url_for('consultar_cobrancas') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page in ['consultar_cobrancas', 'gerar_cobranca'] %}active{% endif %}"><i class="fas fa-wallet w-6 text-center"></i><span>Financeiro</span></a></li>
                 <li class="mb-2"><a href="{{ url_for('relatorios') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'relatorios' %}active{% endif %}"><i class="fas fa-chart-bar w-6 text-center"></i> <span>Relatórios</span></a></li>
             </ul>
         </div>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nota de Débito - {{ cobranca.id }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            background-color: #f3f4f6;
+        }
+        .invoice-box {
+            max-width: 800px;
+            margin: auto;
+            padding: 30px;
+            border: 1px solid #eee;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+            font-size: 16px;
+            line-height: 24px;
+            font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
+            color: #555;
+            background-color: white;
+        }
+        @media print {
+            body {
+                background-color: white; /* Fundo branco para impressão */
+            }
+            .no-print {
+                display: none !important; /* Esconde botões e outros elementos */
+            }
+            .invoice-box {
+                box-shadow: none;
+                border: none;
+                margin: 0;
+                padding: 0;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print my-6 text-center">
+        <a href="{{ url_for('consultar_cobrancas') }}" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition duration-300">
+            <i class="fas fa-arrow-left mr-2"></i>Voltar para Cobranças
+        </a>
+        <button onclick="window.print();" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-300 ml-4">
+            <i class="fas fa-print mr-2"></i>Imprimir Nota
+        </button>
+    </div>
+
+    <div class="invoice-box">
+        <header class="flex justify-between items-start pb-6 border-b-2 border-gray-200">
+            <div>
+                {% if empresa %}
+                    <h1 class="text-2xl font-bold text-gray-800">{{ empresa.nome_fantasia or empresa.razao_social }}</h1>
+                    <p>{{ empresa.razao_social }}</p>
+                    <p>{{ empresa.endereco }}, {{ empresa.cidade }} - {{ empresa.estado }}</p>
+                    <p>CNPJ: {{ "%s.%s.%s/%s-%s"|format(empresa.cnpj[:2], empresa.cnpj[2:5], empresa.cnpj[5:8], empresa.cnpj[8:12], empresa.cnpj[12:]) }}</p>
+                    <p>Telefone: {{ empresa.telefone }}</p>
+                {% else %}
+                    <h1 class="text-2xl font-bold text-gray-800">Sua Empresa</h1>
+                {% endif %}
+            </div>
+            <div class="text-right">
+                <h2 class="text-3xl font-bold text-gray-700">NOTA DE DÉBITO</h2>
+                <p class="font-semibold">Nº: {{ "%05d"|format(cobranca.id) }}</p>
+                <p>Data de Emissão: {{ cobranca.data_emissao.strftime('%d/%m/%Y') }}</p>
+            </div>
+        </header>
+
+        <section class="mt-8">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <h3 class="font-semibold text-gray-600 uppercase">DEVEDOR (CLIENTE):</h3>
+                    <p class="font-bold text-lg">{{ cliente.nome_razao_social }}</p>
+                    <p>{{ "%s.%s.%s/%s-%s"|format(cliente.cpf_cnpj[:2], cliente.cpf_cnpj[2:5], cliente.cpf_cnpj[5:8], cliente.cpf_cnpj[8:12], cliente.cpf_cnpj[12:]) if cliente.pessoa_tipo == 'juridica' else "%s.%s.%s-%s"|format(cliente.cpf_cnpj[:3], cliente.cpf_cnpj[3:6], cliente.cpf_cnpj[6:9], cliente.cpf_cnpj[9:]) }}</p>
+                    <p>{{ cliente.logradouro }}, {{ cliente.numero }} - {{ cliente.bairro }}</p>
+                    <p>{{ cliente.cidade }} - {{ cliente.estado }}, CEP: {{ cliente.cep }}</p>
+                    <p>Email: {{ cliente.email }}</p>
+                </div>
+                <div class="text-right bg-gray-100 p-4 rounded-lg">
+                    <h3 class="font-semibold text-gray-600">VALOR TOTAL:</h3>
+                    <p class="text-4xl font-bold text-red-600">R$ {{ "%.2f"|format(cobranca.valor_total) | replace('.', ',') }}</p>
+                    <h3 class="font-semibold text-gray-600 mt-4">DATA DE VENCIMENTO:</h3>
+                    <p class="text-xl font-bold">{{ cobranca.data_vencimento.strftime('%d/%m/%Y') }}</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="mt-8">
+            <p class="text-justify">
+                Pela presente, levamos ao seu conhecimento que registramos em nossos livros contábeis um débito de V.Sa. no valor de
+                <strong>R$ {{ "%.2f"|format(cobranca.valor_total) | replace('.', ',') }} ({{ valor_extenso }})</strong>,
+                referente aos serviços de transporte detalhados abaixo.
+            </p>
+        </section>
+
+        <section class="mt-8">
+            <h3 class="font-semibold text-gray-600 uppercase border-b pb-2 mb-2">Detalhamento dos Serviços</h3>
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="bg-gray-100">
+                        <th class="p-2">Viagem ID</th>
+                        <th class="p-2">Data</th>
+                        <th class="p-2">Origem</th>
+                        <th class="p-2">Destino</th>
+                        <th class="p-2 text-right">Valor (R$)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for viagem in viagens %}
+                    <tr class="border-b">
+                        <td class="p-2">{{ viagem.id }}</td>
+                        <td class="p-2">{{ viagem.data_inicio.strftime('%d/%m/%Y') }}</td>
+                        <td class="p-2">{{ viagem.endereco_saida }}</td>
+                        <td class="p-2">{{ viagem.endereco_destino }}</td>
+                        <td class="p-2 text-right">{{ "%.2f"|format(viagem.valor_recebido) | replace('.', ',') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        {% if cobranca.observacoes %}
+        <section class="mt-8">
+            <h3 class="font-semibold text-gray-600 uppercase">Observações</h3>
+            <p class="text-sm p-3 bg-gray-50 rounded-lg">{{ cobranca.observacoes }}</p>
+        </section>
+        {% endif %}
+
+        <footer class="mt-12 pt-6 border-t text-center">
+            <p>Atenciosamente,</p>
+            <p class="font-bold mt-4">{{ empresa.razao_social if empresa else 'Sua Empresa' }}</p>
+        </footer>
+    </div>
+</body>
+</html>
