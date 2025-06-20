@@ -1,14 +1,8 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastrar Veículo</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" xintegrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+{% extends 'base.html' %}
+
+{% block title %}Cadastrar Veiculo - TrackGo{% endblock %}
+
+{% block styles %}
     <style>
         
         body {
@@ -205,48 +199,10 @@
         }
 
     </style>
-
+{% endblock %}
     
-</head>
-<body class="bg-gray-100">
+{% block content %}
 
-    <header class="navbar">
-        <button id="menu-toggle" class="text-white md:hidden focus:outline-none">
-            <i class="fas fa-bars"></i>
-        </button>
-        
-        <div class="brand-section">
-            <div class="img-logo">
-                <a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='brasão.png') }}" alt="Logo TrackGo"></a>
-            </div>
-            <div class="name-tag">
-                <h1>TrackGo</h1>
-            </div>
-        </div>
-        <div class="flex items-center gap-4 text-white">
-        <span class="text-sm hidden sm:inline">Olá, {{ current_user.nome or current_user.email }}</span>
-        <a href="{{ url_for('configuracoes') }}" class="user-icon" title="Configurações">
-            <i class="fas fa-user-cog"></i>
-        </a>
-        <a href="{{ url_for('logout') }}" class="user-icon" title="Sair">
-            <i class="fas fa-sign-out-alt"></i>
-        </a>
-    </div>
-    </header>
-
-    <div class="flex h-screen"> <div id="sidebar" class="sidebar"> <h1 class="text-2xl font-bold mb-8 text-center text-white">Menu</h1>
-        <ul>
-            <li class="mb-4"><a href="{{ url_for('cadastrar_motorista') }}" class="{% if active_page == 'cadastrar_motorista' %}active{% endif %}" ><i class="fas fa-user"></i> Cadastrar Motorista</a></li>
-            <li class="mb-4"><a href="{{ url_for('cadastrar_veiculo') }}" class="{% if active_page == 'cadastrar_veiculo' %}active{% endif %}"><i class="fas fa-truck"></i> Cadastrar Veículo</a></li>
-            <li class="mb-4"><a href="{{ url_for('iniciar_viagem') }}" class="{% if active_page == 'iniciar_viagem' %}active{% endif %}"><i class="fas fa-route"></i> Iniciar Viagem</a></li>
-            <li class="mb-4"><a href="{{ url_for('consultar_viagens') }}" class="{% if active_page == 'consultar_viagens' %}active{% endif %}"><i class="fas fa-search"></i> Consultar Viagens</a></li>
-            <li class="mb-4"><a href="{{ url_for('consultar_motoristas') }}" class="{% if active_page == 'consultar_motoristas' %}active{% endif %}"><i class="fas fa-users"></i> Consultar Motoristas</a></li>
-            <li class="mb-4"><a href="{{ url_for('consultar_veiculos') }}" class="{% if active_page == 'consultar_veiculos' %}active{% endif %}"><i class="fas fa-truck-loading"></i> Consultar Veículos</a></li>
-            <li class="mb-4"><a href="{{ url_for('relatorios') }}" class="{% if active_page == 'relatorios' %}active{% endif %}"><i class="fas fa-chart-bar"></i> Relatórios</a></li>
-        </ul>
-    </div>
-
-    <div class="container md:ml-60 transition-all duration-300 mt-6">
          <h1 class="text-2xl font-bold mb-5">Cadastrar Veículo</h1>
         
         {% with messages = get_flashed_messages() %}
@@ -294,54 +250,11 @@
             <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Cadastrar</button>
             <a href="{{ url_for('index') }}" class="bg-gray-500 text-white px-4 py-2 rounded ml-2">Voltar</a>
         </form>
-    </div>
-</body>
+{% endblock %}
 
+{% block scripts %}
 <script type="text/javascript">
-    // Obter referências (usando os IDs e classes do HTML original do usuário)
-    const sidebar = document.getElementById('sidebar');
-    const menuToggle = document.getElementById('menu-toggle');
-    // const mainContent = document.querySelector('.main-content'); // Não é mais necessário para JS ajustar padding/margin
-
-    // Função para alternar a sidebar em telas mobile
-    function toggleMobileSidebar() {
-        if (sidebar) { // Verificar se a sidebar existe
-            sidebar.classList.toggle('open');
-        }
-    }
-
-    // Listener para o botão de menu (apenas mobile)
-    if (menuToggle) {
-        menuToggle.addEventListener('click', (event) => {
-            event.stopPropagation();
-            toggleMobileSidebar();
-        });
-    }
-
-    // Fechar a sidebar mobile ao clicar fora dela
-    document.addEventListener('click', (event) => {
-        if (sidebar && menuToggle && sidebar.classList.contains('open')) { // Executar somente se sidebar existir e estiver aberta
-            const isClickInsideSidebar = sidebar.contains(event.target);
-            const isClickOnMenuToggle = menuToggle.contains(event.target);
-
-            if (window.innerWidth <= 768 && !isClickInsideSidebar && !isClickOnMenuToggle) {
-                sidebar.classList.remove('open');
-            }
-        }
-    });
-
-    // Ajustes em redimensionamento (para garantir o estado correto da sidebar mobile)
-    function handleResize() {
-        if (window.innerWidth > 768) {
-            if (sidebar) { // Verificar se a sidebar existe
-                 sidebar.classList.remove('open'); // Garante que em desktop a classe 'open' (mobile) não esteja ativa
-            }
-        }
-    }
-
-    window.addEventListener('load', handleResize);
-    window.addEventListener('resize', handleResize);
-
+    
     var gk_isXlsx = false;
         var gk_xlsxFileLookup = {};
         var gk_fileData = {};
@@ -425,4 +338,4 @@
                 }
         });
 </script>
-</html>
+{% endblock %}
