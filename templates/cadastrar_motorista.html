@@ -1,15 +1,9 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastrar Motorista</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" xintegrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
+{% extends 'base.html' %}
+
+{% block title %}Cadastrar Motorista - TrackGo{% endblock %}
+
+{% block styles %}
+<style>
         
         body {
             background: white;
@@ -205,165 +199,77 @@
         }
 
     </style>
+{% endblock %}
 
-    
-</head>
-<body class="bg-gray-100">
 
-    <header class="navbar">
-        <button id="menu-toggle" class="text-white md:hidden focus:outline-none">
-            <i class="fas fa-bars"></i>
-        </button>
-        
-        <div class="brand-section">
-            <div class="img-logo">
-                <a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='brasão.png') }}" alt="Logo TrackGo"></a>
+{% block content %}
+
+    <h1 class="text-2xl font-bold mb-4">Cadastrar Motorista</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                {% for category, message in messages %}
+                    <p class="{{ 'text-red-700' if category == 'error' else 'text-green-700' }}">{{ message }}</p>
+                {% endfor %}
             </div>
-            <div class="name-tag">
-                <h1>TrackGo</h1>
-            </div>
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded shadow-md">
+        <div class="mb-4">
+            <label class="block text-gray-700">Nome</label>
+            <input type="text" name="nome" required class="w-full p-2 border rounded" placeholder="Digite o nome completo">
         </div>
-        <div class="flex items-center gap-4 text-white">
-        <span class="text-sm hidden sm:inline">Olá, {{ current_user.nome or current_user.email }}</span>
-        <a href="{{ url_for('configuracoes') }}" class="user-icon" title="Configurações">
-            <i class="fas fa-user-cog"></i>
-        </a>
-        <a href="{{ url_for('logout') }}" class="user-icon" title="Sair">
-            <i class="fas fa-sign-out-alt"></i>
-        </a>
-    </div>
-    </header>
+        <div class="mb-4">
+            <label class="block text-gray-700">Data de Nascimento</label>
+            <input type="date" name="data_nascimento" required class="w-full p-2 border rounded">
+        </div>
+        <div class="mb-4">
+            <label class="block text-gray-700">Endereço</label>
+            <input type="text" name="endereco" required class="w-full p-2 border rounded" placeholder="Digite o endereço completo">
+        </div>
+        <div class="mb-4">
+            <label class="block text-gray-700">Pessoa Física ou Jurídica</label>
+            <select id="pessoa_tipo" name="pessoa_tipo" required class="w-full p-2 border rounded">
+                <option value="fisica">Pessoa Física</option>
+                <option value="juridica">Pessoa Jurídica</option>
+            </select>
+        </div>
+        <div class="mb-4">
+            <label id="cpf_cnpj_label" class="block text-gray-700">CPF</label>
+            <input type="text" id="cpf_cnpj" name="cpf_cnpj" required class="w-full p-2 border rounded" pattern="\d{11}" placeholder="Digite o CPF (11 dígitos)" title="CPF deve ter 11 dígitos">
+        </div>
+        <div class="mb-4">
+            <label class="block text-gray-700">RG</label>
+            <input type="text" id="rg" name="rg" class="w-full p-2 border rounded" maxlength="9" placeholder="Digite o RG (máximo 9 dígitos)">
+        </div>
+        <div class="mb-4">
+            <label class="block text-gray-700">Telefone/WhatsApp</label>
+            <input type="text" id="telefone" name="telefone" required class="w-full p-2 border rounded" pattern="\d{10,11}" placeholder="Digite o telefone (10-11 dígitos)" title="Telefone deve ter 10 ou 11 dígitos">
+        </div>
+        <div class="mb-4">
+            <label class="block text-gray-700">CNH</label>
+            <input type="text" id="cnh" name="cnh" required class="w-full p-2 border rounded" pattern="\d{11}" placeholder="Digite a CNH (11 dígitos)" title="CNH deve ter 11 dígitos">
+        </div>
+        <div class="mb-4">
+            <label class="block text-gray-700">Validade da CNH</label>
+            <input type="date" name="validade_cnh" required class="w-full p-2 border rounded">
+        </div>
+        <div class="mb-4">
+            <label class="block text-gray-700">Anexo de Arquivos</label>
+            <input type="file" name="anexos" multiple accept=".pdf,.jpg,.jpeg,.png" class="w-full p-2 border rounded">
+            <p class="text-sm text-gray-500">Selecione arquivos (PDF, JPG, PNG)</p>
+        </div>
+        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Cadastrar</button>
+        <a href="{{ url_for('index') }}" class="bg-gray-500 text-white px-4 py-2 rounded ml-2">Voltar</a>
+    </form>
 
-    <div class="flex h-screen"> <div id="sidebar" class="sidebar"> <h1 class="text-2xl font-bold mb-8 text-center text-white">Menu</h1>
-        <ul>
-            <li class="mb-4"><a href="{{ url_for('cadastrar_motorista') }}" class="{% if active_page == 'cadastrar_motorista' %}active{% endif %}" ><i class="fas fa-user"></i> Cadastrar Motorista</a></li>
-            <li class="mb-4"><a href="{{ url_for('cadastrar_veiculo') }}" class="{% if active_page == 'cadastrar_veiculo' %}active{% endif %}"><i class="fas fa-truck"></i> Cadastrar Veículo</a></li>
-            <li class="mb-4"><a href="{{ url_for('iniciar_viagem') }}" class="{% if active_page == 'iniciar_viagem' %}active{% endif %}"><i class="fas fa-route"></i> Iniciar Viagem</a></li>
-            <li class="mb-4"><a href="{{ url_for('consultar_viagens') }}" class="{% if active_page == 'consultar_viagens' %}active{% endif %}"><i class="fas fa-search"></i> Consultar Viagens</a></li>
-            <li class="mb-4"><a href="{{ url_for('consultar_motoristas') }}" class="{% if active_page == 'consultar_motoristas' %}active{% endif %}"><i class="fas fa-users"></i> Consultar Motoristas</a></li>
-            <li class="mb-4"><a href="{{ url_for('consultar_veiculos') }}" class="{% if active_page == 'consultar_veiculos' %}active{% endif %}"><i class="fas fa-truck-loading"></i> Consultar Veículos</a></li>
-            <li class="mb-4"><a href="{{ url_for('relatorios') }}" class="{% if active_page == 'relatorios' %}active{% endif %}"><i class="fas fa-chart-bar"></i> Relatórios</a></li>
-        </ul>
-    </div>   
+{% endblock %}
 
-    <div class="container md:ml-60 transition-all duration-300 mt-6">
-        <h1 class="text-2xl font-bold mb-4">Cadastrar Motorista</h1>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                    {% for category, message in messages %}
-                        <p class="{{ 'text-red-700' if category == 'error' else 'text-green-700' }}">{{ message }}</p>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
-
-        <form method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded shadow-md">
-            <div class="mb-4">
-                <label class="block text-gray-700">Nome</label>
-                <input type="text" name="nome" required class="w-full p-2 border rounded" placeholder="Digite o nome completo">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700">Data de Nascimento</label>
-                <input type="date" name="data_nascimento" required class="w-full p-2 border rounded">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700">Endereço</label>
-                <input type="text" name="endereco" required class="w-full p-2 border rounded" placeholder="Digite o endereço completo">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700">Pessoa Física ou Jurídica</label>
-                <select id="pessoa_tipo" name="pessoa_tipo" required class="w-full p-2 border rounded">
-                    <option value="fisica">Pessoa Física</option>
-                    <option value="juridica">Pessoa Jurídica</option>
-                </select>
-            </div>
-
-            <div class="mb-4">
-                <label id="cpf_cnpj_label" class="block text-gray-700">CPF</label>
-                <input type="text" id="cpf_cnpj" name="cpf_cnpj" required class="w-full p-2 border rounded" pattern="\d{11}" placeholder="Digite o CPF (11 dígitos)" title="CPF deve ter 11 dígitos">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700">RG</label>
-                <input type="text" id="rg" name="rg" class="w-full p-2 border rounded" maxlength="9" placeholder="Digite o RG (máximo 9 dígitos)">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700">Telefone/WhatsApp</label>
-                <input type="text" id="telefone" name="telefone" required class="w-full p-2 border rounded" pattern="\d{10,11}" placeholder="Digite o telefone (10-11 dígitos)" title="Telefone deve ter 10 ou 11 dígitos">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700">CNH</label>
-                <input type="text" id="cnh" name="cnh" required class="w-full p-2 border rounded" pattern="\d{11}" placeholder="Digite a CNH (11 dígitos)" title="CNH deve ter 11 dígitos">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700">Validade da CNH</label>
-                <input type="date" name="validade_cnh" required class="w-full p-2 border rounded">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700">Anexo de Arquivos</label>
-                <input type="file" name="anexos" multiple accept=".pdf,.jpg,.jpeg,.png" class="w-full p-2 border rounded">
-                <p class="text-sm text-gray-500">Selecione arquivos (PDF, JPG, PNG)</p>
-            </div>
-
-            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Cadastrar</button>
-            <a href="{{ url_for('index') }}" class="bg-gray-500 text-white px-4 py-2 rounded ml-2">Voltar</a>
-        </form>
-    </div>
-
+{% block scripts %}
 <script type="text/javascript">
-    // Obter referências (usando os IDs e classes do HTML original do usuário)
-    const sidebar = document.getElementById('sidebar');
-    const menuToggle = document.getElementById('menu-toggle');
-    // const mainContent = document.querySelector('.main-content'); // Não é mais necessário para JS ajustar padding/margin
-
-    // Função para alternar a sidebar em telas mobile
-    function toggleMobileSidebar() {
-        if (sidebar) { // Verificar se a sidebar existe
-            sidebar.classList.toggle('open');
-        }
-    }
-
-    // Listener para o botão de menu (apenas mobile)
-    if (menuToggle) {
-        menuToggle.addEventListener('click', (event) => {
-            event.stopPropagation();
-            toggleMobileSidebar();
-        });
-    }
-
-    // Fechar a sidebar mobile ao clicar fora dela
-    document.addEventListener('click', (event) => {
-        if (sidebar && menuToggle && sidebar.classList.contains('open')) { // Executar somente se sidebar existir e estiver aberta
-            const isClickInsideSidebar = sidebar.contains(event.target);
-            const isClickOnMenuToggle = menuToggle.contains(event.target);
-
-            if (window.innerWidth <= 768 && !isClickInsideSidebar && !isClickOnMenuToggle) {
-                sidebar.classList.remove('open');
-            }
-        }
-    });
-
-    // Ajustes em redimensionamento (para garantir o estado correto da sidebar mobile)
-    function handleResize() {
-        if (window.innerWidth > 768) {
-            if (sidebar) { // Verificar se a sidebar existe
-                 sidebar.classList.remove('open'); // Garante que em desktop a classe 'open' (mobile) não esteja ativa
-            }
-        }
-    }
-
-    window.addEventListener('load', handleResize);
-    window.addEventListener('resize', handleResize);
-
 
     document.addEventListener('DOMContentLoaded', function() {
         const pessoaTipo = document.getElementById('pessoa_tipo');
@@ -409,5 +315,4 @@
         });
     });
 </script>
-</body>
-</html>
+{% endblock %}
