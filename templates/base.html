@@ -121,7 +121,9 @@
 
     <header class="navbar flex items-center justify-between px-4 sm:px-6">
         <div class="flex items-center gap-4">
+            {% if current_user.is_authenticated and current_user.role != 'Motorista' %}
             <button id="menu-toggle" class="text-white md:hidden text-2xl focus:outline-none"><i class="fas fa-bars"></i></button>
+            {% endif %}
             <div class="flex items-center gap-3">
                 <a href="{{ url_for('index') }}" class="flex items-center gap-3">
                     <img src="{{ url_for('static', filename='brasão.png') }}" alt="Logo TrackGo" class="h-12 w-12 rounded-full object-cover">
@@ -140,6 +142,7 @@
     </header>
 
     <div class="flex">
+        {% if current_user.is_authenticated and current_user.role != 'Motorista' %}
         <div id="sidebar" class="text-white p-4">
             <h1 class="text-2xl font-bold mb-6 text-center">Menu</h1>
             <ul>
@@ -155,9 +158,9 @@
                 <li class="mb-2"><a href="{{ url_for('relatorios') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'relatorios' %}active{% endif %}"><i class="fas fa-chart-bar w-6 text-center"></i> <span>Relatórios</span></a></li>
             </ul>
         </div>
+        {% endif %}
         <body class="bg-gray-100 font-sans">
         <div class="min-h-screen">
-            <!-- Flash Messages -->
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     <div class="fixed top-4 right-4 z-50">
@@ -172,12 +175,13 @@
             {% endwith %}
         </div>
 
-        <main class="main-content w-full p-4 sm:p-6 md:ml-[240px]">
+        <main class="main-content w-full p-4 sm:p-6 {% if current_user.is_authenticated and current_user.role != 'Motorista' %}md:ml-[240px]{% endif %}">
             {% block content %}{% endblock %}
         </main>
-    </div>
+        </div>
 
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script> // <-- MOVIDO SCRIPT PARA DENTRO DE UMA ÚNICA TAG
         // Lógica de abrir/fechar a Sidebar
         const sidebar = document.getElementById('sidebar');
         const menuToggle = document.getElementById('menu-toggle');
@@ -194,7 +198,9 @@
             }
         });
         window.addEventListener('resize', () => {
-            if (window.innerWidth > 768) { sidebar.classList.remove('open'); }
+            if (window.innerWidth > 768) { 
+                if (sidebar) sidebar.classList.remove('open'); 
+            }
         });
     </script>
     

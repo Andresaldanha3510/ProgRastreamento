@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Painel do Proprietário{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+    <h2 class="text-3xl font-bold text-gray-800 mb-8">Painel do Proprietário - Empresas</h2>
+
+    <div class="bg-white shadow-lg rounded-lg p-6">
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+                <thead>
+                    <tr class="bg-gray-100 text-gray-700">
+                        <th class="border p-3 text-left">Razão Social</th>
+                        <th class="border p-3 text-left">CNPJ</th>
+                        <th class="border p-3 text-center">Plano</th>
+                        <th class="border p-3 text-center">Status da Licença</th>
+                        <th class="border p-3 text-center">Usuários (Atuais/Max)</th>
+                        <th class="border p-3 text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for empresa in empresas %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="border p-3">{{ empresa.razao_social }}</td>
+                        <td class="border p-3">{{ empresa.cnpj }}</td>
+                        <td class="border p-3 text-center">
+                            {% if empresa.licenca %}
+                                <span class="px-2 py-1 font-semibold leading-tight text-blue-700 bg-blue-100 rounded-full">{{ empresa.licenca.plano }}</span>
+                            {% else %}
+                                <span class="px-2 py-1 font-semibold leading-tight text-gray-700 bg-gray-100 rounded-full">Sem Licença</span>
+                            {% endif %}
+                        </td>
+                        <td class="border p-3 text-center">
+                            {% if empresa.licenca and empresa.licenca.ativo %}
+                                <span class="px-2 py-1 font-semibold leading-tight text-green-700 bg-green-100 rounded-full">Ativa</span>
+                            {% else %}
+                                <span class="px-2 py-1 font-semibold leading-tight text-red-700 bg-red-100 rounded-full">Inativa</span>
+                            {% endif %}
+                        </td>
+                        <td class="border p-3 text-center">{{ empresa.usuarios|length }} / {{ empresa.licenca.max_usuarios if empresa.licenca else 'N/A' }}</td>
+                        <td class="border p-3 text-center">
+                            <a href="{{ url_for('owner_empresa_detalhes', empresa_id=empresa.id) }}" class="text-indigo-600 hover:underline font-medium">Gerenciar Licença</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center p-4 text-gray-500">Nenhuma empresa cadastrada no sistema.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

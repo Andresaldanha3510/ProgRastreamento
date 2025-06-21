@@ -5,7 +5,8 @@
 <div class="bg-slate-800 shadow-md sticky top-0 z-40">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
         <h1 class="text-xl font-bold text-white">
-            Olá, <span class="text-[#8db482]">{{ current_user.nome }}</span>! </h1>
+            Olá, <span class="text-[#8db482]">{{ current_user.nome }}</span>!
+        </h1>
         <a href="{{ url_for('logout') }}" class="text-sm text-gray-300 hover:text-white transition duration-150 ease-in-out flex items-center gap-2">
             <i class="fas fa-sign-out-alt"></i>
             Sair
@@ -20,8 +21,10 @@
             <i class="fas fa-tachometer-alt text-[#4A773C]"></i> Meu Dashboard
         </h2>
 
-        <div class="bg-white p-5 rounded-2xl shadow-lg mb-8 border-t-4 border-[#4A773C]"> <h3 class="text-xl font-semibold text-slate-800 flex items-center gap-3 mb-2">
-                <i class="fas fa-map-marker-alt text-[#4A773C]"></i> Localização Atual </h3>
+        <div class="bg-white p-5 rounded-2xl shadow-lg mb-8 border-t-4 border-[#4A773C]">
+            <h3 class="text-xl font-semibold text-slate-800 flex items-center gap-3 mb-2">
+                <i class="fas fa-map-marker-alt text-[#4A773C]"></i> Localização Atual
+            </h3>
             <div class="flex items-center gap-4">
                 <p id="location-display" class="text-gray-600">Aguardando localização...</p>
                 <img src="{{ url_for('static', filename='caminhaoandando.gif') }}" alt="Caminhão" class="h-8 drop-shadow-md">
@@ -32,15 +35,21 @@
 
             <div class="lg:col-span-1">
                 {% if viagem_ativa %}
-                <div class="bg-white p-6 rounded-2xl shadow-xl border-l-8 border-[#4A773C] h-full flex flex-col"> <h3 class="text-2xl font-bold text-[#3a662c] mb-4 flex items-center gap-3"><i class="fas fa-route"></i> Viagem Ativa</h3> <div class="space-y-3 text-gray-700 flex-grow">
+                <div class="bg-white p-6 rounded-2xl shadow-xl border-l-8 border-[#4A773C] h-full flex flex-col">
+                    <h3 class="text-2xl font-bold text-[#3a662c] mb-4 flex items-center gap-3"><i class="fas fa-route"></i> Viagem Ativa</h3>
+                    <div class="space-y-3 text-gray-700 flex-grow">
                         <p class="flex items-center gap-2"><strong><i class="fas fa-user-tie w-4 text-center"></i> Cliente:</strong> {{ viagem_ativa.cliente }}</p>
                         <p class="flex items-center gap-2"><strong><i class="fas fa-map-pin w-4 text-center"></i> Origem:</strong> {{ viagem_ativa.endereco_saida }}</p>
                         <p class="flex items-center gap-2"><strong><i class="fas fa-bullseye w-4 text-center"></i> Destino:</strong> {{ viagem_ativa.endereco_destino }}</p>
                         <p class="flex items-center gap-2"><strong><i class="fas fa-ruler-horizontal w-4 text-center"></i> Distância:</strong> {{ viagem_ativa.distancia_km }} km</p>
-                        <p class="flex items-center gap-2"><strong><i class="fas fa-info-circle w-4 text-center"></i> Status:</strong> <span class="font-semibold text-[#4A773C]">{{ viagem_ativa.status }}</span></p> </div>
+                        <p class="flex items-center gap-2"><strong><i class="fas fa-info-circle w-4 text-center"></i> Status:</strong> <span class="font-semibold text-[#4A773C]">{{ viagem_ativa.status }}</span></p>
+                    </div>
                     <div class="mt-6 flex flex-col gap-3">
+                        <button id="abastecimento-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 flex items-center justify-center gap-2">
+                            <i class="fas fa-gas-pump"></i> Registrar Abastecimento
+                        </button>
                         <button id="add-expense-btn" class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 flex items-center justify-center gap-2">
-                            <i class="fas fa-dollar-sign"></i> Lançar Despesa
+                            <i class="fas fa-dollar-sign"></i> Lançar Outras Despesas
                         </button>
                         <button id="complete-trip-btn" class="w-full bg-[#4A773C] hover:bg-[#3a662c] text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 flex items-center justify-center gap-2">
                             <i class="fas fa-check-circle"></i> Concluir Viagem
@@ -97,13 +106,10 @@
 </main>
 
 <div id="despesaModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center hidden z-50 p-4">
-    <div class="bg-slate-800 p-6 sm:p-8 rounded-2xl w-full max-w-lg shadow-2xl transform transition-all border-t-4 border-[#4A773C]" id="modal-content"> <h3 class="text-2xl font-bold mb-6 text-gray-100">Lançar Despesas da Viagem</h3>
+    <div class="bg-slate-800 p-6 sm:p-8 rounded-2xl w-full max-w-lg shadow-2xl transform transition-all border-t-4 border-[#4A773C]">
+        <h3 class="text-2xl font-bold mb-6 text-gray-100">Lançar Outras Despesas da Viagem</h3>
         <form id="despesaForm" enctype="multipart/form-data">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-400">Combustível (R$)</label>
-                    <input name="combustivel" type="number" step="0.01" class="mt-1 w-full bg-slate-700 border-slate-600 text-white rounded-md shadow-sm p-2 placeholder-gray-400">
-                </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-400">Pedágios (R$)</label>
                     <input name="pedagios" type="number" step="0.01" class="mt-1 w-full bg-slate-700 border-slate-600 text-white rounded-md shadow-sm p-2 placeholder-gray-400">
@@ -125,27 +131,60 @@
                 <label class="block text-sm font-medium text-gray-400">Descrição dos Outros Gastos</label>
                 <textarea name="descricao_outros" rows="2" class="mt-1 w-full bg-slate-700 border-slate-600 text-white rounded-md shadow-sm p-2 placeholder-gray-400"></textarea>
             </div>
-            
             <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-400 mb-2">Anexar Comprovantes</label>
+                <input name="anexos_despesa" type="file" multiple class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100">
+            </div>
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="document.getElementById('despesaModal').classList.add('hidden')" class="bg-slate-600 hover:bg-slate-500 text-white font-bold px-4 py-2 rounded-lg transition">Cancelar</button>
+                <button type="submit" class="bg-[#4A773C] hover:bg-[#3a662c] text-white font-bold px-4 py-2 rounded-lg transition">Salvar Despesas</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="abastecimentoModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center hidden z-50 p-4">
+    <div class="bg-slate-800 p-6 sm:p-8 rounded-2xl w-full max-w-lg shadow-2xl transform transition-all border-t-4 border-blue-600">
+        <h3 class="text-2xl font-bold mb-6 text-gray-100">Registrar Abastecimento</h3>
+        <form id="abastecimentoForm" enctype="multipart/form-data">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="litros" class="block text-sm font-medium text-gray-400">Litros Abastecidos</label>
+                    <input id="litros" name="litros" type="number" step="0.01" required class="mt-1 w-full bg-slate-700 border-slate-600 text-white rounded-md shadow-sm p-2 placeholder-gray-400">
+                </div>
+                <div>
+                    <label for="preco_litro" class="block text-sm font-medium text-gray-400">Preço por Litro (R$)</label>
+                    <input id="preco_litro" name="preco_por_litro" type="number" step="0.01" required class="mt-1 w-full bg-slate-700 border-slate-600 text-white rounded-md shadow-sm p-2 placeholder-gray-400">
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label for="custo_total" class="block text-sm font-medium text-gray-400">Custo Total (R$)</label>
+                    <input id="custo_total" name="custo_total" type="number" step="0.01" readonly class="mt-1 w-full bg-slate-900 border-slate-600 text-gray-300 rounded-md shadow-sm p-2 placeholder-gray-400 cursor-not-allowed">
+                </div>
+                 <div>
+                    <label for="odometro" class="block text-sm font-medium text-gray-400">KM do Odômetro</label>
+                    <input id="odometro" name="odometro" type="number" step="1" required class="mt-1 w-full bg-slate-700 border-slate-600 text-white rounded-md shadow-sm p-2 placeholder-gray-400">
+                </div>
+            </div>
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-400 mb-2">Anexar Cupom Fiscal</label>
                 <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-600 border-dashed rounded-md">
                     <div class="space-y-1 text-center">
-                        <i class="fas fa-cloud-upload-alt text-4xl text-gray-500"></i>
-                        <div class="flex text-sm text-gray-400">
-                            <label for="anexos_despesa" class="relative cursor-pointer bg-slate-800 rounded-md font-medium text-[#6a995c] hover:text-[#8db482] focus-within:outline-none">
-                                <span>Clique para selecionar</span>
-                                <input id="anexos_despesa" name="anexos_despesa" type="file" class="sr-only" multiple>
+                        <i class="fas fa-file-invoice-dollar mx-auto h-12 w-12 text-gray-400"></i>
+                        <div class="flex text-sm text-gray-500">
+                            <label for="anexo_comprovante" class="relative cursor-pointer bg-slate-700 rounded-md font-medium text-blue-400 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 p-2">
+                                <span>Carregar arquivo</span>
+                                <input id="anexo_comprovante" name="anexo_comprovante" type="file" class="sr-only">
                             </label>
                         </div>
                         <p class="text-xs text-gray-500">PNG, JPG, PDF</p>
                     </div>
-                </div>
-                 <div id="file-list" class="mt-2 text-sm text-gray-500"></div>
+                 </div>
             </div>
-
             <div class="flex justify-end gap-3">
-                <button type="button" onclick="document.getElementById('despesaModal').classList.add('hidden')" class="bg-slate-600 hover:bg-slate-500 text-white font-bold px-4 py-2 rounded-lg transition">Cancelar</button>
-                <button type="submit" class="bg-[#4A773C] hover:bg-[#3a662c] text-white font-bold px-4 py-2 rounded-lg transition">Salvar Despesas</button>
+                <button type="button" onclick="document.getElementById('abastecimentoModal').classList.add('hidden')" class="bg-slate-600 hover:bg-slate-500 text-white font-bold px-4 py-2 rounded-lg transition">Cancelar</button>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg transition">Registrar Abastecimento</button>
             </div>
         </form>
     </div>
@@ -158,46 +197,63 @@
 <script>
 const viagemAtivaId = {{ viagem_ativa.id if viagem_ativa else 'null' }};
 
-function showToast(message, type = 'info') {
-    // COR ATUALIZADA NO TOAST DE SUCESSO
-    Toastify({ text: message, duration: 3000, gravity: 'top', position: 'right', backgroundColor: type === 'error' ? '#e74c3c' : (type === 'success' ? '#4A773C' : '#3498db'), stopOnFocus: true }).showToast();
-}
-
-// O resto do JavaScript não precisa de alterações na lógica.
+// --- LÓGICA DE RASTREAMENTO ---
 function requestGeolocation() {
     if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => updateLocation({ lat: position.coords.latitude, lng: position.coords.longitude }),
-            (error) => {
-                document.getElementById('location-display').textContent = 'Geolocalização não disponível.';
-                showToast(`Erro de geolocalização: ${error.message}`, 'error');
-            },
-            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-        );
+        navigator.geolocation.getCurrentPosition(updateLocation, handleLocationError, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        });
     } else {
-        document.getElementById('location-display').textContent = 'Geolocalização não suportada.';
-        showToast('Geolocalização não suportada pelo navegador.', 'error');
+        showToast('Geolocalização não é suportada por este navegador.', 'error');
+        document.getElementById('location-display').innerText = 'Geolocalização não suportada.';
     }
 }
 
-function updateLocation(position) {
-    if (viagemAtivaId) {
-        fetch('/atualizar_localizacao', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ latitude: position.lat, longitude: position.lng, viagem_id: viagemAtivaId }) })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('location-display').textContent = `Endereço atual: ${data.endereco}`;
-                } else {
-                    showToast(`Erro ao atualizar localização: ${data.message}`, 'error');
-                }
-            }).catch(error => showToast(`Erro de conexão: ${error.message}`, 'error'));
+async function updateLocation(position) {
+    const { latitude, longitude } = position.coords;
+    document.getElementById('location-display').innerText = `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`;
+    try {
+        const response = await fetch('/atualizar_localizacao', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ latitude: latitude, longitude: longitude, viagem_id: viagemAtivaId })
+        });
+        const result = await response.json();
+        if (result.success && result.endereco) {
+            document.getElementById('location-display').innerText = result.endereco;
+        } else {
+            showToast(result.message || 'Não foi possível obter o nome do endereço.', 'error');
+        }
+    } catch (error) {
+        showToast('Erro de conexão ao atualizar a localização.', 'error');
     }
 }
 
+function handleLocationError(error) {
+    let errorMessage = 'Ocorreu um erro desconhecido.';
+    switch (error.code) {
+        case error.PERMISSION_DENIED: errorMessage = "Permissão para geolocalização negada."; break;
+        case error.POSITION_UNAVAILABLE: errorMessage = "Informação de localização indisponível."; break;
+        case error.TIMEOUT: errorMessage = "A requisição de localização expirou."; break;
+    }
+    document.getElementById('location-display').innerText = errorMessage;
+    showToast(errorMessage, 'error');
+}
+
+
+// --- LÓGICA DOS BOTÕES E MODAIS ---
 document.getElementById('add-expense-btn')?.addEventListener('click', () => {
     document.getElementById('despesaModal').classList.remove('hidden');
 });
 
+document.getElementById('abastecimento-btn')?.addEventListener('click', () => {
+    document.getElementById('abastecimentoModal').classList.remove('hidden');
+});
+
+
+// --- LÓGICA DOS FORMULÁRIOS ---
 document.getElementById('despesaForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
@@ -210,46 +266,84 @@ document.getElementById('despesaForm')?.addEventListener('submit', async (e) => 
             showToast('Despesas salvas com sucesso!', 'success');
             document.getElementById('despesaModal').classList.add('hidden');
             form.reset();
-            document.getElementById('file-list').innerHTML = '';
-        } else {
-            showToast(result.message || 'Erro ao salvar despesas.', 'error');
-        }
-    } catch (error) {
-        showToast('Erro de conexão ao salvar despesas.', 'error');
-    }
+        } else { showToast(result.message || 'Erro ao salvar despesas.', 'error'); }
+    } catch (error) { showToast('Erro de conexão ao salvar despesas.', 'error'); }
 });
 
+document.getElementById('abastecimentoForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+    try {
+        const response = await fetch('/registrar_abastecimento', { method: 'POST', body: formData });
+        const result = await response.json();
+        if (result.success) {
+            showToast('Abastecimento registrado com sucesso!', 'success');
+            document.getElementById('abastecimentoModal').classList.add('hidden');
+            form.reset();
+        } else { showToast(result.message || 'Erro ao registrar abastecimento.', 'error'); }
+    } catch (error) { showToast('Erro de conexão ao registrar abastecimento.', 'error'); }
+});
+
+
+// --- LÓGICA DE CONCLUSÃO DE VIAGEM ---
 document.getElementById('complete-trip-btn')?.addEventListener('click', async () => {
-    if (confirm('Tem certeza de que deseja concluir esta viagem?')) {
+    const valorRecebido = prompt("Por favor, informe o valor total recebido por esta viagem (ex: 350.50). Deixe em branco se não houver.");
+
+    if (valorRecebido === null) { // Usuário clicou em 'Cancelar'
+        return;
+    }
+    
+    if (confirm('Tem certeza que deseja concluir esta viagem? Esta ação não pode ser desfeita.')) {
         try {
-            const response = await fetch(`/finalizar_viagem/${viagemAtivaId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+            const response = await fetch(`/finalizar_viagem/${viagemAtivaId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ valor_recebido: valorRecebido || 0 })
+            });
             const result = await response.json();
             if (result.success) {
-                showToast('Viagem concluída com sucesso!', 'success');
-                setTimeout(() => window.location.reload(), 1500);
+                showToast('Viagem concluída com sucesso! A página será recarregada.', 'success');
+                setTimeout(() => window.location.reload(), 2000);
             } else {
-                showToast(result.message || 'Erro ao concluir a viagem.', 'error');
+                showToast(result.message || 'Ocorreu um erro ao finalizar a viagem.', 'error');
             }
         } catch (error) {
-            showToast('Erro de conexão ao tentar finalizar a viagem.', 'error');
+            showToast('Erro de conexão ao finalizar a viagem.', 'error');
         }
     }
 });
 
-document.getElementById('anexos_despesa')?.addEventListener('change', function(e) {
-    const fileList = document.getElementById('file-list');
-    fileList.innerHTML = '';
-    for (let i = 0; i < this.files.length; i++) {
-        const file = this.files[i];
-        const listItem = document.createElement('div');
-        listItem.textContent = `Arquivo selecionado: ${file.name}`;
-        fileList.appendChild(listItem);
-    }
-});
 
+// --- SCRIPTS AUXILIARES ---
+function calcularCustoTotal() {
+    const litros = parseFloat(document.getElementById('litros').value) || 0;
+    const precoLitro = parseFloat(document.getElementById('preco_litro').value) || 0;
+    document.getElementById('custo_total').value = (litros * precoLitro).toFixed(2);
+}
+document.getElementById('litros')?.addEventListener('input', calcularCustoTotal);
+document.getElementById('preco_litro')?.addEventListener('input', calcularCustoTotal);
+
+function showToast(message, type = 'info') {
+    let backgroundColor = "#333"; // Default
+    if (type === 'success') backgroundColor = "linear-gradient(to right, #00b09b, #96c93d)";
+    if (type === 'error') backgroundColor = "linear-gradient(to right, #ff5f6d, #ffc371)";
+    
+    Toastify({
+        text: message,
+        duration: 3000,
+        close: true,
+        gravity: "top",
+        position: "right",
+        stopOnFocus: true,
+        style: { background: backgroundColor }
+    }).showToast();
+}
+
+// Inicia o rastreamento se houver viagem ativa
 {% if viagem_ativa %}
-    setInterval(requestGeolocation, 1800000);
-    document.addEventListener('DOMContentLoaded', requestGeolocation);
+    setInterval(requestGeolocation, 1800000); // Rastreia a cada 30 minutos
+    document.addEventListener('DOMContentLoaded', requestGeolocation); // Rastreia ao carregar a página
 {% endif %}
 </script>
 
