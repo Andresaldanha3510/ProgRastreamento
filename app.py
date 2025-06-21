@@ -21,6 +21,7 @@ from flask import jsonify
 from flask import make_response
 from sqlalchemy import UniqueConstraint
 from num2words import num2words
+from collections import defaultdict
 
 
 # ---- Configurações Iniciais ----
@@ -96,22 +97,22 @@ class Motorista(db.Model):
     usuario = db.relationship('Usuario', backref='motorista', uselist=False)
     viagens = db.relationship('Viagem', backref='motorista_formal')
 
-    #
-    # O método está aqui, DENTRO da classe.
-    #
-    def to_dict(self):
-        """Converte o objeto Motorista para um dicionário serializável."""
-        return {
-            'id': self.id,
-            'nome': self.nome,
-            'data_nascimento': self.data_nascimento.isoformat() if self.data_nascimento else None,
-            'endereco': self.endereco,
-            'cpf_cnpj': self.cpf_cnpj,
-            'telefone': self.telefone,
-            'cnh': self.cnh,
-            'validade_cnh': self.validade_cnh.isoformat() if self.validade_cnh else None,
-            'anexos': self.anexos.split(',') if self.anexos else []
-        }
+class Licenca(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Chave estrangeira para a empresa (relação um-para-um)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False, unique=True)
+    
+    plano = db.Column(db.String(50), nullable=False, default='Básico') # Ex: Básico, Pro, Enterprise
+    max_usuarios = db.Column(db.Integer, nullable=False, default=5)
+    max_veiculos = db.Column(db.Integer, nullable=False, default=5)
+    data_expiracao = db.Column(db.Date, nullable=True)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+
+    def __repr__(self):
+        return f'<Licenca {self.id} - Plano {self.plano} para Empresa {self.empresa_id}>'
+
+ 
 
 import uuid
 from datetime import datetime, timedelta
@@ -140,8 +141,7 @@ class Empresa(db.Model):
     telefone = db.Column(db.String(11), nullable=True)
     email_contato = db.Column(db.String(120), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # Relacionamento reverso para acessar os usuários de uma empresa
+    licenca = db.relationship('Licenca', backref='empresa', uselist=False, cascade="all, delete-orphan")
     usuarios = db.relationship('Usuario', backref='empresa', lazy=True)
 
     def __repr__(self):
@@ -260,6 +260,22 @@ class Destino(db.Model):
     ordem = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+class Abastecimento(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculo.id'), nullable=False)
+    motorista_id = db.Column(db.Integer, db.ForeignKey('motorista.id'), nullable=False)
+    data_abastecimento = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    litros = db.Column(db.Float, nullable=False)
+    preco_por_litro = db.Column(db.Float, nullable=False)
+    custo_total = db.Column(db.Float, nullable=False)
+    odometro = db.Column(db.Float, nullable=False)
+    anexo_comprovante = db.Column(db.String(500), nullable=True)
+    viagem_id = db.Column(db.Integer, db.ForeignKey('viagem.id'), nullable=False, index=True) 
+    data_abastecimento = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    veiculo = db.relationship('Veiculo', backref='abastecimentos')
+    motorista = db.relationship('Motorista', backref='abastecimentos_registrados')
+
 class CustoViagem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     viagem_id = db.Column(db.Integer, db.ForeignKey('viagem.id'), nullable=False, unique=True)
@@ -326,6 +342,7 @@ class Viagem(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     destinos = db.relationship('Destino', backref='viagem', lazy='dynamic', cascade='all, delete-orphan')
     cobranca_id = db.Column(db.Integer, db.ForeignKey('cobranca.id'), nullable=True)
+    abastecimentos = db.relationship('Abastecimento', backref='viagem', lazy=True)
 
     # Removido: motorista_formal = db.relationship('Motorista', backref='viagens_por_id', foreign_keys=[motorista_id])
     # O backref 'motorista_formal' em Motorista já cria viagem.motorista_formal
@@ -352,7 +369,25 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# ---- Funções Utilitárias ----
+def owner_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.role != 'Owner':
+            flash('Acesso restrito ao proprietário do sistema.', 'error')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def master_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or (current_user.role not in ['Admin', 'Master']):
+            flash('Acesso restrito a administradores ou masters.', 'error')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 def validate_cpf_cnpj(cpf_cnpj, pessoa_tipo):
     if pessoa_tipo == 'fisica':
         return bool(re.match(r'^\d{11}$', cpf_cnpj))
@@ -467,6 +502,107 @@ def cadastrar_cliente():
 
     # Se a requisição for GET, apenas renderiza a página
     return render_template('cadastrar_cliente.html', active_page='cadastrar_cliente')
+
+
+from sqlalchemy import or_ 
+@app.route('/api/clientes/search')
+@login_required
+def search_clientes():
+    search_term = request.args.get('term', '')
+    if not search_term or len(search_term) < 2:
+        return jsonify([])
+
+  
+    clientes = Cliente.query.filter(
+        or_(
+            Cliente.nome_razao_social.ilike(f'%{search_term}%'),
+            Cliente.nome_fantasia.ilike(f'%{search_term}%')
+        )
+    ).limit(10).all()
+
+   
+    results = []
+    search_term_lower = search_term.lower()
+
+    for cliente in clientes:
+        
+        if cliente.nome_razao_social and search_term_lower in cliente.nome_razao_social.lower():
+            results.append(cliente.nome_razao_social)
+        
+       
+        if cliente.nome_fantasia and search_term_lower in cliente.nome_fantasia.lower() and cliente.nome_fantasia not in results:
+            results.append(cliente.nome_fantasia)
+    
+    return jsonify(results)
+
+@app.route('/registrar_abastecimento', methods=['POST'])
+@login_required
+def registrar_abastecimento():
+    try:
+        motorista_formal = Motorista.query.filter_by(cpf_cnpj=current_user.cpf_cnpj).first()
+        if not motorista_formal:
+             return jsonify({'success': False, 'message': 'Perfil de motorista formal não encontrado para o usuário atual.'}), 400
+
+        viagem_ativa = Viagem.query.filter(
+            or_(
+                Viagem.motorista_cpf_cnpj == current_user.cpf_cnpj,
+                Viagem.motorista_id == motorista_formal.id
+            ),
+            Viagem.status == 'em_andamento'
+        ).first()
+
+        if not viagem_ativa:
+            return jsonify({'success': False, 'message': 'Nenhuma viagem ativa encontrada para associar o abastecimento.'}), 400
+
+        litros = float(request.form.get('litros'))
+        preco_por_litro = float(request.form.get('preco_por_litro'))
+        odometro = float(request.form.get('odometro'))
+        custo_total = litros * preco_por_litro
+
+        novo_abastecimento = Abastecimento(
+            veiculo_id=viagem_ativa.veiculo_id,
+            motorista_id=motorista_formal.id,
+            viagem_id=viagem_ativa.id,
+            litros=litros,
+            preco_por_litro=preco_por_litro,
+            custo_total=custo_total,
+            odometro=odometro
+        )
+
+        anexo_url = None
+        anexo = request.files.get('anexo_comprovante')
+        if anexo and anexo.filename:
+            s3_client = boto3.client(
+                's3',
+                endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+                aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+                aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
+                region_name='auto'
+            )
+            bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
+            filename = secure_filename(anexo.filename)
+            s3_path = f"abastecimentos/{viagem_ativa.id}/{uuid.uuid4()}-{filename}"
+            
+            s3_client.upload_fileobj(
+                anexo,
+                bucket_name,
+                s3_path,
+                ExtraArgs={'ContentType': anexo.content_type or 'application/octet-stream'}
+            )
+            anexo_url = f"{app.config['CLOUDFLARE_R2_PUBLIC_URL']}/{s3_path}"
+        
+        novo_abastecimento.anexo_comprovante = anexo_url
+
+        db.session.add(novo_abastecimento)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Abastecimento registrado com sucesso!'})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao registrar abastecimento: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Erro interno: {e}'}), 500
+    
 
 @app.route('/consultar_clientes')
 @login_required
@@ -585,13 +721,25 @@ def get_coordinates(endereco):
 
 @app.route('/enviar_convite', methods=['POST'])
 @login_required
-@admin_required
+@master_required
 def enviar_convite():
+    empresa_admin = current_user.empresa
+    if empresa_admin and empresa_admin.licenca:
+        usuarios_atuais = len(empresa_admin.usuarios)
+        max_permitido = empresa_admin.licenca.max_usuarios
+        if usuarios_atuais >= max_permitido:
+            flash(f'Não é possível enviar o convite. Sua empresa atingiu o limite de {max_permitido} usuários do seu plano.', 'error')
+            return redirect(url_for('configuracoes'))
+
     email = request.form.get('email')
     role = request.form.get('role')
     
     if not email or not role:
         flash('E-mail e papel são obrigatórios.', 'error')
+        return redirect(url_for('configuracoes'))
+    
+    if current_user.role == 'Master' and role != 'Motorista':
+        flash('Usuários do tipo Master podem convidar apenas Motoristas.', 'error')
         return redirect(url_for('configuracoes'))
     
     if role not in ['Motorista', 'Master']:
@@ -601,7 +749,6 @@ def enviar_convite():
     token = str(uuid.uuid4())
     data_expiracao = datetime.utcnow() + timedelta(days=3)
 
-    # LÓGICA ATUALIZADA: Associa o convite à empresa do admin atual
     convite = Convite(
         email=email, 
         token=token, 
@@ -626,7 +773,6 @@ def enviar_convite():
         flash(f'Erro ao enviar o e-mail: {str(e)}', 'error')
 
     return redirect(url_for('configuracoes'))
-
 
 def validar_endereco(endereco):
     url = 'https://maps.googleapis.com/maps/api/geocode/json'
@@ -1106,11 +1252,6 @@ def login():
         email = request.form.get('email')
         senha = request.form.get('senha')
         
-        print("\n--- TENTATIVA DE LOGIN ---")
-        print(f"--> Email digitado: '{email}'")
-        print(f"--> Senha digitada: '{senha}'")
-
-        
         if not email or not senha:
             flash('Preencha todos os campos', 'error')
             return redirect(url_for('login'))
@@ -1118,26 +1259,22 @@ def login():
         usuario = Usuario.query.filter_by(email=email).first()
         
         if not usuario:
-            print("!!! PROBLEMA: Usuário com este email NÃO foi encontrado no banco.")
             flash('Usuário não encontrado', 'error')
             return redirect(url_for('login'))
-            
-        print(f"OK: Usuário encontrado: {usuario.email}")
 
         if not usuario.check_password(senha):
-            print("!!! PROBLEMA: A senha está INCORRETA.")
             flash('Senha incorreta', 'error')
             return redirect(url_for('login'))
             
-        print("OK: Login e senha corretos. Logando...")
         login_user(usuario)
         flash('Login realizado com sucesso!', 'success')
         
-        if usuario.role == 'Motorista':
-         return redirect(url_for('motorista_dashboard'))
-        else: # Redireciona Admin, Master e outros para a página inicial
-         return redirect(url_for('index'))
-        
+        if usuario.role == 'Owner':
+            return redirect(url_for('owner_dashboard'))
+        elif usuario.role == 'Motorista':
+            return redirect(url_for('motorista_dashboard'))
+        else:
+            return redirect(url_for('index'))
             
     return render_template('login.html')
 
@@ -1338,6 +1475,47 @@ def editar_motorista(motorista_id):
             return redirect(url_for('editar_motorista', motorista_id=motorista_id))
 
     return render_template('editar_motorista.html', motorista=motorista)
+
+@app.route('/owner/dashboard')
+@login_required
+@owner_required
+def owner_dashboard():
+
+    empresas = Empresa.query.options(db.joinedload(Empresa.licenca)).order_by(Empresa.razao_social).all()
+    return render_template('owner_dashboard.html', empresas=empresas)
+
+@app.route('/owner/empresa/<int:empresa_id>', methods=['GET', 'POST'])
+@login_required
+@owner_required
+def owner_empresa_detalhes(empresa_id):
+    empresa = Empresa.query.get_or_404(empresa_id)
+    # Garante que a empresa tenha uma licença; cria uma se não tiver
+    if not empresa.licenca:
+        licenca = Licenca(empresa_id=empresa.id)
+        db.session.add(licenca)
+        db.session.commit()
+        # Recarrega a empresa para obter a licença recém-criada
+        empresa = Empresa.query.get_or_404(empresa_id)
+
+    if request.method == 'POST':
+        try:
+            licenca = empresa.licenca
+            licenca.plano = request.form.get('plano')
+            licenca.max_usuarios = int(request.form.get('max_usuarios'))
+            licenca.max_veiculos = int(request.form.get('max_veiculos'))
+            data_expiracao_str = request.form.get('data_expiracao')
+            licenca.data_expiracao = datetime.strptime(data_expiracao_str, '%Y-%m-%d').date() if data_expiracao_str else None
+            licenca.ativo = 'ativo' in request.form
+
+            db.session.commit()
+            flash('Licença da empresa atualizada com sucesso!', 'success')
+            return redirect(url_for('owner_dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar a licença: {e}', 'error')
+
+    return render_template('owner_empresa_detalhes.html', empresa=empresa)
+
 
 @app.route('/excluir_anexo/<int:motorista_id>/<path:anexo>', methods=['GET'])
 def excluir_anexo(motorista_id, anexo):
@@ -1847,15 +2025,12 @@ def salvar_custo_viagem():
             custo = CustoViagem(viagem_id=viagem_id)
             db.session.add(custo)
 
-        # Atualiza os valores de custo
-        custo.combustivel = float(request.form.get('combustivel') or 0)
         custo.pedagios = float(request.form.get('pedagios') or 0)
         custo.alimentacao = float(request.form.get('alimentacao') or 0)
         custo.hospedagem = float(request.form.get('hospedagem') or 0)
         custo.outros = float(request.form.get('outros') or 0)
         custo.descricao_outros = request.form.get('descricao_outros')
 
-        # Lógica para upload de novos anexos
         files = request.files.getlist('anexos_despesa')
         anexos_urls = custo.anexos.split(',') if custo.anexos else []
         
@@ -1871,7 +2046,6 @@ def salvar_custo_viagem():
             for file in files:
                 if file and file.filename:
                     filename = secure_filename(file.filename)
-                    # Adiciona um UUID para garantir nomes de arquivo únicos
                     s3_path = f"custos_viagem/{viagem_id}/{uuid.uuid4()}-{filename}"
                     s3_client.upload_fileobj(
                         file, bucket_name, s3_path,
@@ -1882,17 +2056,15 @@ def salvar_custo_viagem():
 
         custo.anexos = ','.join(anexos_urls) if anexos_urls else None
 
-        # Soma os custos totais e atualiza na viagem principal
-        custo_total = (custo.combustivel or 0) + (custo.pedagios or 0) + (custo.alimentacao or 0) + (custo.hospedagem or 0) + (custo.outros or 0)
+        custo_total = (custo.pedagios or 0) + (custo.alimentacao or 0) + (custo.hospedagem or 0) + (custo.outros or 0)
         viagem.custo = custo_total
         
         db.session.commit()
 
-        # Retorna uma resposta JSON para o JavaScript
         return jsonify({
             'success': True, 
             'message': 'Despesas salvas com sucesso!',
-            'custo_total_formatado': f'R$ {custo_total:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.'), # Formato brasileiro
+            'custo_total_formatado': f'R$ {custo_total:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.'),
             'anexos': anexos_urls
         })
 
@@ -1900,7 +2072,6 @@ def salvar_custo_viagem():
         db.session.rollback()
         logger.error(f"Erro ao salvar custo da viagem {viagem_id}: {str(e)}")
         return jsonify({'success': False, 'message': f'Erro interno do servidor: {str(e)}'}), 500
-
     
 
 @app.route('/excluir_anexo_custo', methods=['POST'])
@@ -2088,136 +2259,136 @@ def finalizar_viagem(viagem_id):
 
     
 
+from collections import defaultdict
+
+from collections import defaultdict
+
+# Em app.py, substitua a função relatorios inteira por esta:
+
 @app.route('/relatorios')
+@login_required
 def relatorios():
-    data_inicio = request.args.get('data_inicio', '')
-    data_fim = request.args.get('data_fim', '')
-    status_filter = request.args.get('status', '')
-    motorista_id_filter = request.args.get('motorista_id', '') # Renomeado para evitar conflito
-
-    query = Viagem.query
-
-    if data_inicio:
-        try:
-            query = query.filter(Viagem.data_inicio >= datetime.strptime(data_inicio, '%Y-%m-%d'))
-        except ValueError:
-            flash('Data de início inválida.', 'error')
-    if data_fim:
-        try:
-            query = query.filter(Viagem.data_inicio <= datetime.strptime(data_fim, '%Y-%m-%d'))
-        except ValueError:
-            flash('Data de fim inválida.', 'error')
-    if status_filter:
-        query = query.filter_by(status=status_filter)
-    if motorista_id_filter:
-        query = query.filter_by(motorista_id=motorista_id_filter)
-
-    total_viagens = query.count()
-    total_distancia = db.session.query(db.func.sum(Viagem.distancia_km)).filter(
-        Viagem.distancia_km.isnot(None)
-    ).scalar() or 0
-    total_receita = db.session.query(db.func.sum(Viagem.valor_recebido)).filter(
-        Viagem.valor_recebido.isnot(None)
-    ).scalar() or 0
-    total_custo = db.session.query(db.func.sum(Viagem.custo)).filter(
-        Viagem.custo.isnot(None)
-    ).scalar() or 0
-
-    viagens_por_status = db.session.query(
-        Viagem.status,
-        db.func.count(Viagem.id).label('total'),
-        db.func.sum(Viagem.valor_recebido).label('receita'),
-        db.func.sum(Viagem.custo).label('custo')
-    ).group_by(Viagem.status).all()
-
-    motoristas_stats = {} # Renomeado para evitar conflito com 'motoristas' no contexto
-    for v in query.all():
-        motorista_nome = 'N/A'
-        if v.motorista_id:
-            motorista_nome = v.motorista_formal.nome if v.motorista_formal else 'N/A'
-        elif v.motorista_cpf_cnpj:
-            usuario_com_cpf = Usuario.query.filter_by(cpf_cnpj=v.motorista_cpf_cnpj).first()
-            if usuario_com_cpf:
-                motorista_nome = f"{usuario_com_cpf.nome} {usuario_com_cpf.sobrenome}"
-            else:
-                motorista_formal_cpf = Motorista.query.filter_by(cpf_cnpj=v.motorista_cpf_cnpj).first()
-                if motorista_formal_cpf:
-                    motorista_nome = motorista_formal_cpf.nome
+    try:
+        data_inicio_str = request.args.get('data_inicio', '')
+        data_fim_str = request.args.get('data_fim', '')
+        motorista_id_filter = request.args.get('motorista_id', '')
+        veiculo_id_filter = request.args.get('veiculo_id', '')
         
-        if motorista_nome not in motoristas_stats:
-            motoristas_stats[motorista_nome] = {'viagens': 0, 'custo': 0, 'receita': 0}
-        motoristas_stats[motorista_nome]['viagens'] += 1
-        motoristas_stats[motorista_nome]['custo'] += v.custo or 0
-        motoristas_stats[motorista_nome]['receita'] += v.valor_recebido or 0
+        query = Viagem.query.options(
+            db.joinedload(Viagem.custo_viagem),
+            db.joinedload(Viagem.motorista_formal),
+            db.joinedload(Viagem.veiculo),
+            db.joinedload(Viagem.abastecimentos) # Carrega os abastecimentos junto
+        )
 
-    veiculos_stats = {} # Renomeado para evitar conflito
-    for v in query.all():
-        veiculo = f"{v.veiculo.placa} - {v.veiculo.modelo}"
-        if veiculo not in veiculos_stats:
-            veiculos_stats[veiculo] = {'km': 0, 'custo': 0}
-        veiculos_stats[veiculo]['km'] += v.distancia_km or 0
-        veiculos_stats[veiculo]['custo'] += v.custo or 0
+        if data_inicio_str:
+            query = query.filter(Viagem.data_inicio >= datetime.strptime(data_inicio_str, '%Y-%m-%d'))
+        if data_fim_str:
+            data_fim_obj = datetime.strptime(data_fim_str, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(Viagem.data_inicio < data_fim_obj)
+        if motorista_id_filter:
+            query = query.filter(Viagem.motorista_id == int(motorista_id_filter))
+        if veiculo_id_filter:
+            query = query.filter(Viagem.veiculo_id == int(veiculo_id_filter))
 
-    viagens_lucro = [] # Renomeado
-    for v in query.all():
-        receita = v.valor_recebido if v.valor_recebido is not None else 0
-        custo = v.custo or 0
-        lucro = receita - custo
-        viagens_lucro.append({
-            'id': v.id,
-            'cliente': v.cliente or 'N/A',
-            'data': v.data_inicio.strftime('%d/%m/%Y') if v.data_inicio else '',
-            'receita': receita,
-            'custo': custo,
-            'lucro': lucro
-        })
+        viagens_filtradas = query.order_by(Viagem.data_inicio.desc()).all()
 
-    categorias = {
-        'Combustível': 0,
-        'Pedágios': 0,
-        'Alimentação': 0,
-        'Hospedagem': 0,
-        'Outros': 0
-    }
-    for v in query.all():
-        if v.custo_viagem:
-            categorias['Combustível'] += v.custo_viagem.combustivel or 0
-            categorias['Pedágios'] += v.custo_viagem.pedagios or 0
-            categorias['Alimentação'] += v.custo_viagem.alimentacao or 0
-            categorias['Hospedagem'] += v.custo_viagem.hospedagem or 0
-            categorias['Outros'] += v.custo_viagem.outros or 0
+        total_receita = 0.0
+        total_custo_outros = 0.0
+        total_custo_combustivel = 0.0
+        total_distancia = 0.0
+        total_litros = 0.0
+        
+        dados_grafico_mensal = defaultdict(lambda: {'receita': 0.0, 'custo': 0.0})
+        dados_grafico_categorias = defaultdict(float)
+        clientes_stats = defaultdict(lambda: {'viagens': 0, 'receita': 0.0})
+        motoristas_stats = defaultdict(lambda: {'id': None, 'nome': 'N/A', 'viagens': 0, 'receita': 0.0})
+        # Alterado para coletar mais dados
+        veiculos_stats = defaultdict(lambda: {'id': None, 'modelo': 'N/A', 'placa': 'N/A', 'km': 0.0, 'custo': 0.0, 'litros': 0.0})
 
-    mensal = {}
-    for v in query.all():
-        if v.data_inicio:
-            mes = v.data_inicio.strftime('%Y-%m')
-            if mes not in mensal:
-                mensal[mes] = {'receita': 0, 'custo': 0}
-            mensal[mes]['receita'] += v.valor_recebido or 0
-            mensal[mes]['custo'] += v.custo or 0
+        for v in viagens_filtradas:
+            receita_viagem = v.valor_recebido or 0.0
 
-    motoristas_filtro = Motorista.query.all()
+            # Calcula custo de combustível REAL a partir dos abastecimentos
+            custo_combustivel_viagem = sum(a.custo_total for a in v.abastecimentos)
+            litros_viagem = sum(a.litros for a in v.abastecimentos)
 
-    return render_template(
-        'relatorios.html',
-        active_page='relatorios',
-        total_viagens=total_viagens,
-        total_distancia=total_distancia,
-        total_receita=total_receita,
-        total_custo=total_custo,
-        viagens_por_status=viagens_por_status,
-        motoristas=motoristas_stats,
-        veiculos=veiculos_stats,
-        viagens=viagens_lucro,
-        categorias=categorias,
-        mensal=mensal,
-        data_inicio=data_inicio,
-        data_fim=data_fim,
-        status_filter=status_filter,
-        motorista_id=motorista_id_filter,
-        motoristas_filtro=motoristas_filtro
-    )
+            # Calcula outros custos (sem combustível)
+            custo_outros_viagem = 0
+            if v.custo_viagem:
+                custo_outros_viagem += (v.custo_viagem.pedagios or 0)
+                custo_outros_viagem += (v.custo_viagem.alimentacao or 0)
+                custo_outros_viagem += (v.custo_viagem.hospedagem or 0)
+                custo_outros_viagem += (v.custo_viagem.outros or 0)
+            
+            custo_total_viagem = custo_combustivel_viagem + custo_outros_viagem
 
+            total_receita += receita_viagem
+            total_custo_combustivel += custo_combustivel_viagem
+            total_custo_outros += custo_outros_viagem
+            total_distancia += v.distancia_km or 0.0
+            total_litros += litros_viagem
+
+            if v.data_inicio:
+                mes = v.data_inicio.strftime('%Y-%m')
+                dados_grafico_mensal[mes]['receita'] += receita_viagem
+                dados_grafico_mensal[mes]['custo'] += custo_total_viagem
+
+            # Preenche dados para o gráfico de categorias
+            dados_grafico_categorias['Combustível'] += custo_combustivel_viagem
+            if v.custo_viagem:
+                dados_grafico_categorias['Pedágios'] += v.custo_viagem.pedagios or 0
+                dados_grafico_categorias['Alimentação'] += v.custo_viagem.alimentacao or 0
+                dados_grafico_categorias['Hospedagem'] += v.custo_viagem.hospedagem or 0
+                dados_grafico_categorias['Outros'] += v.custo_viagem.outros or 0
+            
+            if v.cliente:
+                clientes_stats[v.cliente]['viagens'] += 1
+                clientes_stats[v.cliente]['receita'] += receita_viagem
+
+            if v.motorista_formal:
+                motoristas_stats[v.motorista_formal.id].update({
+                    'id': v.motorista_formal.id, 'nome': v.motorista_formal.nome
+                })
+                motoristas_stats[v.motorista_formal.id]['viagens'] += 1
+                motoristas_stats[v.motorista_formal.id]['receita'] += receita_viagem
+
+            if v.veiculo:
+                veiculos_stats[v.veiculo.id].update({
+                    'id': v.veiculo.id, 'placa': v.veiculo.placa, 'modelo': v.veiculo.modelo
+                })
+                veiculos_stats[v.veiculo.id]['km'] += v.distancia_km or 0.0
+                veiculos_stats[v.veiculo.id]['custo'] += custo_total_viagem
+                veiculos_stats[v.veiculo.id]['litros'] += litros_viagem
+        
+        # Consolida o custo total e calcula a média geral de consumo
+        total_custo = total_custo_combustivel + total_custo_outros
+        consumo_medio_geral = (total_distancia / total_litros) if total_litros > 0 else 0
+
+        motoristas_para_filtro = Motorista.query.order_by(Motorista.nome).all()
+        veiculos_para_filtro = Veiculo.query.order_by(Veiculo.placa).all()
+
+        return render_template(
+            'relatorios.html',
+            request=request,
+            total_viagens=len(viagens_filtradas),
+            total_receita=total_receita,
+            total_custo=total_custo,
+            consumo_medio_geral=consumo_medio_geral,  # <-- NOVO DADO
+            motoristas_filtro=motoristas_para_filtro,
+            veiculos_filtro=veiculos_para_filtro,
+            dados_grafico_mensal=dict(sorted(dados_grafico_mensal.items())),
+            dados_grafico_categorias=dict(dados_grafico_categorias),
+            clientes_stats=list(clientes_stats.values()),
+            motoristas=motoristas_stats,
+            veiculos_stats=list(veiculos_stats.values()) # <-- NOVO DADO
+        )
+
+    except Exception as e:
+        logger.error(f"Erro ao gerar relatórios: {e}", exc_info=True)
+        flash(f"Ocorreu um erro inesperado ao gerar os relatórios: {e}", "error")
+        return redirect(url_for('index'))
+    
 @app.route('/exportar_relatorio')
 def exportar_relatorio():
     try:
@@ -2607,6 +2778,10 @@ def motorista_dashboard():
         viagens=viagens_data,
         viagem_ativa=viagem_ativa,
     )
+
+
+
+
 
 @app.route('/atualizar_localizacao', methods=['POST'])
 @login_required
@@ -3139,13 +3314,37 @@ def visualizar_romaneio(romaneio_id):
     romaneio = Romaneio.query.get_or_404(romaneio_id)
     return render_template('visualizar_romaneio.html', romaneio=romaneio, active_page='consultar_romaneios')
 
+import click
 
+@app.cli.command("create-owner")
+@click.argument("email")
+@click.argument("password")
+def create_owner_command(email, password):
+    """Cria um novo usuário com o papel de Owner."""
+    
+    if Usuario.query.filter_by(email=email).first():
+        print(f"Erro: O usuário com o e-mail '{email}' já existe.")
+        return
 
+    try:
+        owner = Usuario(
+            nome='Proprietário',
+            sobrenome='do Sistema',
+            email=email,
+            role='Owner',
+            is_admin=True # Um Owner também pode ser admin
+        )
+        owner.set_password(password)
+        db.session.add(owner)
+        db.session.commit()
+        print(f"Usuário Owner '{email}' criado com sucesso!")
+    except Exception as e:
+        db.session.rollback()
+        print(f"Erro ao criar o usuário Owner: {e}")
 
-# ---- Execução do Aplicativo ----
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        seed_database(force=True)
+        seed_database(force=False)
     app.run(debug=True)
