@@ -11,8 +11,9 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
     <style>
-        /* Estilos base do corpo e layout */
         body {
             background-color: #f8fafc;
             color: #1e293b; 
@@ -21,7 +22,6 @@
             overflow-x: hidden; 
             padding-top: 80px;
         }
-        /* Estilos do Header/Appbar */
         header.navbar {
             background: linear-gradient(135deg, #2e7d32, #1b5e20); 
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -31,7 +31,6 @@
             height: 80px; 
             z-index: 1000;
         }
-        /* Estilos da Sidebar */
         #sidebar {
             background-color: #2F3640; 
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
@@ -55,18 +54,15 @@
             transition: margin-left 0.3s ease-in-out; 
         }
 
-        /* Media Queries para responsividade */
-        @media (min-width: 769px) { /* Desktop */
+        @media (min-width: 769px) {
             div#sidebar {
                 transform: translateX(0);
             }
             div.main-content {
-                margin-left: 14rem; /* Largura da sidebar */
+                margin-left: 14rem;
             }
-            /* #menu-toggle é escondido por md:hidden (Tailwind) */
         }
 
-        /* Estilos de responsividade para todo o layout */
         @media (max-width: 768px) {
             body { 
                 padding-top: 64px; 
@@ -74,11 +70,9 @@
             header.navbar { 
                 height: 64px; 
             }
-
             .name-tag h1 {
-                display: none; /* Esconde o nome da empresa em telas menores */
+                display: none;
             }
-
             #sidebar { 
                 top: 64px; 
                 height: calc(100vh - 64px); 
@@ -94,12 +88,12 @@
             }
         }
 
-        @media (max-width: 480px) { /* Telas bem pequenas */
+        @media (max-width: 480px) {
             header.navbar {
                 padding: 0 0.5rem;
             }
             .img-logo img {
-                height: 45px; /* Ainda menor */
+                height: 45px;
                 width: 45px;
             }
             div.main-content {
@@ -109,11 +103,10 @@
                 font-size: 1.2rem;
             }
             div#sidebar {
-                width: 90%; /* Pode ser mais larga em telas muito pequenas */
+                width: 90%;
                 max-width: 280px;
             }
         }
-
     </style>
 {% block styles %}{% endblock %}
 </head>
@@ -159,7 +152,7 @@
             </ul>
         </div>
         {% endif %}
-        <body class="bg-gray-100 font-sans">
+        
         <div class="min-h-screen">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
@@ -178,11 +171,10 @@
         <main class="main-content w-full p-4 sm:p-6 {% if current_user.is_authenticated and current_user.role != 'Motorista' %}md:ml-[240px]{% endif %}">
             {% block content %}{% endblock %}
         </main>
-        </div>
+    </div>
 
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script> // <-- MOVIDO SCRIPT PARA DENTRO DE UMA ÚNICA TAG
-        // Lógica de abrir/fechar a Sidebar
+    <script>
         const sidebar = document.getElementById('sidebar');
         const menuToggle = document.getElementById('menu-toggle');
         if (menuToggle) {
@@ -204,7 +196,10 @@
         });
     </script>
     
-    {% block scripts %}{% endblock %}
+    {% block scripts %}
+        <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    {% endblock %}
 
 </body>
 </html>
