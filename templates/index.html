@@ -428,12 +428,7 @@
                             <p class="text-sm text-gray-500 text-center py-4">Nenhuma viagem pendente.</p>
                         {% endfor %}
                     </div>
-                    <div class="mt-auto p-3 bg-gray-200 border-t border-gray-300">
-                        <h4 class="font-bold text-md text-right text-slate-700">
-                            Custo Total: R$ {{ viagens|selectattr('status', 'equalto', 'pendente')|sum(attribute='custo', start=0) }}
-                        </h4>
                     </div>
-                </div>
 
                 <div class="dashboard-section" style="--index: 2">
                     <div class="dashboard-section-header">Em Andamento</div>
@@ -456,12 +451,7 @@
                             <p class="text-sm text-gray-500 text-center py-4">Nenhuma viagem em andamento.</p>
                         {% endfor %}
                     </div>
-                    <div class="mt-auto p-3 bg-gray-200 border-t border-gray-300">
-                        <h4 class="font-bold text-md text-right text-slate-700">
-                            Custo Total: R$ {{ viagens|selectattr('status', 'equalto', 'em_andamento')|sum(attribute='custo', start=0) }}
-                        </h4>
                     </div>
-                </div>
 
                 <div class="dashboard-section" style="--index: 3">
                     <div class="dashboard-section-header">Concluídas</div>
@@ -483,12 +473,7 @@
                             <p class="text-sm text-gray-500 text-center py-4">Nenhuma carga concluída.</p>
                         {% endfor %}
                     </div>
-                    <div class="mt-auto p-3 bg-green-100 border-t border-green-300">
-                        <h4 class="font-bold text-md text-right text-green-800">
-                            Custo Total: R$ {{ viagens|selectattr('status', 'equalto', 'concluida')|sum(attribute='custo', start=0) }}
-                        </h4>
                     </div>
-                </div>
 
                 <div class="dashboard-section" style="--index: 4">
                     <div class="dashboard-section-header">Canceladas</div>
@@ -509,12 +494,7 @@
                             <p class="text-sm text-gray-500 text-center py-4">Nenhuma viagem cancelada.</p>
                         {% endfor %}
                     </div>
-                    <div class="mt-auto p-3 bg-red-100 border-t border-red-300">
-                        <h4 class="font-bold text-md text-right text-red-800">
-                            Custo Total: R$ {{ viagens|selectattr('status', 'equalto', 'cancelada')|sum(attribute='custo', start=0) }}
-                        </h4>
                     </div>
-                </div>
             </div>
 
             <div class="mt-6 print-hide">
