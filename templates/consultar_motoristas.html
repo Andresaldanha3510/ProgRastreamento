@@ -127,13 +127,13 @@
                 <td data-label="Nome" class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{
                     motorista.nome }}</td>
                 <td data-label="Data Nasc." class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{
-                    motorista.data_nascimento.strftime('%d/%m/%Y') }}</td>
+                    motorista.data_nascimento.strftime('%d/%m/%Y') if motorista.data_nascimento else 'Não informado' }}</td>
                 <td data-label="CPF/CNPJ" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{
                     motorista.cpf_cnpj }}</td>
                 <td data-label="Telefone" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{
                     motorista.telefone }}</td>
                 <td data-label="Telefone" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{
-                    motorista.validade_cnh }}</td>
+                    motorista.validade_cnh.strftime('%d/%m/%Y') if motorista.validade_cnh else 'Não informado' }}</td>
                 <td data-label="Telefone" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">Inativo/Ativo</td>
                 <td data-label="Ações" class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div class="flex items-center gap-4 justify-start">
