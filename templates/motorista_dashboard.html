@@ -138,6 +138,41 @@
 {{ super() }}
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 <script>
+// --- [NOVO] LÓGICA DE REGISTRO DO PWA E SERVICE WORKER ---
+// Esta função será chamada quando a página carregar para registrar o PWA.
+async function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        try {
+            // Tenta registrar o arquivo sw.js. Usamos "/sw.js" porque o movemos para a raiz.
+            const registration = await navigator.serviceWorker.register("/sw.js", { scope: '/' });
+            console.log('Service Worker registrado com sucesso:', registration);
+
+            // Tenta ativar a sincronização em segundo plano para localização
+            if ('periodicSync' in registration) {
+                const status = await navigator.permissions.query({name: 'periodic-background-sync'});
+                if (status.state === 'granted') {
+                    // Se a permissão já existe, registra a tarefa
+                    await registration.periodicSync.register('get-location-updates', {
+                        minInterval: 30 * 60 * 1000, // 30 minutos
+                    });
+                } else {
+                    // Se não tiver permissão, mostra a mensagem que vimos antes
+                    showToast('Para rastreamento em 2º plano, instale o app na tela inicial.', 'info');
+                }
+            }
+        } catch (error) {
+            console.error('Falha ao registrar o Service Worker:', error);
+        }
+    }
+}
+// Adicionamos um listener para chamar a função de registro assim que a página carregar.
+window.addEventListener('load', () => {
+    registerServiceWorker();
+});
+// --- [FIM DA ADIÇÃO DO PWA] ---
+
+
+// --- SEU CÓDIGO EXISTENTE CONTINUA ABAIXO, INTACTO ---
 const viagemAtivaId = {{ viagem_ativa.id if viagem_ativa else 'null' }};
 
 document.addEventListener('DOMContentLoaded', function() {

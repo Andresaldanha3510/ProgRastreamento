@@ -290,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (locationInterval) clearInterval(locationInterval);
                 console.log("MAPA: Iniciando loop de atualização (polling) a cada 5 segundos.");
-                locationInterval = setInterval(() => fetchAndUpdateLocation(viagemId), 5000);
+                locationInterval = setInterval(() => fetchAndUpdateLocation(viagemId), 600000);
             }, 200);
         });
     });

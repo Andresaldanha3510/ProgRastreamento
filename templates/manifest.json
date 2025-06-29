@@ -1,0 +1,22 @@
+{
+  "name": "TrackGo - Dashboard do Motorista",
+  "short_name": "TrackGo",
+  "description": "Dashboard para motoristas acompanharem suas viagens e despesas.",
+  "start_url": "/motorista_dashboard",
+  "display": "standalone",
+  "background_color": "#1e293b",
+  "theme_color": "#4A773C",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/images/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/static/images/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
