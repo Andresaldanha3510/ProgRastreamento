@@ -102,6 +102,19 @@ class Motorista(db.Model):
     usuario = db.relationship('Usuario', backref='motorista', uselist=False)
     viagens = db.relationship('Viagem', backref='motorista_formal')
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nome': self.nome,
+            'data_nascimento': self.data_nascimento.isoformat() if self.data_nascimento else None,
+            'cpf_cnpj': self.cpf_cnpj,
+            'telefone': self.telefone,
+            'endereco': self.endereco,
+            'cnh': self.cnh,
+            'validade_cnh': self.validade_cnh.isoformat() if self.validade_cnh else None,
+            'anexos': self.anexos,
+        }
+
 class Licenca(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     
@@ -1897,6 +1910,9 @@ def iniciar_viagem():
         }
         viagens_data.append(viagem_dict)
     return render_template('iniciar_viagem.html', motoristas=motoristas, veiculos=veiculos, viagens=viagens_data, Maps_API_KEY=Maps_API_KEY)
+
+
+
 
 @app.route('/editar_viagem/<int:viagem_id>', methods=['GET', 'POST'])
 def editar_viagem(viagem_id):
