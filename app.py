@@ -292,7 +292,7 @@ class CustoViagem(db.Model):
     descricao_outros = db.Column(db.String(300), nullable=True)
     anexos = db.Column(db.String(500), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    viagem = db.relationship('Viagem', backref=db.backref('custo_viagem', uselist=False))
+    viagem = db.relationship('Viagem', backref=db.backref('custo_viagem', uselist=False, cascade="all, delete-orphan"))
 
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1761,6 +1761,7 @@ def excluir_veiculo(veiculo_id):
     return redirect(url_for('consultar_veiculos'))
 
 @app.route('/iniciar_viagem', methods=['GET', 'POST'])
+@login_required
 def iniciar_viagem():
     if request.method == 'POST':
         try:
@@ -1796,6 +1797,15 @@ def iniciar_viagem():
                 flash('Erro: Veículo já está em viagem.', 'error')
                 return redirect(url_for('iniciar_viagem'))
 
+            # --- INÍCIO DA CORREÇÃO ---
+            # Busca o objeto do motorista para garantir que ele exista e para obter o CPF/CNPJ.
+            motorista_selecionado = Motorista.query.get(motorista_id)
+            if not motorista_selecionado:
+                flash('Erro: Motorista selecionado não encontrado no banco de dados.', 'error')
+                return redirect(url_for('iniciar_viagem'))
+            cpf_cnpj_motorista = motorista_selecionado.cpf_cnpj
+            # --- FIM DA CORREÇÃO ---
+
             enderecos = [endereco_saida] + enderecos_destino
             for endereco in enderecos:
                 if not validar_endereco(endereco):
@@ -1809,6 +1819,7 @@ def iniciar_viagem():
 
             viagem = Viagem(
                 motorista_id=motorista_id,
+                motorista_cpf_cnpj=cpf_cnpj_motorista,  # <-- Campo agora preenchido
                 veiculo_id=veiculo_id,
                 cliente=cliente,
                 endereco_saida=endereco_saida,
@@ -1841,6 +1852,7 @@ def iniciar_viagem():
             flash(f'Erro ao iniciar viagem: {str(e)}', 'error')
             return redirect(url_for('iniciar_viagem'))
 
+    # Esta parte (requisição GET) permanece exatamente como estava.
     motoristas = Motorista.query.all()
     veiculos = Veiculo.query.filter_by(disponivel=True).all()
     viagens = Viagem.query.filter_by(data_fim=None).order_by(Viagem.data_inicio.desc()).all()
