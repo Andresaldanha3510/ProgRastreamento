@@ -1,7 +1,7 @@
 import eventlet
 eventlet.monkey_patch()
 
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, make_response, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime, timedelta
@@ -26,6 +26,7 @@ from sqlalchemy import UniqueConstraint
 from num2words import num2words
 from collections import defaultdict
 from flask_socketio import SocketIO, emit, join_room, leave_room
+
 
 
 # ---- Configurações Iniciais ----
@@ -503,6 +504,8 @@ def cadastrar_cliente():
     return render_template('cadastrar_cliente.html', active_page='cadastrar_cliente')
 
 
+
+
 from sqlalchemy import or_ 
 @app.route('/api/clientes/search')
 @login_required
@@ -601,6 +604,8 @@ def registrar_abastecimento():
         db.session.rollback()
         logger.error(f"Erro ao registrar abastecimento: {e}", exc_info=True)
         return jsonify({'success': False, 'message': f'Erro interno: {e}'}), 500
+    
+
     
 
 @app.route('/consultar_clientes')
@@ -3402,6 +3407,18 @@ def handle_location_update(data):
         logger.info("--- PONTO 4: Emissão concluída.")
     except Exception as e:
         logger.error(f"Erro no evento de localização: {e}", exc_info=True)
+
+@app.route('/manifest.json')
+def manifest():
+    return send_from_directory('templates', 'manifest.json')
+
+# Rota para servir o sw.js a partir da raiz do projeto
+@app.route('/sw.js')
+def service_worker():
+    response = make_response(send_from_directory('.', 'sw.js'))
+    response.headers['Content-Type'] = 'application/javascript'
+    return response
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
