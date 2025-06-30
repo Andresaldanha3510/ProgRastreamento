@@ -1,14 +1,8 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastrar Cliente</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+{% extends 'base.html' %}
+
+{% block title %}Cadastrar Cliente - TrackGo{% endblock %}
+
+{% block styles %}
     <style>
         /* Seu CSS existente vai aqui... */
         body { background: white; background-attachment: fixed; color: #1e293b; font-family: 'Inter', sans-serif; overflow-x: hidden; padding-top: 100px; }
@@ -33,22 +27,11 @@
         @media (max-width: 480px) { header.navbar { padding: 0 0.5rem; } .img-logo img { height: 45px; width: 45px; } div.main-content { padding: 1rem; } a.user-icon { font-size: 1.2rem; } div#sidebar { width: 90%; max-width: 280px; } }
 
     </style>
-</head>
-<body class="bg-gray-100">
+{% endblock %}
 
-    <header class="navbar">
-        <button id="menu-toggle" class="md:hidden text-white focus:outline-none"><i class="fas fa-bars"></i></button>
-        <div class="brand-section"><div class="img-logo"><a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='brasão.png') }}" alt="Logo TrackGo"></a></div><div class="name-tag"><h1>TrackGo</h1></div></div>
-        <div class="flex items-center gap-4 text-white"><span class="hidden text-sm sm:inline">Olá, {{ current_user.nome or current_user.email }}</span><a href="{{ url_for('configuracoes') }}" class="user-icon" title="Configurações"><i class="fas fa-user-cog"></i></a><a href="{{ url_for('logout') }}" class="user-icon" title="Sair"><i class="fas fa-sign-out-alt"></i></a></div>
-    </header>
 
-    <div class="flex h-screen">
-        <div id="sidebar" class="sidebar">
-            <h1 class="text-2xl font-bold mb-8 text-center text-white">Menu</h1>
-            <ul><li class="mb-4"><a href="{{ url_for('cadastrar_cliente') }}" class="{% if active_page == 'cadastrar_cliente' %}active{% endif %}" ><i class="fas fa-user-tie"></i> Cadastrar Cliente</a></li><li class="mb-4"><a href="{{ url_for('consultar_clientes') }}" class="{% if active_page == 'consultar_clientes' %}active{% endif %}"><i class="fas fa-search-dollar"></i> Consultar Clientes</a></li><hr class="border-gray-500 my-4"><li class="mb-4"><a href="{{ url_for('cadastrar_motorista') }}" class="{% if active_page == 'cadastrar_motorista' %}active{% endif %}" ><i class="fas fa-user"></i> Cadastrar Motorista</a></li><li class="mb-4"><a href="{{ url_for('cadastrar_veiculo') }}" class="{% if active_page == 'cadastrar_veiculo' %}active{% endif %}"><i class="fas fa-truck"></i> Cadastrar Veículo</a></li><li class="mb-4"><a href="{{ url_for('iniciar_viagem') }}" class="{% if active_page == 'iniciar_viagem' %}active{% endif %}"><i class="fas fa-route"></i> Iniciar Viagem</a></li><li class="mb-4"><a href="{{ url_for('consultar_viagens') }}" class="{% if active_page == 'consultar_viagens' %}active{% endif %}"><i class="fas fa-search"></i> Consultar Viagens</a></li><li class="mb-4"><a href="{{ url_for('consultar_motoristas') }}" class="{% if active_page == 'consultar_motoristas' %}active{% endif %}"><i class="fas fa-users"></i> Consultar Motoristas</a></li><li class="mb-4"><a href="{{ url_for('consultar_veiculos') }}" class="{% if active_page == 'consultar_veiculos' %}active{% endif %}"><i class="fas fa-truck-loading"></i> Consultar Veículos</a></li><li class="mb-4"><a href="{{ url_for('relatorios') }}" class="{% if active_page == 'relatorios' %}active{% endif %}"><i class="fas fa-chart-bar"></i> Relatórios</a></li></ul>
-        </div>  
+{% block content %}
 
-        <div class="container md:ml-60 transition-all duration-300 mt-6 p-4 md:p-6">
             <h1 class="text-2xl font-bold mb-4">Cadastrar Cliente</h1>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -147,13 +130,12 @@
             </form>
         </div>
     </div>
+{% endblock %}
+
+
+{% block scripts %}    
 
 <script type="text/javascript">
-    // Script da sidebar (sem alterações)
-    const sidebar = document.getElementById('sidebar');
-    const menuToggle = document.getElementById('menu-toggle');
-    if (menuToggle) { menuToggle.addEventListener('click', () => sidebar && sidebar.classList.toggle('open')); }
-    // ... (resto do seu script da sidebar pode continuar aqui)
 
     // Scripts do formulário
     document.addEventListener('DOMContentLoaded', function() {
@@ -256,5 +238,4 @@
         });
     });
 </script>
-</body>
-</html>
+{% endblock %}
