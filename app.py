@@ -103,16 +103,17 @@ class Motorista(db.Model):
     viagens = db.relationship('Viagem', backref='motorista_formal')
 
     def to_dict(self):
+        """Converte o objeto Motorista para um dicionário."""
         return {
             'id': self.id,
             'nome': self.nome,
             'data_nascimento': self.data_nascimento.isoformat() if self.data_nascimento else None,
+            'endereco': self.endereco,
             'cpf_cnpj': self.cpf_cnpj,
             'telefone': self.telefone,
-            'endereco': self.endereco,
             'cnh': self.cnh,
             'validade_cnh': self.validade_cnh.isoformat() if self.validade_cnh else None,
-            'anexos': self.anexos,
+            'anexos': self.anexos.split(',') if self.anexos else []
         }
 
 class Licenca(db.Model):
@@ -242,6 +243,20 @@ class Veiculo(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     viagens = db.relationship('Viagem', backref='veiculo')
 
+    def to_dict(self):
+        """Converte o objeto Veiculo para um dicionário."""
+        return {
+            'id': self.id,
+            'placa': self.placa,
+            'categoria': self.categoria,
+            'modelo': self.modelo,
+            'ano': self.ano,
+            'valor': self.valor,
+            'km_rodados': self.km_rodados,
+            'ultima_manutencao': self.ultima_manutencao.isoformat() if self.ultima_manutencao else None,
+            'disponivel': self.disponivel
+        }
+
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 
@@ -305,7 +320,7 @@ class CustoViagem(db.Model):
     descricao_outros = db.Column(db.String(300), nullable=True)
     anexos = db.Column(db.String(500), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    viagem = db.relationship('Viagem', backref=db.backref('custo_viagem', uselist=False, cascade="all, delete-orphan"))
+    viagem = db.relationship('Viagem', backref=db.backref('custo_viagem', uselist=False))
 
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -522,12 +537,12 @@ def cadastrar_cliente():
 from sqlalchemy import or_ 
 @app.route('/api/clientes/search')
 @login_required
-def search_clientes():
+def search_clientes_simplificado():
     search_term = request.args.get('term', '')
     if not search_term or len(search_term) < 2:
         return jsonify([])
 
-  
+    # 1. Busca no banco de dados. Esta é a única filtragem necessária.
     clientes = Cliente.query.filter(
         or_(
             Cliente.nome_razao_social.ilike(f'%{search_term}%'),
@@ -535,20 +550,26 @@ def search_clientes():
         )
     ).limit(10).all()
 
-   
-    results = []
-    search_term_lower = search_term.lower()
-
+    # 2. Apenas coleta os nomes dos resultados encontrados, sem verificações extras.
+    # O uso de 'set' garante que não haverá nomes duplicados.
+    resultados = set()
     for cliente in clientes:
-        
-        if cliente.nome_razao_social and search_term_lower in cliente.nome_razao_social.lower():
-            results.append(cliente.nome_razao_social)
-        
-       
-        if cliente.nome_fantasia and search_term_lower in cliente.nome_fantasia.lower() and cliente.nome_fantasia not in results:
-            results.append(cliente.nome_fantasia)
+        resultados.add(cliente.nome_razao_social)
+        if cliente.nome_fantasia:
+            # Adiciona o nome fantasia também, se existir e for diferente.
+            resultados.add(cliente.nome_fantasia)
     
-    return jsonify(results)
+    # 3. Converte para lista e retorna o JSON para a página.
+    return jsonify(list(resultados))
+
+@app.route('/viagem/<int:viagem_id>/despesas_form')
+@login_required
+def despesas_form_modal(viagem_id):
+    """Renderiza o formulário de despesas para ser carregado no modal."""
+    viagem = Viagem.query.get_or_404(viagem_id)
+    custo = CustoViagem.query.filter_by(viagem_id=viagem_id).first()
+    # Renderiza o NOVO template que criamos
+    return render_template('despesas_form_modal.html', viagem=viagem, custo=custo)
 
 @app.route('/registrar_abastecimento', methods=['POST'])
 @login_required
@@ -702,7 +723,7 @@ def registrar_com_token(token):
                     cpf_cnpj=cpf_cnpj,
                     rg=None,
                     telefone=usuario.telefone or "00000000000",
-                    cnh=f"0000000000{str(uuid.uuid4().hex[:5])}",
+                    cnh = ''.join(filter(str.isdigit, str(uuid.uuid4().int)))[:11],
                     validade_cnh=datetime.utcnow().date() + timedelta(days=365*5),
                     usuario_id=usuario.id
                 )
@@ -740,56 +761,76 @@ def get_coordinates(endereco):
 @login_required
 @master_required
 def enviar_convite():
+    # 1. Verifica se o usuário está vinculado a uma empresa
+    if not current_user.empresa_id:
+        flash('Você precisa estar vinculado a uma empresa para enviar convites.', 'error')
+        return redirect(url_for('configuracoes'))
+
     empresa_admin = current_user.empresa
-    if empresa_admin and empresa_admin.licenca:
+    if not empresa_admin:
+        flash('Empresa não encontrada para o usuário atual.', 'error')
+        return redirect(url_for('configuracoes'))
+
+    # 2. Verifica se a empresa tem licença válida e disponível
+    if empresa_admin.licenca:
         usuarios_atuais = len(empresa_admin.usuarios)
         max_permitido = empresa_admin.licenca.max_usuarios
         if usuarios_atuais >= max_permitido:
-            flash(f'Não é possível enviar o convite. Sua empresa atingiu o limite de {max_permitido} usuários do seu plano.', 'error')
+            flash(f'Limite de usuários atingido ({max_permitido}) para o plano da sua empresa.', 'error')
             return redirect(url_for('configuracoes'))
 
+    # 3. Coleta e valida dados do formulário
     email = request.form.get('email')
     role = request.form.get('role')
-    
+
     if not email or not role:
         flash('E-mail e papel são obrigatórios.', 'error')
         return redirect(url_for('configuracoes'))
-    
-    if current_user.role == 'Master' and role != 'Motorista':
-        flash('Usuários do tipo Master podem convidar apenas Motoristas.', 'error')
-        return redirect(url_for('configuracoes'))
-    
-    if role not in ['Motorista', 'Master']:
-        flash('Papel inválido.', 'error')
+
+    # 4. Restringe os papéis que podem ser atribuídos
+    papeis_permitidos = ['Motorista', 'Master', 'Admin']
+    if role not in papeis_permitidos:
+        flash('Papel inválido. Escolha entre Motorista, Master ou Admin.', 'error')
         return redirect(url_for('configuracoes'))
 
+    # 5. Verifica se o usuário atual tem permissão para o tipo de convite
+    if current_user.role == 'Master' and role != 'Motorista':
+        flash('Usuários do tipo Master só podem convidar Motoristas.', 'error')
+        return redirect(url_for('configuracoes'))
+
+    # 6. Cria o convite com validade de 3 dias
     token = str(uuid.uuid4())
     data_expiracao = datetime.utcnow() + timedelta(days=3)
 
     convite = Convite(
-        email=email, 
-        token=token, 
-        criado_por=current_user.id, 
-        data_expiracao=data_expiracao, 
+        email=email,
+        token=token,
+        criado_por=current_user.id,
+        data_expiracao=data_expiracao,
         role=role,
         empresa_id=current_user.empresa_id
     )
-    db.session.add(convite)
-    db.session.commit()
 
-    link_convite = url_for('registrar_com_token', token=token, _external=True)
-    msg = Message(
-        subject=f'Convite para acessar o sistema como {role}',
-        recipients=[email],
-        body=f'Você foi convidado a se registrar no sistema como {role}. Clique no link abaixo:\n{link_convite}'
-    )
     try:
+        db.session.add(convite)
+        db.session.commit()
+
+        # 7. Envia o e-mail
+        link_convite = url_for('registrar_com_token', token=token, _external=True)
+        msg = Message(
+            subject=f'Convite para acessar o sistema como {role}',
+            recipients=[email],
+            body=f'Você foi convidado a se registrar no sistema como {role}.\nClique no link abaixo para se cadastrar:\n\n{link_convite}'
+        )
         mail.send(msg)
-        flash(f'Convite enviado para {email} como {role}!', 'success')
+
+        flash(f'Convite enviado com sucesso para {email} como {role}!', 'success')
     except Exception as e:
-        flash(f'Erro ao enviar o e-mail: {str(e)}', 'error')
+        db.session.rollback()
+        flash(f'Erro ao enviar convite: {str(e)}', 'error')
 
     return redirect(url_for('configuracoes'))
+
 
 def validar_endereco(endereco):
     url = 'https://maps.googleapis.com/maps/api/geocode/json'
@@ -1774,7 +1815,6 @@ def excluir_veiculo(veiculo_id):
     return redirect(url_for('consultar_veiculos'))
 
 @app.route('/iniciar_viagem', methods=['GET', 'POST'])
-@login_required
 def iniciar_viagem():
     if request.method == 'POST':
         try:
@@ -1810,15 +1850,6 @@ def iniciar_viagem():
                 flash('Erro: Veículo já está em viagem.', 'error')
                 return redirect(url_for('iniciar_viagem'))
 
-            # --- INÍCIO DA CORREÇÃO ---
-            # Busca o objeto do motorista para garantir que ele exista e para obter o CPF/CNPJ.
-            motorista_selecionado = Motorista.query.get(motorista_id)
-            if not motorista_selecionado:
-                flash('Erro: Motorista selecionado não encontrado no banco de dados.', 'error')
-                return redirect(url_for('iniciar_viagem'))
-            cpf_cnpj_motorista = motorista_selecionado.cpf_cnpj
-            # --- FIM DA CORREÇÃO ---
-
             enderecos = [endereco_saida] + enderecos_destino
             for endereco in enderecos:
                 if not validar_endereco(endereco):
@@ -1832,7 +1863,6 @@ def iniciar_viagem():
 
             viagem = Viagem(
                 motorista_id=motorista_id,
-                motorista_cpf_cnpj=cpf_cnpj_motorista,  # <-- Campo agora preenchido
                 veiculo_id=veiculo_id,
                 cliente=cliente,
                 endereco_saida=endereco_saida,
@@ -1865,7 +1895,6 @@ def iniciar_viagem():
             flash(f'Erro ao iniciar viagem: {str(e)}', 'error')
             return redirect(url_for('iniciar_viagem'))
 
-    # Esta parte (requisição GET) permanece exatamente como estava.
     motoristas = Motorista.query.all()
     veiculos = Veiculo.query.filter_by(disponivel=True).all()
     viagens = Viagem.query.filter_by(data_fim=None).order_by(Viagem.data_inicio.desc()).all()
@@ -1910,9 +1939,6 @@ def iniciar_viagem():
         }
         viagens_data.append(viagem_dict)
     return render_template('iniciar_viagem.html', motoristas=motoristas, veiculos=veiculos, viagens=viagens_data, Maps_API_KEY=Maps_API_KEY)
-
-
-
 
 @app.route('/editar_viagem/<int:viagem_id>', methods=['GET', 'POST'])
 def editar_viagem(viagem_id):
