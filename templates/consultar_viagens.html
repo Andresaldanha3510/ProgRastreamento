@@ -5,9 +5,8 @@
 {% block styles %}
 <style>
     .container-viagens {
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 0 1rem;
+        margin: 0;
+        padding: 0;
     }
     h1.page-title {
         font-size: 1.75rem;
@@ -122,11 +121,61 @@
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); animation: fadeIn 0.3s ease;
     }
     .modal-content.mapa { max-width: 800px; }
+    .modal-content.despesas { max-width: 700px; }
     @keyframes fadeIn {
         from { opacity: 0; transform: scale(0.95); }
         to { opacity: 1; transform: scale(1); }
     }
     .modal-buttons { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; }
+
+    /* --- NOVAS REGRAS PARA RESPONSIVIDADE DA TABELA --- */
+    @media screen and (max-width: 992px) {
+        .table-container {
+            box-shadow: none;
+            background-color: transparent;
+        }
+        table {
+            border: 0;
+            box-shadow: none;
+        }
+        table thead {
+            display: none; /* Esconde os cabeçalhos da tabela */
+        }
+        table tr {
+            display: block; /* Transforma cada linha em um bloco (card) */
+            margin-bottom: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 0.5rem;
+            background-color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        table td {
+            display: block; /* Células viram blocos */
+            text-align: right; /* Alinha o conteúdo à direita */
+            padding-left: 50%; /* Espaço para o "label" */
+            position: relative;
+            border-bottom: 1px dotted #e5e7eb;
+        }
+        table td:last-child {
+            border-bottom: 0;
+        }
+        table td::before {
+            content: attr(data-label); /* Pega o texto do atributo data-label */
+            position: absolute;
+            left: 1rem;
+            text-align: left;
+            font-weight: bold;
+            color: #374151;
+        }
+        /* Estilo específico para a célula de ações */
+        td[data-label="Ações"] .action-buttons {
+            justify-content: flex-end; /* Alinha os botões à direita */
+        }
+        td[data-label="Custo"], td[data-label="Status"] {
+            text-align: right;
+            padding-right: 1rem;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -166,15 +215,15 @@
             <tbody>
                 {% for viagem in viagens %}
                 <tr>
-                    <td>{{ viagem.id }}</td>
-                    <td>{{ viagem.motorista_nome or 'N/A' }}</td>
-                    <td>{{ viagem.veiculo.placa }}</td>
-                    <td>{{ viagem.cliente }}</td>
-                    <td>{{ viagem.endereco_saida }}</td>
-                    <td>{{ viagem.endereco_destino }}</td>
-                    <td>{{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</td>
-                    <td>{{ viagem.data_fim.strftime('%d/%m/%Y %H:%M') if viagem.data_fim else 'Em andamento' }}</td>
-                    <td>
+                    <td data-label="ID">{{ viagem.id }}</td>
+                    <td data-label="Motorista">{{ viagem.motorista_nome or 'N/A' }}</td>
+                    <td data-label="Veículo">{{ viagem.veiculo.placa }}</td>
+                    <td data-label="Cliente">{{ viagem.cliente }}</td>
+                    <td data-label="Saída">{{ viagem.endereco_saida }}</td>
+                    <td data-label="Destino">{{ viagem.endereco_destino }}</td>
+                    <td data-label="Início">{{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td data-label="Fim">{{ viagem.data_fim.strftime('%d/%m/%Y %H:%M') if viagem.data_fim else 'Em andamento' }}</td>
+                    <td data-label="Status">
                         <select class="status-select" data-viagem-id="{{ viagem.id }}" onchange="atualizarStatus(this)">
                             <option value="pendente" {% if viagem.status == 'pendente' %}selected{% endif %}>Pendente</option>
                             <option value="em_andamento" {% if viagem.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
@@ -182,12 +231,12 @@
                             <option value="cancelada" {% if viagem.status == 'cancelada' %}selected{% endif %}>Cancelada</option>
                         </select>
                     </td>
-                    <td>
+                    <td data-label="Custo">
                         <button id="custo-viagem-{{ viagem.id }}" class="text-blue-600 hover:underline font-medium" onclick="abrirModalAtribuirDespesa({{ viagem.id }})">
                             R$ {{ "%.2f"|format(viagem.custo)|replace('.', ',') if viagem.custo else '0,00' }}
                         </button>
                     </td>
-                    <td>
+                    <td data-label="Ações">
                         <div class="action-buttons">
                             {% if viagem.status == 'em_andamento' %}
                                 <button class="btn btn-info btn-small track-btn" title="Rastrear Viagem" data-viagem-id="{{ viagem.id }}">
@@ -211,12 +260,12 @@
 
     <div id="atribuirDespesaModal" class="modal">
         <div class="modal-content despesas">
-        </div>
+            </div>
     </div>
 
     <div id="mapModal" class="modal">
         <div class="modal-content mapa">
-            <h2 id="mapModalTitle"><i class="fas fa-truck"></i> Rastreamento em Tempo Real</h2>
+            <h2 id="mapModalTitle" class="text-xl font-bold"><i class="fas fa-truck"></i> Rastreamento em Tempo Real</h2>
             <div id="map" style="height: 500px; width: 100%; border-radius: 0.5rem; margin-top: 1rem;"></div>
             <div class="modal-buttons">
                 <button id="closeMapBtn" type="button" class="btn btn-secondary"><i class="fas fa-times"></i> Fechar</button>
@@ -229,14 +278,111 @@
 {% block scripts %}
 {{ super() }}
 <script>
+// ----- CORREÇÃO APLICADA AQUI -----
+// Variável e funções que precisam ser acessadas globalmente (pelo 'onclick' no HTML)
+// são definidas aqui, fora do 'DOMContentLoaded'.
+let locationInterval = null;
+
+function closeModal(modalId) {
+    if (modalId === 'mapModal' && locationInterval) {
+        clearInterval(locationInterval);
+        locationInterval = null;
+    }
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+async function abrirModalAtribuirDespesa(viagemId) {
+    const modal = document.getElementById('atribuirDespesaModal');
+    const contentDiv = modal.querySelector('.modal-content.despesas');
+    contentDiv.innerHTML = '<p>Carregando formulário...</p>';
+    modal.style.display = 'flex';
+    try {
+        const response = await fetch(`/viagem/${viagemId}/despesas_form`);
+        if (!response.ok) throw new Error('Falha ao carregar o formulário de despesas.');
+        contentDiv.innerHTML = await response.text();
+    } catch (error) {
+        contentDiv.innerHTML = `<p class="text-red-500">${error.message}</p>`;
+    }
+}
+
+async function salvarDespesas(event, viagemId) {
+    event.preventDefault();
+    const form = document.getElementById('form-despesas');
+    const formData = new FormData(form);
+    formData.append('viagem_id', viagemId);
+    try {
+        const response = await fetch("{{ url_for('salvar_custo_viagem') }}", { method: 'POST', body: formData });
+        const result = await response.json();
+        if (result.success) {
+            alert('Despesas salvas com sucesso!');
+            const custoButton = document.getElementById(`custo-viagem-${viagemId}`);
+            if (custoButton) custoButton.textContent = result.custo_total_formatado;
+            closeModal('atribuirDespesaModal');
+        } else {
+            throw new Error(result.message || 'Erro desconhecido ao salvar.');
+        }
+    } catch (error) {
+        alert(`Erro: ${error.message}`);
+    }
+}
+
+async function excluirAnexoCusto(anexoUrl, viagemId, elementId) {
+    if (!confirm('Tem certeza que deseja excluir este anexo?')) return;
+    try {
+        const response = await fetch("{{ url_for('excluir_anexo_custo') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ anexo_url: anexoUrl, viagem_id: viagemId })
+        });
+        const result = await response.json();
+        if (result.success) {
+            document.getElementById(elementId).remove();
+            alert('Anexo excluído.');
+        } else {
+            throw new Error(result.message);
+        }
+    } catch (error) {
+        alert(`Erro ao excluir anexo: ${error.message}`);
+    }
+}
+
+async function atualizarStatus(selectElement) {
+    const viagemId = selectElement.dataset.viagemId;
+    const novoStatus = selectElement.value;
+    const originalOption = selectElement.querySelector('option[selected]');
+    const originalStatus = originalOption ? originalOption.value : selectElement.options[0].value;
+
+    try {
+        const response = await fetch(`/atualizar_status_viagem/${viagemId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: novoStatus })
+        });
+        const result = await response.json();
+        if (result.success) {
+            alert('Status atualizado com sucesso!');
+            if (originalOption) originalOption.removeAttribute('selected');
+            selectElement.querySelector(`option[value="${novoStatus}"]`).setAttribute('selected', true);
+        } else {
+            throw new Error(result.message || 'Erro ao atualizar status.');
+        }
+    } catch (error) {
+        alert(error.message);
+        selectElement.value = originalStatus;
+    }
+}
+
+// O listener 'DOMContentLoaded' agora só contém o código que DEVE rodar
+// após o carregamento da página e que não precisa ser global.
 document.addEventListener('DOMContentLoaded', function() {
     let map;
     let truckMarker;
-    let locationInterval = null;
 
     function initMap(lat = -25.4284, lon = -49.2733) {
-        console.log("MAPA: Função initMap chamada. Criando o mapa...");
-        if (map) { map.remove(); }
+        if (map) map.remove();
         map = L.map('map').setView([lat, lon], 14);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -246,74 +392,51 @@ document.addEventListener('DOMContentLoaded', function() {
             iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -40]
         });
         truckMarker = L.marker([lat, lon], { icon: truckIcon }).addTo(map)
-            .bindPopup("Aguardando primeira localização...")
-            .openPopup();
-        console.log("MAPA: Mapa e marcador inicial criados.");
+            .bindPopup("Aguardando primeira localização...").openPopup();
     }
 
     async function fetchAndUpdateLocation(viagemId) {
-        console.log(`MAPA: Tentando buscar localização para viagem ${viagemId}...`);
         try {
             const response = await fetch(`/ultima_localizacao/${viagemId}`);
-            if (!response.ok) {
-                console.error(`MAPA: Erro na resposta da rede: ${response.statusText}`);
-                return;
-            }
+            if (!response.ok) throw new Error(`Erro na rede: ${response.statusText}`);
             const data = await response.json();
-            console.log("MAPA: Dados recebidos do servidor:", data);
-
             if (data.success && truckMarker) {
-                console.log("MAPA: SUCESSO! Atualizando o marcador no mapa.");
                 const newLatLng = L.latLng(data.latitude, data.longitude);
                 truckMarker.setLatLng(newLatLng);
-                map.panTo(newLatLng);
+                map.panTo(newLatLng, { animate: true });
                 truckMarker.setPopupContent(`<b>Endereço:</b> ${data.endereco || 'Buscando...'}<br><b>Atualizado:</b> ${new Date().toLocaleTimeString()}`).openPopup();
-            } else {
-                console.warn(`MAPA: O servidor respondeu, mas sem sucesso ou marcador não encontrado. Mensagem: ${data.message}`);
+            } else if (!data.success) {
+                console.warn(`Localização não encontrada: ${data.message}`);
             }
         } catch (error) {
-            console.error("MAPA: Erro crítico na função fetchAndUpdateLocation:", error);
+            console.error("Erro ao buscar localização:", error);
         }
     }
 
     document.querySelectorAll('.track-btn').forEach(button => {
         button.addEventListener('click', () => {
             const viagemId = button.dataset.viagemId;
-            console.log(`MAPA: Botão 'Rastrear' clicado para viagem ${viagemId}.`);
-            
             document.getElementById('mapModalTitle').innerHTML = `<i class="fas fa-truck"></i> Rastreamento da Viagem #${viagemId}`;
             document.getElementById('mapModal').style.display = 'flex';
-            
             setTimeout(() => {
                 initMap();
                 fetchAndUpdateLocation(viagemId);
-                
                 if (locationInterval) clearInterval(locationInterval);
-                console.log("MAPA: Iniciando loop de atualização (polling) a cada 5 segundos.");
-                locationInterval = setInterval(() => fetchAndUpdateLocation(viagemId), 600000);
-            }, 200);
+                locationInterval = setInterval(() => fetchAndUpdateLocation(viagemId), 15000);
+            }, 150);
         });
     });
 
-    function closeModal() {
-        if (locationInterval) {
-            console.log("MAPA: Modal fechado. Parando o loop de atualização.");
-            clearInterval(locationInterval);
-            locationInterval = null;
-        }
-        document.getElementById('mapModal').style.display = 'none';
-    }
-
-    document.getElementById('closeMapBtn').addEventListener('click', closeModal);
-    document.getElementById('mapModal').addEventListener('click', function(event) {
-        if (event.target === this) {
-            closeModal();
-        }
+    // Eventos para fechar os modais agora usam a função 'closeModal' que está no escopo global
+    document.getElementById('closeMapBtn').addEventListener('click', () => closeModal('mapModal'));
+    
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeModal(this.id);
+            }
+        });
     });
-
-    // Suas outras funções, como `atualizarStatus` e `abrirModalAtribuirDespesa`, continuam aqui
-    window.atualizarStatus = async function(selectElement) { /* ... */ };
-    window.abrirModalAtribuirDespesa = async function(viagemId) { /* ... */ };
 });
 </script>
 {% endblock %}

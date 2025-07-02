@@ -1,318 +1,168 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block title %}Cadastrar Motorista - TrackGo{% endblock %}
 
 {% block styles %}
 <style>
-        
-        body {
-            background: white;
-            background-attachment: fixed;
-            color: #1e293b; /* Cor de texto padrão para o body */
-            font-family: 'Inter', sans-serif;
-            overflow-x: hidden;
-            padding-top: 100px; /* Altura do header */
-        }
+    .form-container {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        margin: 0; /* Alinha o container ao lado do menu */
+    }
 
-        /* Estilo do cabeçalho (baseado no HTML original do usuário) */
-        header.navbar { /* Aplicando diretamente à tag header com classe navbar */
-            background: linear-gradient(135deg, #2e7d32, #2e7d32);
-            box-shadow: 0px 3px 6px rgb(10, 73, 10);
-            width: 100%;
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 30;
-            height: 100px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 2rem; /* Padding horizontal */
-        }
+    .form-container h1 {
+        text-align: center;
+    }
 
-        /* Botão de Menu Mobile (originalmente #menu-toggle) */
-        #menu-toggle {
-            background-color: transparent;
-            border: none;
-            color: white;
-            font-size: 1.8rem;
-            cursor: pointer;
-            padding: 10px; /* Área de clique */
-            border-radius: 50%;
-            transition: background-color 0.2s ease-in-out;
-        }
-        #menu-toggle:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        /* md:hidden é uma classe Tailwind, já controla o display */
+    .form-input, .form-select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
 
-        /* Contêiner para o logo e o nome */
-        .brand-section {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+    .form-input:focus, .form-select:focus {
+        outline: none;
+        border-color: #2e7d32;
+        box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+    }
 
-        .img-logo img {
-            height: 60px; /* Ajustado para caber no header */
-            width: 60px;
-            object-fit: contain;
-            border-radius: 8px;
-        }
+    .btn-submit {
+        background-color: #2563eb;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.375rem;
+        transition: background-color 0.3s;
+    }
+    .btn-submit:hover {
+        background-color: #1d4ed8;
+    }
 
-        .name-tag h1 {
-            color: white;
-            font-size: 1.25rem; /* Ajustado */
-            white-space: nowrap;
-        }
-
-        /* Ícone do Usuário (originalmente .user-icon) */
-        a.user-icon { /* Aplicando ao <a> com classe user-icon */
-            color: white; /* Para combinar com o header verde */
-            font-size: 1.5rem;
-            text-decoration: none;
-            transition: color 0.2s ease-in-out;
-        }
-        a.user-icon:hover {
-            color: #e0e0e0;
-        }
-
-        /* Estilos da Sidebar (originalmente div#sidebar) */
-        div#sidebar { /* Aplicando ao div com ID sidebar */
-            background-color: #2F3640;
-            box-shadow: 2px 0px 10px rgba(0, 0, 0, 0.3);
-            transition: transform 0.3s ease-in-out;
-            border-top-right-radius: 10px;
-            border-bottom-right-radius: 10px;
-            position: fixed;
-            top: 100px; /* Abaixo do header */
-            left: 0;
-            height: calc(100vh - 100px);
-            z-index: 20; /* Abaixo do header, mas acima do overlay se houver */
-            width: 14rem;
-            overflow-y: auto;
-            /* p-6 (padding: 1.5rem) é classe Tailwind, pode ser mantida no HTML ou adicionada aqui */
-            padding: 1.5rem;
-        }
-
-        div#sidebar h1 { /* Título dentro da sidebar */
-            color: #ffffff;
-            font-size: 1.5rem; /* text-2xl */
-            font-weight: bold;
-            margin-bottom: 2rem; /* mb-8 */
-            text-align: center;
-        }
-
-        div#sidebar ul li {
-            margin-bottom: 1rem; /* mb-4 */
-        }
-
-        div#sidebar ul li a {
-            color: white;
-            display: block;
-            padding: 10px 15px;
-            border-radius: 8px;
-            transition: background-color 0.2s ease-in-out;
-            display: flex;
-            align-items: center;
-            gap: 10px; /* Espaço entre ícone e texto */
-        }
-
-        div#sidebar ul li a:hover {
-            background-color: #2e8b57;
-        }
-        /*Adiciona a animação ao passar o mouse encima */
-        div#sidebar ul li a.active {
-            background-color: #2e8b57;
-            font-weight: 600;
-            box-shadow: inset 3px 0 0 0 #ffffff;
-        }
-        /*Evitar que o link ativo mude de cor ao passar o mouse */
-        div#sidebar ul li a:not(.active):hover {
-            background-color: #2e8b57;
-        }
-
-        div#sidebar ul li a i {
-            width: 20px; /* Para alinhar o texto mesmo que alguns itens não tenham ícone */
-            text-align: center;
-        }
-
-        /* Media Queries para responsividade */
-        @media (min-width: 769px) { /* Desktop */
-            div#sidebar {
-                transform: translateX(0);
-            }
-        }
-
-        @media (max-width: 768px) { /* Tablet e Mobile */
-            header.navbar {
-                padding: 0 1rem;
-            }
-            .brand-section {
-                /* Ocultar o nome da empresa no mobile para economizar espaço, se necessário */
-                 /* flex-grow: 1; /* Para centralizar logo se o nome sumir e houver botão de menu */
-            }
-            .name-tag h1 {
-                display: none; /* Esconde o nome da empresa em telas menores */
-            }
-            .img-logo img {
-                 height: 50px;
-                 width: 50px;
-            }
-            div#sidebar {
-                transform: translateX(-100%); /* Escondida por padrão */
-                width: 80%;
-                max-width: 260px; /* Levemente menor para não ocupar tanto */
-                z-index: 40; /* Acima do conteúdo principal quando aberta */
-            }
-            div#sidebar.open {
-                transform: translateX(0); /* Mostra a sidebar */
-            }
-            /* #menu-toggle (botão) é exibido por padrão abaixo de md (768px) */
-            div.main-content {
-                margin-left: 0;
-                padding: 1.5rem; /* Padding ajustado para mobile */
-            }
-            a.user-icon {
-                font-size: 1.3rem;
-            }
-        }
-        
-        @media (max-width: 480px) { /* Telas bem pequenas */
-            header.navbar {
-                padding: 0 0.5rem;
-            }
-            .img-logo img {
-                height: 45px; /* Ainda menor */
-                width: 45px;
-            }
-            div.main-content {
-                padding: 1rem;
-            }
-            a.user-icon {
-                font-size: 1.2rem;
-            }
-            div#sidebar {
-                width: 90%; /* Pode ser mais larga em telas muito pequenas */
-                max-width: 280px;
-            }
-        }
-
-    </style>
+    .btn-back {
+        background-color: #6b7280;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.375rem;
+        transition: background-color 0.3s;
+    }
+    .btn-back:hover {
+        background-color: #4b5563;
+    }
+</style>
 {% endblock %}
-
 
 {% block content %}
+<div class="form-container">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">Cadastrar Novo Motorista</h1>
 
-    <h1 class="text-2xl font-bold mb-4">Cadastrar Motorista</h1>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                {% for category, message in messages %}
-                    <p class="{{ 'text-red-700' if category == 'error' else 'text-green-700' }}">{{ message }}</p>
-                {% endfor %}
+    <form method="POST" enctype="multipart/form-data">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+            <div>
+                <div class="mb-4">
+                    <label for="nome" class="block text-gray-700 font-medium mb-2">Nome Completo</label>
+                    <input type="text" id="nome" name="nome" required class="form-input" placeholder="Digite o nome completo">
+                </div>
+                <div class="mb-4">
+                    <label for="data_nascimento" class="block text-gray-700 font-medium mb-2">Data de Nascimento</label>
+                    <input type="date" id="data_nascimento" name="data_nascimento" required class="form-input">
+                </div>
+                <div class="mb-4">
+                    <label for="endereco" class="block text-gray-700 font-medium mb-2">Endereço</label>
+                    <input type="text" id="endereco" name="endereco" required class="form-input" placeholder="Digite o endereço completo">
+                </div>
+                <div class="mb-4">
+                    <label for="telefone" class="block text-gray-700 font-medium mb-2">Telefone/WhatsApp</label>
+                    <input type="text" id="telefone" name="telefone" required class="form-input" placeholder="Apenas números (10 ou 11 dígitos)">
+                </div>
+                 <div class="mb-4">
+                    <label for="anexos" class="block text-gray-700 font-medium mb-2">Anexo de Arquivos</label>
+                    <input type="file" id="anexos" name="anexos" multiple accept=".pdf,.jpg,.jpeg,.png" class="form-input">
+                    <p class="text-sm text-gray-500 mt-1">Selecione um ou mais arquivos (PDF, JPG, PNG)</p>
+                </div>
             </div>
-        {% endif %}
-    {% endwith %}
 
-    <form method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded shadow-md">
-        <div class="mb-4">
-            <label class="block text-gray-700">Nome</label>
-            <input type="text" name="nome" required class="w-full p-2 border rounded" placeholder="Digite o nome completo">
+            <div>
+                <div class="mb-4">
+                    <label for="pessoa_tipo" class="block text-gray-700 font-medium mb-2">Pessoa Física ou Jurídica</label>
+                    <select id="pessoa_tipo" name="pessoa_tipo" required class="form-select">
+                        <option value="fisica">Pessoa Física</option>
+                        <option value="juridica">Pessoa Jurídica</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label id="cpf_cnpj_label" for="cpf_cnpj" class="block text-gray-700 font-medium mb-2">CPF</label>
+                    <input type="text" id="cpf_cnpj" name="cpf_cnpj" required class="form-input" placeholder="Digite o CPF (11 dígitos)">
+                </div>
+                <div class="mb-4">
+                    <label for="rg" class="block text-gray-700 font-medium mb-2">RG</label>
+                    <input type="text" id="rg" name="rg" class="form-input" placeholder="Digite o RG (até 9 dígitos)">
+                </div>
+                <div class="mb-4">
+                    <label for="cnh" class="block text-gray-700 font-medium mb-2">CNH</label>
+                    <input type="text" id="cnh" name="cnh" required class="form-input" placeholder="Digite a CNH (11 dígitos)">
+                </div>
+                <div class="mb-4">
+                    <label for="validade_cnh" class="block text-gray-700 font-medium mb-2">Validade da CNH</label>
+                    <input type="date" name="validade_cnh" id="validade_cnh" required class="form-input">
+                </div>
+            </div>
         </div>
-        <div class="mb-4">
-            <label class="block text-gray-700">Data de Nascimento</label>
-            <input type="date" name="data_nascimento" required class="w-full p-2 border rounded">
+        
+        <div class="mt-6 flex items-center justify-end gap-4">
+            <a href="{{ url_for('index') }}" class="btn-back">Voltar</a>
+            <button type="submit" class="btn-submit">Cadastrar</button>
         </div>
-        <div class="mb-4">
-            <label class="block text-gray-700">Endereço</label>
-            <input type="text" name="endereco" required class="w-full p-2 border rounded" placeholder="Digite o endereço completo">
-        </div>
-        <div class="mb-4">
-            <label class="block text-gray-700">Pessoa Física ou Jurídica</label>
-            <select id="pessoa_tipo" name="pessoa_tipo" required class="w-full p-2 border rounded">
-                <option value="fisica">Pessoa Física</option>
-                <option value="juridica">Pessoa Jurídica</option>
-            </select>
-        </div>
-        <div class="mb-4">
-            <label id="cpf_cnpj_label" class="block text-gray-700">CPF</label>
-            <input type="text" id="cpf_cnpj" name="cpf_cnpj" required class="w-full p-2 border rounded" pattern="\d{11}" placeholder="Digite o CPF (11 dígitos)" title="CPF deve ter 11 dígitos">
-        </div>
-        <div class="mb-4">
-            <label class="block text-gray-700">RG</label>
-            <input type="text" id="rg" name="rg" class="w-full p-2 border rounded" maxlength="9" placeholder="Digite o RG (máximo 9 dígitos)">
-        </div>
-        <div class="mb-4">
-            <label class="block text-gray-700">Telefone/WhatsApp</label>
-            <input type="text" id="telefone" name="telefone" required class="w-full p-2 border rounded" pattern="\d{10,11}" placeholder="Digite o telefone (10-11 dígitos)" title="Telefone deve ter 10 ou 11 dígitos">
-        </div>
-        <div class="mb-4">
-            <label class="block text-gray-700">CNH</label>
-            <input type="text" id="cnh" name="cnh" required class="w-full p-2 border rounded" pattern="\d{11}" placeholder="Digite a CNH (11 dígitos)" title="CNH deve ter 11 dígitos">
-        </div>
-        <div class="mb-4">
-            <label class="block text-gray-700">Validade da CNH</label>
-            <input type="date" name="validade_cnh" required class="w-full p-2 border rounded">
-        </div>
-        <div class="mb-4">
-            <label class="block text-gray-700">Anexo de Arquivos</label>
-            <input type="file" name="anexos" multiple accept=".pdf,.jpg,.jpeg,.png" class="w-full p-2 border rounded">
-            <p class="text-sm text-gray-500">Selecione arquivos (PDF, JPG, PNG)</p>
-        </div>
-        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Cadastrar</button>
-        <a href="{{ url_for('index') }}" class="bg-gray-500 text-white px-4 py-2 rounded ml-2">Voltar</a>
     </form>
-
+</div>
 {% endblock %}
 
-
 {% block scripts %}
-<script type="text/javascript">
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const pessoaTipo = document.getElementById('pessoa_tipo');
+    const cpfCnpjLabel = document.getElementById('cpf_cnpj_label');
+    const cpfCnpjInput = document.getElementById('cpf_cnpj');
+    const rgInput = document.getElementById('rg');
+    const cnhInput = document.getElementById('cnh');
+    const telefoneInput = document.getElementById('telefone');
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const pessoaTipo = document.getElementById('pessoa_tipo');
-        const cpfCnpjLabel = document.getElementById('cpf_cnpj_label');
-        const cpfCnpjInput = document.getElementById('cpf_cnpj');
+    function updateCpfCnpjField() {
+        if (pessoaTipo.value === 'fisica') {
+            cpfCnpjLabel.textContent = 'CPF';
+            cpfCnpjInput.placeholder = 'Digite o CPF (11 dígitos)';
+            cpfCnpjInput.pattern = '\\d{11}';
+            cpfCnpjInput.title = 'CPF deve conter 11 dígitos.';
+        } else {
+            cpfCnpjLabel.textContent = 'CNPJ';
+            cpfCnpjInput.placeholder = 'Digite o CNPJ (14 dígitos)';
+            cpfCnpjInput.pattern = '\\d{14}';
+            cpfCnpjInput.title = 'CNPJ deve conter 14 dígitos.';
+        }
+    }
 
-        pessoaTipo.addEventListener('change', function() {
-            if (pessoaTipo.value === 'fisica') {
-                cpfCnpjLabel.textContent = 'CPF';
-                cpfCnpjInput.placeholder = 'Digite o CPF (11 dígitos)';
-                cpfCnpjInput.pattern = '\\d{11}';
-                cpfCnpjInput.title = 'CPF deve ter 11 dígitos';
-            } else {
-                cpfCnpjLabel.textContent = 'CNPJ';
-                cpfCnpjInput.placeholder = 'Digite o CNPJ (14 dígitos)';
-                cpfCnpjInput.pattern = '\\d{14}';
-                cpfCnpjInput.title = 'CNPJ deve ter 14 dígitos';
+    function formatNumericInput(inputElement, maxLength) {
+        inputElement.addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, ''); // Remove non-digits
+            if (this.value.length > maxLength) {
+                this.value = this.value.slice(0, maxLength);
             }
         });
+    }
+    
+    // Initial setup
+    updateCpfCnpjField();
+    formatNumericInput(cpfCnpjInput, 14); // Max length for CNPJ
+    formatNumericInput(rgInput, 9);
+    formatNumericInput(cnhInput, 11);
+    formatNumericInput(telefoneInput, 11);
 
-        const telefoneInput = document.getElementById('telefone');
-        telefoneInput.addEventListener('input', function() {
-            this.value = this.value.replace(/\D/g, '');
-            if (this.value.length > 11) {
-                this.value = this.value.slice(0, 11);
-            }
-        });
 
-        const rgInput = document.getElementById('rg');
-        rgInput.addEventListener('input', function() {
-            this.value = this.value.replace(/\D/g, '');
-            if (this.value.length > 9) {
-                this.value = this.value.slice(0, 9);
-            }
-        });
-
-        const cnhInput = document.getElementById('cnh');
-        cnhInput.addEventListener('input', function() {
-            this.value = this.value.replace(/\D/g, '');
-            if (this.value.length > 11) {
-                this.value = this.value.slice(0, 11);
-            }
-        });
-    });
+    // Event listener for changes
+    pessoaTipo.addEventListener('change', updateCpfCnpjField);
+});
 </script>
 {% endblock %}

@@ -1,194 +1,198 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block title %}Consultar Veículos - TrackGo{% endblock %}
 
 {% block styles %}
-    {{ super() }}
-    <style>
-        /* ESTILOS PRESERVADOS: Mantidos para os modais e abas */
-        .modal { transition: opacity 0.3s ease; }
-        .tab-button.active {
-            border-bottom: 2px solid #2e7d32;
-            color: #2e7d32;
-            font-weight: 600;
-        }
-    </style>
+<style>
+    .main-container { margin: 0; padding: 0; }
+    /* Estilos de Botões e Forms */
+    .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1rem; border: none; border-radius: 0.375rem; font-weight: 500; cursor: pointer; transition: background-color 0.2s; }
+    .btn-blue { background-color: #2563eb; color: white; }
+    .btn-blue:hover { background-color: #1d4ed8; }
+    .btn-green { background-color: #16a34a; color: white; }
+    .btn-green:hover { background-color: #15803d; }
+    .btn-gray { background-color: #6b7280; color: white; }
+    .btn-gray:hover { background-color: #4b5563; }
+    .search-form input { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+    
+    /* Estilos do Modal e Abas */
+    .modal { transition: opacity 0.3s ease; }
+    .modal.hidden { display: none; }
+    .tab-button.active { border-bottom: 2px solid #2e7d32; color: #2e7d32; font-weight: 600; }
+    
+    /* Tabela Responsiva */
+    @media (max-width: 767px) {
+        .responsive-table thead { display: none; }
+        .responsive-table tbody, .responsive-table tr { display: block; }
+        .responsive-table tr { background: white; border: 1px solid #e2e8f0; border-radius: 0.5rem; margin-bottom: 1rem; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); padding: 0.5rem; }
+        .responsive-table td { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; text-align: right; }
+        .responsive-table td:not(:last-child) { border-bottom: 1px solid #f1f5f9; }
+        .responsive-table td::before { content: attr(data-label); font-weight: 600; text-align: left; margin-right: 1rem; color: #475569; }
+        .responsive-table td[data-label="Ações"] { justify-content: flex-end; }
+        .responsive-table td[data-label="Ações"]::before { content: none; }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-    <div class="container mx-auto p-6 transition-all duration-300">
-        <h1 class="text-2xl font-bold text-gray-800 mb-6">Consultar Veículos</h1>
+<div class="main-container">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Consultar Veículos</h1>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            <div class="mb-4">
-                {% for category, message in messages %}
-                <div class="p-4 rounded-lg text-white {% if category == 'error' %}bg-red-500{% elif category == 'success' %}bg-green-500{% else %}bg-blue-500{% endif %}">
-                    {{ message }}
-                </div>
+    <form method="GET" class="mb-6 flex flex-col sm:flex-row gap-3">
+        <input type="text" name="search" placeholder="Buscar por placa ou modelo" value="{{ search_query or '' }}" class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 flex-grow shadow-sm">
+        <button type="submit" class="btn btn-blue justify-center">Buscar</button>
+    </form>
+
+    <div class="md:bg-white md:shadow-lg md:rounded-lg md:overflow-hidden">
+        <table class="w-full responsive-table">
+            <thead class="bg-gray-50 hidden md:table-header-group">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Placa</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modelo</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km Rodados</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Disponível</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                </tr>
+            </thead>
+            <tbody class="md:divide-y md:divide-gray-200">
+                {% for veiculo in veiculos %}
+                <tr>
+                    <td data-label="Placa" class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ veiculo.placa }}</td>
+                    <td data-label="Modelo" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ veiculo.modelo }}</td>
+                    <td data-label="KM Rodados" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ veiculo.km_rodados|round(0) if veiculo.km_rodados else '-' }}</td>
+                    <td data-label="Disponível" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {% if veiculo.disponivel %}<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Sim</span>{% else %}<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Não</span>{% endif %}
+                    </td>
+                    <td data-label="Ações" class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex items-center gap-4 justify-end md:justify-start">
+                            <button onclick="openVehicleModal(this)" data-veiculo='{{ veiculo.to_dict() | tojson | e }}' class="text-indigo-600 hover:text-indigo-900" title="Ver Detalhes">Detalhes</button>
+                            <a href="{{ url_for('excluir_veiculo', veiculo_id=veiculo.id) }}" onclick="return confirm('Tem certeza?')" class="text-red-600 hover:text-red-900" title="Excluir"><i class="fas fa-trash"></i></a>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="p-4 text-center text-gray-500">Nenhum veículo encontrado.</td></tr>
                 {% endfor %}
-            </div>
-            {% endif %}
-        {% endwith %}
-
-        <form method="GET" class="mb-6 flex flex-col sm:flex-row gap-4">
-            <input type="text" name="search" placeholder="Buscar por placa ou modelo" value="{{ search_query }}" class="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex-grow">
-            <button type="submit" class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition">Buscar</button>
-        </form>
-
-        <div class="overflow-x-auto bg-white shadow-md rounded-lg">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Placa</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modelo</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km Rodados</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Disponível</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for veiculo in veiculos %}
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ veiculo.placa }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ veiculo.modelo }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ veiculo.km_rodados or '-' }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {% if veiculo.disponivel %}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Sim</span>
-                            {% else %}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Não</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <button onclick="openVehicleModal({{ veiculo.id }})" class="text-indigo-600 hover:text-indigo-900">Detalhes</button>
-                            <a href="{{ url_for('excluir_veiculo', veiculo_id=veiculo.id) }}" onclick="return confirm('Tem certeza que deseja excluir este veículo?')" class="text-red-600 hover:text-red-900 ml-4">Excluir</a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <div class="mt-6">
-            <a href="{{ url_for('index') }}" class="bg-gray-500 text-white p-2 rounded-lg hover:bg-gray-600 transition">Voltar</a>
-        </div>
+            </tbody>
+        </table>
     </div>
 
     <div id="vehicleModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <form id="editVehicleForm" method="POST" action="" class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
             <header class="flex justify-between items-center p-4 border-b">
-                <h2 class="text-xl font-bold text-gray-800">Detalhes do Veículo - <span id="modalVehiclePlate">ABC-1234</span></h2>
-                <button onclick="closeVehicleModal()" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                <h2 class="text-xl font-bold text-gray-800">Detalhes do Veículo - <span id="modalVehiclePlate"></span></h2>
+                <button type="button" onclick="closeVehicleModal()" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
             </header>
             <div class="border-b">
                 <nav class="flex space-x-4 p-4">
-                    <button id="tab-dados" class="tab-button active" onclick="switchTab('dados')">Dados Gerais</button>
-                    <button id="tab-atividades" class="tab-button" onclick="switchTab('atividades')">Atividades</button>
-                    <button id="tab-manutencao" class="tab-button" onclick="switchTab('manutencao')">Manutenção</button>
+                    <button type="button" id="tab-dados" class="tab-button active" onclick="switchTab('dados')">Dados Gerais</button>
+                    <button type="button" id="tab-atividades" class="tab-button" onclick="switchTab('atividades')">Atividades</button>
+                    <button type="button" id="tab-manutencao" class="tab-button" onclick="switchTab('manutencao')">Manutenção</button>
                 </nav>
             </div>
             <div class="p-6 overflow-y-auto flex-grow">
                 <div id="content-dados" class="tab-content">
-                    <form>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label class="block text-sm font-medium text-gray-700">Placa</label><input type="text" value="ABC-1234" class="w-full p-2 border rounded mt-1 bg-gray-50"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Categoria</label><input type="text" value="Caminhão Toco" class="w-full p-2 border rounded mt-1 bg-gray-50"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Modelo</label><input type="text" value="Mercedes-Benz Atego" class="w-full p-2 border rounded mt-1 bg-gray-50"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Ano</label><input type="number" value="2022" class="w-full p-2 border rounded mt-1 bg-gray-50"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Valor do Veículo</label><input type="text" value="R$ 350.000,00" class="w-full p-2 border rounded mt-1 bg-gray-50"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">KM do Veículo</label><input type="number" value="75000" class="w-full p-2 border rounded mt-1 bg-gray-50"></div>
-                        </div>
-                    </form>
-                </div>
-                <div id="content-atividades" class="tab-content hidden">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-700">Painel de Atividades</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="bg-gray-100 p-4 rounded-lg shadow"><h4 class="font-bold">Consumo Médio</h4><p class="text-2xl">4.5 km/L</p></div>
-                        <div class="bg-gray-100 p-4 rounded-lg shadow"><h4 class="font-bold">KM Rodados (Mês)</h4><p class="text-2xl">5.200 km</p></div>
-                        <div class="bg-gray-100 p-4 rounded-lg shadow"><h4 class="font-bold">Próxima Revisão</h4><p class="text-2xl">80.000 km</p></div>
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label class="block text-sm font-medium text-gray-700">Placa</label><input type="text" id="modal-placa" name="placa" class="w-full p-2 border rounded mt-1"></div>
+                        <div><label class="block text-sm font-medium text-gray-700">Categoria</label><input type="text" id="modal-categoria" name="categoria" class="w-full p-2 border rounded mt-1"></div>
+                        <div><label class="block text-sm font-medium text-gray-700">Modelo</label><input type="text" id="modal-modelo" name="modelo" class="w-full p-2 border rounded mt-1"></div>
+                        <div><label class="block text-sm font-medium text-gray-700">Ano</label><input type="number" id="modal-ano" name="ano" class="w-full p-2 border rounded mt-1"></div>
+                        <div><label class="block text-sm font-medium text-gray-700">Valor do Veículo (R$)</label><input type="number" step="0.01" id="modal-valor" name="valor" class="w-full p-2 border rounded mt-1"></div>
+                        <div><label class="block text-sm font-medium text-gray-700">KM Rodados</label><input type="number" id="modal-km_rodados" name="km_rodados" class="w-full p-2 border rounded mt-1"></div>
+                        <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700">Última Manutenção</label><input type="date" id="modal-ultima_manutencao" name="ultima_manutencao" class="w-full p-2 border rounded mt-1"></div>
                     </div>
                 </div>
+                <div id="content-atividades" class="tab-content hidden"><p>Conteúdo da aba de Atividades aqui...</p></div>
                 <div id="content-manutencao" class="tab-content hidden">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-semibold text-gray-700">Histórico de Manutenções</h3>
-                        <button onclick="openMaintenanceModal()" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 text-sm"><i class="fas fa-plus"></i> Registrar Manutenção</button>
+                        <button type="button" onclick="openMaintenanceModal()" class="btn btn-green text-sm"><i class="fas fa-plus"></i> Registrar</button>
                     </div>
-                    <div class="overflow-x-auto border rounded-lg mb-6">
-                        <table class="w-full text-sm">
-                            <thead class="bg-gray-100"><tr><th class="p-2 text-left">Data</th><th class="p-2 text-left">Tipo</th><th class="p-2 text-left">Descrição</th><th class="p-2 text-left">Custo</th><th class="p-2 text-left">Status</th></tr></thead>
-                            <tbody>
-                                <tr class="border-b"><td class="p-2">10/06/2025</td><td class="p-2">Corretiva</td><td class="p-2">Troca de pneu dianteiro</td><td class="p-2">R$ 1.250,00</td><td class="p-2"><span class="bg-green-200 text-green-800 px-2 py-1 rounded-full text-xs">Concluído</span></td></tr>
-                                <tr class="border-b"><td class="p-2">25/07/2025</td><td class="p-2">Preventiva</td><td class="p-2">Revisão de 80.000 km</td><td class="p-2">R$ 1.500,00</td><td class="p-2"><span class="bg-yellow-200 text-yellow-800 px-2 py-1 rounded-full text-xs">Agendado</span></td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <div class="overflow-x-auto border rounded-lg"><p class="p-4 text-gray-500">Histórico de manutenções aparecerá aqui.</p></div>
                 </div>
             </div>
             <footer class="flex justify-end p-4 border-t bg-gray-50">
-                <button onclick="closeVehicleModal()" class="bg-gray-600 text-white px-4 py-2 rounded-md mr-2 hover:bg-gray-700">Fechar</button>
-                <button class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Salvar Alterações</button>
+                <button type="button" onclick="closeVehicleModal()" class="btn btn-gray mr-2">Fechar</button>
+                <button type="submit" class="btn btn-blue">Salvar Alterações</button>
             </footer>
-        </div>
+        </form>
     </div>
 
     <div id="maintenanceModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center p-4 z-[60] hidden">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <form class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
             <header class="flex justify-between items-center p-4 border-b">
                 <h2 class="text-xl font-bold text-gray-800">Registrar Nova Manutenção</h2>
-                <button onclick="closeMaintenanceModal()" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                <button type="button" onclick="closeMaintenanceModal()" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
             </header>
-            <form class="flex-grow overflow-y-auto p-6">
-                </form>
+            <div class="p-6 overflow-y-auto flex-grow"><p>Formulário para registrar manutenção...</p></div>
             <footer class="flex justify-end p-4 border-t bg-gray-50">
-                <button type="button" onclick="closeMaintenanceModal()" class="bg-gray-600 text-white px-4 py-2 rounded-md mr-2 hover:bg-gray-700">Cancelar</button>
-                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Salvar Manutenção</button>
+                <button type="button" onclick="closeMaintenanceModal()" class="btn btn-gray mr-2">Cancelar</button>
+                <button type="submit" class="btn btn-green">Salvar Manutenção</button>
             </footer>
-        </div>
+        </form>
     </div>
+</div>
 {% endblock %}
 
-
 {% block scripts %}
-    {{ super() }}
+{{ super() }}
+<script>
+    // Referências aos elementos dos modais
+    const vehicleModal = document.getElementById('vehicleModal');
+    const maintenanceModal = document.getElementById('maintenanceModal');
+    const editVehicleForm = document.getElementById('editVehicleForm');
 
-    <script>
-        const vehicleModal = document.getElementById('vehicleModal');
-        const maintenanceModal = document.getElementById('maintenanceModal');
-        const tabButtons = document.querySelectorAll('.tab-button');
-        const tabContents = document.querySelectorAll('.tab-content');
-
-        function openVehicleModal(veiculoId) {
-            // No futuro, você usará este 'veiculoId' para buscar dados reais e preencher o formulário.
-            // Por enquanto, ele apenas abre o modal com os dados de exemplo que já estão no HTML.
-            console.log("Abrindo detalhes para o veículo ID:", veiculoId);
-            vehicleModal.classList.remove('hidden');
-        }
-
-        function closeVehicleModal() {
-            vehicleModal.classList.add('hidden');
-        }
-
-        function openMaintenanceModal() {
-            maintenanceModal.classList.remove('hidden');
-        }
-
-        function closeMaintenanceModal() {
-            maintenanceModal.classList.add('hidden');
-        }
-
-        function switchTab(tabName) {
-            tabContents.forEach(content => content.classList.add('hidden'));
-            tabButtons.forEach(button => button.classList.remove('active'));
-            document.getElementById(`content-${tabName}`).classList.remove('hidden');
-            document.getElementById(`tab-${tabName}`).classList.add('active');
-        }
+    // Funções para controlar o modal principal (Detalhes do Veículo)
+    function openVehicleModal(buttonElement) {
+        const veiculo = JSON.parse(buttonElement.dataset.veiculo);
         
-        vehicleModal.addEventListener('click', (event) => {
-            if (event.target === vehicleModal) closeVehicleModal();
-        });
-        maintenanceModal.addEventListener('click', (event) => {
-            if (event.target === maintenanceModal) closeMaintenanceModal();
-        });
-    </script>
+        // Preenche o formulário com dados dinâmicos
+        editVehicleForm.action = `/editar_veiculo/${veiculo.id}`;
+        document.getElementById('modalVehiclePlate').textContent = veiculo.placa || 'N/A';
+        document.getElementById('modal-placa').value = veiculo.placa || '';
+        document.getElementById('modal-categoria').value = veiculo.categoria || '';
+        document.getElementById('modal-modelo').value = veiculo.modelo || '';
+        document.getElementById('modal-ano').value = veiculo.ano || '';
+        document.getElementById('modal-valor').value = veiculo.valor || '';
+        document.getElementById('modal-km_rodados').value = veiculo.km_rodados || '';
+        document.getElementById('modal-ultima_manutencao').value = veiculo.ultima_manutencao || '';
+
+        // TODO: Futuramente, usar o veiculo.id para buscar via fetch os dados das outras abas
+        // fetch(`/api/veiculo/${veiculo.id}/atividades`).then(...)
+        // fetch(`/api/veiculo/${veiculo.id}/manutencoes`).then(...)
+
+        switchTab('dados'); // Garante que a primeira aba esteja ativa
+        vehicleModal.classList.remove('hidden');
+    }
+
+    function closeVehicleModal() {
+        vehicleModal.classList.add('hidden');
+    }
+
+    // Funções para controlar o modal secundário (Registrar Manutenção)
+    function openMaintenanceModal() {
+        maintenanceModal.classList.remove('hidden');
+    }
+
+    function closeMaintenanceModal() {
+        maintenanceModal.classList.add('hidden');
+    }
+
+    // Função para alternar entre as abas do modal principal
+    function switchTab(tabName) {
+        document.querySelectorAll('#vehicleModal .tab-content').forEach(content => content.classList.add('hidden'));
+        document.querySelectorAll('#vehicleModal .tab-button').forEach(button => button.classList.remove('active'));
+        
+        document.getElementById(`content-${tabName}`).classList.remove('hidden');
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+    }
+
+    // Event listeners para fechar os modais ao clicar no fundo
+    vehicleModal.addEventListener('click', (event) => {
+        if (event.target === vehicleModal) closeVehicleModal();
+    });
+    maintenanceModal.addEventListener('click', (event) => {
+        if (event.target === maintenanceModal) closeMaintenanceModal();
+    });
+</script>
 {% endblock %}

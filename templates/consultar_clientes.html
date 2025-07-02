@@ -1,71 +1,192 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block title %}Consultar Clientes - TrackGo{% endblock %}
 
+{% block styles %}
+<style>
+    .container-clientes {
+        margin: 0;
+        padding: 0;
+    }
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1rem;
+        border: none;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .btn-green { background-color: #16a34a; color: white; }
+    .btn-green:hover { background-color: #15803d; }
+    .btn-gray { background-color: #6b7280; color: white; }
+    .btn-gray:hover { background-color: #4b5563; }
+
+    .search-form .relative {
+        position: relative;
+    }
+    .search-form input {
+        width: 100%;
+        padding: 0.75rem;
+        padding-left: 2.5rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    .search-form .fa-search {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+    }
+    .table-container {
+        background-color: #fff;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        overflow-x: auto;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    th, td {
+        padding: 0.85rem 1rem;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    th {
+        background-color: #f9fafb;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+    }
+    tr:last-child td {
+        border-bottom: 0;
+    }
+    tr:hover {
+        background-color: #f9fafb;
+    }
+
+    /* --- REGRAS PARA RESPONSIVIDADE DA TABELA --- */
+    @media screen and (max-width: 992px) {
+        .table-container {
+            box-shadow: none;
+            background-color: transparent;
+            overflow-x: hidden;
+        }
+        table {
+            border: 0;
+            box-shadow: none;
+        }
+        table thead {
+            display: none;
+        }
+        table tr {
+            display: block;
+            margin-bottom: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 0.5rem;
+            background-color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        table td {
+            display: block;
+            text-align: right;
+            padding-left: 50%;
+            position: relative;
+            border-bottom: 1px dotted #e5e7eb;
+        }
+        table td:last-child {
+            border-bottom: 0;
+        }
+        table td::before {
+            content: attr(data-label);
+            position: absolute;
+            left: 1rem;
+            text-align: left;
+            font-weight: bold;
+        }
+        td[data-label="Ações"] {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
-        <h1 class="text-2xl font-bold text-slate-800">Consultar Clientes</h1>
+<div class="container-clientes">
+    <div class="page-header">
+        <h1 class="text-3xl font-bold text-gray-800">Consultar Clientes</h1>
         <div class="flex items-center gap-2">
-            <a href="{{ url_for('cadastrar_cliente') }}" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 shadow-md">
-                <i class="fas fa-plus"></i>
-                <span>Novo Cliente</span>
+            <a href="{{ url_for('cadastrar_cliente') }}" class="btn btn-green">
+                <i class="fas fa-plus"></i> Novo Cliente
             </a>
-            <a href="{{ url_for('index') }}" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2 shadow-md">
-                <i class="fas fa-arrow-left"></i>
-                <span>Voltar</span>
+            <a href="{{ url_for('index') }}" class="btn btn-gray">
+                <i class="fas fa-arrow-left"></i> Voltar
             </a>
         </div>
     </div>
 
-    <div class="mb-6 bg-white p-4 rounded-lg shadow-md">
+    <div class="mb-6 search-form">
         <form method="GET" action="{{ url_for('consultar_clientes') }}">
             <div class="relative">
-                <input type="text" name="search" value="{{ search_query or '' }}" placeholder="Buscar por Nome, CPF/CNPJ ou Cidade..." class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition">
-                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                <i class="fas fa-search"></i>
+                <input type="text" name="search" value="{{ search_query }}" placeholder="Buscar por Nome, CPF/CNPJ ou Cidade..." class="focus:ring-2 focus:ring-green-500">
             </div>
         </form>
     </div>
     
-    <div class="bg-white rounded-lg shadow-md overflow-x-auto">
-        <table class="w-full text-left table-auto">
-            <thead class="bg-gray-50 border-b border-gray-200">
+    <div class="table-container">
+        <table>
+            <thead>
                 <tr>
-                    <th class="p-4 font-semibold text-gray-600">Nome / Razão Social</th>
-                    <th class="p-4 font-semibold text-gray-600">CPF / CNPJ</th>
-                    <th class="p-4 font-semibold text-gray-600">Telefone</th>
-                    <th class="p-4 font-semibold text-gray-600">Email</th>
-                    <th class="p-4 font-semibold text-gray-600">Cidade</th>
-                    <th class="p-4 font-semibold text-gray-600 text-center">Ações</th>
+                    <th>Nome / Razão Social</th>
+                    <th>CPF / CNPJ</th>
+                    <th>Telefone</th>
+                    <th>Email</th>
+                    <th>Cidade</th>
+                    <th class="text-center">Ações</th>
                 </tr>
             </thead>
             <tbody>
                 {% for cliente in clientes %}
-                <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                    <td class="p-4">{{ cliente.nome_razao_social }}</td>
-                    <td class="p-4">{{ cliente.cpf_cnpj }}</td>
-                    <td class="p-4">{{ cliente.telefone }}</td>
-                    <td class="p-4">{{ cliente.email }}</td>
-                    <td class="p-4">{{ cliente.cidade }} / {{ cliente.estado }}</td>
-                    <td class="p-4 text-center">
+                <tr class="hover:bg-gray-50">
+                    <td data-label="Nome">{{ cliente.nome_razao_social }}</td>
+                    <td data-label="CPF/CNPJ">{{ cliente.cpf_cnpj }}</td>
+                    <td data-label="Telefone">{{ cliente.telefone }}</td>
+                    <td data-label="Email">{{ cliente.email }}</td>
+                    <td data-label="Cidade">{{ cliente.cidade }} / {{ cliente.estado }}</td>
+                    <td data-label="Ações" class="text-center">
                         <a href="{{ url_for('editar_cliente', cliente_id=cliente.id) }}" class="text-blue-600 hover:text-blue-800 mx-2" title="Editar">
-                            <i class="fas fa-edit"></i>
+                            <i class="fas fa-edit fa-lg"></i>
                         </a>
-                        </td>
+                    </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="6" class="p-4 text-center text-gray-500">
-                        Nenhum cliente encontrado.
-                    </td>
+                    <td colspan="6" class="p-4 text-center text-gray-500">Nenhum cliente encontrado.</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
-    {{ super() }} 
-    {# 'super()' garante que os scripts do base.htm (mapa, etc.) sejam incluídos.
-       Como esta página não precisa de nenhum JavaScript adicional, não adicionamos mais nada aqui. #}
+{{ super() }}
+{# Nenhum script adicional necessário para esta página #}
 {% endblock %}

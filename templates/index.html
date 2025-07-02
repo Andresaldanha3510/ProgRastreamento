@@ -1,121 +1,141 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block title %}Dashboard - TrackGo{% endblock %}
 
 {% block styles %}
-    {{ super() }}
-    <style>
-        /* Estilos específicos para o Dashboard, 100% preservados do seu código original */
-        .card {
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            opacity: 0;
-            animation: fadeIn 0.5s ease forwards;
-            animation-delay: calc(0.1s * var(--index));
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+<style>
+    /* Estilos específicos do Dashboard */
+    .card {
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        opacity: 0;
+        animation: fadeIn 0.5s ease forwards;
+        animation-delay: calc(0.1s * var(--index));
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .dashboard-section {
+        background-color: #f8f8f8;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        opacity: 0;
+        transform: translateY(20px);
+        animation: slideUp 0.6s ease forwards;
+        animation-delay: calc(0.2s * var(--index));
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .dashboard-section-header {
+        font-weight: bold;
+        text-align: center;
+        border-top-left-radius: 0.5rem;
+        border-top-right-radius: 0.5rem;
+        padding: 1rem;
+        color: white;
+    }
+    /* Cores dos headers */
+    .dashboard-section[style*="--index: 1"] .dashboard-section-header { background-color: #eab308; } /* Pendente */
+    .dashboard-section[style*="--index: 2"] .dashboard-section-header { background-color: #3b82f6; } /* Em Andamento */
+    .dashboard-section[style*="--index: 3"] .dashboard-section-header { background-color: #16a34a; } /* Concluídas */
+    .dashboard-section[style*="--index: 4"] .dashboard-section-header { background-color: #ef4444; } /* Canceladas */
+
+    .dashboard-item-content {
+        padding: 1rem;
+        overflow-y: auto;
+        flex-grow: 1;
+    }
+
+    .dashboard-item {
+        background-color: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        margin-bottom: 0.75rem; /* Equivalente a space-y-3 */
+    }
+    .dashboard-item:last-child {
+        margin-bottom: 0;
+    }
+    .dashboard-item:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+    }
+
+    /* Animações */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Estilos de Impressão */
+    @media print {
+        body { padding-top: 0; background: white; }
+        .print-hide { display: none !important; }
+        main.main-content {
+            margin-left: 0 !important;
+            padding: 1rem !important;
         }
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
+        .dashboard-section { 
+            page-break-inside: avoid; 
+            animation: none !important; 
+            opacity: 1 !important;
+            transform: none !important;
+            box-shadow: none;
+            border: 1px solid #ccc;
         }
-        .dashboard-section {
-            background-color: #f8f8f8;
-            opacity: 0;
-            transform: translateX(-20px);
-            animation: slideIn 0.7s ease forwards;
-            animation-delay: calc(0.2s * var(--index));
-            border-radius: 0.5rem;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
+        .dashboard-section-header { 
+            background-color: #e5e7eb !important; 
+            color: black !important; 
         }
-        .dashboard-section-header {
-            font-weight: bold;
-            text-align: center;
-            padding: 1rem;
-            color: white;
+        .grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
         }
-        .dashboard-section[style*="--index: 1"] .dashboard-section-header { background-color: #eab308; } /* Pendentes */
-        .dashboard-section[style*="--index: 2"] .dashboard-section-header { background-color: #0f1c66; } /* Em Andamento */
-        .dashboard-section[style*="--index: 3"] .dashboard-section-header { background-color: #166534; } /* Concluídas */
-        .dashboard-section[style*="--index: 4"] .dashboard-section-header { background-color: #ef4444; } /* Canceladas */
-        .dashboard-item-content {
-            padding: 1rem;
-            overflow-y: auto;
-            flex-grow: 1;
-        }
-        .dashboard-item {
-            background-color: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 1rem;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-            margin-bottom: 0.75rem;
-        }
-        .dashboard-item:last-child { margin-bottom: 0; }
-        .dashboard-item:hover {
-            background: #f9fafb;
-            border-color: #d1d5db;
-        }
-        .dashboard-item .mt-2.flex {
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-        .dashboard-item .mt-2.flex a {
-            font-size: 0.875rem;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-        @media print {
-            .card, .print-hide { display: none !important; }
-            .main-content {
-                box-shadow: none; backdrop-filter: none; background: white; color: black;
-                padding: 1rem !important; min-height: auto;
-            }
-            .dashboard-section { page-break-inside: avoid; animation: none; opacity: 1; transform: none; }
-            .dashboard-section-header { background-color: #ccc !important; color: black !important; }
-        }
-    </style>
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 <h2 class="text-3xl font-bold mb-6 text-gray-800">Dashboard</h2>
 
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 print-hide">
-    <a href="{{ url_for('consultar_motoristas') }}" class="bg-white p-6 rounded-lg shadow-md card hover:bg-gray-50" style="--index: 1">
+    <a href="{{ url_for('consultar_motoristas') }}" class="bg-white p-6 card hover:bg-gray-50" style="--index: 1;">
         <h3 class="text-lg font-semibold mb-2 text-gray-700">Total de Motoristas</h3>
         <p class="text-2xl font-bold text-gray-900">{{ motoristas | length }}</p>
     </a>
-    <a href="{{ url_for('consultar_veiculos') }}" class="bg-white p-6 rounded-lg shadow-md card hover:bg-gray-50" style="--index: 2">
+    <a href="{{ url_for('consultar_veiculos') }}" class="bg-white p-6 card hover:bg-gray-50" style="--index: 2;">
         <h3 class="text-lg font-semibold mb-2 text-gray-700">Total de Veículos</h3>
         <p class="text-2xl font-bold text-gray-900">{{ veiculos | length }}</p>
     </a>
-    <a href="{{ url_for('consultar_viagens') }}" class="bg-white p-6 rounded-lg shadow-md card hover:bg-gray-50" style="--index: 3">
+    <a href="{{ url_for('consultar_viagens') }}" class="bg-white p-6 card hover:bg-gray-50" style="--index: 3;">
         <h3 class="text-lg font-semibold mb-2 text-gray-700">Total de Viagens</h3>
         <p class="text-2xl font-bold text-gray-900">{{ viagens | length }}</p>
     </a>
 </div>
 
-<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
-    <div class="dashboard-section" style="--index: 1">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="dashboard-section" style="--index: 1;">
         <div class="dashboard-section-header">Pendentes</div>
         <div class="dashboard-item-content">
             {% for viagem in viagens if viagem.status == 'pendente' %}
-                <div class="p-4 rounded-lg dashboard-item">
+                <div class="dashboard-item">
                     <p class="font-semibold text-gray-800">{{ viagem.cliente }}</p>
                     <p class="text-sm text-gray-600"><strong>Motorista:</strong> {{ viagem.motorista_nome }}</p>
                     <p class="text-sm text-gray-600"><strong>Veículo:</strong> {{ viagem.veiculo_placa }} - {{ viagem.veiculo_modelo }}</p>
                     <p class="text-sm text-gray-600"><strong>Início:</strong> {{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</p>
-                    <div class="mt-2 flex space-x-2">
-                        <a href="{{ url_for('finalizar_viagem', viagem_id=viagem.id) }}" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">Finalizar</a>
-                        <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Editar</a>
-                        <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700" onclick="return confirm('Tem certeza que deseja excluir esta viagem?')">Excluir</a>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        <a href="{{ url_for('finalizar_viagem', viagem_id=viagem.id) }}" class="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">Finalizar</a>
+                        <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Editar</a>
+                        <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700" onclick="return confirm('Tem certeza que deseja excluir esta viagem?')">Excluir</a>
                     </div>
                 </div>
             {% else %}
@@ -124,21 +144,23 @@
         </div>
     </div>
 
-    <div class="dashboard-section" style="--index: 2">
+    <div class="dashboard-section" style="--index: 2;">
         <div class="dashboard-section-header">Em Andamento</div>
         <div class="dashboard-item-content">
             {% for viagem in viagens if viagem.status == 'em_andamento' %}
-                <div class="p-4 rounded-lg dashboard-item">
+                <div class="dashboard-item">
                     <p class="font-semibold text-gray-800">{{ viagem.cliente }}</p>
                     <p class="text-sm text-gray-600"><strong>Motorista:</strong> {{ viagem.motorista_nome }}</p>
                     <p class="text-sm text-gray-600"><strong>Veículo:</strong> {{ viagem.veiculo_placa }} - {{ viagem.veiculo_modelo }}</p>
                     <p class="text-sm text-gray-600"><strong>Início:</strong> {{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</p>
-                    <img src="{{ url_for('static', filename='localizacaoanimado.gif') }}" alt="Ícone de Localização" style="width: 28px; height: 28px; vertical-align: middle; margin-right: 5px;">
-                    <p class="text-sm text-gray-600" id="endereco-atual-{{ viagem.id }}">Endereço Atual: Carregando...</p>
-                    <div class="mt-2 flex space-x-2">
-                        <a href="{{ url_for('finalizar_viagem', viagem_id=viagem.id) }}" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">Finalizar</a>
-                        <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Editar</a>
-                        <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700" onclick="return confirm('Tem certeza que deseja excluir esta viagem?')">Excluir</a>
+                    <div class="flex items-center mt-1">
+                        <img src="{{ url_for('static', filename='localizacaoanimado.gif') }}" alt="Ícone de Localização" class="w-7 h-7 mr-2">
+                        <p class="text-sm text-gray-600" id="endereco-atual-{{ viagem.id }}">Carregando...</p>
+                    </div>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        <a href="{{ url_for('finalizar_viagem', viagem_id=viagem.id) }}" class="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">Finalizar</a>
+                        <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Editar</a>
+                        <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700" onclick="return confirm('Tem certeza que deseja excluir esta viagem?')">Excluir</a>
                     </div>
                 </div>
             {% else %}
@@ -147,41 +169,41 @@
         </div>
     </div>
 
-    <div class="dashboard-section" style="--index: 3">
+    <div class="dashboard-section" style="--index: 3;">
         <div class="dashboard-section-header">Concluídas</div>
         <div class="dashboard-item-content">
             {% for viagem in viagens if viagem.status == 'concluida' %}
-                <div class="p-4 rounded-lg dashboard-item">
+                <div class="dashboard-item">
                     <p class="font-semibold text-gray-800">{{ viagem.cliente }}</p>
                     <p class="text-sm text-gray-600"><strong>Motorista:</strong> {{ viagem.motorista_nome }}</p>
                     <p class="text-sm text-gray-600"><strong>Veículo:</strong> {{ viagem.veiculo_placa }} - {{ viagem.veiculo_modelo }}</p>
                     <p class="text-sm text-gray-600"><strong>Início:</strong> {{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</p>
                     <p class="text-sm text-gray-600"><strong>Fim:</strong> {{ viagem.data_fim.strftime('%d/%m/%Y %H:%M') if viagem.data_fim else 'N/A' }}</p>
-                    <div class="mt-2 flex space-x-2">
-                        <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Editar</a>
-                        <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700" onclick="return confirm('Tem certeza que deseja excluir esta viagem?')">Excluir</a>
-                        <a href="{{ url_for('gerar_romaneio', viagem_id=viagem.id) }}" class="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 text-sm">Gerar Romaneio</a>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        <a href="{{ url_for('gerar_romaneio', viagem_id=viagem.id) }}" class="text-xs bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700">Romaneio</a>
+                        <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Editar</a>
+                        <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700" onclick="return confirm('Tem certeza que deseja excluir esta viagem?')">Excluir</a>
                     </div>
                 </div>
             {% else %}
-                <p class="text-sm text-gray-500 text-center py-4">Nenhuma carga concluída.</p>
+                <p class="text-sm text-gray-500 text-center py-4">Nenhuma viagem concluída.</p>
             {% endfor %}
         </div>
     </div>
 
-    <div class="dashboard-section" style="--index: 4">
+    <div class="dashboard-section" style="--index: 4;">
         <div class="dashboard-section-header">Canceladas</div>
         <div class="dashboard-item-content">
             {% for viagem in viagens if viagem.status == 'cancelada' %}
-                <div class="p-4 rounded-lg dashboard-item">
+                <div class="dashboard-item">
                     <p class="font-semibold text-gray-800">{{ viagem.cliente }}</p>
                     <p class="text-sm text-gray-600"><strong>Motorista:</strong> {{ viagem.motorista_nome }}</p>
                     <p class="text-sm text-gray-600"><strong>Veículo:</strong> {{ viagem.veiculo_placa }} - {{ viagem.veiculo_modelo }}</p>
                     <p class="text-sm text-gray-600"><strong>Início:</strong> {{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</p>
                     <p class="text-sm text-gray-600"><strong>Fim:</strong> {{ viagem.data_fim.strftime('%d/%m/%Y %H:%M') if viagem.data_fim else 'N/A' }}</p>
-                    <div class="mt-2 flex space-x-2">
-                        <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Editar</a>
-                        <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700" onclick="return confirm('Tem certeza que deseja excluir esta viagem?')">Excluir</a>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Editar</a>
+                        <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700" onclick="return confirm('Tem certeza que deseja excluir esta viagem?')">Excluir</a>
                     </div>
                 </div>
             {% else %}
@@ -191,41 +213,49 @@
     </div>
 </div>
 
-<div class="mt-6 print-hide">
-    <button onclick="window.print()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition duration-300">Imprimir Relatório</button>
+<div class="mt-8 print-hide">
+    <button onclick="window.print()" class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition duration-300 flex items-center gap-2">
+        <i class="fas fa-print"></i>
+        Imprimir Relatório
+    </button>
 </div>
 {% endblock %}
 
-
 {% block scripts %}
-    {{ super() }}
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            function atualizarLocalizacao(viagemId) {
-                const enderecoSpan = document.getElementById(`endereco-atual-${viagemId}`);
-                if (!enderecoSpan) {
-                    console.warn(`Elemento com id endereco-atual-${viagemId} não encontrado.`);
-                    return;
-                }
-                fetch(`/ultima_localizacao/${viagemId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            enderecoSpan.textContent = `Endereço Atual: ${data.endereco}`;
-                        } else {
-                            enderecoSpan.textContent = 'Endereço Atual: Nenhuma localização disponível';
-                        }
-                    })
-                    .catch(error => {
-                        console.error(`Erro ao atualizar localização para viagem ${viagemId}:`, error);
-                        enderecoSpan.textContent = 'Endereço Atual: Erro ao carregar localização';
-                    });
-            }
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    function atualizarLocalizacao(viagemId) {
+        const enderecoEl = document.getElementById(`endereco-atual-${viagemId}`);
+        if (!enderecoEl) return;
 
-            {% for viagem in viagens if viagem.status == 'em_andamento' %}
-                atualizarLocalizacao({{ viagem.id }});
-                setInterval(() => atualizarLocalizacao({{ viagem.id }}), 30000);
-            {% endfor %}
+        fetch(`/ultima_localizacao/${viagemId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.endereco) {
+                enderecoEl.textContent = `Atual: ${data.endereco}`;
+            } else {
+                enderecoEl.textContent = 'Localização indisponível';
+                enderecoEl.classList.add('text-gray-400');
+            }
+        })
+        .catch(error => {
+            console.error(`Erro ao buscar localização para viagem ${viagemId}:`, error);
+            enderecoEl.textContent = 'Erro ao carregar';
+            enderecoEl.classList.add('text-red-500');
         });
-    </script>
+    }
+
+    const viagensEmAndamento = [
+        {% for viagem in viagens if viagem.status == 'em_andamento' %}{{ viagem.id }},{% endfor %}
+    ];
+
+    if (viagensEmAndamento.length > 0) {
+        viagensEmAndamento.forEach(viagemId => {
+            atualizarLocalizacao(viagemId); // Executa imediatamente
+            setInterval(() => atualizarLocalizacao(viagemId), 30000); // E depois a cada 30 segundos
+        });
+    }
+});
+</script>
 {% endblock %}

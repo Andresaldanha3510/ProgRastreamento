@@ -4,372 +4,251 @@
 
 {% block styles %}
 <style>
-    /* --- Abas do Modal --- */
+    .main-container {
+        margin: 0;
+        padding: 0;
+    }
+    /* Estilos dos botões e formulário de busca */
+    .btn {
+        display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1rem;
+        border: none; border-radius: 0.375rem; font-weight: 500; cursor: pointer; transition: background-color 0.2s;
+    }
+    .btn-green { background-color: #16a34a; color: white; }
+    .btn-green:hover { background-color: #15803d; }
+    .search-form input {
+        width: 100%; padding: 0.75rem; border: 1px solid #d1d5db;
+        border-radius: 0.5rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    /* Abas do Modal */
     .tab-button.active {
         border-bottom: 2px solid #2e7d32;
         color: #2e7d32;
         font-weight: 600;
     }
-    /* --- Animação do Modal --- */
-    .modal.hidden {
-        display: none;
-    }
-    .modal {
-        animation: fadeIn 0.3s ease;
-    }
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-        to {
-            opacity: 1;
-        }
-    }
-    /* --- Estilos da Tabela Responsiva (Cards em Mobile) --- */
+    /* Animação do Modal */
+    .modal.hidden { display: none; }
+    .modal { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* Estilos da Tabela Responsiva (Cards em Mobile) */
     @media (max-width: 767px) {
-        .responsive-table thead {
-            display: none;
-            /* Esconde o cabeçalho da tabela */
-        }
-        .responsive-table tbody, .responsive-table tr {
-            display: block;
-            /* Faz a linha se comportar como um bloco */
-        }
+        .responsive-table thead { display: none; }
+        .responsive-table tbody, .responsive-table tr { display: block; }
         .responsive-table tr {
-            background: white;
-            border: 1px solid #e2e8f0;
-            /* Borda do card */
-            border-radius: 0.5rem;
-            /* Cantos arredondados */
-            margin-bottom: 1rem;
-            /* Espaço entre os cards */
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-            padding: 0.5rem;
-            /* Padding interno */
+            background: white; border: 1px solid #e2e8f0; border-radius: 0.5rem;
+            margin-bottom: 1rem; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); padding: 0.5rem;
         }
         .responsive-table td {
-            display: flex;
-            /* Alinha rótulo e valor */
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem;
-            text-align: right;
-            /* Alinha o valor à direita */
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.75rem; text-align: right;
         }
-        .responsive-table td:not(:last-child) {
-            border-bottom: 1px solid #f1f5f9;
-            /* Linha divisória entre os campos */
-        }
+        .responsive-table td:not(:last-child) { border-bottom: 1px solid #f1f5f9; }
         .responsive-table td::before {
-            content: attr(data-label);
-            /* Pega o rótulo do atributo data-label */
-            font-weight: 600;
-            text-align: left;
-            margin-right: 1rem;
-            color: #475569;
-            /* text-slate-600 */
+            content: attr(data-label); font-weight: 600;
+            text-align: left; margin-right: 1rem; color: #475569;
         }
-        .responsive-table td[data-label="Ações"] {
-            justify-content: flex-end;
-            /* Alinha os botões à direita no card */
-        }
-        .responsive-table td[data-label="Ações"]::before {
-            content: none;
-        }
+        .responsive-table td[data-label="Ações"] { justify-content: flex-end; }
+        .responsive-table td[data-label="Ações"]::before { content: none; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
+<div class="main-container">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Consultar Motoristas</h1>
 
-<h1 class="text-3xl font-bold text-gray-800 mb-6">Consultar Motoristas</h1>
-
-<!-- Mensagens Flash -->
-{% with messages = get_flashed_messages(with_categories=true) %}
-{% if messages %}
-<div class="mb-4">
-    {% for category, message in messages %}
-    <div class="p-4 rounded-lg text-white shadow-md {% if category == 'error' %}bg-red-500{% elif category == 'success' %}bg-green-500{% else %}bg-blue-500{% endif %}">
-        {{ message }}
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
-{% endwith %}
-
-    <!-- Formulário de Busca -->
     <form method="GET" class="mb-6 flex flex-col sm:flex-row gap-3">
         <input type="text" name="search" placeholder="Buscar por nome ou CPF/CNPJ" value="{{ search_query or '' }}"
             class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 flex-grow shadow-sm">
-        <button type="submit"
-            class="bg-green-600 text-white p-3 rounded-lg hover:bg-green-700 transition shadow font-semibold">Buscar</button>
+        <button type="submit" class="btn btn-green justify-center">Buscar</button>
     </form>
 
-    <!-- Tabela de Motoristas -->
-<div class="md:bg-white md:shadow-lg md:rounded-lg md:overflow-hidden">
-    <table class="w-full responsive-table">
-        <thead class="bg-gray-50 hidden md:table-header-group">
-            <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data de Nasc.
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CPF/CNPJ</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telefone</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Validade CNH
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-            </tr>
-        </thead>
-        <tbody class="md:divide-y md:divide-gray-200">
-            {% for motorista in motoristas %}
-            <tr>
-                <td data-label="Nome" class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{
-                    motorista.nome }}</td>
-                <td data-label="Data Nasc." class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{
-                    motorista.data_nascimento.strftime('%d/%m/%Y') if motorista.data_nascimento else 'Não informado' }}</td>
-                <td data-label="CPF/CNPJ" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{
-                    motorista.cpf_cnpj }}</td>
-                <td data-label="Telefone" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{
-                    motorista.telefone }}</td>
-                <td data-label="Telefone" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{
-                    motorista.validade_cnh.strftime('%d/%m/%Y') if motorista.validade_cnh else 'Não informado' }}</td>
-                <td data-label="Telefone" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">Inativo/Ativo</td>
-                <td data-label="Ações" class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div class="flex items-center gap-4 justify-start">
-                        <button data-motorista='{{ motorista.to_dict() | tojson | e }}' onclick='openDriverModal(this)'
-                            class="text-green-600 hover:text-green-800 transition">
-                            Detalhes
-                        </button>
-                    </div>
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">Nenhum motorista encontrado.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-<div class="mt-6">
-    <a href="{{ url_for('index') }}" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">Voltar</a>
-</div>
+    <div class="md:bg-white md:shadow-lg md:rounded-lg md:overflow-hidden">
+        <table class="w-full responsive-table">
+            <thead class="bg-gray-50 hidden md:table-header-group">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CPF/CNPJ</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telefone</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Validade CNH</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                </tr>
+            </thead>
+            <tbody class="md:divide-y md:divide-gray-200">
+                {% for motorista in motoristas %}
+                <tr>
+                    <td data-label="Nome" class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ motorista.nome }}</td>
+                    <td data-label="CPF/CNPJ" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ motorista.cpf_cnpj }}</td>
+                    <td data-label="Telefone" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ motorista.telefone }}</td>
+                    <td data-label="Validade CNH" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ motorista.validade_cnh.strftime('%d/%m/%Y') }}</td>
+                    <td data-label="Ações" class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex items-center gap-4 justify-end md:justify-start">
+                            <a href="{{ url_for('perfil_motorista', motorista_id=motorista.id) }}" class="text-blue-600 hover:text-blue-800 transition" title="Ver Perfil Completo">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <button data-motorista='{{ motorista.to_dict() | tojson | e }}' onclick='openDriverModal(this)' class="text-green-600 hover:text-green-800 transition" title="Editar Rápido">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Nenhum motorista encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-
-    <!-- Modal de Detalhes do Motorista -->
-<div id="driverModal" class="modal fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[2000] hidden">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <!-- Header do Modal -->
-        <header class="flex justify-between items-center p-4 border-b">
-            <h2 class="text-lg sm:text-xl font-bold text-gray-800">Detalhes: <span id="modal-driver-name"></span></h2>
-            <button onclick="closeDriverModal()" class="text-gray-400 hover:text-gray-700 text-3xl font-light">&times;</button>
-        </header>
-        
-         <!-- Abas de Navegação do Modal -->
-        <div class="border-b">
-            <nav class="flex flex-wrap -mb-px px-4">
-                <button id="tab-dados" class="tab-button py-3 px-4" onclick="switchTab('dados')">Dados & Edição</button>
-                <button id="tab-stats" class="tab-button py-3 px-4" onclick="switchTab('stats')">Estatísticas</button>
-                <button id="tab-viagens" class="tab-button py-3 px-4" onclick="switchTab('viagens')">Histórico de Viagens</button>
-            </nav>
-        </div>
-        
-        <!-- Conteúdo do Modal (com scroll) -->
-        <div class="p-4 sm:p-6 overflow-y-auto flex-grow">
-            <!-- Conteúdo da Aba Dados e Edição -->
-            <div id="content-dados" class="tab-content">
-                <form id="edit-driver-form" method="POST" action="" enctype="multipart/form-data">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                        <!-- Campos do formulário -->
-                        <div class="sm:col-span-2">
-                            <label for="edit-nome" class="block text-sm font-medium text-gray-700">Nome Completo</label>
-                            <input type="text" name="nome" id="edit-nome" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm" required>
-                        </div>
-                        <div>
-                            <label for="edit-data_nascimento" class="block text-sm font-medium text-gray-700">Data de Nascimento</label>
-                            <input type="date" name="data_nascimento" id="edit-data_nascimento" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm" required>
-                        </div>
-                         <div>
-                            <label for="edit-telefone" class="block text-sm font-medium text-gray-700">Telefone</label>
-                            <input type="text" name="telefone" id="edit-telefone" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
-                        </div>
-                        <div class="sm:col-span-2">
-                            <label for="edit-endereco" class="block text-sm font-medium text-gray-700">Endereço</label>
-                            <input type="text" name="endereco" id="edit-endereco" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm" required>
-                        </div>
-                        <div>
-                            <label for="edit-cpf_cnpj" class="block text-sm font-medium text-gray-700">CPF/CNPJ</label>
-                            <input type="text" name="cpf_cnpj" id="edit-cpf_cnpj" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100" readonly>
-                        </div>
-                        <div>
-                            <label for="edit-cnh" class="block text-sm font-medium text-gray-700">CNH</label>
-                            <input type="text" name="cnh" id="edit-cnh" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100" readonly>
-                        </div>
-                        <div>
-                            <label for="edit-validade_cnh" class="block text-sm font-medium text-gray-700">Validade da CNH</label>
-                            <input type="date" name="validade_cnh" id="edit-validade_cnh" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
-                        </div>
-                        <div class="sm:col-span-2 mt-4">
-                            <h3 class="text-lg font-medium text-gray-900 mb-2">Anexos</h3>
-                            <div id="existing-attachments" class="mb-4 p-4 border rounded-md bg-gray-50 min-h-[50px]"></div>
-                            <label for="anexos" class="block text-sm font-medium text-gray-700">Adicionar Novos Anexos</label>
-                            <input type="file" name="anexos" id="anexos" multiple class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
-                        </div>
-                    </div>
-                </form>
+    <div id="driverModal" class="modal fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[2000] hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <header class="flex justify-between items-center p-4 border-b">
+                <h2 class="text-lg sm:text-xl font-bold text-gray-800">Detalhes: <span id="modal-driver-name"></span></h2>
+                <button onclick="closeDriverModal()" class="text-gray-400 hover:text-gray-700 text-3xl font-light">&times;</button>
+            </header>
+            
+            <div class="border-b">
+                <nav class="flex flex-wrap -mb-px px-4">
+                    <button id="tab-dados" class="tab-button py-3 px-4" onclick="switchTab('dados')">Dados & Edição</button>
+                    <button id="tab-stats" class="tab-button py-3 px-4" onclick="switchTab('stats')">Estatísticas</button>
+                    <button id="tab-viagens" class="tab-button py-3 px-4" onclick="switchTab('viagens')">Histórico de Viagens</button>
+                </nav>
             </div>
-            <!-- Conteúdo da Aba Estatísticas -->
-            <div id="content-stats" class="tab-content hidden">
-                <div id="modal-driver-stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-center"></div>
-            </div>
-            <!-- Conteúdo da Aba Histórico de Viagens -->
-            <div id="content-viagens" class="tab-content hidden">
-                 <div class="overflow-x-auto border rounded-lg">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rota</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="modal-driver-trips" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
+            
+            <div class="p-4 sm:p-6 overflow-y-auto flex-grow">
+                <div id="content-dados" class="tab-content">
+                    <form id="edit-driver-form" method="POST" action="" enctype="multipart/form-data">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                            <div class="sm:col-span-2"><label for="edit-nome" class="block text-sm font-medium text-gray-700">Nome Completo</label><input type="text" name="nome" id="edit-nome" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm" required></div>
+                            <div><label for="edit-data_nascimento" class="block text-sm font-medium text-gray-700">Data de Nascimento</label><input type="date" name="data_nascimento" id="edit-data_nascimento" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required></div>
+                            <div><label for="edit-telefone" class="block text-sm font-medium text-gray-700">Telefone</label><input type="text" name="telefone" id="edit-telefone" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required></div>
+                            <div class="sm:col-span-2"><label for="edit-endereco" class="block text-sm font-medium text-gray-700">Endereço</label><input type="text" name="endereco" id="edit-endereco" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required></div>
+                            <div><label for="edit-cpf_cnpj" class="block text-sm font-medium text-gray-700">CPF/CNPJ</label><input type="text" name="cpf_cnpj" id="edit-cpf_cnpj" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100" readonly></div>
+                            <div><label for="edit-cnh" class="block text-sm font-medium text-gray-700">CNH</label><input type="text" name="cnh" id="edit-cnh" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100" readonly></div>
+                            <div><label for="edit-validade_cnh" class="block text-sm font-medium text-gray-700">Validade da CNH</label><input type="date" name="validade_cnh" id="edit-validade_cnh" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required></div>
+                            <div class="sm:col-span-2 mt-4">
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">Anexos</h3>
+                                <div id="existing-attachments" class="mb-4 p-4 border rounded-md bg-gray-50 min-h-[50px]"></div>
+                                <label for="anexos" class="block text-sm font-medium text-gray-700">Adicionar Novos Anexos</label>
+                                <input type="file" name="anexos" id="anexos" multiple class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div id="content-stats" class="tab-content hidden"><div id="modal-driver-stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-center"></div></div>
+                <div id="content-viagens" class="tab-content hidden">
+                     <div class="overflow-x-auto border rounded-lg"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rota</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th></tr></thead><tbody id="modal-driver-trips" class="bg-white divide-y divide-gray-200"></tbody></table></div>
                 </div>
             </div>
+            
+            <footer class="flex flex-col-reverse sm:flex-row justify-end gap-3 p-4 border-t bg-gray-50">
+                <button onclick="closeDriverModal()" class="w-full sm:w-auto bg-gray-200 text-gray-800 px-5 py-2 rounded-md hover:bg-gray-300 transition">Cancelar</button>
+                <button type="submit" form="edit-driver-form" class="w-full sm:w-auto bg-green-600 text-white px-5 py-2 rounded-md hover:bg-green-700 transition">Salvar Alterações</button>
+            </footer>
         </div>
-        
-        <!-- Footer do Modal -->
-        <footer class="flex flex-col-reverse sm:flex-row justify-end gap-3 p-4 border-t bg-gray-50">
-            <button onclick="closeDriverModal()" class="w-full sm:w-auto bg-gray-200 text-gray-800 px-5 py-2 rounded-md hover:bg-gray-300 transition">Cancelar</button>
-            <button type="submit" form="edit-driver-form" class="w-full sm:w-auto bg-green-600 text-white px-5 py-2 rounded-md hover:bg-green-700 transition">Salvar Alterações</button>
-        </footer>
     </div>
 </div>
 {% endblock %}
 
-
 {% block scripts %}
-<script type="text/javascript">
+{{ super() }}
+<script>
+    const driverModal = document.getElementById('driverModal');
+    const editForm = document.getElementById('edit-driver-form');
 
-        // --- Lógica do Modal ---
-        const driverModal = document.getElementById('driverModal');
-        const editForm = document.getElementById('edit-driver-form');
-
-        function openDriverModal(buttonElement) {
-            const motorista = JSON.parse(buttonElement.dataset.motorista);
-            
-            // Configura o formulário
-            editForm.action = `/editar_motorista/${motorista.id}`;
-            document.getElementById('modal-driver-name').innerText = motorista.nome || 'N/A';
-            
-            // Preenche os campos do formulário
-            document.getElementById('edit-nome').value = motorista.nome || '';
-            document.getElementById('edit-data_nascimento').value = motorista.data_nascimento ? motorista.data_nascimento.split('T')[0] : '';
-            document.getElementById('edit-endereco').value = motorista.endereco || '';
-            document.getElementById('edit-cpf_cnpj').value = motorista.cpf_cnpj || '';
-            document.getElementById('edit-telefone').value = motorista.telefone || '';
-            document.getElementById('edit-cnh').value = motorista.cnh || '';
-            document.getElementById('edit-validade_cnh').value = motorista.validade_cnh ? motorista.validade_cnh.split('T')[0] : '';
-            
-            // Preenche a lista de anexos existentes
-            const attachmentsContainer = document.getElementById('existing-attachments');
-            attachmentsContainer.innerHTML = '';
-            if (motorista.anexos && motorista.anexos.length > 0) {
-                const list = document.createElement('ul');
-                list.className = 'list-disc list-inside space-y-1';
-                motorista.anexos.forEach(anexoUrl => {
-                    if (!anexoUrl) return;
-                    const filename = decodeURIComponent(anexoUrl.split('/').pop());
-                    const listItem = document.createElement('li');
-                    listItem.className = 'flex justify-between items-center text-sm';
-                    const deleteUrl = `/excluir_anexo/${motorista.id}?anexo=${encodeURIComponent(anexoUrl)}`;
-                    listItem.innerHTML = `
-                        <a href="${anexoUrl}" target="_blank" class="text-blue-600 hover:underline">${filename}</a> 
-                        <a href="${deleteUrl}" class="text-red-500 hover:text-red-700 font-semibold" onclick="return confirm('Tem certeza que deseja excluir o anexo ${filename}?')">Excluir</a>`;
-                    list.appendChild(listItem);
-                });
-                attachmentsContainer.appendChild(list);
-            } else {
-                attachmentsContainer.innerHTML = '<p class="text-sm text-gray-500">Nenhum anexo cadastrado.</p>';
-            }
-
-            // Inicia o carregamento dos dados das outras abas
-            const statsContainer = document.getElementById('modal-driver-stats');
-            const tripsContainer = document.getElementById('modal-driver-trips');
-            statsContainer.innerHTML = `<p class="text-center text-gray-500 col-span-full">Carregando estatísticas...</p>`;
-            tripsContainer.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500 p-4">Carregando viagens...</td></tr>`;
-
-            // Mostra o modal e define a aba inicial
-            switchTab('dados');
-            driverModal.classList.remove('hidden');
-
-            // Busca os detalhes (estatísticas e viagens) via API
-            fetch(`/api/motorista/${motorista.id}/details`)
-                .then(response => {
-                    if (!response.ok) { throw new Error('Erro na rede ou resposta não OK'); }
-                    return response.json();
-                })
-                .then(data => {
-                    // Preenche as estatísticas
-                    statsContainer.innerHTML = '';
-                    const stats = data.stats;
-                    if (stats) {
-                        statsContainer.innerHTML = `
-                            <div class="bg-blue-100 p-4 rounded-lg shadow"><p class="text-2xl font-bold text-blue-800">${stats.total_viagens || 0}</p><p class="text-blue-600 text-sm font-medium">Viagens</p></div>
-                            <div class="bg-green-100 p-4 rounded-lg shadow"><p class="text-2xl font-bold text-green-800">R$ ${Number(stats.total_receita || 0).toFixed(2)}</p><p class="text-green-600 text-sm font-medium">Receita Total</p></div>
-                            <div class="bg-red-100 p-4 rounded-lg shadow"><p class="text-2xl font-bold text-red-800">R$ ${Number(stats.total_custo || 0).toFixed(2)}</p><p class="text-red-600 text-sm font-medium">Custo Total</p></div>
-                            <div class="bg-yellow-100 p-4 rounded-lg shadow"><p class="text-2xl font-bold text-yellow-800">R$ ${Number(stats.lucro_total || 0).toFixed(2)}</p><p class="text-yellow-600 text-sm font-medium">Lucro Total</p></div>
-                            <div class="bg-indigo-100 p-4 rounded-lg shadow col-span-1 sm:col-span-2 lg:col-span-1"><p class="text-2xl font-bold text-indigo-800">${stats.total_distancia || 0} km</p><p class="text-indigo-600 text-sm font-medium">Distância</p></div>`;
-                    } else {
-                         statsContainer.innerHTML = '<p class="text-center text-gray-500 col-span-full">Não há estatísticas para exibir.</p>';
-                    }
-
-                    // Preenche o histórico de viagens
-                    tripsContainer.innerHTML = '';
-                    const viagens = data.viagens;
-                    if (viagens && viagens.length > 0) {
-                        viagens.forEach(viagem => {
-                            const statusClass = { 'concluida': 'bg-green-100 text-green-800', 'em_andamento': 'bg-blue-100 text-blue-800', 'cancelada': 'bg-red-100 text-red-800' };
-                            const statusText = { 'concluida': 'Concluída', 'em_andamento': 'Em Andamento', 'cancelada': 'Cancelada' };
-                            const row = `
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${viagem.cliente}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${new Date(viagem.data_inicio).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${viagem.endereco_saida} &rarr; ${viagem.endereco_destino}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass[viagem.status] || 'bg-gray-100 text-gray-800'}">${statusText[viagem.status] || viagem.status}</span></td>
-                                </tr>`;
-                            tripsContainer.innerHTML += row;
-                        });
-                    } else {
-                        tripsContainer.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">Nenhum histórico de viagem encontrado.</td></tr>';
-                    }
-                })
-                .catch(error => {
-                    console.error('Erro ao buscar detalhes do motorista:', error);
-                    statsContainer.innerHTML = `<p class="text-center text-red-500 col-span-full">Erro ao carregar estatísticas.</p>`;
-                    tripsContainer.innerHTML = `<tr><td colspan="4" class="text-center text-red-500 p-4">Erro ao carregar viagens.</td></tr>`;
-                });
+    function openDriverModal(buttonElement) {
+        const motorista = JSON.parse(buttonElement.dataset.motorista);
+        
+        editForm.action = `/editar_motorista/${motorista.id}`;
+        document.getElementById('modal-driver-name').innerText = motorista.nome || 'N/A';
+        
+        document.getElementById('edit-nome').value = motorista.nome || '';
+        document.getElementById('edit-data_nascimento').value = motorista.data_nascimento || '';
+        document.getElementById('edit-endereco').value = motorista.endereco || '';
+        document.getElementById('edit-cpf_cnpj').value = motorista.cpf_cnpj || '';
+        document.getElementById('edit-telefone').value = motorista.telefone || '';
+        document.getElementById('edit-cnh').value = motorista.cnh || '';
+        document.getElementById('edit-validade_cnh').value = motorista.validade_cnh || '';
+        
+        const attachmentsContainer = document.getElementById('existing-attachments');
+        attachmentsContainer.innerHTML = '';
+        if (motorista.anexos && motorista.anexos.length > 0) {
+            const list = document.createElement('ul');
+            list.className = 'list-disc list-inside space-y-1';
+            motorista.anexos.forEach(anexoUrl => {
+                const filename = decodeURIComponent(anexoUrl.split('/').pop());
+                const deleteUrl = `/excluir_anexo/${motorista.id}/${encodeURIComponent(anexoUrl)}`;
+                const listItem = document.createElement('li');
+                listItem.className = 'flex justify-between items-center text-sm';
+                listItem.innerHTML = `
+                    <a href="${anexoUrl}" target="_blank" class="text-blue-600 hover:underline">${filename}</a> 
+                    <a href="${deleteUrl}" class="text-red-500 hover:text-red-700 font-semibold" onclick="return confirm('Tem certeza que deseja excluir o anexo ${filename}?')">Excluir</a>`;
+                list.appendChild(listItem);
+            });
+            attachmentsContainer.appendChild(list);
+        } else {
+            attachmentsContainer.innerHTML = '<p class="text-sm text-gray-500">Nenhum anexo.</p>';
         }
 
-        function closeDriverModal() {
-            driverModal.classList.add('hidden');
-        }
+        const statsContainer = document.getElementById('modal-driver-stats');
+        const tripsContainer = document.getElementById('modal-driver-trips');
+        statsContainer.innerHTML = `<p class="text-center text-gray-500 col-span-full">Carregando...</p>`;
+        tripsContainer.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500 p-4">Carregando...</td></tr>`;
 
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-            document.getElementById(`content-${tabName}`).classList.remove('hidden');
-            document.getElementById(`tab-${tabName}`).classList.add('active');
-        }
+        switchTab('dados');
+        driverModal.classList.remove('hidden');
 
-        // Fecha o modal se clicar fora da área do conteúdo
-        driverModal.addEventListener('click', (event) => {
-            if (event.target === driverModal) {
-                closeDriverModal();
-            }
-        });
+        fetch(`/api/motorista/${motorista.id}/details`)
+            .then(response => response.json())
+            .then(data => {
+                statsContainer.innerHTML = '';
+                const stats = data.stats;
+                if (stats) {
+                    statsContainer.innerHTML = `
+                        <div class="bg-blue-100 p-4 rounded-lg shadow"><p class="text-2xl font-bold text-blue-800">${stats.total_viagens || 0}</p><p class="text-blue-600 text-sm font-medium">Viagens</p></div>
+                        <div class="bg-green-100 p-4 rounded-lg shadow"><p class="text-2xl font-bold text-green-800">R$ ${Number(stats.total_receita || 0).toFixed(2)}</p><p class="text-green-600 text-sm font-medium">Receita</p></div>
+                        <div class="bg-red-100 p-4 rounded-lg shadow"><p class="text-2xl font-bold text-red-800">R$ ${Number(stats.total_custo || 0).toFixed(2)}</p><p class="text-red-600 text-sm font-medium">Custo</p></div>
+                        <div class="bg-yellow-100 p-4 rounded-lg shadow"><p class="text-2xl font-bold text-yellow-800">R$ ${Number(stats.lucro_total || 0).toFixed(2)}</p><p class="text-yellow-600 text-sm font-medium">Lucro</p></div>
+                        <div class="bg-indigo-100 p-4 rounded-lg shadow col-span-1 sm:col-span-2 lg:col-span-1"><p class="text-2xl font-bold text-indigo-800">${stats.total_distancia || 0} km</p><p class="text-indigo-600 text-sm font-medium">Distância</p></div>`;
+                }
+                tripsContainer.innerHTML = '';
+                const viagens = data.viagens;
+                if (viagens && viagens.length > 0) {
+                    viagens.forEach(viagem => {
+                        const statusClass = { 'concluida': 'bg-green-100 text-green-800', 'em_andamento': 'bg-blue-100 text-blue-800', 'cancelada': 'bg-red-100 text-red-800' };
+                        const statusText = { 'concluida': 'Concluída', 'em_andamento': 'Em Andamento', 'cancelada': 'Cancelada' };
+                        const row = `
+                            <tr>
+                                <td class="px-6 py-4 text-sm text-gray-900">${viagem.cliente}</td>
+                                <td class="px-6 py-4 text-sm text-gray-900">${new Date(viagem.data_inicio).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</td>
+                                <td class="px-6 py-4 text-sm text-gray-900">${viagem.endereco_saida} &rarr; ${viagem.endereco_destino}</td>
+                                <td class="px-6 py-4 text-sm"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass[viagem.status] || 'bg-gray-100 text-gray-800'}">${statusText[viagem.status] || viagem.status}</span></td>
+                            </tr>`;
+                        tripsContainer.innerHTML += row;
+                    });
+                } else {
+                    tripsContainer.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">Nenhum histórico de viagem.</td></tr>';
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                statsContainer.innerHTML = `<p class="text-center text-red-500 col-span-full">Erro ao carregar estatísticas.</p>`;
+                tripsContainer.innerHTML = `<tr><td colspan="4" class="text-center text-red-500 p-4">Erro ao carregar viagens.</td></tr>`;
+            });
+    }
+
+    function closeDriverModal() {
+        driverModal.classList.add('hidden');
+    }
+
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+        document.getElementById(`content-${tabName}`).classList.remove('hidden');
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+    }
+
+    driverModal.addEventListener('click', e => (e.target === driverModal) && closeDriverModal());
 </script>
 {% endblock %}

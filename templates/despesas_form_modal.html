@@ -1,0 +1,52 @@
+{# templates/despesas_form_modal.html #}
+<form id="form-despesas" onsubmit="salvarDespesas(event, {{ viagem.id }})">
+    <h2 class="text-2xl font-bold mb-4">Lançar Despesas da Viagem #{{ viagem.id }}</h2>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="mb-3">
+            <label for="pedagios" class="form-label">Pedágios (R$)</label>
+            <input type="number" step="0.01" class="form-control" id="pedagios" name="pedagios" value="{{ custo.pedagios or '' }}">
+        </div>
+        <div class="mb-3">
+            <label for="alimentacao" class="form-label">Alimentação (R$)</label>
+            <input type="number" step="0.01" class="form-control" id="alimentacao" name="alimentacao" value="{{ custo.alimentacao or '' }}">
+        </div>
+        <div class="mb-3">
+            <label for="hospedagem" class="form-label">Hospedagem (R$)</label>
+            <input type="number" step="0.01" class="form-control" id="hospedagem" name="hospedagem" value="{{ custo.hospedagem or '' }}">
+        </div>
+        <div class="mb-3">
+            <label for="outros" class="form-label">Outros Custos (R$)</label>
+            <input type="number" step="0.01" class="form-control" id="outros" name="outros" value="{{ custo.outros or '' }}">
+        </div>
+        <div class="md:col-span-2 mb-3">
+            <label for="descricao_outros" class="form-label">Descrição (Outros Custos)</label>
+            <textarea class="form-control" id="descricao_outros" name="descricao_outros" rows="2">{{ custo.descricao_outros or '' }}</textarea>
+        </div>
+        <div class="md:col-span-2 mb-3">
+            <label for="anexos_despesa" class="form-label">Anexar Comprovantes</label>
+            <input type="file" class="form-control" id="anexos_despesa" name="anexos_despesa" multiple>
+        </div>
+    </div>
+
+    <div id="anexos-existentes" class="my-4">
+        <h3 class="font-semibold">Comprovantes Salvos:</h3>
+        <ul class="list-disc list-inside">
+            {% if custo and custo.anexos %}
+                {% for anexo in custo.anexos.split(',') %}
+                    <li id="anexo-{{ loop.index }}">
+                        <a href="{{ anexo }}" target="_blank" class="text-blue-600 hover:underline">{{ anexo.split('/')[-1] }}</a>
+                        <button type="button" class="text-red-500 hover:text-red-700 ml-2" onclick="excluirAnexoCusto('{{ anexo }}', {{ viagem.id }}, 'anexo-{{ loop.index }}')">&times;</button>
+                    </li>
+                {% endfor %}
+            {% else %}
+                <li>Nenhum comprovante.</li>
+            {% endif %}
+        </ul>
+    </div>
+
+    <div class="modal-buttons">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('atribuirDespesaModal')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar Despesas</button>
+    </div>
+</form>

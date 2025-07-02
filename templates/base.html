@@ -19,8 +19,7 @@
         body {
             background-color: #f8fafc;
             color: #1e293b; 
-            font-family: 'Inter', 
-            sans-serif;
+            font-family: 'Inter', sans-serif;
             overflow-x: hidden; 
             padding-top: 80px;
         }
@@ -56,24 +55,12 @@
             transition: margin-left 0.3s ease-in-out; 
         }
 
-        @media (min-width: 769px) {
-            div#sidebar {
-                transform: translateX(0);
-            }
-            div.main-content {
-                margin-left: 14rem;
-            }
-        }
-
         @media (max-width: 768px) {
             body { 
                 padding-top: 64px; 
             }
             header.navbar { 
                 height: 64px; 
-            }
-            .name-tag h1 {
-                display: none;
             }
             #sidebar { 
                 top: 64px; 
@@ -89,28 +76,8 @@
                 padding: 1rem; 
             }
         }
-
-        @media (max-width: 480px) {
-            header.navbar {
-                padding: 0 0.5rem;
-            }
-            .img-logo img {
-                height: 45px;
-                width: 45px;
-            }
-            div.main-content {
-                padding: 1rem;
-            }
-            a.user-icon {
-                font-size: 1.2rem;
-            }
-            div#sidebar {
-                width: 90%;
-                max-width: 280px;
-            }
-        }
     </style>
-{% block styles %}{% endblock %}
+    {% block styles %}{% endblock %}
 </head>
 <body class="bg-gray-50">
 
@@ -155,46 +122,59 @@
         </div>
         {% endif %}
         
-        <div class="min-h-screen">
+        <main class="main-content w-full p-4 sm:p-6 {% if current_user.is_authenticated and current_user.role != 'Motorista' %}md:ml-[240px]{% endif %}">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
-                    <div class="fixed top-4 right-4 z-50">
+                    <div class="fixed top-24 right-4 z-[1050]">
                         {% for category, message in messages %}
-                            <div class="bg-{{ 'red-500' if category == 'error' else 'green-500' if category == 'success' else 'blue-500' }} text-white px-4 py-2 rounded-lg shadow-lg mb-2 flex items-center justify-between max-w-sm">
+                            <div class="bg-{{ 'red-500' if category == 'error' else 'green-500' if category == 'success' else 'blue-500' }} text-white px-4 py-2 rounded-lg shadow-lg mb-2 flex items-center justify-between max-w-sm transition-transform transform-gpu hover:scale-105"
+                                 role="alert" 
+                                 x-data="{ show: true }" 
+                                 x-show="show" 
+                                 x-init="setTimeout(() => show = false, 5000)"
+                                 x-transition:leave="transition ease-in duration-300"
+                                 x-transition:leave-start="opacity-100 transform translate-x-0"
+                                 x-transition:leave-end="opacity-0 transform translate-x-full">
                                 <span>{{ message }}</span>
-                                <button onclick="this.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">&times;</button>
+                                <button @click="show = false" class="ml-4 text-white font-bold hover:text-gray-200">&times;</button>
                             </div>
                         {% endfor %}
                     </div>
                 {% endif %}
             {% endwith %}
-        </div>
-
-        <main class="main-content w-full p-4 sm:p-6 {% if current_user.is_authenticated and current_user.role != 'Motorista' %}md:ml-[240px]{% endif %}">
+            
             {% block content %}{% endblock %}
         </main>
     </div>
 
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="//unpkg.com/alpinejs" defer></script>
     <script>
-        const sidebar = document.getElementById('sidebar');
-        const menuToggle = document.getElementById('menu-toggle');
-        if (menuToggle) {
-            menuToggle.addEventListener('click', (event) => {
-                event.stopPropagation();
-                sidebar.classList.toggle('open');
+        document.addEventListener('DOMContentLoaded', function () {
+            const sidebar = document.getElementById('sidebar');
+            const menuToggle = document.getElementById('menu-toggle');
+            const mainContent = document.querySelector('.main-content');
+
+            if (menuToggle) {
+                menuToggle.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    sidebar.classList.toggle('open');
+                });
+            }
+
+            document.addEventListener('click', (event) => {
+                if (sidebar && sidebar.classList.contains('open') && window.innerWidth <= 768) {
+                    const isClickInside = sidebar.contains(event.target) || (menuToggle && menuToggle.contains(event.target));
+                    if (!isClickInside) {
+                        sidebar.classList.remove('open');
+                    }
+                }
             });
-        }
-        document.addEventListener('click', (event) => {
-            if (sidebar && sidebar.classList.contains('open') && window.innerWidth <= 768) {
-                const isClickInside = sidebar.contains(event.target) || menuToggle.contains(event.target);
-                if (!isClickInside) { sidebar.classList.remove('open'); }
-            }
-        });
-        window.addEventListener('resize', () => {
-            if (window.innerWidth > 768) { 
-                if (sidebar) sidebar.classList.remove('open'); 
-            }
+
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 768) {
+                    if (sidebar) sidebar.classList.remove('open');
+                }
+            });
         });
     </script>
     
