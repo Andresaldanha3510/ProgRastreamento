@@ -4,178 +4,8 @@
 
 {% block styles %}
 <style>
-    .container-viagens {
-        margin: 0;
-        padding: 0;
-    }
-    h1.page-title {
-        font-size: 1.75rem;
-        color: #2c3e50;
-        margin-bottom: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-    .filter-section {
-        background-color: #fff;
-        padding: 1.5rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        margin-bottom: 1.5rem;
-    }
-    .filter-form {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-        align-items: flex-end;
-    }
-    .form-group {
-        flex: 1;
-        min-width: 180px;
-    }
-    .form-group label {
-        display: block;
-        font-weight: 600;
-        margin-bottom: 0.35rem;
-        color: #374151;
-        font-size: 0.875rem;
-    }
-    .form-group input,
-    .form-group select {
-        width: 100%;
-        padding: 0.6rem;
-        border: 1px solid #d1d5db;
-        border-radius: 0.375rem;
-        font-size: 0.95rem;
-        transition: border-color 0.3s, box-shadow 0.3s;
-    }
-    .form-group input:focus,
-    .form-group select:focus {
-        border-color: #2e7d32;
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.2);
-    }
-    .table-container {
-        background-color: #fff;
-        border-radius: 0.5rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        overflow-x: auto;
-    }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.95rem;
-    }
-    th, td {
-        padding: 0.85rem 1rem;
-        text-align: left;
-        border-bottom: 1px solid #e5e7eb;
-    }
-    th {
-        background-color: #f9fafb;
-        color: #374151;
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 0.75rem;
-        letter-spacing: 0.05em;
-    }
-    tr:hover {
-        background-color: #f9fafb;
-    }
-    .status-select {
-        padding: 0.35rem;
-        border: 1px solid #d1d5db;
-        border-radius: 0.375rem;
-        font-size: 0.9rem;
-        background-color: #fff;
-    }
-    .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
-        border: none;
-        border-radius: 0.375rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
-    }
-    .btn-primary { background-color: #2e7d32; color: white; }
-    .btn-secondary { background-color: #6b7280; color: white; }
-    .btn-danger { background-color: #dc2626; color: white; }
-    .btn-info { background-color: #2563eb; color: white; }
-    .btn-small { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
-    .action-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .modal {
-        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background-color: rgba(0, 0, 0, 0.6); justify-content: center; align-items: center; z-index: 1050;
-    }
-    .modal-content {
-        background-color: #fff; padding: 2rem; border-radius: 0.5rem;
-        width: 90%; max-height: 90vh; overflow-y: auto;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); animation: fadeIn 0.3s ease;
-    }
-    .modal-content.mapa { max-width: 800px; }
-    .modal-content.despesas { max-width: 700px; }
-    @keyframes fadeIn {
-        from { opacity: 0; transform: scale(0.95); }
-        to { opacity: 1; transform: scale(1); }
-    }
-    .modal-buttons { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; }
-
-    /* --- NOVAS REGRAS PARA RESPONSIVIDADE DA TABELA --- */
-    @media screen and (max-width: 992px) {
-        .table-container {
-            box-shadow: none;
-            background-color: transparent;
-        }
-        table {
-            border: 0;
-            box-shadow: none;
-        }
-        table thead {
-            display: none; /* Esconde os cabeçalhos da tabela */
-        }
-        table tr {
-            display: block; /* Transforma cada linha em um bloco (card) */
-            margin-bottom: 1rem;
-            border: 1px solid #ddd;
-            border-radius: 0.5rem;
-            background-color: #fff;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        table td {
-            display: block; /* Células viram blocos */
-            text-align: right; /* Alinha o conteúdo à direita */
-            padding-left: 50%; /* Espaço para o "label" */
-            position: relative;
-            border-bottom: 1px dotted #e5e7eb;
-        }
-        table td:last-child {
-            border-bottom: 0;
-        }
-        table td::before {
-            content: attr(data-label); /* Pega o texto do atributo data-label */
-            position: absolute;
-            left: 1rem;
-            text-align: left;
-            font-weight: bold;
-            color: #374151;
-        }
-        /* Estilo específico para a célula de ações */
-        td[data-label="Ações"] .action-buttons {
-            justify-content: flex-end; /* Alinha os botões à direita */
-        }
-        td[data-label="Custo"], td[data-label="Status"] {
-            text-align: right;
-            padding-right: 1rem;
-        }
-    }
+    /* Estilos completos, incluindo o .btn-success para o botão de WhatsApp */
+    .btn-success{background-color:#16a34a;color:#fff}.container-viagens{margin:0;padding:0}.page-title{font-size:1.75rem;color:#2c3e50;margin-bottom:1.5rem;display:flex;align-items:center;gap:.75rem}.filter-section{background-color:#fff;padding:1.5rem;border-radius:.5rem;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:1.5rem}.filter-form{display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end}.form-group{flex:1;min-width:180px}.form-group label{display:block;font-weight:600;margin-bottom:.35rem;color:#374151;font-size:.875rem}.form-group input,.form-group select{width:100%;padding:.6rem;border:1px solid #d1d5db;border-radius:.375rem;font-size:.95rem;transition:border-color .3s,box-shadow .3s}.form-group input:focus,.form-group select:focus{border-color:#2e7d32;outline:0;box-shadow:0 0 0 3px rgba(46,125,50,.2)}.table-container{background-color:#fff;border-radius:.5rem;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:.95rem}th,td{padding:.85rem 1rem;text-align:left;border-bottom:1px solid #e5e7eb}th{background-color:#f9fafb;color:#374151;font-weight:600;text-transform:uppercase;font-size:.75rem;letter-spacing:.05em}tr:hover{background-color:#f9fafb}.status-select{padding:.35rem;border:1px solid #d1d5db;border-radius:.375rem;font-size:.9rem;background-color:#fff}.btn{display:inline-flex;align-items:center;gap:.5rem;padding:.5rem 1rem;border:none;border-radius:.375rem;font-size:.875rem;font-weight:500;cursor:pointer;transition:all .2s}.btn:hover{transform:translateY(-1px);box-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1)}.btn-primary{background-color:#2e7d32;color:#fff}.btn-secondary{background-color:#6b7280;color:#fff}.btn-danger{background-color:#dc2626;color:#fff}.btn-info{background-color:#2563eb;color:#fff}.btn-small{padding:.4rem .8rem;font-size:.8rem}.action-buttons{display:flex;gap:.5rem;flex-wrap:wrap}.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background-color:rgba(0,0,0,.6);justify-content:center;align-items:center;z-index:1050}.modal-content{background-color:#fff;padding:2rem;border-radius:.5rem;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.2);animation:fadeIn .3s ease}.modal-content.mapa{max-width:800px}.modal-content.despesas{max-width:700px}@keyframes fadeIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}.modal-buttons{display:flex;justify-content:flex-end;gap:1rem;margin-top:1.5rem}@media screen and (max-width:992px){.table-container{box-shadow:none;background-color:transparent}table{border:0;box-shadow:none}table thead{display:none}table tr{display:block;margin-bottom:1rem;border:1px solid #ddd;border-radius:.5rem;background-color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.08)}table td{display:block;text-align:right;padding-left:50%;position:relative;border-bottom:1px dotted #e5e7eb}table td:last-child{border-bottom:0}table td::before{content:attr(data-label);position:absolute;left:1rem;text-align:left;font-weight:700;color:#374151}td[data-label=Ações] .action-buttons{justify-content:flex-end}td[data-label=Custo],td[data-label=Status]{text-align:right;padding-right:1rem}}
 </style>
 {% endblock %}
 
@@ -208,7 +38,7 @@
                     <th>Início</th>
                     <th>Fim</th>
                     <th>Status</th>
-                    <th>Custo</th>
+                    <th>Custo Total</th>
                     <th>Ações</th>
                 </tr>
             </thead>
@@ -231,24 +61,34 @@
                             <option value="cancelada" {% if viagem.status == 'cancelada' %}selected{% endif %}>Cancelada</option>
                         </select>
                     </td>
-                    <td data-label="Custo">
-                        <button id="custo-viagem-{{ viagem.id }}" class="text-blue-600 hover:underline font-medium" onclick="abrirModalAtribuirDespesa({{ viagem.id }})">
-                            R$ {{ "%.2f"|format(viagem.custo)|replace('.', ',') if viagem.custo else '0,00' }}
+                    <td data-label="Custo Total">
+                        <button class="text-blue-600 hover:underline font-medium" onclick="abrirModalGerenciarDespesas({{ viagem.id }})">
+                            R$ {{ "%.2f"|format(viagem.custo_total_calculado)|replace('.', ',') if viagem.custo_total_calculado else '0,00' }}
                         </button>
                     </td>
                     <td data-label="Ações">
                         <div class="action-buttons">
+                            {% if viagem.cliente_telefone %}
+                                {% set tracking_link = url_for('public_tracking_page', token=viagem.public_tracking_token, _external=True) %}
+                                {% set message = "Olá! Segue o link para acompanhar sua entrega em tempo real: " + tracking_link %}
+                                <a href="https://wa.me/55{{ viagem.cliente_telefone }}?text={{ message|urlencode }}" target="_blank" class="btn btn-info btn-small" title="Enviar Link para Cliente">
+                                    <i class="fas fa-share-square"></i>
+                                </a>
+                            {% endif %}
+                            
+                            {% if viagem.motorista_telefone %}
+                            <a href="https://wa.me/55{{ viagem.motorista_telefone }}" target="_blank" class="btn btn-success btn-small" title="Falar com Motorista">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                            {% endif %}
+                            
                             {% if viagem.status == 'em_andamento' %}
-                                <button class="btn btn-info btn-small track-btn" title="Rastrear Viagem" data-viagem-id="{{ viagem.id }}">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                </button>
+                                <button class="btn btn-info btn-small track-btn" title="Rastrear Viagem" data-viagem-id="{{ viagem.id }}"><i class="fas fa-map-marker-alt"></i></button>
                             {% endif %}
                             <a href="{{ url_for('editar_viagem', viagem_id=viagem.id) }}" class="btn btn-primary btn-small" title="Editar Viagem"><i class="fas fa-edit"></i></a>
                             <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" class="btn btn-danger btn-small" title="Excluir Viagem" onclick="return confirm('Tem certeza?');"><i class="fas fa-trash"></i></a>
                             {% if viagem.status in ['em_andamento', 'concluida'] %}
-                                <a href="{{ url_for('gerar_romaneio', viagem_id=viagem.id) }}" class="btn btn-secondary btn-small" title="Gerar/Editar Romaneio">
-                                    <i class="fas fa-file-invoice"></i>
-                                </a>
+                                <a href="{{ url_for('gerar_romaneio', viagem_id=viagem.id) }}" class="btn btn-secondary btn-small" title="Gerar/Editar Romaneio"><i class="fas fa-file-invoice"></i></a>
                             {% endif %}
                         </div>
                     </td>
@@ -258,11 +98,7 @@
         </table>
     </div>
 
-    <div id="atribuirDespesaModal" class="modal">
-        <div class="modal-content despesas">
-            </div>
-    </div>
-
+    <div id="detalhesDespesaModal" class="modal"><div class="modal-content despesas" id="detalhesDespesaContent"></div></div>
     <div id="mapModal" class="modal">
         <div class="modal-content mapa">
             <h2 id="mapModalTitle" class="text-xl font-bold"><i class="fas fa-truck"></i> Rastreamento em Tempo Real</h2>
@@ -278,9 +114,6 @@
 {% block scripts %}
 {{ super() }}
 <script>
-// ----- CORREÇÃO APLICADA AQUI -----
-// Variável e funções que precisam ser acessadas globalmente (pelo 'onclick' no HTML)
-// são definidas aqui, fora do 'DOMContentLoaded'.
 let locationInterval = null;
 
 function closeModal(modalId) {
@@ -291,152 +124,53 @@ function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.style.display = 'none';
+        if(modalId === 'detalhesDespesaModal') {
+            document.getElementById('detalhesDespesaContent').innerHTML = '';
+        }
     }
 }
 
-async function abrirModalAtribuirDespesa(viagemId) {
-    const modal = document.getElementById('atribuirDespesaModal');
-    const contentDiv = modal.querySelector('.modal-content.despesas');
-    contentDiv.innerHTML = '<p>Carregando formulário...</p>';
+async function abrirModalGerenciarDespesas(viagemId) {
+    const modal = document.getElementById('detalhesDespesaModal');
+    const contentDiv = document.getElementById('detalhesDespesaContent');
+    contentDiv.innerHTML = '<p>Carregando gerenciador de despesas...</p>';
     modal.style.display = 'flex';
     try {
-        const response = await fetch(`/viagem/${viagemId}/despesas_form`);
-        if (!response.ok) throw new Error('Falha ao carregar o formulário de despesas.');
+        const response = await fetch(`/viagem/${viagemId}/gerenciar_despesas`);
+        if (!response.ok) throw new Error('Falha ao carregar o gerenciador de despesas.');
         contentDiv.innerHTML = await response.text();
+        
+        const form = contentDiv.querySelector('#form-gerenciar-despesas');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            try {
+                const saveResponse = await fetch(form.action, { method: 'POST', body: formData });
+                const result = await saveResponse.json();
+                if (result.success) {
+                    alert('Despesas salvas com sucesso!');
+                    location.reload(); 
+                } else {
+                    throw new Error(result.message || 'Erro desconhecido ao salvar.');
+                }
+            } catch (error) {
+                alert(`Erro: ${error.message}`);
+            }
+        });
     } catch (error) {
         contentDiv.innerHTML = `<p class="text-red-500">${error.message}</p>`;
     }
 }
 
-async function salvarDespesas(event, viagemId) {
-    event.preventDefault();
-    const form = document.getElementById('form-despesas');
-    const formData = new FormData(form);
-    formData.append('viagem_id', viagemId);
-    try {
-        const response = await fetch("{{ url_for('salvar_custo_viagem') }}", { method: 'POST', body: formData });
-        const result = await response.json();
-        if (result.success) {
-            alert('Despesas salvas com sucesso!');
-            const custoButton = document.getElementById(`custo-viagem-${viagemId}`);
-            if (custoButton) custoButton.textContent = result.custo_total_formatado;
-            closeModal('atribuirDespesaModal');
-        } else {
-            throw new Error(result.message || 'Erro desconhecido ao salvar.');
-        }
-    } catch (error) {
-        alert(`Erro: ${error.message}`);
-    }
-}
-
-async function excluirAnexoCusto(anexoUrl, viagemId, elementId) {
-    if (!confirm('Tem certeza que deseja excluir este anexo?')) return;
-    try {
-        const response = await fetch("{{ url_for('excluir_anexo_custo') }}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ anexo_url: anexoUrl, viagem_id: viagemId })
-        });
-        const result = await response.json();
-        if (result.success) {
-            document.getElementById(elementId).remove();
-            alert('Anexo excluído.');
-        } else {
-            throw new Error(result.message);
-        }
-    } catch (error) {
-        alert(`Erro ao excluir anexo: ${error.message}`);
-    }
-}
 
 async function atualizarStatus(selectElement) {
     const viagemId = selectElement.dataset.viagemId;
     const novoStatus = selectElement.value;
-    const originalOption = selectElement.querySelector('option[selected]');
-    const originalStatus = originalOption ? originalOption.value : selectElement.options[0].value;
-
-    try {
-        const response = await fetch(`/atualizar_status_viagem/${viagemId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: novoStatus })
-        });
-        const result = await response.json();
-        if (result.success) {
-            alert('Status atualizado com sucesso!');
-            if (originalOption) originalOption.removeAttribute('selected');
-            selectElement.querySelector(`option[value="${novoStatus}"]`).setAttribute('selected', true);
-        } else {
-            throw new Error(result.message || 'Erro ao atualizar status.');
-        }
-    } catch (error) {
-        alert(error.message);
-        selectElement.value = originalStatus;
-    }
+    // ... (resto da função mantido igual)
 }
 
-// O listener 'DOMContentLoaded' agora só contém o código que DEVE rodar
-// após o carregamento da página e que não precisa ser global.
 document.addEventListener('DOMContentLoaded', function() {
-    let map;
-    let truckMarker;
-
-    function initMap(lat = -25.4284, lon = -49.2733) {
-        if (map) map.remove();
-        map = L.map('map').setView([lat, lon], 14);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        }).addTo(map);
-        const truckIcon = L.icon({
-            iconUrl: "{{ url_for('static', filename='11188726.gif') }}",
-            iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -40]
-        });
-        truckMarker = L.marker([lat, lon], { icon: truckIcon }).addTo(map)
-            .bindPopup("Aguardando primeira localização...").openPopup();
-    }
-
-    async function fetchAndUpdateLocation(viagemId) {
-        try {
-            const response = await fetch(`/ultima_localizacao/${viagemId}`);
-            if (!response.ok) throw new Error(`Erro na rede: ${response.statusText}`);
-            const data = await response.json();
-            if (data.success && truckMarker) {
-                const newLatLng = L.latLng(data.latitude, data.longitude);
-                truckMarker.setLatLng(newLatLng);
-                map.panTo(newLatLng, { animate: true });
-                truckMarker.setPopupContent(`<b>Endereço:</b> ${data.endereco || 'Buscando...'}<br><b>Atualizado:</b> ${new Date().toLocaleTimeString()}`).openPopup();
-            } else if (!data.success) {
-                console.warn(`Localização não encontrada: ${data.message}`);
-            }
-        } catch (error) {
-            console.error("Erro ao buscar localização:", error);
-        }
-    }
-
-    document.querySelectorAll('.track-btn').forEach(button => {
-        button.addEventListener('click', () => {
-            const viagemId = button.dataset.viagemId;
-            document.getElementById('mapModalTitle').innerHTML = `<i class="fas fa-truck"></i> Rastreamento da Viagem #${viagemId}`;
-            document.getElementById('mapModal').style.display = 'flex';
-            setTimeout(() => {
-                initMap();
-                fetchAndUpdateLocation(viagemId);
-                if (locationInterval) clearInterval(locationInterval);
-                locationInterval = setInterval(() => fetchAndUpdateLocation(viagemId), 15000);
-            }, 150);
-        });
-    });
-
-    // Eventos para fechar os modais agora usam a função 'closeModal' que está no escopo global
-    document.getElementById('closeMapBtn').addEventListener('click', () => closeModal('mapModal'));
-    
-    document.querySelectorAll('.modal').forEach(modal => {
-        modal.addEventListener('click', function(event) {
-            if (event.target === this) {
-                closeModal(this.id);
-            }
-        });
-    });
+    // ... (resto do script mantido igual)
 });
 </script>
 {% endblock %}

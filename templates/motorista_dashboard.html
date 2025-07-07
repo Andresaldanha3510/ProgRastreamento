@@ -118,13 +118,14 @@
         <h3 class="text-2xl font-bold mb-6 text-white">Registrar Abastecimento</h3>
         <form id="abastecimentoForm" enctype="multipart/form-data">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <div><label for="litros">Litros</label><input id="litros" name="litros" type="number" step="0.01" required class="mt-1 w-full bg-slate-700 text-white rounded p-2"></div>
-                <div><label for="preco_litro">Preço/Litro (R$)</label><input id="preco_litro" name="preco_por_litro" type="number" step="0.01" required class="mt-1 w-full bg-slate-700 text-white rounded p-2"></div>
+                <div><label for="litros" class="block text-sm font-medium text-gray-400">Litros</label><input id="litros" name="litros" type="number" step="0.01" required class="mt-1 w-full bg-slate-700 text-white rounded p-2"></div>
+                <div><label for="preco_litro" class="block text-sm font-medium text-gray-400">Preço/Litro (R$)</label><input id="preco_litro" name="preco_por_litro" type="number" step="0.01" required class="mt-1 w-full bg-slate-700 text-white rounded p-2"></div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                <div><label for="custo_total">Custo Total (R$)</label><input id="custo_total" name="custo_total" type="number" readonly class="mt-1 w-full bg-slate-900 text-gray-300 rounded p-2"></div>
-                <div><label for="odometro">Odômetro (KM)</label><input id="odometro" name="odometro" type="number" step="1" required class="mt-1 w-full bg-slate-700 text-white rounded p-2"></div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div><label for="custo_total" class="block text-sm font-medium text-gray-400">Custo Total (R$)</label><input id="custo_total" name="custo_total" type="number" readonly class="mt-1 w-full bg-slate-900 text-gray-300 rounded p-2 cursor-not-allowed"></div>
+                <div><label for="odometro" class="block text-sm font-medium text-gray-400">Odômetro (KM)</label><input id="odometro" name="odometro" type="number" step="1" required class="mt-1 w-full bg-slate-700 text-white rounded p-2"></div>
             </div>
+            <div class="mb-6"><label for="anexo_comprovante" class="block text-sm font-medium text-gray-400">Anexar Comprovante</label><input id="anexo_comprovante" name="anexo_comprovante" type="file" class="mt-1 block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-600 file:text-gray-200 hover:file:bg-slate-500"></div>
             <div class="flex justify-end gap-3">
                 <button type="button" onclick="document.getElementById('abastecimentoModal').classList.add('hidden')" class="bg-slate-600 text-white font-bold px-4 py-2 rounded">Cancelar</button>
                 <button type="submit" class="bg-blue-600 text-white font-bold px-4 py-2 rounded">Registrar</button>
@@ -132,31 +133,26 @@
         </form>
     </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 <script>
-// --- [NOVO] LÓGICA DE REGISTRO DO PWA E SERVICE WORKER ---
-// Esta função será chamada quando a página carregar para registrar o PWA.
 async function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
         try {
-            // Tenta registrar o arquivo sw.js. Usamos "/sw.js" porque o movemos para a raiz.
             const registration = await navigator.serviceWorker.register("/sw.js", { scope: '/' });
             console.log('Service Worker registrado com sucesso:', registration);
 
-            // Tenta ativar a sincronização em segundo plano para localização
             if ('periodicSync' in registration) {
                 const status = await navigator.permissions.query({name: 'periodic-background-sync'});
                 if (status.state === 'granted') {
-                    // Se a permissão já existe, registra a tarefa
                     await registration.periodicSync.register('get-location-updates', {
-                        minInterval: 30 * 60 * 1000, // 30 minutos
+                        minInterval: 30 * 60 * 1000,
                     });
                 } else {
-                    // Se não tiver permissão, mostra a mensagem que vimos antes
                     showToast('Para rastreamento em 2º plano, instale o app na tela inicial.', 'info');
                 }
             }
@@ -165,14 +161,10 @@ async function registerServiceWorker() {
         }
     }
 }
-// Adicionamos um listener para chamar a função de registro assim que a página carregar.
 window.addEventListener('load', () => {
     registerServiceWorker();
 });
-// --- [FIM DA ADIÇÃO DO PWA] ---
 
-
-// --- SEU CÓDIGO EXISTENTE CONTINUA ABAIXO, INTACTO ---
 const viagemAtivaId = {{ viagem_ativa.id if viagem_ativa else 'null' }};
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -277,24 +269,28 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) { showToast('Erro de conexão.', 'error'); }
     });
 
+    // --- INÍCIO DA ALTERAÇÃO ---
+    // Lógica simplificada para o botão "Concluir Viagem"
     document.getElementById('complete-trip-btn')?.addEventListener('click', async () => {
-        const valorRecebido = prompt("Informe o valor total recebido (ex: 350.50):", "0");
-        if (valorRecebido === null) return;
         if (confirm('Tem certeza que deseja concluir esta viagem?')) {
             try {
                 const response = await fetch(`/finalizar_viagem/${viagemAtivaId}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ valor_recebido: valorRecebido || 0 })
                 });
                 const result = await response.json();
                 if (result.success) {
                     showToast('Viagem concluída com sucesso!', 'success');
                     setTimeout(() => window.location.reload(), 1500);
-                } else { showToast(result.message, 'error'); }
-            } catch (error) { showToast('Erro de conexão.', 'error'); }
+                } else { 
+                    showToast(result.message, 'error'); 
+                }
+            } catch (error) { 
+                showToast('Erro de conexão.', 'error'); 
+            }
         }
     });
+    // --- FIM DA ALTERAÇÃO ---
 
     function calcularCustoTotal() {
         const litros = parseFloat(document.getElementById('litros').value) || 0;

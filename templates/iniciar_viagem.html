@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Iniciar Viagem - TrackGo{% endblock %}
+{% block title %}{% if viagem_edit %}Editar Viagem{% else %}Iniciar Viagem{% endif %} - TrackGo{% endblock %}
 
 {% block styles %}
 {{ super() }}
@@ -11,7 +11,7 @@
         padding: 2rem;
         border-radius: 0.5rem;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        margin: 0; /* Alinhado ao lado do menu */
+        margin: 0;
     }
     .form-input, .form-select, .form-textarea {
         width: 100%;
@@ -33,8 +33,6 @@
     .btn-add:hover { background-color: #1d4ed8; }
     .btn-delete { background-color: #dc2626; color: white; }
     .btn-delete:hover { background-color: #b91c1c; }
-
-    /* Z-index alto para os autocompletes */
     .pac-container { z-index: 1051 !important; }
     .awesomplete > ul { z-index: 1052 !important; }
 </style>
@@ -42,79 +40,94 @@
 
 {% block content %}
 <div class="form-container">
-    <h1 class="text-3xl font-bold mb-6 text-gray-800 text-center">Iniciar Nova Viagem</h1>
+    <h1 class="text-3xl font-bold mb-6 text-gray-800 text-center">
+        {% if viagem_edit %}Editar Viagem #{{ viagem_edit.id }}{% else %}Iniciar Nova Viagem{% endif %}
+    </h1>
     
-    <form method="POST" action="{{ url_for('iniciar_viagem') }}">
+    <form method="POST" action="{{ url_for('editar_viagem', viagem_id=viagem_edit.id) if viagem_edit else url_for('iniciar_viagem') }}">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
             <div>
                 <label for="motorista_id" class="block text-gray-700 font-medium mb-2">Motorista</label>
                 <select id="motorista_id" name="motorista_id" required class="form-select">
-                    <option value="" disabled selected>Selecione um motorista</option>
+                    <option value="" disabled {% if not viagem_edit %}selected{% endif %}>Selecione um motorista</option>
                     {% for motorista in motoristas %}
-                        <option value="{{ motorista.id }}">{{ motorista.nome }}</option>
+                        <option value="{{ motorista.id }}" {% if viagem_edit and viagem_edit.motorista_id == motorista.id %}selected{% endif %}>{{ motorista.nome }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div>
                 <label for="veiculo_id" class="block text-gray-700 font-medium mb-2">Veículo</label>
                 <select id="veiculo_id" name="veiculo_id" required class="form-select">
-                    <option value="" disabled selected>Selecione um veículo</option>
+                    <option value="" disabled {% if not viagem_edit %}selected{% endif %}>Selecione um veículo</option>
                     {% for veiculo in veiculos %}
-                        <option value="{{ veiculo.id }}">{{ veiculo.placa }} - {{ veiculo.modelo }}</option>
+                        <option value="{{ veiculo.id }}" {% if viagem_edit and viagem_edit.veiculo_id == veiculo.id %}selected{% endif %}>{{ veiculo.placa }} - {{ veiculo.modelo }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="md:col-span-2">
                 <label for="cliente" class="block text-gray-700 font-medium mb-2">Nome do Cliente</label>
-                <input type="text" class="form-input awesomplete" id="cliente" name="cliente" required autocomplete="off" placeholder="Digite 2 ou mais letras para buscar...">
+                <input type="text" class="form-input awesomplete" id="cliente" name="cliente" required autocomplete="off" placeholder="Digite 2 ou mais letras para buscar..." value="{{ viagem_edit.cliente if viagem_edit }}">
             </div>
             <div class="md:col-span-2">
                 <label for="endereco_saida" class="block text-gray-700 font-medium mb-2">Endereço de Saída</label>
-                <input type="text" class="form-input" id="endereco_saida" name="endereco_saida" required>
+                <input type="text" class="form-input" id="endereco_saida" name="endereco_saida" required value="{{ viagem_edit.endereco_saida if viagem_edit }}">
             </div>
             <div class="md:col-span-2">
                 <label class="block text-gray-700 font-medium mb-2">Endereços de Destino</label>
                 <div id="destinos-container">
-                    <div class="flex items-center gap-2 mb-2">
-                        <input type="text" class="form-input" name="enderecos_destino[]" placeholder="Digite o endereço de destino" required>
-                        <button type="button" class="btn-delete px-3 py-2" onclick="removerDestino(this)">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
+                    {% if viagem_edit and viagem_edit.destinos.all() %}
+                        {% for destino in viagem_edit.destinos.order_by('ordem') %}
+                        <div class="flex items-center gap-2 mb-2">
+                            <input type="text" class="form-input" name="enderecos_destino[]" placeholder="Digite o endereço de destino" required value="{{ destino.endereco }}">
+                            <button type="button" class="btn-delete px-3 py-2" onclick="removerDestino(this)"><i class="fas fa-trash"></i></button>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="flex items-center gap-2 mb-2">
+                            <input type="text" class="form-input" name="enderecos_destino[]" placeholder="Digite o endereço de destino" required>
+                            <button type="button" class="btn-delete px-3 py-2" onclick="removerDestino(this)"><i class="fas fa-trash"></i></button>
+                        </div>
+                    {% endif %}
                 </div>
                 <button type="button" class="btn-add px-4 py-2 mt-2" id="adicionar-destino">Adicionar Destino</button>
             </div>
             <div>
                 <label for="data_inicio" class="block text-gray-700 font-medium mb-2">Data e Hora da Viagem</label>
-                <input type="datetime-local" class="form-input" id="data_inicio" name="data_inicio" required>
+                <input type="datetime-local" class="form-input" id="data_inicio" name="data_inicio" required value="{{ viagem_edit.data_inicio.strftime('%Y-%m-%dT%H:%M') if viagem_edit }}">
             </div>
             <div>
                 <label for="forma_pagamento" class="block text-gray-700 font-medium mb-2">Forma de Pagamento</label>
                 <select class="form-select" id="forma_pagamento" name="forma_pagamento" required>
-                    <option value="" disabled selected>Selecione...</option>
-                    <option value="dinheiro">Dinheiro</option>
-                    <option value="cartao_credito">Cartão de Crédito</option>
-                    <option value="cartao_debito">Cartão de Débito</option>
-                    <option value="pix">PIX</option>
+                    <option value="" disabled>Selecione...</option>
+                    <option value="dinheiro" {% if viagem_edit and viagem_edit.forma_pagamento == 'dinheiro' %}selected{% endif %}>Dinheiro</option>
+                    <option value="cartao_credito" {% if viagem_edit and viagem_edit.forma_pagamento == 'cartao_credito' %}selected{% endif %}>Cartão de Crédito</option>
+                    <option value="cartao_debito" {% if viagem_edit and viagem_edit.forma_pagamento == 'cartao_debito' %}selected{% endif %}>Cartão de Débito</option>
+                    <option value="pix" {% if viagem_edit and viagem_edit.forma_pagamento == 'pix' %}selected{% endif %}>PIX</option>
                 </select>
             </div>
-             <div class="md:col-span-2">
+            <div>
+                <label for="valor_recebido" class="block text-gray-700 font-medium mb-2">Valor a Cobrar (Receita)</label>
+                <input type="number" step="0.01" class="form-input" id="valor_recebido" name="valor_recebido" placeholder="Ex: 450.00" value="{{ viagem_edit.valor_recebido if viagem_edit }}">
+            </div>
+            <div class="md:col-span-2">
                 <label for="status" class="block text-gray-700 font-medium mb-2">Status da Viagem</label>
                 <select class="form-select" id="status" name="status" required>
-                    <option value="pendente">Pendente</option>
-                    <option value="em_andamento">Em Andamento</option>
-                    <option value="concluida">Concluída</option>
-                    <option value="cancelada">Cancelada</option>
+                    <option value="pendente" {% if viagem_edit and viagem_edit.status == 'pendente' %}selected{% endif %}>Pendente</option>
+                    <option value="em_andamento" {% if viagem_edit and viagem_edit.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
+                    <option value="concluida" {% if viagem_edit and viagem_edit.status == 'concluida' %}selected{% endif %}>Concluída</option>
+                    <option value="cancelada" {% if viagem_edit and viagem_edit.status == 'cancelada' %}selected{% endif %}>Cancelada</option>
                 </select>
             </div>
             <div class="md:col-span-2">
                 <label for="observacoes" class="block text-gray-700 font-medium mb-2">Observações</label>
-                <textarea class="form-textarea" id="observacoes" name="observacoes" rows="4"></textarea>
+                <textarea class="form-textarea" id="observacoes" name="observacoes" rows="4">{{ viagem_edit.observacoes if viagem_edit }}</textarea>
             </div>
         </div>
         <div class="mt-8 flex justify-end gap-4">
-            <a href="{{ url_for('index') }}" class="btn-back px-4 py-2 rounded">Voltar</a>
-            <button type="submit" class="btn-submit px-4 py-2 rounded">Adicionar Viagem</button>
+            <a href="{{ url_for('consultar_viagens') }}" class="btn-back px-4 py-2 rounded">Cancelar</a>
+            <button type="submit" class="btn-submit px-4 py-2 rounded">
+                {% if viagem_edit %}Salvar Alterações{% else %}Adicionar Viagem{% endif %}
+            </button>
         </div>
     </form>
 </div>
@@ -128,11 +141,9 @@
     function initAutocomplete() {
         const options = { types: ['geocode'], componentRestrictions: { country: 'br' } };
         
-        // Autocomplete para o campo de saída inicial
         const enderecoSaidaInput = document.getElementById('endereco_saida');
         if (enderecoSaidaInput) new google.maps.places.Autocomplete(enderecoSaidaInput, options);
 
-        // Autocomplete para os campos de destino já existentes na página
         document.querySelectorAll('input[name="enderecos_destino[]"]').forEach(input => {
             new google.maps.places.Autocomplete(input, options);
         });
@@ -148,21 +159,26 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        // AUTOCOMPLETE DE CLIENTES
-        const clienteInput = document.getElementById('cliente');
-        if (clienteInput) {
-            const awesomplete = new Awesomplete(clienteInput, { minChars: 2, autoFirst: true });
-            clienteInput.addEventListener('input', function() {
-                const term = this.value;
-                if (term.length < 2) return;
-                fetch(`/api/clientes/search?term=${term}`)
-                    .then(response => response.json())
-                    .then(data => { awesomplete.list = data; })
-                    .catch(error => console.error('Erro ao buscar clientes:', error));
-            });
+        function initAwesomplete() {
+            if (typeof Awesomplete === 'undefined') {
+                setTimeout(initAwesomplete, 100);
+                return;
+            }
+            const clienteInput = document.getElementById('cliente');
+            if (clienteInput) {
+                const awesomplete = new Awesomplete(clienteInput, { minChars: 2, autoFirst: true });
+                clienteInput.addEventListener('input', function() {
+                    const term = this.value;
+                    if (term.length < 2) return;
+                    fetch(`/api/clientes/search?term=${term}`)
+                        .then(response => response.json())
+                        .then(data => { awesomplete.list = data; })
+                        .catch(error => console.error('Erro ao buscar clientes:', error));
+                });
+            }
         }
+        initAwesomplete();
         
-        // ADICIONAR/REMOVER DESTINOS
         document.getElementById('adicionar-destino').addEventListener('click', function() {
             const container = document.getElementById('destinos-container');
             const newDestino = document.createElement('div');
@@ -172,8 +188,6 @@
                 <button type="button" class="btn-delete px-3 py-2" onclick="removerDestino(this)"><i class="fas fa-trash"></i></button>
             `;
             container.appendChild(newDestino);
-
-            // Inicializa o autocomplete do Google no novo campo
             const newInput = newDestino.querySelector('input');
             const options = { types: ['geocode'], componentRestrictions: { country: 'br' } };
             new google.maps.places.Autocomplete(newInput, options);
