@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}TrackGo{% endblock %}</title>
+    <title>{% block title %}TrackBras{% endblock %}</title>
 
     <link rel="manifest" href="{{ url_for('manifest') }}">
     <meta name="theme-color" content="#2e7d32">
@@ -55,6 +55,18 @@
             transition: margin-left 0.3s ease-in-out; 
         }
 
+        /* Estilo para os títulos de seção do menu */
+        .menu-section-title {
+            color: #a0aec0; /* Cor para o título da seção */
+            font-weight: 600;
+            margin-top: 1.5rem; /* Espaço acima do título */
+            margin-bottom: 0.5rem; /* Espaço abaixo do título */
+            padding-left: 0.75rem; /* Alinha com o padding dos itens */
+            font-size: 0.9rem; /* Tamanho da fonte menor */
+            text-transform: uppercase; /* Texto em maiúsculas */
+            letter-spacing: 0.05em; /* Espaçamento entre as letras */
+        }
+
         @media (max-width: 768px) {
             body { 
                 padding-top: 64px; 
@@ -89,7 +101,7 @@
             <div class="flex items-center gap-3">
                 <a href="{{ url_for('index') }}" class="flex items-center gap-3">
                     <img src="{{ url_for('static', filename='brasão.png') }}" alt="Logo TrackGo" class="h-12 w-12 rounded-full object-cover">
-                    <h1 class="text-white text-xl font-bold hidden md:block">TrackGo</h1>
+                    <h1 class="text-white text-xl font-bold hidden md:block">TrackBras</h1>
                 </a>
             </div>
         </div>
@@ -108,14 +120,19 @@
         <div id="sidebar" class="text-white p-4">
             <h1 class="text-2xl font-bold mb-6 text-center">Menu</h1>
             <ul>
-                <li class="mb-2"><a href="{{ url_for('cadastrar_motorista') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'cadastrar_motorista' %}active{% endif %}" ><i class="fas fa-user w-6 text-center"></i> <span>Cadastrar Motorista</span></a></li>
-                <li class="mb-2"><a href="{{ url_for('cadastrar_veiculo') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'cadastrar_veiculo' %}active{% endif %}"><i class="fas fa-truck w-6 text-center"></i> <span>Cadastrar Veículo</span></a></li>
-                <li class="mb-2"><a href="{{ url_for('cadastrar_cliente') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'cadastrar_cliente' %}active{% endif %}"><i class="fas fa-handshake w-6 text-center"></i> <span>Cadastrar Cliente</span></a></li>
-                <li class="mb-2"><a href="{{ url_for('consultar_clientes') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'consultar_clientes' %}active{% endif %}"><i class="fas fa-address-book w-6 text-center"></i> <span>Consultar Clientes</span></a></li>
+                <li class="menu-section-title">Cadastros</li>
+                <li class="mb-2"><a href="{{ url_for('cadastrar_motorista') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'cadastrar_motorista' %}active{% endif %}" ><i class="fas fa-user w-6 text-center"></i> <span>Motorista</span></a></li>
+                <li class="mb-2"><a href="{{ url_for('cadastrar_veiculo') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'cadastrar_veiculo' %}active{% endif %}"><i class="fas fa-truck w-6 text-center"></i> <span>Veículo</span></a></li>
+                <li class="mb-2"><a href="{{ url_for('cadastrar_cliente') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'cadastrar_cliente' %}active{% endif %}"><i class="fas fa-handshake w-6 text-center"></i> <span>Cliente</span></a></li>
+                
+                <li class="menu-section-title">Consultas</li>
+                <li class="mb-2"><a href="{{ url_for('consultar_clientes') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'consultar_clientes' %}active{% endif %}"><i class="fas fa-address-book w-6 text-center"></i> <span>Clientes</span></a></li>
+                <li class="mb-2"><a href="{{ url_for('consultar_motoristas') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'consultar_motoristas' %}active{% endif %}"><i class="fas fa-users w-6 text-center"></i> <span>Motoristas</span></a></li>
+                <li class="mb-2"><a href="{{ url_for('consultar_veiculos') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'consultar_veiculos' %}active{% endif %}"><i class="fas fa-truck-loading w-6 text-center"></i> <span>Veículos</span></a></li>
+                <li class="mb-2"><a href="{{ url_for('consultar_viagens') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'consultar_viagens' %}active{% endif %}"><i class="fas fa-search w-6 text-center"></i> <span>Viagens</span></a></li>
+
+                <li class="menu-section-title">Operações</li>
                 <li class="mb-2"><a href="{{ url_for('iniciar_viagem') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'iniciar_viagem' %}active{% endif %}"><i class="fas fa-route w-6 text-center"></i> <span>Iniciar Viagem</span></a></li>
-                <li class="mb-2"><a href="{{ url_for('consultar_viagens') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'consultar_viagens' %}active{% endif %}"><i class="fas fa-search w-6 text-center"></i> <span>Consultar Viagens</span></a></li>
-                <li class="mb-2"><a href="{{ url_for('consultar_motoristas') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'consultar_motoristas' %}active{% endif %}"><i class="fas fa-users w-6 text-center"></i> <span>Consultar Motoristas</span></a></li>
-                <li class="mb-2"><a href="{{ url_for('consultar_veiculos') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'consultar_veiculos' %}active{% endif %}"><i class="fas fa-truck-loading w-6 text-center"></i> <span>Consultar Veículos</span></a></li>
                 <li class="mb-2"><a href="{{ url_for('consultar_cobrancas') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page in ['consultar_cobrancas', 'gerar_cobranca'] %}active{% endif %}"><i class="fas fa-wallet w-6 text-center"></i><span>Financeiro</span></a></li>
                 <li class="mb-2"><a href="{{ url_for('relatorios') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'relatorios' %}active{% endif %}"><i class="fas fa-chart-bar w-6 text-center"></i> <span>Relatórios</span></a></li>
             </ul>
