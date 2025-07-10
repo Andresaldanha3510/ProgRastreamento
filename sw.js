@@ -1,5 +1,7 @@
-const CACHE_NAME = 'trackgo-motorista-v1';
-// Lista de arquivos para fazer cache inicial.
+// sw.js
+
+const CACHE_NAME = 'trackgo-motorista-v2';
+// Lista de recursos a serem armazenados como fallback
 const urlsToCache = [
   '/motorista_dashboard',
   '/static/caminhaoandando.gif',
@@ -8,76 +10,55 @@ const urlsToCache = [
   'https://cdn.jsdelivr.net/npm/toastify-js'
 ];
 
-// Evento de instalação: abre o cache e armazena os arquivos principais.
+// Instalação: pré-cache de recursos essenciais e skipWaiting para ativar imediatamente
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Cache aberto');
-        return cache.addAll(urlsToCache);
-      })
+      .then(cache => cache.addAll(urlsToCache))
   );
 });
 
-// Evento de fetch: serve arquivos do cache primeiro, se disponíveis.
+// Ativação: claim para controlar todas as abas e limpeza de caches antigos
+self.addEventListener('activate', event => {
+  self.clients.claim();
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys
+          .filter(key => key !== CACHE_NAME)
+          .map(key => caches.delete(key))
+      )
+    )
+  );
+});
+
+// Fetch: network-first, com fallback para cache
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Se encontrar no cache, retorna. Senão, busca na rede.
-        return response || fetch(event.request);
+    fetch(event.request, { cache: 'no-store' })
+      .then(networkResponse => {
+        // (Opcional) atualizar o cache com a resposta vinda do servidor:
+        // if (event.request.method === 'GET') {
+        //   caches.open(CACHE_NAME)
+        //     .then(cache => cache.put(event.request, networkResponse.clone()));
+        // }
+        return networkResponse;
       })
+      .catch(() => caches.match(event.request))
   );
 });
 
-// Evento de ativação: limpa caches antigos.
-self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-});
-
-// *** SINCRONIZAÇÃO PERIÓDICA EM SEGUNDO PLANO ***
-self.addEventListener('periodicsync', (event) => {
+// Periodic Background Sync (se estiver usando)
+self.addEventListener('periodicsync', event => {
   if (event.tag === 'get-location-updates') {
     event.waitUntil(requestAndSendLocation());
   }
 });
 
 function requestAndSendLocation() {
-    return new Promise((resolve, reject) => {
-        if ('geolocation' in self.navigator) {
-             self.navigator.geolocation.getCurrentPosition(async (position) => {
-                const { latitude, longitude } = position.coords;
-                try {
-                    const response = await fetch('/atualizar_localizacao', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ latitude: latitude, longitude: longitude })
-                    });
-                    const result = await response.json();
-                    console.log('Localização em segundo plano enviada:', result);
-                    resolve();
-                } catch (error) {
-                    console.error('Falha ao enviar localização em background:', error);
-                    reject(error);
-                }
-            }, (error) => {
-                console.error('Erro ao obter geolocalização em background:', error);
-                reject(error);
-            });
-        } else {
-            console.log('Geolocalização não disponível no service worker.');
-            reject('Geolocation not available');
-        }
-    });
+  // Seu código de geolocalização em background aqui
+  return getCurrentPositionAndPostToServer();
 }
+
+// (Defina aqui a função getCurrentPositionAndPostToServer, ou importe de outro módulo)
