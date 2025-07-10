@@ -7,47 +7,19 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        body {
-            background-color: #f3f4f6;
-        }
-        .invoice-box {
-            max-width: 800px;
-            margin: auto;
-            padding: 30px;
-            border: 1px solid #eee;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
-            font-size: 16px;
-            line-height: 24px;
-            font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
-            color: #555;
-            background-color: white;
-        }
+        body { background-color: #f3f4f6; }
+        .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0, 0, 0, 0.15); font-size: 16px; line-height: 24px; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; color: #555; background-color: white; }
         @media print {
-            body {
-                background-color: white; /* Fundo branco para impressão */
-            }
-            .no-print {
-                display: none !important; /* Esconde botões e outros elementos */
-            }
-            .invoice-box {
-                box-shadow: none;
-                border: none;
-                margin: 0;
-                padding: 0;
-                max-width: 100%;
-            }
+            body { background-color: white; }
+            .no-print { display: none !important; }
+            .invoice-box { box-shadow: none; border: none; margin: 0; padding: 0; max-width: 100%; }
         }
     </style>
 </head>
 <body>
-
     <div class="no-print my-6 text-center">
-        <a href="{{ url_for('consultar_cobrancas') }}" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition duration-300">
-            <i class="fas fa-arrow-left mr-2"></i>Voltar para Cobranças
-        </a>
-        <button onclick="window.print();" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-300 ml-4">
-            <i class="fas fa-print mr-2"></i>Imprimir Nota
-        </button>
+        <a href="{{ url_for('consultar_cobrancas') }}" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition duration-300"><i class="fas fa-arrow-left mr-2"></i>Voltar para Cobranças</a>
+        <button onclick="window.print();" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-300 ml-4"><i class="fas fa-print mr-2"></i>Imprimir Nota</button>
     </div>
 
     <div class="invoice-box">
@@ -96,7 +68,7 @@
                 referente aos serviços de transporte detalhados abaixo.
             </p>
         </section>
-
+        
         <section class="mt-8">
             <h3 class="font-semibold text-gray-600 uppercase border-b pb-2 mb-2">Detalhamento dos Serviços</h3>
             <table class="w-full text-left">
@@ -110,13 +82,17 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for viagem in viagens %}
+                    {% for viagem in cobranca.viagens %}
                     <tr class="border-b">
                         <td class="p-2">{{ viagem.id }}</td>
                         <td class="p-2">{{ viagem.data_inicio.strftime('%d/%m/%Y') }}</td>
                         <td class="p-2">{{ viagem.endereco_saida }}</td>
                         <td class="p-2">{{ viagem.endereco_destino }}</td>
                         <td class="p-2 text-right">{{ "%.2f"|format(viagem.valor_recebido) | replace('.', ',') }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="p-4 text-center text-gray-500">Nenhuma viagem associada a esta cobrança.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

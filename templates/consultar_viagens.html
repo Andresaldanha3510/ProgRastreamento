@@ -4,8 +4,37 @@
 
 {% block styles %}
 <style>
-    /* Estilos completos, incluindo o .btn-success para o botão de WhatsApp */
-    .btn-success{background-color:#16a34a;color:#fff}.container-viagens{margin:0;padding:0}.page-title{font-size:1.75rem;color:#2c3e50;margin-bottom:1.5rem;display:flex;align-items:center;gap:.75rem}.filter-section{background-color:#fff;padding:1.5rem;border-radius:.5rem;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:1.5rem}.filter-form{display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end}.form-group{flex:1;min-width:180px}.form-group label{display:block;font-weight:600;margin-bottom:.35rem;color:#374151;font-size:.875rem}.form-group input,.form-group select{width:100%;padding:.6rem;border:1px solid #d1d5db;border-radius:.375rem;font-size:.95rem;transition:border-color .3s,box-shadow .3s}.form-group input:focus,.form-group select:focus{border-color:#2e7d32;outline:0;box-shadow:0 0 0 3px rgba(46,125,50,.2)}.table-container{background-color:#fff;border-radius:.5rem;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:.95rem}th,td{padding:.85rem 1rem;text-align:left;border-bottom:1px solid #e5e7eb}th{background-color:#f9fafb;color:#374151;font-weight:600;text-transform:uppercase;font-size:.75rem;letter-spacing:.05em}tr:hover{background-color:#f9fafb}.status-select{padding:.35rem;border:1px solid #d1d5db;border-radius:.375rem;font-size:.9rem;background-color:#fff}.btn{display:inline-flex;align-items:center;gap:.5rem;padding:.5rem 1rem;border:none;border-radius:.375rem;font-size:.875rem;font-weight:500;cursor:pointer;transition:all .2s}.btn:hover{transform:translateY(-1px);box-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1)}.btn-primary{background-color:#2e7d32;color:#fff}.btn-secondary{background-color:#6b7280;color:#fff}.btn-danger{background-color:#dc2626;color:#fff}.btn-info{background-color:#2563eb;color:#fff}.btn-small{padding:.4rem .8rem;font-size:.8rem}.action-buttons{display:flex;gap:.5rem;flex-wrap:wrap}.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background-color:rgba(0,0,0,.6);justify-content:center;align-items:center;z-index:1050}.modal-content{background-color:#fff;padding:2rem;border-radius:.5rem;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.2);animation:fadeIn .3s ease}.modal-content.mapa{max-width:800px}.modal-content.despesas{max-width:700px}@keyframes fadeIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}.modal-buttons{display:flex;justify-content:flex-end;gap:1rem;margin-top:1.5rem}@media screen and (max-width:992px){.table-container{box-shadow:none;background-color:transparent}table{border:0;box-shadow:none}table thead{display:none}table tr{display:block;margin-bottom:1rem;border:1px solid #ddd;border-radius:.5rem;background-color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.08)}table td{display:block;text-align:right;padding-left:50%;position:relative;border-bottom:1px dotted #e5e7eb}table td:last-child{border-bottom:0}table td::before{content:attr(data-label);position:absolute;left:1rem;text-align:left;font-weight:700;color:#374151}td[data-label=Ações] .action-buttons{justify-content:flex-end}td[data-label=Custo],td[data-label=Status]{text-align:right;padding-right:1rem}}
+    .btn-success { background-color: #16a34a; color: #fff; }
+    .container-viagens { margin: 0; padding: 0; }
+    .page-title { font-size: 1.75rem; color: #2c3e50; margin-bottom: 1.5rem; display: flex; align-items: center; gap: .75rem; }
+    .filter-section { background-color: #fff; padding: 1.5rem; border-radius: .5rem; box-shadow: 0 2px 8px rgba(0,0,0,.08); margin-bottom: 1.5rem; }
+    .filter-form { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; }
+    .form-group { flex: 1; min-width: 180px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: .35rem; color: #374151; font-size: .875rem; }
+    .form-group input, .form-group select { width: 100%; padding: .6rem; border: 1px solid #d1d5db; border-radius: .375rem; font-size: .95rem; transition: border-color .3s, box-shadow .3s; }
+    .form-group input:focus, .form-group select:focus { border-color: #2e7d32; outline: 0; box-shadow: 0 0 0 3px rgba(46,125,50,.2); }
+    .table-container { background-color: #fff; border-radius: .5rem; box-shadow: 0 2px 8px rgba(0,0,0,.08); overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+    th, td { padding: .85rem 1rem; text-align: left; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
+    th { background-color: #f9fafb; color: #374151; font-weight: 600; text-transform: uppercase; font-size: .75rem; letter-spacing: .05em; }
+    tr:hover { background-color: #f9fafb; }
+    .status-select { padding: .35rem; border: 1px solid #d1d5db; border-radius: .375rem; font-size: .9rem; background-color: #fff; }
+    .btn { display: inline-flex; align-items: center; gap: .5rem; padding: .5rem 1rem; border: none; border-radius: .375rem; font-size: .875rem; font-weight: 500; cursor: pointer; transition: all .2s; }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1); }
+    .btn-primary { background-color: #2e7d32; color: #fff; }
+    .btn-secondary { background-color: #6b7280; color: #fff; }
+    .btn-danger { background-color: #dc2626; color: #fff; }
+    .btn-info { background-color: #2563eb; color: #fff; }
+    .btn-small { padding: .4rem .8rem; font-size: .8rem; }
+    /* --- CORREÇÃO DE ALINHAMENTO AQUI --- */
+    .action-buttons { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; justify-content: flex-start; min-height: 40px; /* Garante altura mínima */}
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,.6); justify-content: center; align-items: center; z-index: 1050; }
+    .modal-content { background-color: #fff; padding: 2rem; border-radius: .5rem; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,.2); animation: fadeIn .3s ease; }
+    .modal-content.mapa { max-width: 800px; }
+    .modal-content.despesas { max-width: 700px; }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(.95) } to { opacity: 1; transform: scale(1) } }
+    .modal-buttons { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; }
+    @media screen and (max-width:992px) { .table-container { box-shadow: none; background-color: transparent } table { border: 0; box-shadow: none } table thead { display: none } table tr { display: block; margin-bottom: 1rem; border: 1px solid #ddd; border-radius: .5rem; background-color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.08) } table td { display: block; text-align: right; padding-left: 50%; position: relative; border-bottom: 1px dotted #e5e7eb } table td:last-child { border-bottom: 0 } table td::before { content: attr(data-label); position: absolute; left: 1rem; text-align: left; font-weight: 700; color: #374151 } td[data-label=Ações] .action-buttons { justify-content: flex-end } td[data-label=Custo], td[data-label=Status] { text-align: right; padding-right: 1rem } }
 </style>
 {% endblock %}
 
@@ -15,8 +44,8 @@
 
     <div class="filter-section">
         <form method="GET" action="{{ url_for('consultar_viagens') }}" class="filter-form">
-            <div class="form-group"><label for="status">Status:</label><select id="status" name="status"><option value="">Todos os Status</option><option value="pendente" {% if request.args.get('status') == 'pendente' %}selected{% endif %}>Pendente</option><option value="em_andamento" {% if request.args.get('status') == 'em_andamento' %}selected{% endif %}>Em Andamento</option><option value="concluida" {% if request.args.get('status') == 'concluida' %}selected{% endif %}>Concluída</option><option value="cancelada" {% if request.args.get('status') == 'cancelada' %}selected{% endif %}>Cancelada</option></select></div>
-            <div class="form-group"><label for="motorista_id">Motorista:</label><select id="motorista_id" name="motorista_id"><option value="">Todos os Motoristas</option>{% for motorista in motoristas %}<option value="{{ motorista.id }}" {% if request.args.get('motorista_id')|int == motorista.id %}selected{% endif %}>{{ motorista.nome }}</option>{% endfor %}</select></div>
+            <div class="form-group"><label for="status">Status:</label><select id="status" name="status"><option value="">Todos</option><option value="pendente" {% if request.args.get('status') == 'pendente' %}selected{% endif %}>Pendente</option><option value="em_andamento" {% if request.args.get('status') == 'em_andamento' %}selected{% endif %}>Em Andamento</option><option value="concluida" {% if request.args.get('status') == 'concluida' %}selected{% endif %}>Concluída</option><option value="cancelada" {% if request.args.get('status') == 'cancelada' %}selected{% endif %}>Cancelada</option></select></div>
+            <div class="form-group"><label for="motorista_id">Motorista:</label><select id="motorista_id" name="motorista_id"><option value="">Todos</option>{% for m in motoristas %}<option value="{{ m.id }}" {% if request.args.get('motorista_id')|int == m.id %}selected{% endif %}>{{ m.nome }}</option>{% endfor %}</select></div>
             <div class="form-group"><label for="search">Buscar:</label><input type="text" id="search" name="search" placeholder="Cliente, endereço..." value="{{ request.args.get('search', '') }}"></div>
             <div class="form-group"><label for="data_inicio">Data Início:</label><input type="date" id="data_inicio" name="data_inicio" value="{{ request.args.get('data_inicio', '') }}"></div>
             <div class="form-group"><label for="data_fim">Data Fim:</label><input type="date" id="data_fim" name="data_fim" value="{{ request.args.get('data_fim', '') }}"></div>
@@ -68,20 +97,16 @@
                     </td>
                     <td data-label="Ações">
                         <div class="action-buttons">
-                            {% if viagem.cliente_telefone %}
+                            {% if viagem.public_tracking_token %}
                                 {% set tracking_link = url_for('public_tracking_page', token=viagem.public_tracking_token, _external=True) %}
-                                {% set message = "Olá! Segue o link para acompanhar sua entrega em tempo real: " + tracking_link %}
-                                <a href="https://wa.me/55{{ viagem.cliente_telefone }}?text={{ message|urlencode }}" target="_blank" class="btn btn-info btn-small" title="Enviar Link para Cliente">
-                                    <i class="fas fa-share-square"></i>
-                                </a>
+                                <button onclick="compartilharLink('{{ tracking_link }}')" type="button" class="btn btn-info btn-small" title="Compartilhar Link (Geral)"><i class="fas fa-share-alt"></i></button>
+                                {% if viagem.cliente_telefone %}
+                                    <button onclick="enviarLinkClienteWhatsApp('{{ viagem.cliente_telefone }}', '{{ tracking_link }}')" type="button" class="btn btn-success btn-small" title="Enviar para Cliente via WhatsApp"><i class="fab fa-whatsapp"></i>&nbsp;Cliente</button>
+                                {% endif %}
                             {% endif %}
-                            
                             {% if viagem.motorista_telefone %}
-                            <a href="https://wa.me/55{{ viagem.motorista_telefone }}" target="_blank" class="btn btn-success btn-small" title="Falar com Motorista">
-                                <i class="fab fa-whatsapp"></i>
-                            </a>
+                                <a href="https://wa.me/55{{ viagem.motorista_telefone }}" target="_blank" class="btn btn-success btn-small" title="Falar com Motorista"><i class="fab fa-whatsapp"></i>&nbsp;Motorista</a>
                             {% endif %}
-                            
                             {% if viagem.status == 'em_andamento' %}
                                 <button class="btn btn-info btn-small track-btn" title="Rastrear Viagem" data-viagem-id="{{ viagem.id }}"><i class="fas fa-map-marker-alt"></i></button>
                             {% endif %}
@@ -93,6 +118,8 @@
                         </div>
                     </td>
                 </tr>
+                {% else %}
+                <tr><td colspan="11" class="text-center p-4">Nenhuma viagem encontrada para os filtros selecionados.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -114,63 +141,169 @@
 {% block scripts %}
 {{ super() }}
 <script>
-let locationInterval = null;
+    let locationInterval = null;
 
-function closeModal(modalId) {
-    if (modalId === 'mapModal' && locationInterval) {
-        clearInterval(locationInterval);
-        locationInterval = null;
-    }
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'none';
-        if(modalId === 'detalhesDespesaModal') {
-            document.getElementById('detalhesDespesaContent').innerHTML = '';
+    async function compartilharLink(link) {
+        const shareData = {
+            title: 'Rastreamento de Entrega',
+            text: `Olá! Segue o link para acompanhar sua entrega em tempo real:`,
+            url: link
+        };
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+            } catch (err) {
+                console.log("Compartilhamento cancelado ou falhou:", err);
+            }
+        } else {
+            try {
+                await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+                alert('Link de rastreamento copiado para a área de transferência!');
+            } catch (err) {
+                alert('Erro ao copiar o link.');
+                console.error('Erro ao copiar: ', err);
+            }
         }
     }
-}
 
-async function abrirModalGerenciarDespesas(viagemId) {
-    const modal = document.getElementById('detalhesDespesaModal');
-    const contentDiv = document.getElementById('detalhesDespesaContent');
-    contentDiv.innerHTML = '<p>Carregando gerenciador de despesas...</p>';
-    modal.style.display = 'flex';
-    try {
-        const response = await fetch(`/viagem/${viagemId}/gerenciar_despesas`);
-        if (!response.ok) throw new Error('Falha ao carregar o gerenciador de despesas.');
-        contentDiv.innerHTML = await response.text();
-        
-        const form = contentDiv.querySelector('#form-gerenciar-despesas');
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(form);
+    function enviarLinkClienteWhatsApp(numeroCliente, trackingLink) {
+        const texto = `Olá! Para sua conveniência, segue o link de rastreamento da sua entrega em tempo real:\n\n${trackingLink}`;
+        const textoCodificado = encodeURIComponent(texto);
+        const whatsappUrl = `https://api.whatsapp.com/send?phone=55${numeroCliente}&text=${textoCodificado}`;
+        window.open(whatsappUrl, '_blank');
+    }
+
+    function closeModal(modalId) {
+        if (modalId === 'mapModal' && locationInterval) {
+            clearInterval(locationInterval);
+            locationInterval = null;
+        }
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+            if (modalId === 'detalhesDespesaModal') {
+                document.getElementById('detalhesDespesaContent').innerHTML = '';
+            }
+        }
+    }
+
+    async function abrirModalGerenciarDespesas(viagemId) {
+        const modal = document.getElementById('detalhesDespesaModal');
+        const contentDiv = document.getElementById('detalhesDespesaContent');
+        contentDiv.innerHTML = '<p class="text-center p-5">Carregando...</p>';
+        modal.style.display = 'flex';
+        try {
+            const response = await fetch(`/viagem/${viagemId}/gerenciar_despesas`);
+            if (!response.ok) throw new Error('Falha ao carregar o gerenciador de despesas.');
+            contentDiv.innerHTML = await response.text();
+            
+            const form = contentDiv.querySelector('#form-gerenciar-despesas');
+            if (form) {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(form);
+                    try {
+                        const saveResponse = await fetch(form.action, { method: 'POST', body: formData });
+                        const result = await saveResponse.json();
+                        if (result.success) {
+                            alert('Despesas salvas com sucesso!');
+                            location.reload(); 
+                        } else {
+                            throw new Error(result.message || 'Erro desconhecido ao salvar.');
+                        }
+                    } catch (error) {
+                        alert(`Erro: ${error.message}`);
+                    }
+                });
+            }
+        } catch (error) {
+            contentDiv.innerHTML = `<p class="text-red-500 text-center p-5">${error.message}</p>`;
+        }
+    }
+
+    async function atualizarStatus(selectElement) {
+        const viagemId = selectElement.dataset.viagemId;
+        const novoStatus = selectElement.value;
+        const originalStatus = Array.from(selectElement.options).find(opt => opt.defaultSelected).value;
+
+        try {
+            const response = await fetch(`/atualizar_status_viagem/${viagemId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: novoStatus })
+            });
+            const result = await response.json();
+            if (result.success) {
+                alert('Status atualizado com sucesso!');
+                Array.from(selectElement.options).forEach(opt => opt.defaultSelected = (opt.value === novoStatus));
+            } else {
+                throw new Error(result.message || 'Erro ao atualizar status.');
+            }
+        } catch (error) {
+            alert(error.message);
+            selectElement.value = originalStatus;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        let map;
+        let truckMarker;
+
+        function initMap(lat = -14.235, lon = -51.925, zoom = 4) {
+            if (map) map.remove();
+            map = L.map('map').setView([lat, lon], zoom);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+            const truckIcon = L.icon({
+                iconUrl: "{{ url_for('static', filename='11188726.gif') }}",
+                iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -40]
+            });
+            truckMarker = L.marker([lat, lon], { icon: truckIcon }).addTo(map)
+                .bindPopup("Buscando localização...").openPopup();
+        }
+
+        async function fetchAndUpdateLocation(viagemId) {
             try {
-                const saveResponse = await fetch(form.action, { method: 'POST', body: formData });
-                const result = await saveResponse.json();
-                if (result.success) {
-                    alert('Despesas salvas com sucesso!');
-                    location.reload(); 
-                } else {
-                    throw new Error(result.message || 'Erro desconhecido ao salvar.');
+                const response = await fetch(`/ultima_localizacao/${viagemId}`);
+                if (!response.ok) throw new Error(`Erro na rede: ${response.statusText}`);
+                const data = await response.json();
+                if (data.success && truckMarker) {
+                    const newLatLng = L.latLng(data.latitude, data.longitude);
+                    truckMarker.setLatLng(newLatLng);
+                    map.panTo(newLatLng, { animate: true });
+                    truckMarker.setPopupContent(`<b>Endereço:</b> ${data.endereco || 'Buscando...'}<br><b>Atualizado:</b> ${new Date().toLocaleTimeString()}`).openPopup();
+                } else if (!data.success) {
+                    truckMarker.setPopupContent(`Localização não encontrada: ${data.message}`).openPopup();
                 }
             } catch (error) {
-                alert(`Erro: ${error.message}`);
+                console.error("Erro ao buscar localização:", error);
             }
+        }
+
+        document.querySelectorAll('.track-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const viagemId = button.dataset.viagemId;
+                document.getElementById('mapModalTitle').innerHTML = `<i class="fas fa-truck"></i> Rastreamento da Viagem #${viagemId}`;
+                document.getElementById('mapModal').style.display = 'flex';
+                setTimeout(() => {
+                    initMap();
+                    fetchAndUpdateLocation(viagemId);
+                    if (locationInterval) clearInterval(locationInterval);
+                    locationInterval = setInterval(() => fetchAndUpdateLocation(viagemId), 20000);
+                }, 150);
+            });
         });
-    } catch (error) {
-        contentDiv.innerHTML = `<p class="text-red-500">${error.message}</p>`;
-    }
-}
 
-
-async function atualizarStatus(selectElement) {
-    const viagemId = selectElement.dataset.viagemId;
-    const novoStatus = selectElement.value;
-    // ... (resto da função mantido igual)
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    // ... (resto do script mantido igual)
-});
+        document.getElementById('closeMapBtn')?.addEventListener('click', () => closeModal('mapModal'));
+        
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(event) {
+                if (event.target === this) {
+                    closeModal(this.id);
+                }
+            });
+        });
+    });
 </script>
 {% endblock %}
