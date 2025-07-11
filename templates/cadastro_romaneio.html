@@ -57,13 +57,14 @@
 
             <h2 class="text-xl font-semibold my-6 border-b pb-2">Dados do Destinatário</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                 <div class="md:col-span-2">
+                <div class="md:col-span-2">
                     <label class="block text-gray-700">Nome / Razão Social</label>
                     <input type="text" id="dest_nome" name="dest_nome" required class="w-full p-2 border rounded" value="{{ (romaneio.viagem.cliente if romaneio else dados.dest_nome) or '' }}">
                 </div>
                 <div>
                     <label class="block text-gray-700">CPF / CNPJ</label>
-                    <input type="text" id="dest_cpf_cnpj" name="dest_cpf_cnpj" class="w-full p-2 border rounded" value="">
+                    <input type="text" id="dest_cpf_cnpj" name="dest_cpf_cnpj" class="w-full p-2 border rounded"
+                        value="{{ (romaneio.viagem.cliente.cpf_cnpj if romaneio else dados.dest_cpf_cnpj) or '' }}">
                 </div>
                 <div class="md:col-span-3">
                     <label class="block text-gray-700">Endereço de Entrega</label>
@@ -154,10 +155,83 @@
         </form>
     </div>
 
-<script type="text/javascript">
-document.addEventListener('DOMContentLoaded', function() {
-    // ... (o JavaScript para adicionar/remover itens e calcular totais permanece o mesmo) ...
-});
-</script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const tbody   = document.getElementById('itens_carga_body');
+        const addBtn  = document.getElementById('btn_adicionar_item');
+        const volLbl  = document.getElementById('total_volumes');
+        const pesoLbl = document.getElementById('total_peso');
+
+        // número inicial de linhas já renderizadas
+        let idx = tbody.querySelectorAll('tr').length;
+
+        /* Atualiza volumes e peso total */
+        function atualizarTotais () {
+            let totalVol  = 0;
+            let totalPeso = 0;
+            tbody.querySelectorAll('tr').forEach(row => {
+                totalVol  += +row.querySelector('.item-qtd')?.value  || 0;
+                totalPeso += +row.querySelector('.item-peso')?.value || 0;
+            });
+            volLbl.textContent  = totalVol;
+            pesoLbl.textContent = totalPeso.toFixed(2);
+        }
+
+        /* Cria uma nova linha de item */
+        function novaLinha () {
+            idx += 1;
+            const tr = document.createElement('tr');
+            tr.className = 'border-b';
+            tr.innerHTML = `
+                <td class="py-2 px-4">
+                    <input type="text" name="produto_${idx}" class="w-full p-1 border rounded" placeholder="Descrição do Produto">
+                </td>
+                <td class="py-2 px-4">
+                    <input type="number" name="qtd_${idx}" class="w-full p-1 border rounded item-qtd" min="1" value="1">
+                </td>
+                <td class="py-2 px-4">
+                    <select name="embalagem_${idx}" class="w-full p-1 border rounded">
+                        <option value="Caixa">Caixa</option>
+                        <option value="Palete">Palete</option>
+                        <option value="Fardo">Fardo</option>
+                        <option value="Unidade">Unidade</option>
+                    </select>
+                </td>
+                <td class="py-2 px-4">
+                    <input type="number" name="peso_${idx}" class="w-full p-1 border rounded item-peso" step="0.01" min="0" value="0">
+                </td>
+                <td class="py-2 px-4 text-center">
+                    <button type="button" class="text-red-500 hover:text-red-700 btn-remover-item">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>`;
+            return tr;
+        }
+
+        /* Adiciona nova linha ao clicar no + */
+        addBtn.addEventListener('click', () => {
+            tbody.appendChild(novaLinha());
+            atualizarTotais();
+        });
+
+        /* Delegação: remove linha ao clicar no ícone de lixeira */
+        tbody.addEventListener('click', e => {
+            if (e.target.closest('.btn-remover-item')) {
+                e.target.closest('tr').remove();
+                atualizarTotais();
+            }
+        });
+
+        /* Recalcula totais sempre que qtd ou peso mudarem */
+        tbody.addEventListener('input', e => {
+            if (e.target.matches('.item-qtd, .item-peso')) {
+                atualizarTotais();
+            }
+        });
+
+        /* Totais iniciais */
+        atualizarTotais();
+    });
+    </script>
 </body>
 </html>

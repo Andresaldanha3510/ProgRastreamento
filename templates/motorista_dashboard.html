@@ -1,329 +1,439 @@
 {% extends "base.html" %}
 {% block title %}Dashboard do Motorista{% endblock %}
-{% block content %}
 
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+<style>
+    .modal-input {
+        background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 0.375rem;
+        padding: 0.75rem; width: 100%; margin-top: 0.25rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .modal-input:focus {
+        outline: 2px solid transparent; outline-offset: 2px;
+        border-color: #2563eb; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
 <div class="bg-slate-800 shadow-md sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
-        <h1 class="text-xl font-bold text-white">
-            Olá, <span class="text-[#8db482]">{{ current_user.nome }}</span>!
-        </h1>
-        <a href="{{ url_for('logout') }}" class="text-sm text-gray-300 hover:text-white transition duration-150 ease-in-out flex items-center gap-2">
-            <i class="fas fa-sign-out-alt"></i>
-            Sair
-        </a>
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+        <h1 class="text-xl font-bold text-white">Olá, <span class="text-green-400">{{ current_user.nome }}</span>!</h1>
+        <a href="{{ url_for('logout') }}" class="text-sm text-gray-300 hover:text-white transition flex items-center gap-2"><i class="fas fa-sign-out-alt"></i> Sair</a>
     </div>
 </div>
 
-<main class="bg-gray-200 min-h-screen p-4 sm:p-6 lg:p-8">
-    <div class="max-w-7xl mx-auto">
-        <h2 class="text-3xl font-extrabold text-slate-800 mb-6 flex items-center gap-3">
-            <i class="fas fa-tachometer-alt text-[#4A773C]"></i> Meu Dashboard
+<main class="bg-gray-100 min-h-screen">
+    <div class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+        <h2 class="text-3xl font-extrabold text-slate-800 flex items-center gap-3">
+            <i class="fas fa-tachometer-alt text-green-600"></i> Meu Dashboard
         </h2>
 
         {% if viagem_ativa %}
-            <div class="bg-white p-5 rounded-2xl shadow-lg mb-8 border-t-4 border-[#4A773C]">
-                <h3 class="text-xl font-semibold text-slate-800 flex items-center gap-3 mb-2">
-                    <i class="fas fa-map-marker-alt text-[#4A773C]"></i> Localização da Viagem Atual
-                </h3>
-                <div class="flex items-center gap-4">
-                    <p id="location-display" class="text-gray-600">Iniciando rastreamento...</p>
-                    <img src="{{ url_for('static', filename='11188726.gif') }}" alt="Caminhão" class="h-8 drop-shadow-md">
+        <div id="active-trip-section">
+            <h3 class="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-3"><i class="fas fa-route text-green-600"></i> Viagem em Andamento</h3>
+            <div class="bg-white p-6 rounded-xl shadow-lg border-l-8 border-green-500 space-y-4">
+                <div>
+                    <p class="text-sm text-gray-500">Cliente</p>
+                    <p class="text-xl font-semibold text-slate-800">{{ viagem_ativa.cliente }}</p>
+                </div>
+                <div class="space-y-3">
+                    <div>
+                        <p class="text-sm font-bold text-gray-500 flex items-center gap-2"><i class="fas fa-map-pin text-red-500"></i>Origem</p>
+                        <p class="font-medium pl-6">{{ viagem_ativa.endereco_saida }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-gray-500 flex items-center gap-2"><i class="fas fa-map-marker-alt text-blue-500"></i>Destinos</p>
+                        <ol class="list-decimal list-inside pl-6 mt-1 space-y-1">
+                            {% for destino in viagem_ativa.destinos|sort(attribute='ordem') %}
+                                <li class="font-medium">{{ destino.endereco }}</li>
+                            {% else %}
+                                <li class="font-medium">{{ viagem_ativa.endereco_destino }}</li>
+                            {% endfor %}
+                        </ol>
+                    </div>
+                </div>
+                <div id="location-display" class="pt-2 text-sm text-gray-600 flex items-center gap-2">
+                    <img src="{{ url_for('static', filename='11188726.gif') }}" alt="Rastreamento" class="h-6">
+                    Iniciando rastreamento...
                 </div>
             </div>
+            
+            <h3 class="text-xl font-semibold text-slate-700 mt-8 mb-3">Ações da Viagem</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button data-open-modal="abastecimentoModal" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md flex items-center justify-center gap-2 text-lg"><i class="fas fa-gas-pump"></i> Abastecimento</button>
+                <button data-open-modal="despesaModal" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 rounded-lg shadow-md flex items-center justify-center gap-2 text-lg"><i class="fas fa-file-invoice-dollar"></i> Despesas</button>
+            </div>
+             <div class="mt-4">
+                <button id="finish-trip-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg shadow-xl flex items-center justify-center gap-3 text-xl">
+                    <i class="fas fa-flag-checkered"></i> Concluir Viagem
+                </button>
+            </div>
+        </div>
+
+        {% else %}
+        <div id="pending-trips-section">
+            <h2 class="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-3"><i class="fas fa-clock text-blue-600"></i> Viagens Pendentes</h2>
+            <div id="pending-trips-list" class="space-y-4">
+                <p class="text-center text-gray-500 py-8">Buscando viagens...</p>
+            </div>
+        </div>
         {% endif %}
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-1">
-                {% if viagem_ativa %}
-                <div class="bg-white p-6 rounded-2xl shadow-xl border-l-8 border-[#4A773C] h-full flex flex-col">
-                    <h3 class="text-2xl font-bold text-[#3a662c] mb-4 flex items-center gap-3"><i class="fas fa-route"></i> Viagem Ativa</h3>
-                    <div class="space-y-3 text-gray-700 flex-grow">
-                        <p class="flex items-center gap-2"><strong><i class="fas fa-user-tie w-4 text-center"></i> Cliente:</strong> {{ viagem_ativa.cliente }}</p>
-                        <p class="flex items-center gap-2"><strong><i class="fas fa-map-pin w-4 text-center"></i> Origem:</strong> {{ viagem_ativa.endereco_saida }}</p>
-                        <p class="flex items-center gap-2"><strong><i class="fas fa-bullseye w-4 text-center"></i> Destino:</strong> {{ viagem_ativa.endereco_destino }}</p>
-                        <p class="flex items-center gap-2"><strong><i class="fas fa-info-circle w-4 text-center"></i> Status:</strong> <span class="font-semibold text-[#4A773C]">{{ viagem_ativa.status }}</span></p>
-                    </div>
-                    <div class="mt-6 flex flex-col gap-3">
-                        <button id="abastecimento-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">
-                            <i class="fas fa-gas-pump"></i> Registrar Abastecimento
-                        </button>
-                        <button id="add-expense-btn" class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">
-                            <i class="fas fa-dollar-sign"></i> Lançar Outras Despesas
-                        </button>
-                        <button id="complete-trip-btn" class="w-full bg-[#4A773C] hover:bg-[#3a662c] text-white font-bold py-2 px-4 rounded-lg shadow-md">
-                            <i class="fas fa-check-circle"></i> Concluir Viagem
-                        </button>
-                    </div>
-                </div>
-                {% else %}
-                 <div id="pending-trips-container" class="bg-white p-6 rounded-2xl shadow-lg h-full">
-                    <h3 class="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-3">
-                        <i class="fas fa-clock text-blue-600"></i> Viagens Pendentes
-                    </h3>
-                    <div id="pending-trips-list" class="space-y-4">
-                        <p class="text-gray-500 text-center">Buscando viagens disponíveis...</p>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-            <div class="lg:col-span-2">
-                <div class="bg-white p-6 rounded-2xl shadow-xl h-full">
-                    <h3 class="text-2xl font-bold text-slate-800 mb-4"><i class="fas fa-history"></i> Histórico de Viagens</h3>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full text-sm">
-                            <thead class="bg-slate-100 text-slate-600 uppercase">
-                                <tr>
-                                    <th class="p-3 text-left">Cliente</th><th class="p-3 text-left">Data</th><th class="p-3 text-left">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for viagem in viagens %}
-                                <tr class="border-b">
-                                    <td class="p-3">{{ viagem.cliente }}</td>
-                                    <td class="p-3">{{ viagem.data_inicio.strftime('%d/%m/%Y') }}</td>
-                                    <td class="p-3"><span class="px-2 py-1 font-semibold rounded-full capitalize {% if viagem.status == 'concluida' %} bg-green-100 text-green-700 {% elif viagem.status == 'cancelada' %} bg-red-100 text-red-700 {% else %} bg-blue-100 text-blue-700 {% endif %}">{{ viagem.status }}</span></td>
-                                </tr>
-                                {% else %}
-                                <tr><td colspan="3" class="text-center p-4 text-gray-500">Nenhuma viagem no histórico.</td></tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+        <div id="history-section">
+            <h2 class="text-2xl font-bold text-slate-800 mb-4 mt-10 flex items-center gap-3"><i class="fas fa-history text-slate-500"></i> Meu Histórico</h2>
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <ul class="divide-y divide-gray-200">
+                    {% for v in viagens %}
+                    <li class="p-4 flex justify-between items-center">
+                        <div>
+                            <p class="font-semibold text-slate-800">{{ v.cliente }}</p>
+                            <p class="text-sm text-gray-500">{{ v.data_inicio.strftime('%d/%m/%Y') if v.data_inicio }}</p>
+                        </div>
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full capitalize 
+                            {% if v.status == 'concluida' %}bg-green-100 text-green-800
+                            {% elif v.status == 'cancelada' %}bg-red-100 text-red-800
+                            {% else %}bg-blue-100 text-blue-700{% endif %}">{{ v.status }}</span>
+                    </li>
+                    {% else %}
+                    <li class="p-8 text-center text-gray-500">Nenhuma viagem no histórico.</li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
     </div>
 </main>
 
-<div id="despesaModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center hidden z-50 p-4">
-    <div class="bg-slate-800 p-8 rounded-2xl w-full max-w-lg shadow-2xl">
-        <h3 class="text-2xl font-bold mb-6 text-white">Lançar Outras Despesas</h3>
+<div id="odometerModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4">
+    <div class="bg-white p-6 rounded-xl w-full max-w-md shadow-2xl">
+        <h3 id="odometerModalTitle" class="text-xl font-bold mb-4 text-slate-800">Registrar Quilometragem</h3>
+        <form id="odometerForm">
+            <label for="odometer_km" class="block text-sm font-medium text-gray-700">Odômetro Atual (KM)</label>
+            <input id="odometer_km" name="odometer_km" type="number" step="1" required class="modal-input">
+            <div class="flex justify-end gap-3 mt-6">
+                <button type="button" data-close-button class="bg-gray-200 text-gray-800 font-bold px-4 py-2 rounded-md hover:bg-gray-300">Cancelar</button>
+                <button type="submit" class="bg-green-600 text-white font-bold px-4 py-2 rounded-md hover:bg-green-700">Confirmar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="despesaModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4">
+    <div class="bg-white p-6 rounded-xl w-full max-w-lg shadow-2xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-slate-800">Lançar Despesas da Viagem</h3>
+            <button data-close-button class="text-gray-400 hover:text-gray-700 text-2xl font-bold">&times;</button>
+        </div>
         <form id="despesaForm" enctype="multipart/form-data">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <div><label class="block text-sm text-gray-400">Pedágios (R$)</label><input name="pedagios" type="number" step="0.01" class="mt-1 w-full bg-slate-700 text-white rounded p-2"></div>
-                <div><label class="block text-sm text-gray-400">Alimentação (R$)</label><input name="alimentacao" type="number" step="0.01" class="mt-1 w-full bg-slate-700 text-white rounded p-2"></div>
+            <input type="hidden" name="viagem_id" value="{{ viagem_ativa.id if viagem_ativa }}">
+            <div class="space-y-4">
+                <div><label class="block text-sm font-medium text-gray-700">Pedágios (R$)</label><input type="number" step="0.01" id="expense-pedagios" name="pedagios" class="modal-input" placeholder="0,00"></div>
+                <div><label class="block text-sm font-medium text-gray-700">Alimentação (R$)</label><input type="number" step="0.01" id="expense-alimentacao" name="alimentacao" class="modal-input" placeholder="0,00"></div>
+                <div><label class="block text-sm font-medium text-gray-700">Hospedagem (R$)</label><input type="number" step="0.01" id="expense-hospedagem" name="hospedagem" class="modal-input" placeholder="0,00"></div>
+                <div><label class="block text-sm font-medium text-gray-700">Outros Gastos (R$)</label><input type="number" step="0.01" id="expense-outros" name="outros" class="modal-input" placeholder="0,00"></div>
+                <div><label class="block text-sm font-medium text-gray-700">Descrição dos Outros Gastos</label><textarea id="expense-descricao" name="descricao_outros" rows="2" class="modal-input" placeholder="Ex: Pernoite, taxa de descarga..."></textarea></div>
+                <div><label class="block text-sm font-medium text-gray-700">Anexar Comprovantes</label><input name="anexos_despesa" type="file" multiple class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"></div>
             </div>
-            <div class="mb-4"><label class="block text-sm text-gray-400">Outros Gastos (R$)</label><input name="outros" type="number" step="0.01" class="mt-1 w-full bg-slate-700 text-white rounded p-2"></div>
-            <div class="mb-6"><label class="block text-sm text-gray-400">Descrição</label><textarea name="descricao_outros" rows="2" class="mt-1 w-full bg-slate-700 text-white rounded p-2"></textarea></div>
-            <div class="flex justify-end gap-3">
-                <button type="button" onclick="document.getElementById('despesaModal').classList.add('hidden')" class="bg-slate-600 text-white font-bold px-4 py-2 rounded">Cancelar</button>
-                <button type="submit" class="bg-[#4A773C] text-white font-bold px-4 py-2 rounded">Salvar</button>
+            <div class="flex justify-end gap-3 mt-6">
+                <button type="button" data-close-button class="bg-gray-200 text-gray-800 font-bold px-4 py-2 rounded-md hover:bg-gray-300">Cancelar</button>
+                <button type="submit" class="bg-slate-600 text-white font-bold px-4 py-2 rounded-md hover:bg-slate-700 w-36 text-center">Salvar Despesas</button>
             </div>
         </form>
     </div>
 </div>
 
-<div id="abastecimentoModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center hidden z-50 p-4">
-    <div class="bg-slate-800 p-8 rounded-2xl w-full max-w-lg shadow-2xl">
-        <h3 class="text-2xl font-bold mb-6 text-white">Registrar Abastecimento</h3>
+<div id="abastecimentoModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4">
+    <div class="bg-white p-6 rounded-xl w-full max-w-lg shadow-2xl">
+         <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-slate-800">Registrar Abastecimento</h3>
+            <button data-close-button class="text-gray-400 hover:text-gray-700 text-2xl font-bold">&times;</button>
+        </div>
         <form id="abastecimentoForm" enctype="multipart/form-data">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <div><label for="litros" class="block text-sm font-medium text-gray-400">Litros</label><input id="litros" name="litros" type="number" step="0.01" required class="mt-1 w-full bg-slate-700 text-white rounded p-2"></div>
-                <div><label for="preco_litro" class="block text-sm font-medium text-gray-400">Preço/Litro (R$)</label><input id="preco_litro" name="preco_por_litro" type="number" step="0.01" required class="mt-1 w-full bg-slate-700 text-white rounded p-2"></div>
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label class="block text-sm font-medium text-gray-700">Litros</label><input id="fuel-litros" type="number" step="0.01" name="litros" required class="modal-input" placeholder="0.00"></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Preço por Litro (R$)</label><input id="fuel-preco_litro" type="number" step="0.01" name="preco_por_litro" required class="modal-input" placeholder="0.00"></div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label class="block text-sm font-medium text-gray-700">Custo Total (R$)</label><input id="fuel-custo_total" type="text" readonly class="modal-input bg-gray-200 cursor-not-allowed" placeholder="Automático"></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Odômetro (KM)</label><input type="number" step="1" id="fuel-odometro" name="odometro" required class="modal-input"></div>
+                </div>
+                <div><label class="block text-sm font-medium text-gray-700">Anexar Comprovante</label><input name="anexo_comprovante" type="file" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"></div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <div><label for="custo_total" class="block text-sm font-medium text-gray-400">Custo Total (R$)</label><input id="custo_total" name="custo_total" type="number" readonly class="mt-1 w-full bg-slate-900 text-gray-300 rounded p-2 cursor-not-allowed"></div>
-                <div><label for="odometro" class="block text-sm font-medium text-gray-400">Odômetro (KM)</label><input id="odometro" name="odometro" type="number" step="1" required class="mt-1 w-full bg-slate-700 text-white rounded p-2"></div>
-            </div>
-            <div class="mb-6"><label for="anexo_comprovante" class="block text-sm font-medium text-gray-400">Anexar Comprovante</label><input id="anexo_comprovante" name="anexo_comprovante" type="file" class="mt-1 block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-600 file:text-gray-200 hover:file:bg-slate-500"></div>
-            <div class="flex justify-end gap-3">
-                <button type="button" onclick="document.getElementById('abastecimentoModal').classList.add('hidden')" class="bg-slate-600 text-white font-bold px-4 py-2 rounded">Cancelar</button>
-                <button type="submit" class="bg-blue-600 text-white font-bold px-4 py-2 rounded">Registrar</button>
+            <div class="flex justify-end gap-3 mt-6">
+                <button type="button" data-close-button class="bg-gray-200 text-gray-800 font-bold px-4 py-2 rounded-md hover:bg-gray-300">Cancelar</button>
+                <button type="submit" class="bg-blue-600 text-white font-bold px-4 py-2 rounded-md hover:bg-blue-700 w-32 text-center">Registrar</button>
             </div>
         </form>
     </div>
 </div>
-
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+<script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 <script>
-    async function registerServiceWorker() {
-        if ('serviceWorker' in navigator) {
-            try {
-                const registration = await navigator.serviceWorker.register("{{ url_for('service_worker') }}", { scope: '/' });
-                console.log('Service Worker registrado com sucesso:', registration);
-                if ('periodicSync' in registration) {
-                    const status = await navigator.permissions.query({name: 'periodic-background-sync'});
-                    if (status.state === 'granted') {
-                        await registration.periodicSync.register('get-location-updates', { minInterval: 30 * 60 * 1000 });
-                    }
+    const VIAGEM_ATIVA_ID = {{ viagem_ativa.id if viagem_ativa else 'null' }};
+
+    const showToast = (msg, type = 'info') => {
+        const colors = {
+            success: 'linear-gradient(to right, #16a34a, #6ee7b7)',
+            error: 'linear-gradient(to right, #dc2626, #fb7185)',
+            info: 'linear-gradient(to right, #2563eb, #60a5fa)'
+        };
+        Toastify({ text: msg, duration: 4000, gravity: 'top', position: 'center', style: { background: colors[type] } }).showToast();
+    };
+
+    // --- LÓGICA DE CONTROLE DOS MODAIS (ROBUSTA E CENTRALIZADA) ---
+    function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) modal.classList.add('hidden');
+    }
+    
+    // --- LÓGICA PRINCIPAL E SETUP DE EVENTOS ---
+    document.addEventListener('DOMContentLoaded', () => {
+        // Lógica principal do dashboard
+        if (VIAGEM_ATIVA_ID) {
+            startRealTimeTracking();
+        } else {
+            loadPendingTrips();
+        }
+        
+        // --- SETUP DE EVENTOS (A FORMA CORRETA E MODERNA) ---
+
+        // 1. Listeners para os formulários
+        document.getElementById('odometerForm').addEventListener('submit', handleOdometerSubmit);
+        document.getElementById('despesaForm').addEventListener('submit', handleExpenseSubmit);
+        document.getElementById('abastecimentoForm').addEventListener('submit', handleFuelSubmit);
+        
+        // 2. Listeners para abrir os modais
+        document.querySelectorAll('[data-open-modal]').forEach(button => {
+            button.addEventListener('click', () => {
+                const modalId = button.dataset.openModal;
+                openModalWithData(modalId);
+            });
+        });
+        
+        document.getElementById('finish-trip-btn')?.addEventListener('click', () => {
+            handleFinishTripClick(VIAGEM_ATIVA_ID);
+        });
+
+        // 3. Listeners para fechar os modais (botões 'cancelar', 'X' e clique no fundo)
+        document.querySelectorAll('[data-close-button]').forEach(button => {
+            button.addEventListener('click', () => {
+                const modal = button.closest('.fixed');
+                if(modal) closeModal(modal.id);
+            });
+        });
+        document.querySelectorAll('.fixed.inset-0').forEach(modal => {
+            modal.addEventListener('click', e => {
+                if (e.target === modal) {
+                    closeModal(modal.id);
                 }
-            } catch (error) {
-                console.error('Falha ao registrar o Service Worker:', error);
+            });
+        });
+
+        // 4. Listeners para cálculo automático
+        document.getElementById('fuel-litros')?.addEventListener('input', updateFuelCost);
+        document.getElementById('fuel-preco_litro')?.addEventListener('input', updateFuelCost);
+    });
+
+    async function openModalWithData(modalId) {
+        const modal = document.getElementById(modalId);
+        if (!modal) return;
+        
+        // Limpa formulários antes de abrir e carregar novos dados
+        const form = modal.querySelector('form');
+        if (form) form.reset();
+
+        openModal(modalId);
+
+        if (!VIAGEM_ATIVA_ID) return;
+
+        showToast('Buscando dados...', 'info');
+        
+        if (modalId === 'despesaModal') {
+            const response = await fetch(`/api/viagem/${VIAGEM_ATIVA_ID}/despesas`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    form.elements['pedagios'].value = data.pedagios || '';
+                    form.elements['alimentacao'].value = data.alimentacao || '';
+                    form.elements['hospedagem'].value = data.hospedagem || '';
+                    form.elements['outros'].value = data.outros || '';
+                    form.elements['descricao_outros'].value = data.descricao_outros || '';
+                }
+            }
+        } else if (modalId === 'abastecimentoModal') {
+            const response = await fetch(`/api/viagem/${VIAGEM_ATIVA_ID}/abastecimentos`);
+             if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    form.elements['litros'].value = data.litros || '';
+                    form.elements['preco_por_litro'].value = data.preco_por_litro || '';
+                    form.elements['odometro'].value = data.odometro || '';
+                    updateFuelCost();
+                }
             }
         }
     }
-    window.addEventListener('load', () => {
-        registerServiceWorker();
-    });
-
-    const viagemAtivaId = {{ viagem_ativa.id if viagem_ativa else 'null' }};
-
-    document.addEventListener('DOMContentLoaded', function() {
-        
-        if (viagemAtivaId) {
-            iniciarRastreamentoPeriodico();
-        } else {
-            buscarViagensPendentes();
-        }
-
-        function iniciarRastreamentoPeriodico() {
-            const socket = io();
-            const locationDisplay = document.getElementById('location-display');
-            
-            socket.on('connect', () => {
-                console.log('Socket conectado para rastreamento periódico.');
-                socket.emit('join_trip_room', { 'viagem_id': viagemAtivaId });
-            });
-            
-            socket.on('localizacao_atualizada', function(data) {
-                if (data.viagem_id == viagemAtivaId) {
-                    locationDisplay.innerText = data.endereco || 'Buscando endereço...';
-                }
-            });
-
-            const enviarLocalizacaoAtual = () => {
-                if (navigator.geolocation) {
-                    console.log('Buscando localização atual...');
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            const { latitude, longitude } = position.coords;
-                            console.log(`Localização obtida: ${latitude}, ${longitude}`);
-                            socket.emit('atualizar_localizacao_socket', { latitude, longitude, viagem_id: viagemAtivaId });
-                        }, 
-                        handleLocationError, 
-                        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-                    );
-                } else {
-                    showToast('Seu navegador não suporta geolocalização.', 'error');
-                }
-            };
-
-            enviarLocalizacaoAtual();
-            setInterval(enviarLocalizacaoAtual, 300000); // 300000 ms = 5 minutos
-            showToast('Rastreamento iniciado. A localização será atualizada a cada 5 minutos.', 'info');
-        }
-
-        function handleLocationError(error) {
-            let errorMessage = 'Erro ao obter localização.';
-            if (error.code === 1) errorMessage = "Permissão para geolocalização negada.";
-            document.getElementById('location-display').innerText = errorMessage;
-            showToast(errorMessage, 'error');
-        }
-
-        async function buscarViagensPendentes() {
-            const listContainer = document.getElementById('pending-trips-list');
-            try {
-                const response = await fetch("{{ url_for('viagens_pendentes') }}");
-                const data = await response.json();
-                if (data.success && data.viagens.length > 0) {
-                    listContainer.innerHTML = '';
-                    data.viagens.forEach(viagem => {
-                        listContainer.insertAdjacentHTML('beforeend', `
-                            <div class="border p-4 rounded-lg bg-slate-50">
-                                <p class="font-bold">${viagem.cliente}</p>
-                                <p class="text-sm">${viagem.endereco_saida} → ${viagem.endereco_destino}</p>
-                                <button onclick="iniciarViagem(${viagem.id})" class="mt-3 w-full bg-blue-600 text-white font-bold py-2 rounded">Iniciar Viagem</button>
-                            </div>`);
-                    });
-                } else {
-                    listContainer.innerHTML = '<p class="text-center text-gray-500">Nenhuma viagem pendente.</p>';
-                }
-            } catch (error) {
-                listContainer.innerHTML = '<p class="text-center text-red-500">Erro ao carregar viagens.</p>';
-            }
-        }
-        
-        // --- Event Listeners dos Botões e Modais ---
-        document.getElementById('add-expense-btn')?.addEventListener('click', () => {
-            document.getElementById('despesaModal').classList.remove('hidden');
-        });
-
-        document.getElementById('abastecimento-btn')?.addEventListener('click', () => {
-            document.getElementById('abastecimentoModal').classList.remove('hidden');
-        });
-
-        document.getElementById('despesaForm')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            formData.append('viagem_id', viagemAtivaId);
-            try {
-                const response = await fetch("{{ url_for('salvar_custo_viagem') }}", { method: 'POST', body: formData });
-                const result = await response.json();
-                if (result.success) {
-                    showToast('Despesas salvas!', 'success');
-                    document.getElementById('despesaModal').classList.add('hidden');
-                } else { showToast(result.message, 'error'); }
-            } catch (error) { showToast('Erro de conexão.', 'error'); }
-        });
-
-        document.getElementById('abastecimentoForm')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            formData.append('viagem_id', viagemAtivaId); // Adicionado para consistência, embora o backend use a viagem ativa
-            try {
-                const response = await fetch("{{ url_for('registrar_abastecimento') }}", { method: 'POST', body: formData });
-                const result = await response.json();
-                if (result.success) {
-                    showToast('Abastecimento registrado!', 'success');
-                    document.getElementById('abastecimentoModal').classList.add('hidden');
-                } else { showToast(result.message, 'error'); }
-            } catch (error) { showToast('Erro de conexão.', 'error'); }
-        });
-
-        document.getElementById('complete-trip-btn')?.addEventListener('click', async () => {
-            if (confirm('Tem certeza que deseja concluir esta viagem?')) {
-                try {
-                    const response = await fetch(`/finalizar_viagem/${viagemAtivaId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                        showToast('Viagem concluída com sucesso!', 'success');
-                        setTimeout(() => window.location.reload(), 1500);
-                    } else { 
-                        showToast(result.message, 'error'); 
-                    }
-                } catch (error) { 
-                    showToast('Erro de conexão.', 'error'); 
-                }
-            }
-        });
-
-        function calcularCustoTotal() {
-            const litros = parseFloat(document.getElementById('litros').value) || 0;
-            const precoLitro = parseFloat(document.getElementById('preco_litro').value) || 0;
-            document.getElementById('custo_total').value = (litros * precoLitro).toFixed(2);
-        }
-        document.getElementById('litros')?.addEventListener('input', calcularCustoTotal);
-        document.getElementById('preco_litro')?.addEventListener('input', calcularCustoTotal);
-    });
-
-    async function iniciarViagem(viagemId) {
-        if (!confirm('Deseja iniciar esta viagem?')) return;
+    
+    async function loadPendingTrips() {
+        const list = document.getElementById('pending-trips-list');
         try {
-            const response = await fetch(`/selecionar_viagem/${viagemId}`, { method: 'POST' });
-            const result = await response.json();
-            if (result.success) {
-                showToast('Viagem iniciada! A página será recarregada.', 'success');
+            const response = await fetch("{{ url_for('viagens_pendentes') }}");
+            const data = await response.json();
+            if (data.success && data.viagens.length) {
+                list.innerHTML = data.viagens.map(v => {
+                    const destinosHtml = v.destinos.map(d => `<li>${d}</li>`).join('') || `<li>${v.endereco_destino || 'N/A'}</li>`;
+                    return `
+                    <div class="bg-white p-4 rounded-xl shadow-lg space-y-3">
+                        <p class="font-bold text-lg text-slate-800">${v.cliente}</p>
+                        <div class="text-sm">
+                            <p class="font-semibold">De: <span class="font-normal">${v.endereco_saida}</span></p>
+                            <p class="font-semibold mt-1">Para:</p>
+                            <ul class="list-disc list-inside ml-4 font-normal">${destinosHtml}</ul>
+                        </div>
+                        <button onclick="handleStartTripClick(${v.id})" class="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md text-lg">Iniciar Viagem</button>
+                    </div>`;
+                }).join('');
+            } else {
+                list.innerHTML = '<p class="text-center text-gray-500 py-8">Nenhuma viagem pendente.</p>';
+            }
+        } catch (e) {
+            list.innerHTML = '<p class="text-center text-red-500 py-8">Erro ao carregar viagens.</p>';
+        }
+    }
+
+    function handleStartTripClick(tripId) {
+        const modal = document.getElementById('odometerModal');
+        const form = modal.querySelector('form');
+        form.reset();
+        form.dataset.actionType = 'start';
+        form.dataset.tripId = tripId;
+        modal.querySelector('#odometerModalTitle').innerText = 'KM Inicial da Viagem';
+        openModal('odometerModal');
+        document.getElementById('odometer_km').focus();
+    }
+
+    function handleFinishTripClick(tripId) {
+        const modal = document.getElementById('odometerModal');
+        const form = modal.querySelector('form');
+        form.reset();
+        form.dataset.actionType = 'finish';
+        form.dataset.tripId = tripId;
+        modal.querySelector('#odometerModalTitle').innerText = 'KM Final da Viagem';
+        openModal('odometerModal');
+        document.getElementById('odometer_km').focus();
+    }
+
+    async function handleOdometerSubmit(event) {
+        event.preventDefault();
+        const { actionType, tripId } = event.target.dataset;
+        const odometer = document.getElementById('odometer_km').value;
+        if (!odometer || odometer.trim() === '' || isNaN(parseFloat(odometer)) || parseFloat(odometer) < 0) {
+            return showToast('Por favor, informe uma quilometragem numérica e válida.', 'error');
+        }
+        closeModal('odometerModal');
+        const url = actionType === 'start' ? `/viagem/${tripId}/iniciar` : `/viagem/${tripId}/finalizar`;
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ odometer: parseFloat(odometer) })
+            });
+            const data = await response.json();
+            if (response.ok && data.success) {
+                showToast(data.message, 'success');
                 setTimeout(() => window.location.reload(), 1500);
             } else {
-                showToast(result.message, 'error');
+                showToast(data.message || 'Ocorreu um erro desconhecido.', 'error');
             }
-        } catch (error) {
-            showToast('Erro de conexão.', 'error');
+        } catch (e) {
+            showToast('Erro de comunicação. Verifique sua conexão.', 'error');
         }
     }
 
-    function showToast(message, type = 'info') {
-        let backgroundColor = "#333";
-        if (type === 'success') backgroundColor = "linear-gradient(to right, #00b09b, #96c93d)";
-        if (type === 'error') backgroundColor = "linear-gradient(to right, #ff5f6d, #ffc371)";
-        Toastify({ text: message, duration: 4000, gravity: "top", position: "center", style: { background: backgroundColor } }).showToast();
+    function updateFuelCost(){
+        const litros = parseFloat(document.getElementById('fuel-litros').value) || 0;
+        const preco = parseFloat(document.getElementById('fuel-preco_litro').value) || 0;
+        document.getElementById('fuel-custo_total').value = (litros * preco).toFixed(2);
+    }
+
+    async function handleFuelSubmit(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Enviando...';
+        try {
+            const response = await fetch("{{ url_for('registrar_abastecimento') }}", { method: 'POST', body: formData });
+            const data = await response.json();
+            showToast(data.message, data.success ? 'success' : 'error');
+            if (data.success) {
+                closeModal('abastecimentoModal');
+                form.reset();
+            }
+        } catch (e) {
+            showToast('Erro ao enviar dados de abastecimento.', 'error');
+        } finally {
+            submitButton.disabled = false;
+            submitButton.innerHTML = 'Registrar';
+        }
+    }
+
+    async function handleExpenseSubmit(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Enviando...';
+        
+        try {
+            const response = await fetch("{{ url_for('salvar_custo_viagem') }}", { method: 'POST', body: formData });
+            const data = await response.json();
+            showToast(data.message, data.success ? 'success' : 'error');
+            if (data.success) {
+                closeModal('despesaModal');
+            }
+        } catch (e) {
+            showToast('Erro ao enviar despesas.', 'error');
+        } finally {
+            submitButton.disabled = false;
+            submitButton.innerHTML = 'Salvar Despesas';
+        }
+    }
+    
+    function startRealTimeTracking() {
+        const socket = io();
+        const locationDisplay = document.getElementById('location-display');
+        socket.emit('join_trip_room', { viagem_id: VIAGEM_ATIVA_ID });
+        socket.on('localizacao_atualizada', data => {
+            if (data.viagem_id === VIAGEM_ATIVA_ID) {
+                locationDisplay.innerHTML = `<img src="{{ url_for('static', filename='11188726.gif') }}" alt="Rastreamento" class="h-6"> ${data.endereco || 'Buscando endereço…'}`;
+            }
+        });
+        const sendPosition = () => {
+            if (!navigator.geolocation) {
+                return showToast('Geolocalização não é suportada por este navegador.', 'error');
+            }
+            navigator.geolocation.getCurrentPosition(
+                p => socket.emit('atualizar_localizacao_socket', { viagem_id: VIAGEM_ATIVA_ID, latitude: p.coords.latitude, longitude: p.coords.longitude }),
+                () => showToast('Não foi possível obter a localização.', 'error')
+            );
+        };
+        sendPosition();
+        setInterval(sendPosition, 300000);
+        showToast('Rastreamento da viagem iniciado.', 'info');
     }
 </script>
 {% endblock %}
