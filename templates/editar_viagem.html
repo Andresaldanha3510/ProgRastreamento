@@ -1,115 +1,109 @@
 {% extends "base.html" %}
 
-{% block title %}Iniciar Nova Viagem - TrackGo{% endblock %}
+{% block title %}Editar Viagem #{{ viagem.id }} - TrackGo{% endblock %}
 
 {% block styles %}
 {{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.css" />
 <style>
-    .form-container { background-color: #e9ecef; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); margin: 0; }
+    .form-container { background-color: white; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); margin: 0; }
     .form-input, .form-select, .form-textarea { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; transition: border-color 0.2s, box-shadow 0.2s; }
     .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: #2e7d32; box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2); }
     .btn-submit { background-color: #16a34a; color: white; } .btn-submit:hover { background-color: #15803d; }
+    .btn-back { background-color: #6b7280; color: white; } .btn-back:hover { background-color: #4b5563; }
     .btn-add { background-color: #2563eb; color: white; } .btn-add:hover { background-color: #1d4ed8; }
     .btn-delete { background-color: #dc2626; color: white; } .btn-delete:hover { background-color: #b91c1c; }
-    .btn-ocr { background-color: #f59e0b; color: white; } .btn-ocr:hover { background-color: #d97706; }
     .awesomplete > ul { z-index: 1052 !important; }
     .ocr-loader { border: 4px solid #f3f3f3; border-radius: 50%; border-top: 4px solid #f59e0b; width: 24px; height: 24px; animation: spin 1s linear infinite; display: none; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    
+
     .address-group { display: flex; gap: 0.5rem; width: 100%;}
     .street-input { flex-grow: 1; }
     .number-input { width: 90px; flex-shrink: 0; }
-    
+
     .destino-item { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
     .destino-item > .address-group { flex-grow: 1; }
-    .destino-item > .btn-ocr, .destino-item > .btn-delete, .destino-item > .ocr-loader { flex-shrink: 0; }
+    .destino-item > .btn-delete { flex-shrink: 0; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="form-container">
-    <h1 class="text-3xl font-bold mb-6 text-gray-800 text-center">Iniciar Nova Viagem</h1>
+    <h1 class="text-3xl font-bold mb-6 text-gray-800 text-center">Editar Viagem #{{ viagem.id }}</h1>
     
-    <form id="viagem-form">
+    <form id="edit-viagem-form">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
             <div>
                 <label for="motorista_id" class="block text-gray-700 font-medium mb-2">Motorista</label>
                 <select id="motorista_id" name="motorista_id" required class="form-select">
-                    <option value="">Selecione um motorista</option>
                     {% for motorista in motoristas %}
-                        <option value="{{ motorista.id }}">{{ motorista.nome }}</option>
+                        <option value="{{ motorista.id }}" {% if viagem.motorista_id == motorista.id %}selected{% endif %}>{{ motorista.nome }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div>
                 <label for="veiculo_id" class="block text-gray-700 font-medium mb-2">Veículo</label>
                 <select id="veiculo_id" name="veiculo_id" required class="form-select">
-                    <option value="">Selecione um veículo</option>
                     {% for veiculo in veiculos %}
-                        <option value="{{ veiculo.id }}">{{ veiculo.placa }} - {{ veiculo.modelo }}</option>
+                        <option value="{{ veiculo.id }}" {% if viagem.veiculo_id == veiculo.id %}selected{% endif %}>{{ veiculo.placa }} - {{ veiculo.modelo }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="md:col-span-2">
                 <label for="cliente" class="block text-gray-700 font-medium mb-2">Nome do Cliente</label>
-                <input type="text" class="form-input awesomplete" id="cliente" name="cliente" required autocomplete="off" placeholder="Digite para buscar...">
+                <input type="text" class="form-input awesomplete" id="cliente" name="cliente" required autocomplete="off" value="{{ viagem.cliente }}">
             </div>
-            
-            <div class="md:col-span-2">
-                <label for="endereco_saida_rua" class="block text-gray-700 font-medium mb-2">Endereço de Saída</label>
+
+            <div>
+                <label for="endereco_saida_rua" class="block text-gray-700 font-medium mb-2">Endereço de Saída (Não editável)</label>
                 <div class="address-group">
-                    <input type="text" class="form-input street-input" id="endereco_saida_rua" placeholder="Digite a rua, bairro, cidade..." required>
-                    <input type="text" class="form-input number-input" id="endereco_saida_numero" placeholder="Nº">
+                    <input type="text" class="form-input bg-gray-100 street-input" id="endereco_saida_rua" readonly value="{{ viagem.endereco_saida.rsplit(',', 1)[0].strip() }}">
+                    <input type="text" class="form-input bg-gray-100 number-input" id="endereco_saida_numero" readonly value="{{ (viagem.endereco_saida.rsplit(',', 1)[1]).strip() if ',' in viagem.endereco_saida else '' }}">
                 </div>
             </div>
             
             <div class="md:col-span-2 border-t pt-4 mt-4">
                 <label class="block text-gray-700 font-medium mb-2">Endereços de Destino</label>
                 <div id="destinos-container">
-                    <div class="destino-item">
-                        <div class="address-group">
-                            <input type="text" class="form-input street-input" name="rua_destino[]" placeholder="Digite a rua, bairro, cidade..." required>
-                            <input type="text" class="form-input number-input" name="numero_destino[]" placeholder="Nº">
+                    {% for destino in viagem.destinos|sort(attribute='ordem') %}
+                        <div class="destino-item">
+                             <div class="address-group">
+                                <input type="text" class="form-input street-input" name="rua_destino[]" placeholder="Digite a rua..." required value="{{ destino.endereco.rsplit(',', 1)[0].strip() }}">
+                                <input type="text" class="form-input number-input" name="numero_destino[]" placeholder="Nº" value="{{ (destino.endereco.rsplit(',', 1)[1]).strip() if ',' in destino.endereco else '' }}">
+                            </div>
+                            <button type="button" class="btn-delete p-2 rounded-md" onclick="removerDestino(this)"><i class="fas fa-trash"></i></button>
                         </div>
-                        <input type="file" class="hidden" accept="image/*" onchange="handleOcr(this)">
-                        <button type="button" class="btn-ocr p-2 rounded-md" title="Extrair endereço de imagem" onclick="this.previousElementSibling.click();">
-                            <i class="fas fa-camera"></i>
-                        </button>
-                        <div class="ocr-loader"></div>
-                        <button type="button" class="btn-delete p-2 rounded-md" onclick="removerDestino(this)"><i class="fas fa-trash"></i></button>
-                    </div>
+                    {% endfor %}
                 </div>
-                <button type="button" class="btn-add px-4 py-2 mt-2 rounded" id="adicionar-destino">Adicionar Outro Destino</button>
+                <button type="button" class="btn-add px-4 py-2 mt-2 rounded" id="adicionar-destino">Adicionar Destino</button>
             </div>
             
             <div>
                 <label for="data_inicio" class="block text-gray-700 font-medium mb-2">Data e Hora da Viagem</label>
-                <input type="datetime-local" class="form-input" id="data_inicio" name="data_inicio" required>
+                <input type="datetime-local" class="form-input" id="data_inicio" name="data_inicio" required value="{{ viagem.data_inicio.strftime('%Y-%m-%dT%H:%M') }}">
             </div>
             <div>
                 <label for="forma_pagamento" class="block text-gray-700 font-medium mb-2">Forma de Pagamento</label>
                 <select class="form-select" id="forma_pagamento" name="forma_pagamento" required>
-                    <option value="" disabled selected>Selecione...</option>
-                    <option value="dinheiro">Dinheiro</option>
-                    <option value="cartao_credito">Cartão de Crédito</option>
-                    <option value="cartao_debito">Cartão de Débito</option>
-                    <option value="pix">PIX</option>
+                    <option value="dinheiro" {% if viagem.forma_pagamento == 'dinheiro' %}selected{% endif %}>Dinheiro</option>
+                    <option value="cartao_credito" {% if viagem.forma_pagamento == 'cartao_credito' %}selected{% endif %}>Crédito</option>
+                    <option value="cartao_debito" {% if viagem.forma_pagamento == 'cartao_debito' %}selected{% endif %}>Débito</option>
+                    <option value="pix" {% if viagem.forma_pagamento == 'pix' %}selected{% endif %}>PIX</option>
                 </select>
             </div>
             <div>
                 <label for="valor_recebido" class="block text-gray-700 font-medium mb-2">Valor a Cobrar (Receita)</label>
-                <input type="number" step="0.01" class="form-input" id="valor_recebido" name="valor_recebido" placeholder="Ex: 450.00">
+                <input type="number" step="0.01" class="form-input" id="valor_recebido" name="valor_recebido" placeholder="Ex: 450.00" value="{{ viagem.valor_recebido or '' }}">
             </div>
-             <div class="md:col-span-2">
+            <div class="md:col-span-2">
                 <label for="observacoes" class="block text-gray-700 font-medium mb-2">Observações</label>
-                <textarea class="form-textarea" id="observacoes" name="observacoes" rows="3" placeholder="Ex: Carga frágil..."></textarea>
+                <textarea class="form-textarea" id="observacoes" name="observacoes" rows="4">{{ viagem.observacoes or '' }}</textarea>
             </div>
         </div>
-
         <div class="mt-8 flex justify-end gap-4">
-            <button type="submit" id="submit-button" class="btn-submit px-6 py-3 rounded font-semibold">Otimizar Rota e Criar Viagem</button>
+            <a href="{{ url_for('consultar_viagens') }}" class="btn-back px-4 py-2 rounded">Cancelar</a>
+            <button type="submit" id="submit-button" class="btn-submit px-4 py-2 rounded">Otimizar e Salvar</button>
         </div>
     </form>
 </div>
@@ -124,18 +118,7 @@
 
     function vincularAutocompleteORS(inputElement) {
         if (!inputElement) return;
-
-        if (typeof Awesomplete === 'undefined') {
-            setTimeout(() => vincularAutocompleteORS(inputElement), 200);
-            return;
-        }
-
-        const awesomplete = new Awesomplete(inputElement, {
-            minChars: 3,
-            autoFirst: true,
-            list: []
-        });
-
+        const awesomplete = new Awesomplete(inputElement, { minChars: 3, autoFirst: true, list: [] });
         inputElement.addEventListener('input', function() {
             clearTimeout(debounceTimer);
             const term = this.value;
@@ -157,10 +140,11 @@
 
     function removerDestino(botao) {
         const container = document.getElementById('destinos-container');
-        if (container.children.length > 1) {
+        if (container.children.length > 0) {
             botao.closest('.destino-item').remove();
-        } else {
-            Swal.fire('Atenção!', 'É necessário pelo menos um endereço de destino.', 'warning');
+        }
+         if (container.children.length === 0) {
+            document.getElementById('adicionar-destino').click();
         }
     }
 
@@ -170,57 +154,19 @@
         newDestinoDiv.className = 'destino-item';
         newDestinoDiv.innerHTML = `
             <div class="address-group">
-                <input type="text" class="form-input street-input" name="rua_destino[]" placeholder="Digite a rua, bairro, cidade..." required>
+                <input type="text" class="form-input street-input" name="rua_destino[]" placeholder="Digite a rua..." required>
                 <input type="text" class="form-input number-input" name="numero_destino[]" placeholder="Nº">
             </div>
-            <input type="file" class="hidden" accept="image/*" onchange="handleOcr(this)">
-            <button type="button" class="btn-ocr p-2 rounded-md" title="Extrair endereço de imagem" onclick="this.previousElementSibling.click();">
-                <i class="fas fa-camera"></i>
-            </button>
-            <div class="ocr-loader"></div>
             <button type="button" class="btn-delete p-2 rounded-md" onclick="removerDestino(this)"><i class="fas fa-trash"></i></button>`;
         container.appendChild(newDestinoDiv);
         vincularAutocompleteORS(newDestinoDiv.querySelector('.street-input'));
     });
 
-    async function handleOcr(fileInput) {
-        const file = fileInput.files[0];
-        if (!file) return;
-        const itemDiv = fileInput.closest('.destino-item');
-        const streetInput = itemDiv.querySelector('.street-input');
-        const loader = itemDiv.querySelector('.ocr-loader');
-        const ocrButton = itemDiv.querySelector('.btn-ocr');
-        const formData = new FormData();
-        formData.append('image', file);
-        loader.style.display = 'block';
-        ocrButton.disabled = true;
-        try {
-            const response = await fetch('/api/ocr-process', { method: 'POST', body: formData });
-            const result = await response.json();
-            if (result.success) {
-                streetInput.value = result.text;
-                Swal.fire('Sucesso!', 'Endereço extraído. Preencha o número se necessário.', 'success');
-            } else {
-                Swal.fire('Erro no OCR', result.message || 'Não foi possível extrair texto.', 'error');
-            }
-        } catch (error) {
-            Swal.fire('Erro de Rede', 'Não foi possível se comunicar com o servidor.', 'error');
-        } finally {
-            loader.style.display = 'none';
-            ocrButton.disabled = false;
-            fileInput.value = '';
-        }
-    }
-    
-    document.getElementById('viagem-form').addEventListener('submit', async function(event) {
+    document.getElementById('edit-viagem-form').addEventListener('submit', async function(event) {
         event.preventDefault();
         const submitButton = document.getElementById('submit-button');
         submitButton.disabled = true;
         submitButton.innerHTML = '<span class="ocr-loader" style="display:inline-block; border-top-color: white;"></span> Otimizando...';
-
-        const saidaRua = document.getElementById('endereco_saida_rua').value;
-        const saidaNumero = document.getElementById('endereco_saida_numero').value;
-        const enderecoSaidaCompleto = saidaNumero ? `${saidaRua}, ${saidaNumero}` : saidaRua;
 
         const destinosCompletos = [];
         document.querySelectorAll('.destino-item').forEach(item => {
@@ -230,12 +176,11 @@
                 destinosCompletos.push(numero ? `${rua}, ${numero}` : rua);
             }
         });
-
+        
         const formData = {
             motorista_id: document.getElementById('motorista_id').value,
             veiculo_id: document.getElementById('veiculo_id').value,
             cliente: document.getElementById('cliente').value,
-            endereco_saida: enderecoSaidaCompleto,
             enderecos_destino: destinosCompletos,
             data_inicio: document.getElementById('data_inicio').value,
             forma_pagamento: document.getElementById('forma_pagamento').value,
@@ -244,7 +189,7 @@
         };
 
         try {
-            const response = await fetch('/api/viagem/criar', {
+            const response = await fetch(`/api/viagem/editar/{{ viagem.id }}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -262,53 +207,43 @@
                         <p>Duração Estimada: ${result.duracao_minutos} minutos</p>
                     </div>`;
                 Swal.fire({
-                    title: 'Viagem Criada com Sucesso!',
+                    title: 'Viagem Atualizada com Sucesso!',
                     icon: 'success',
                     html: roteiroHtml,
-                    confirmButtonText: 'Ótimo!',
-                    footer: '<a href="/consultar_viagens">Ir para a tela de consulta</a>'
+                    confirmButtonText: 'Ok!',
                 }).then(() => {
-                    document.getElementById('viagem-form').reset();
-                    document.querySelectorAll('.destino-item').forEach((item, index) => {
-                        if (index > 0) item.remove();
-                    });
+                    window.location.href = "{{ url_for('consultar_viagens') }}";
                 });
             } else {
-                Swal.fire('Erro ao Criar Viagem', result.message || 'Ocorreu um erro.', 'error');
+                Swal.fire('Erro ao Atualizar', result.message || 'Ocorreu um erro.', 'error');
             }
         } catch (error) {
-            Swal.fire('Erro de Conexão', 'Não foi possível criar a viagem.', 'error');
+            Swal.fire('Erro de Conexão', 'Não foi possível salvar as alterações.', 'error');
         } finally {
             submitButton.disabled = false;
-            submitButton.innerHTML = 'Otimizar Rota e Criar Viagem';
+            submitButton.innerHTML = 'Otimizar e Salvar';
         }
     });
 
     function initAwesompleteClientes() {
         const clienteInput = document.getElementById('cliente');
-        if (typeof Awesomplete === 'undefined') {
+        if (typeof Awesomplete !== 'undefined') {
+            const awesomplete = new Awesomplete(clienteInput, { minChars: 2, autoFirst: true });
+            clienteInput.addEventListener('input', function() {
+                const term = this.value;
+                if (term.length < 2) return;
+                fetch(`/api/clientes/search?term=${term}`)
+                    .then(response => response.json()).then(data => { awesomplete.list = data; })
+                    .catch(error => console.error('Erro ao buscar clientes:', error));
+            });
+        } else {
             setTimeout(initAwesompleteClientes, 200);
-            return;
         }
-        const awesomplete = new Awesomplete(clienteInput, { minChars: 2, autoFirst: true });
-        clienteInput.addEventListener('input', function() {
-            const term = this.value;
-            if (term.length < 2) return;
-            fetch(`/api/clientes/search?term=${term}`)
-                .then(response => response.json()).then(data => { awesomplete.list = data; })
-                .catch(error => console.error('Erro ao buscar clientes:', error));
-        });
     }
-
+    
     document.addEventListener('DOMContentLoaded', function() {
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        document.getElementById('data_inicio').value = now.toISOString().slice(0,16);
-        
         initAwesompleteClientes();
-        
-        vincularAutocompleteORS(document.getElementById('endereco_saida_rua'));
-        document.querySelectorAll('input[name="rua_destino[]"]').forEach(vincularAutocompleteORS);
+        document.querySelectorAll('.street-input').forEach(vincularAutocompleteORS);
     });
 </script>
 {% endblock %}

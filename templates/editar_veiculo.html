@@ -1,42 +1,38 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>Editar Veículo</title>
-</head>
-<body>
-    <h1>Editar Veículo</h1>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <ul>
-                {% for category, message in messages %}
-                    <li class="{{ category }}">{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    {% endwith %}
-    <form method="POST">
-        <label for="placa">Placa</label>
-        <input type="text" name="placa" value="{{ veiculo.placa }}" required>
-        <label for="categoria">Categoria do Veículo</label>
-        <input type="text" name="categoria" value="{{ veiculo.categoria or '' }}">
-        <label for="modelo">Modelo</label>
-        <input type="text" name="modelo" value="{{ veiculo.modelo }}" required>
-        <label for="ano">Ano do Veículo</label>
-        <select name="ano">
-            <option value="">Selecione o ano</option>
-            {% for year in range(1900, 2026) %}
-                <option value="{{ year }}" {% if veiculo.ano == year %}selected{% endif %}>{{ year }}</option>
-            {% endfor %}
-        </select>
-        <label for="valor">Valor do Veículo</label>
-        <input type="number" name="valor" value="{{ veiculo.valor or '' }}">
-        <label for="km_rodados">Km Rodados do Veículo</label>
-        <input type="number" name="km_rodados" value="{{ veiculo.km_rodados or '' }}">
-        <label for="ultima_manutencao">Última Manutenção</label>
-        <input type="date" name="ultima_manutencao" value="{{ veiculo.ultima_manutencao.strftime('%Y-%m-%d') if veiculo.ultima_manutencao else '' }}">
-        <button type="submit">Salvar</button>
-        <a href="{{ url_for('consultar_veiculos') }}">Voltar</a>
+{% extends "base.html" %}
+
+{% block title %}Editar Veículo - {{ veiculo.placa }}{% endblock %}
+
+{% block content %}
+<div class="p-6 bg-gray-200 min-h-screen">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Editar Veículo: {{ veiculo.placa }}</h1>
+
+    <form method="POST" class="bg-white p-6 rounded-lg shadow-md">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label for="placa" class="block text-sm font-medium text-gray-700">Placa</label>
+                <input type="text" name="placa" id="placa" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 bg-gray-100" value="{{ veiculo.placa }}" readonly>
+            </div>
+            <div>
+                <label for="modelo" class="block text-sm font-medium text-gray-700">Modelo</label>
+                <input type="text" name="modelo" id="modelo" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ veiculo.modelo }}">
+            </div>
+            <div>
+                <label for="marca" class="block text-sm font-medium text-gray-700">Marca</label>
+                <input type="text" name="marca" id="marca" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ veiculo.marca }}">
+            </div>
+            <div>
+                <label for="ano" class="block text-sm font-medium text-gray-700">Ano</label>
+                <input type="number" name="ano" id="ano" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ veiculo.ano }}">
+            </div>
+            <div class="md:col-span-2">
+                <label for="renavam" class="block text-sm font-medium text-gray-700">Renavam</label>
+                <input type="text" name="renavam" id="renavam" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ veiculo.renavam }}">
+            </div>
+        </div>
+        <div class="mt-8 flex justify-end gap-4">
+            <a href="{{ url_for('consultar_veiculos') }}" class="bg-gray-200 text-gray-800 px-5 py-2 rounded-md hover:bg-gray-300">Cancelar</a>
+            <button type="submit" class="bg-green-600 text-white px-5 py-2 rounded-md hover:bg-green-700">Salvar Alterações</button>
+        </div>
     </form>
-</body>
-</html>
+</div>
+{% endblock %}

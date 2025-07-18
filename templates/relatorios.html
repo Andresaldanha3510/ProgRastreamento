@@ -3,6 +3,7 @@
 {% block title %}Dashboard Estratégico - TrackGo{% endblock %}
 
 {% block styles %}
+{{ super() }}
 <style>
     /* Estilos específicos para os cartões e tabelas desta página */
     .kpi-card {
@@ -12,153 +13,179 @@
         transform: translateY(-5px);
         box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
     }
+    /* Estilos para ordenação da tabela */
     .table-header-sortable {
         cursor: pointer;
+        position: relative;
+        padding-right: 20px; /* Espaço para o ícone */
     }
     .table-header-sortable:hover {
         color: #2e7d32; /* Cor principal da aplicação */
+    }
+    .table-header-sortable::after {
+        font-family: "Font Awesome 5 Free";
+        font-weight: 900;
+        content: "\f0dc"; /* Ícone padrão (subir e descer) */
+        position: absolute;
+        right: 0;
+        color: #cbd5e1; /* Cinza claro */
+    }
+    .table-header-sortable.sorted-asc::after {
+        content: "\f0de"; /* Ícone para cima */
+        color: #16a34a; /* Verde */
+    }
+    .table-header-sortable.sorted-desc::after {
+        content: "\f0dd"; /* Ícone para baixo */
+        color: #16a34a; /* Verde */
     }
 </style>
 {% endblock %}
 
 
 {% block content %}
-<div class="flex justify-between items-center mb-6">
-    <h1 class="text-3xl font-bold text-gray-800">Dashboard Estratégico</h1>
-    <a href="{{ url_for('exportar_relatorio', **request.args) }}" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
-        <i class="fas fa-file-excel"></i> Exportar
-    </a>
-</div>
+<div class="p-6 bg-gray-200 min-h-screen">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">Dashboard Estratégico</h1>
+        <a href="{{ url_for('exportar_relatorio', **request.args) }}" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
+            <i class="fas fa-file-excel"></i> Exportar
+        </a>
+    </div>
 
-<div class="bg-white p-4 rounded-xl shadow-md mb-6">
-    <form action="{{ url_for('relatorios') }}" method="GET" id="filter-form">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-                <label for="data_inicio" class="block text-sm font-medium text-gray-700">Data Início</label>
-                <input type="date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-green-500 focus:border-green-500" id="data_inicio" name="data_inicio" value="{{ request.args.get('data_inicio', '') }}">
+    <div class="bg-white p-4 rounded-xl shadow-md mb-6">
+        <form action="{{ url_for('relatorios') }}" method="GET" id="filter-form">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label for="data_inicio" class="block text-sm font-medium text-gray-700">Data Início</label>
+                    <input type="date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-green-500 focus:border-green-500" id="data_inicio" name="data_inicio" value="{{ request.args.get('data_inicio', '') }}">
+                </div>
+                <div>
+                    <label for="data_fim" class="block text-sm font-medium text-gray-700">Data Fim</label>
+                    <input type="date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-green-500 focus:border-green-500" id="data_fim" name="data_fim" value="{{ request.args.get('data_fim', '') }}">
+                </div>
+                <div>
+                    <label for="motorista_id" class="block text-sm font-medium text-gray-700">Motorista</label>
+                    <select id="motorista_id" name="motorista_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-green-500 focus:border-green-500">
+                        <option value="">Todos</option>
+                        {% for m in motoristas_filtro %}
+                            <option value="{{ m.id }}" {% if request.args.get('motorista_id')|int == m.id %}selected{% endif %}>{{ m.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="veiculo_id" class="block text-sm font-medium text-gray-700">Veículo</label>
+                    <select id="veiculo_id" name="veiculo_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-green-500 focus:border-green-500">
+                        <option value="">Todos</option>
+                        {% for v in veiculos_filtro %}
+                            <option value="{{ v.id }}" {% if request.args.get('veiculo_id')|int == v.id %}selected{% endif %}>{{ v.placa }} - {{ v.modelo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
-            <div>
-                <label for="data_fim" class="block text-sm font-medium text-gray-700">Data Fim</label>
-                <input type="date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-green-500 focus:border-green-500" id="data_fim" name="data_fim" value="{{ request.args.get('data_fim', '') }}">
+            <div class="flex flex-wrap items-center gap-2 mt-4">
+                <span class="text-sm font-medium text-gray-700">Períodos Rápidos:</span>
+                <button type="button" class="date-filter-btn text-sm bg-gray-200 hover:bg-gray-300 text-gray-800 py-1 px-3 rounded-full" data-period="this_month">Este Mês</button>
+                <button type="button" class="date-filter-btn text-sm bg-gray-200 hover:bg-gray-300 text-gray-800 py-1 px-3 rounded-full" data-period="last_30_days">Últimos 30 dias</button>
+                <button type="button" class="date-filter-btn text-sm bg-gray-200 hover:bg-gray-300 text-gray-800 py-1 px-3 rounded-full" data-period="last_month">Mês Passado</button>
+                <div class="flex-grow"></div>
+                <button type="submit" class="w-full md:w-auto bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors"><i class="fas fa-filter"></i>Aplicar Filtros</button>
             </div>
-            <div>
-                <label for="motorista_id" class="block text-sm font-medium text-gray-700">Motorista</label>
-                <select id="motorista_id" name="motorista_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-green-500 focus:border-green-500">
-                    <option value="">Todos</option>
-                    {% for m in motoristas_filtro %}
-                        <option value="{{ m.id }}" {% if request.args.get('motorista_id')|int == m.id %}selected{% endif %}>{{ m.nome }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                <label for="veiculo_id" class="block text-sm font-medium text-gray-700">Veículo</label>
-                <select id="veiculo_id" name="veiculo_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-green-500 focus:border-green-500">
-                    <option value="">Todos</option>
-                    {% for v in veiculos_filtro %}
-                        <option value="{{ v.id }}" {% if request.args.get('veiculo_id')|int == v.id %}selected{% endif %}>{{ v.placa }} - {{ v.modelo }}</option>
-                    {% endfor %}
-                </select>
+        </form>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-6">
+        <div class="kpi-card bg-white p-5 rounded-xl shadow-md flex items-center"><div class="p-3 rounded-full bg-green-100"><i class="fas fa-wallet fa-2x text-green-600"></i></div><div class="ml-4"><p class="text-gray-500 text-sm">Receita Total</p><h3 class="text-2xl font-bold text-gray-800">R$ {{ "%.2f"|format(total_receita|default(0))|replace('.', ',') }}</h3></div></div>
+        <div class="kpi-card bg-white p-5 rounded-xl shadow-md flex items-center"><div class="p-3 rounded-full bg-red-100"><i class="fas fa-file-invoice-dollar fa-2x text-red-500"></i></div><div class="ml-4"><p class="text-gray-500 text-sm">Custo Total</p><h3 class="text-2xl font-bold text-gray-800">R$ {{ "%.2f"|format(total_custo|default(0))|replace('.', ',') }}</h3></div></div>
+        <div class="kpi-card bg-white p-5 rounded-xl shadow-md flex items-center"><div class="p-3 rounded-full bg-blue-100"><i class="fas fa-hand-holding-dollar fa-2x text-blue-500"></i></div><div class="ml-4"><p class="text-gray-500 text-sm">Lucro Total</p><h3 class="text-2xl font-bold text-gray-800">R$ {{ "%.2f"|format(total_receita - total_custo)|replace('.', ',') }}</h3></div></div>
+        <div class="kpi-card bg-white p-5 rounded-xl shadow-md flex items-center"><div class="p-3 rounded-full bg-purple-100"><i class="fas fa-percentage fa-2x text-purple-500"></i></div><div class="ml-4"><p class="text-gray-500 text-sm">Margem Lucro</p><h3 class="text-2xl font-bold text-gray-800">{{ "%.1f"|format(((total_receita - total_custo) / total_receita * 100) if total_receita > 0 else 0)|replace('.', ',') }}%</h3></div></div>
+        <div class="kpi-card bg-white p-5 rounded-xl shadow-md flex items-center"><div class="p-3 rounded-full bg-yellow-100"><i class="fas fa-route fa-2x text-yellow-500"></i></div><div class="ml-4"><p class="text-gray-500 text-sm">Total Viagens</p><h3 class="text-2xl font-bold text-gray-800">{{ total_viagens|default(0) }}</h3></div></div>
+        <div class="kpi-card bg-white p-5 rounded-xl shadow-md flex items-center"><div class="p-3 rounded-full bg-teal-100"><i class="fas fa-gas-pump fa-2x text-teal-500"></i></div><div class="ml-4"><p class="text-gray-500 text-sm">Consumo Médio</p><h3 class="text-2xl font-bold text-gray-800">{{ "%.2f"|format(consumo_medio_geral|default(0))|replace('.', ',') }} Km/L</h3></div></div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+        <div class="lg:col-span-7 bg-white p-4 rounded-xl shadow-md"><h3 class="font-semibold text-lg mb-2 pl-2"><i class="fas fa-calendar-alt mr-2 text-gray-400"></i>Receita vs Custo por Mês</h3><div style="height: 350px;"><canvas id="mensalChart"></canvas></div></div>
+        <div class="lg:col-span-5 bg-white p-4 rounded-xl shadow-md"><h3 class="font-semibold text-lg mb-2 pl-2"><i class="fas fa-tags mr-2 text-gray-400"></i>Custos por Categoria</h3><div style="height: 350px;"><canvas id="categoriasChart"></canvas></div></div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <h3 class="font-semibold text-lg p-4 border-b"><i class="fas fa-user-tie mr-2 text-gray-400"></i>Rentabilidade por Cliente</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left sortable-table">
+                    <thead class="bg-gray-50"><tr>
+                        <th class="p-4 font-medium text-gray-500 uppercase table-header-sortable">Cliente</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase table-header-sortable">Viagens</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase table-header-sortable">Receita</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase table-header-sortable">Lucro</th>
+                    </tr></thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for cliente in clientes_stats|sort(attribute='lucro', reverse=True) %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-4 font-medium text-gray-800">{{ cliente.nome }}</td>
+                            <td class="p-4 text-gray-600">{{ cliente.viagens }}</td>
+                            <td class="p-4 font-semibold text-gray-700">R$ {{ "%.2f"|format(cliente.receita)|replace('.', ',') }}</td>
+                            <td class="p-4 font-bold {% if cliente.lucro >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                                R$ {{ "%.2f"|format(cliente.lucro)|replace('.', ',') }}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="p-4 text-center text-gray-500">Nenhum dado de cliente para exibir.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
-        <div class="flex flex-wrap items-center gap-2 mt-4">
-            <span class="text-sm font-medium text-gray-700">Períodos Rápidos:</span>
-            <button type="button" class="date-filter-btn text-sm bg-gray-200 hover:bg-gray-300 text-gray-800 py-1 px-3 rounded-full" data-period="this_month">Este Mês</button>
-            <button type="button" class="date-filter-btn text-sm bg-gray-200 hover:bg-gray-300 text-gray-800 py-1 px-3 rounded-full" data-period="last_30_days">Últimos 30 dias</button>
-            <button type="button" class="date-filter-btn text-sm bg-gray-200 hover:bg-gray-300 text-gray-800 py-1 px-3 rounded-full" data-period="last_month">Mês Passado</button>
-            <div class="flex-grow"></div>
-            <button type="submit" class="w-full md:w-auto bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors"><i class="fas fa-filter"></i>Aplicar Filtros</button>
+        
+         <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <h3 class="font-semibold text-lg p-4 border-b"><i class="fas fa-user mr-2 text-gray-400"></i>Desempenho por Motorista</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left sortable-table">
+                    <thead class="bg-gray-50"><tr>
+                        <th class="p-4 font-medium text-gray-500 uppercase table-header-sortable">Motorista</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase table-header-sortable">Viagens</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase table-header-sortable">Receita/Viagem</th>
+                    </tr></thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for stats in motoristas_stats %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-4 font-medium text-gray-800">{{ stats.nome }}</td>
+                            <td class="p-4 text-gray-600">{{ stats.viagens }}</td>
+                            <td class="p-4 font-semibold text-gray-700">R$ {{ "%.2f"|format((stats.receita / stats.viagens) if stats.viagens > 0 else 0)|replace('.', ',') }}</td>
+                        </tr>
+                        {% else %}<tr><td colspan="3" class="p-4 text-center text-gray-500">Nenhum motorista encontrado.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </form>
-</div>
+    </div>
 
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
-    <div class="kpi-card bg-white p-5 rounded-xl shadow-md flex items-center"><div class="p-3 rounded-full bg-green-100"><i class="fas fa-wallet fa-2x text-green-600"></i></div><div class="ml-4"><p class="text-gray-500 text-sm">Receita Total</p><h3 class="text-2xl font-bold text-gray-800">R$ {{ "%.2f"|format(total_receita|default(0)) }}</h3></div></div>
-    <div class="kpi-card bg-white p-5 rounded-xl shadow-md flex items-center"><div class="p-3 rounded-full bg-red-100"><i class="fas fa-file-invoice-dollar fa-2x text-red-500"></i></div><div class="ml-4"><p class="text-gray-500 text-sm">Custo Total</p><h3 class="text-2xl font-bold text-gray-800">R$ {{ "%.2f"|format(total_custo|default(0)) }}</h3></div></div>
-    <div class="kpi-card bg-white p-5 rounded-xl shadow-md flex items-center"><div class="p-3 rounded-full bg-blue-100"><i class="fas fa-hand-holding-dollar fa-2x text-blue-500"></i></div><div class="ml-4"><p class="text-gray-500 text-sm">Lucro Total</p><h3 class="text-2xl font-bold text-gray-800">R$ {{ "%.2f"|format(total_receita - total_custo) }}</h3></div></div>
-    <div class="kpi-card bg-white p-5 rounded-xl shadow-md flex items-center"><div class="p-3 rounded-full bg-yellow-100"><i class="fas fa-route fa-2x text-yellow-500"></i></div><div class="ml-4"><p class="text-gray-500 text-sm">Total de Viagens</p><h3 class="text-2xl font-bold text-gray-800">{{ total_viagens|default(0) }}</h3></div></div>
-    <div class="kpi-card bg-white p-5 rounded-xl shadow-md flex items-center"><div class="p-3 rounded-full bg-teal-100"><i class="fas fa-gas-pump fa-2x text-teal-500"></i></div><div class="ml-4"><p class="text-gray-500 text-sm">Consumo Médio</p><h3 class="text-2xl font-bold text-gray-800">{{ "%.2f"|format(consumo_medio_geral|default(0)) }} Km/L</h3></div></div>
-</div>
-
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
-    <div class="lg:col-span-7 bg-white p-4 rounded-xl shadow-md"><h3 class="font-semibold text-lg mb-2 pl-2"><i class="fas fa-calendar-alt mr-2 text-gray-400"></i>Receita vs Custo por Mês</h3><div style="height: 350px;"><canvas id="mensalChart"></canvas></div></div>
-    <div class="lg:col-span-5 bg-white p-4 rounded-xl shadow-md"><h3 class="font-semibold text-lg mb-2 pl-2"><i class="fas fa-tags mr-2 text-gray-400"></i>Custos por Categoria</h3><div style="height: 350px;"><canvas id="categoriasChart"></canvas></div></div>
-</div>
-
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <div class="bg-white rounded-xl shadow-md overflow-hidden">
-        <h3 class="font-semibold text-lg p-4 border-b"><i class="fas fa-user-tie mr-2 text-gray-400"></i>Rentabilidade por Cliente</h3>
+    <div class="mt-6 bg-white rounded-xl shadow-md overflow-hidden">
+        <h3 class="font-semibold text-lg p-4 border-b"><i class="fas fa-truck mr-2 text-gray-400"></i>Desempenho por Veículo</h3>
         <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left">
-                <thead class="bg-gray-50"><tr>
-                    <th class="p-4 font-medium text-gray-500 uppercase table-header-sortable">Cliente</th>
-                    <th class="p-4 font-medium text-gray-500 uppercase table-header-sortable">Viagens</th>
-                    <th class="p-4 font-medium text-gray-500 uppercase table-header-sortable">Receita</th>
-                </tr></thead>
+            <table class="w-full text-sm text-left sortable-table">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="p-4 font-medium text-gray-500 uppercase table-header-sortable">Veículo</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase table-header-sortable text-right">KM Rodados</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase table-header-sortable text-right">Custo Total</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase table-header-sortable text-right">Custo / KM</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase table-header-sortable text-right">Consumo Médio</th>
+                    </tr>
+                </thead>
                 <tbody class="divide-y divide-gray-200">
-                    {% for cliente in clientes_stats|sort(attribute='receita', reverse=True) %}
+                    {% for veiculo in veiculos_stats|sort(attribute='km', reverse=True) %}
                     <tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium text-gray-800">{{ cliente.nome }}</td>
-                        <td class="p-4 text-gray-600">{{ cliente.viagens }}</td>
-                        <td class="p-4 font-semibold text-green-600">R$ {{ "%.2f"|format(cliente.receita) }}</td>
+                        <td class="p-4 font-medium text-gray-800">{{ veiculo.placa }} - {{ veiculo.modelo }}</td>
+                        <td class="p-4 text-gray-600 text-right">{{ "%.2f"|format(veiculo.km)|replace('.', ',') }} km</td>
+                        <td class="p-4 text-gray-600 text-right">R$ {{ "%.2f"|format(veiculo.custo)|replace('.', ',') }}</td>
+                        <td class="p-4 text-gray-600 text-right">R$ {{ "%.2f"|format(veiculo.custo / veiculo.km if veiculo.km > 0 else 0)|replace('.', ',') }}</td>
+                        <td class="p-4 font-semibold text-gray-800 text-right">{{ "%.2f"|format(veiculo.km / veiculo.litros if veiculo.litros > 0 else 0)|replace('.', ',') }} Km/L</td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="3" class="p-4 text-center text-gray-500">Nenhum dado de cliente para exibir.</td></tr>
+                    <tr><td colspan="5" class="p-4 text-center text-gray-500">Nenhum dado de veículo para exibir.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-    </div>
-    
-     <div class="bg-white rounded-xl shadow-md overflow-hidden">
-        <h3 class="font-semibold text-lg p-4 border-b"><i class="fas fa-user mr-2 text-gray-400"></i>Desempenho por Motorista</h3>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left">
-                <thead class="bg-gray-50"><tr>
-                    <th class="p-4 font-medium text-gray-500 uppercase table-header-sortable">Motorista</th>
-                    <th class="p-4 font-medium text-gray-500 uppercase table-header-sortable">Viagens</th>
-                    <th class="p-4 font-medium text-gray-500 uppercase table-header-sortable">Receita/Viagem</th>
-                </tr></thead>
-                <tbody class="divide-y divide-gray-200">
-                    {% for motorista_id, stats in motoristas.items() %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium text-gray-800">{{ stats.nome }}</td>
-                        <td class="p-4 text-gray-600">{{ stats.viagens }}</td>
-                        <td class="p-4 font-semibold text-gray-700">R$ {{ "%.2f"|format((stats.receita / stats.viagens) if stats.viagens > 0 else 0) }}</td>
-                    </tr>
-                    {% else %}<tr><td colspan="3" class="p-4 text-center text-gray-500">Nenhum motorista encontrado.</td></tr>{% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<div class="mt-6 bg-white rounded-xl shadow-md overflow-hidden">
-    <h3 class="font-semibold text-lg p-4 border-b"><i class="fas fa-truck mr-2 text-gray-400"></i>Desempenho por Veículo</h3>
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm text-left">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="p-4 font-medium text-gray-500 uppercase">Veículo</th>
-                    <th class="p-4 font-medium text-gray-500 uppercase text-right">KM Rodados</th>
-                    <th class="p-4 font-medium text-gray-500 uppercase text-right">Custo Total</th>
-                    <th class="p-4 font-medium text-gray-500 uppercase text-right">Custo / KM</th>
-                    <th class="p-4 font-medium text-gray-500 uppercase text-right">Consumo Médio</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-                {% for veiculo in veiculos_stats|sort(attribute='km', reverse=True) %}
-                <tr class="hover:bg-gray-50">
-                    <td class="p-4 font-medium text-gray-800">{{ veiculo.placa }} - {{ veiculo.modelo }}</td>
-                    <td class="p-4 text-gray-600 text-right">{{ "%.2f"|format(veiculo.km) }} km</td>
-                    <td class="p-4 text-gray-600 text-right">R$ {{ "%.2f"|format(veiculo.custo) }}</td>
-                    <td class="p-4 text-gray-600 text-right">R$ {{ "%.2f"|format(veiculo.custo / veiculo.km if veiculo.km > 0 else 0) }}</td>
-                    <td class="p-4 font-semibold text-gray-800 text-right">{{ "%.2f"|format(veiculo.km / veiculo.litros if veiculo.litros > 0 else 0) }} Km/L</td>
-                </tr>
-                {% else %}
-                <tr><td colspan="5" class="p-4 text-center text-gray-500">Nenhum dado de veículo para exibir.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
     </div>
 </div>
 
@@ -166,6 +193,7 @@
 
 
 {% block scripts %}
+{{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -206,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const categoriasData = JSON.parse('{{ dados_grafico_categorias|tojson|safe }}');
     
     // Gráfico de Custos por Categoria
-    const categoriasCtx = document.getElementById('categoriasChart').getContext('2d');
+    const categoriasCtx = document.getElementById('categoriasChart')?.getContext('2d');
     if (categoriasCtx && Object.keys(categoriasData).length > 0) {
             new Chart(categoriasCtx, {
             type: 'doughnut',
@@ -230,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Gráfico de Receita vs Custo por Mês
-    const mensalCtx = document.getElementById('mensalChart').getContext('2d');
+    const mensalCtx = document.getElementById('mensalChart')?.getContext('2d');
     if (mensalCtx && Object.keys(mensalData).length > 0) {
         new Chart(mensalCtx, {
             type: 'bar',
@@ -251,6 +279,35 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Script para ordenar tabelas
+    document.querySelectorAll('.table-header-sortable').forEach(headerCell => {
+        headerCell.addEventListener('click', () => {
+            const tableElement = headerCell.closest('table');
+            const headerIndex = Array.prototype.indexOf.call(headerCell.parentElement.children, headerCell);
+            const currentIsAscending = headerCell.classList.contains('sorted-asc');
+
+            tableElement.querySelectorAll('th').forEach(th => th.classList.remove('sorted-asc', 'sorted-desc'));
+
+            Array.from(tableElement.querySelector('tbody').querySelectorAll('tr'))
+                .sort((a, b) => {
+                    const aVal = a.children[headerIndex].innerText;
+                    const bVal = b.children[headerIndex].innerText;
+                    
+                    const aNum = parseFloat(aVal.replace('R$', '').replace('Km/L', '').replace('km', '').replace(/\./g, '').replace(',', '.').trim());
+                    const bNum = parseFloat(bVal.replace('R$', '').replace('Km/L', '').replace('km', '').replace(/\./g, '').replace(',', '.').trim());
+
+                    if (!isNaN(aNum) && !isNaN(bNum)) {
+                        return currentIsAscending ? bNum - aNum : aNum - bNum;
+                    }
+                    return currentIsAscending ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+                })
+                .forEach(tr => tableElement.querySelector('tbody').appendChild(tr));
+
+            headerCell.classList.toggle('sorted-desc', currentIsAscending);
+            headerCell.classList.toggle('sorted-asc', !currentIsAscending);
+        });
+    });
 });
 </script>
 {% endblock %}

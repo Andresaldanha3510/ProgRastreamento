@@ -5,17 +5,24 @@
 {% block styles %}
 <style>
     .form-container {
-        background-color: white;
+        background-color: #e9ecef;
         padding: 2rem;
         border-radius: 0.5rem;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        margin: 0; /* Alinha o container ao lado do menu */
+        margin: 0;
     }
-
-    .form-container h1 {
-        text-align: center;
+    /* Estilos copiados do cadastrar_cliente para garantir identidade visual */
+    .form-section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e5e7eb;
     }
-
+    .form-section-title:first-of-type {
+        margin-top: 0;
+    }
     .form-input, .form-select {
         width: 100%;
         padding: 0.75rem;
@@ -23,30 +30,25 @@
         border-radius: 0.375rem;
         transition: border-color 0.2s, box-shadow 0.2s;
     }
-
     .form-input:focus, .form-select:focus {
         outline: none;
         border-color: #2e7d32;
         box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
     }
-
+    .form-input[readonly] {
+        background-color: #f3f4f6;
+        cursor: not-allowed;
+    }
     .btn-submit {
-        background-color: #2563eb;
-        color: white;
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.375rem;
-        transition: background-color 0.3s;
+        background-color: #2563eb; color: white;
+        padding: 0.5rem 1rem; border-radius: 0.375rem;
     }
     .btn-submit:hover {
         background-color: #1d4ed8;
     }
-
     .btn-back {
-        background-color: #6b7280;
-        color: white;
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.375rem;
-        transition: background-color 0.3s;
+        background-color: #6b7280; color: white;
+        padding: 0.5rem 1rem; border-radius: 0.375rem;
     }
     .btn-back:hover {
         background-color: #4b5563;
@@ -56,64 +58,93 @@
 
 {% block content %}
 <div class="form-container">
-    <h1 class="text-3xl font-bold mb-6 text-gray-800">Cadastrar Novo Motorista</h1>
+    <h1 class="text-3xl font-bold mb-6 text-gray-800 text-center">Cadastrar Novo Motorista</h1>
 
     <form method="POST" enctype="multipart/form-data">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+        
+        <h2 class="form-section-title">Dados Pessoais</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
             <div>
-                <div class="mb-4">
-                    <label for="nome" class="block text-gray-700 font-medium mb-2">Nome Completo</label>
-                    <input type="text" id="nome" name="nome" required class="form-input" placeholder="Digite o nome completo">
-                </div>
-                <div class="mb-4">
-                    <label for="data_nascimento" class="block text-gray-700 font-medium mb-2">Data de Nascimento</label>
-                    <input type="date" id="data_nascimento" name="data_nascimento" required class="form-input">
-                </div>
-                <div class="mb-4">
-                    <label for="endereco" class="block text-gray-700 font-medium mb-2">Endereço</label>
-                    <input type="text" id="endereco" name="endereco" required class="form-input" placeholder="Digite o endereço completo">
-                </div>
-                <div class="mb-4">
-                    <label for="telefone" class="block text-gray-700 font-medium mb-2">Telefone/WhatsApp</label>
-                    <input type="text" id="telefone" name="telefone" required class="form-input" placeholder="Apenas números (10 ou 11 dígitos)">
-                </div>
-                 <div class="mb-4">
-                    <label for="anexos" class="block text-gray-700 font-medium mb-2">Anexo de Arquivos</label>
-                    <input type="file" id="anexos" name="anexos" multiple accept=".pdf,.jpg,.jpeg,.png" class="form-input">
-                    <p class="text-sm text-gray-500 mt-1">Selecione um ou mais arquivos (PDF, JPG, PNG)</p>
-                </div>
+                <label for="nome" class="block text-gray-700 font-medium mb-2">Nome Completo</label>
+                <input type="text" id="nome" name="nome" required class="form-input" placeholder="Nome completo do motorista">
             </div>
-
             <div>
-                <div class="mb-4">
-                    <label for="pessoa_tipo" class="block text-gray-700 font-medium mb-2">Pessoa Física ou Jurídica</label>
-                    <select id="pessoa_tipo" name="pessoa_tipo" required class="form-select">
-                        <option value="fisica">Pessoa Física</option>
-                        <option value="juridica">Pessoa Jurídica</option>
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label id="cpf_cnpj_label" for="cpf_cnpj" class="block text-gray-700 font-medium mb-2">CPF</label>
-                    <input type="text" id="cpf_cnpj" name="cpf_cnpj" required class="form-input" placeholder="Digite o CPF (11 dígitos)">
-                </div>
-                <div class="mb-4">
-                    <label for="rg" class="block text-gray-700 font-medium mb-2">RG</label>
-                    <input type="text" id="rg" name="rg" class="form-input" placeholder="Digite o RG (até 9 dígitos)">
-                </div>
-                <div class="mb-4">
-                    <label for="cnh" class="block text-gray-700 font-medium mb-2">CNH</label>
-                    <input type="text" id="cnh" name="cnh" required class="form-input" placeholder="Digite a CNH (11 dígitos)">
-                </div>
-                <div class="mb-4">
-                    <label for="validade_cnh" class="block text-gray-700 font-medium mb-2">Validade da CNH</label>
-                    <input type="date" name="validade_cnh" id="validade_cnh" required class="form-input">
-                </div>
+                <label for="data_nascimento" class="block text-gray-700 font-medium mb-2">Data de Nascimento</label>
+                <input type="date" id="data_nascimento" name="data_nascimento" required class="form-input">
+            </div>
+             <div>
+                <label for="pessoa_tipo" class="block text-gray-700 font-medium mb-2">Pessoa Física ou Jurídica</label>
+                <select id="pessoa_tipo" name="pessoa_tipo" required class="form-select">
+                    <option value="fisica">Pessoa Física</option>
+                    <option value="juridica">Pessoa Jurídica</option>
+                </select>
+            </div>
+            <div>
+                <label id="cpf_cnpj_label" for="cpf_cnpj" class="block text-gray-700 font-medium mb-2">CPF</label>
+                <input type="text" id="cpf_cnpj" name="cpf_cnpj" required class="form-input" placeholder="Apenas números">
+            </div>
+        </div>
+
+        <h2 class="form-section-title">Endereço</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-4">
+            <div class="md:col-span-1">
+                <label for="cep" class="block text-gray-700 font-medium mb-2">CEP</label>
+                <input type="text" id="cep" name="cep" required class="form-input" placeholder="Apenas números" maxlength="8">
+            </div>
+            <div class="md:col-span-3">
+                <label for="logradouro" class="block text-gray-700 font-medium mb-2">Endereço (Logradouro)</label>
+                <input type="text" id="logradouro" name="logradouro" required class="form-input" readonly>
+            </div>
+            <div class="md:col-span-1">
+                <label for="numero" class="block text-gray-700 font-medium mb-2">Número</label>
+                <input type="text" id="numero" name="numero" required class="form-input">
+            </div>
+            <div class="md:col-span-3">
+                <label for="complemento" class="block text-gray-700 font-medium mb-2">Complemento</label>
+                <input type="text" id="complemento" name="complemento" class="form-input" placeholder="Apto, Bloco, etc.">
+            </div>
+            <div class="md:col-span-2">
+                <label for="bairro" class="block text-gray-700 font-medium mb-2">Bairro</label>
+                <input type="text" id="bairro" name="bairro" required class="form-input" readonly>
+            </div>
+            <div class="md:col-span-1">
+                <label for="cidade" class="block text-gray-700 font-medium mb-2">Cidade</label>
+                <input type="text" id="cidade" name="cidade" required class="form-input" readonly>
+            </div>
+            <div class="md:col-span-1">
+                <label for="estado" class="block text-gray-700 font-medium mb-2">Estado (UF)</label>
+                <input type="text" id="estado" name="estado" required class="form-input" readonly>
             </div>
         </div>
         
-        <div class="mt-6 flex items-center justify-end gap-4">
-            <a href="{{ url_for('index') }}" class="btn-back">Voltar</a>
-            <button type="submit" class="btn-submit">Cadastrar</button>
+        <h2 class="form-section-title">Documentos e Contato</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+            <div>
+                <label for="rg" class="block text-gray-700 font-medium mb-2">RG</label>
+                <input type="text" id="rg" name="rg" class="form-input" placeholder="Apenas números">
+            </div>
+            <div>
+                <label for="telefone" class="block text-gray-700 font-medium mb-2">Telefone/WhatsApp</label>
+                <input type="text" id="telefone" name="telefone" required class="form-input" placeholder="DDD + Número">
+            </div>
+            <div>
+                <label for="cnh" class="block text-gray-700 font-medium mb-2">CNH</label>
+                <input type="text" id="cnh" name="cnh" required class="form-input" placeholder="Apenas números">
+            </div>
+            <div>
+                <label for="validade_cnh" class="block text-gray-700 font-medium mb-2">Validade da CNH</label>
+                <input type="date" name="validade_cnh" id="validade_cnh" required class="form-input">
+            </div>
+            <div class="md:col-span-2">
+                <label for="anexos" class="block text-gray-700 font-medium mb-2">Anexo de Documentos</label>
+                <input type="file" id="anexos" name="anexos" multiple accept=".pdf,.jpg,.jpeg,.png" class="form-input">
+                <p class="text-sm text-gray-500 mt-1">CNH, Comprovante de Residência, etc.</p>
+            </div>
+        </div>
+
+        <div class="mt-8 flex justify-end gap-4">
+            <a href="{{ url_for('consultar_motoristas') }}" class="btn-back">Voltar</a>
+            <button type="submit" class="btn-submit">Cadastrar Motorista</button>
         </div>
     </form>
 </div>
@@ -123,46 +154,81 @@
 {{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // --- LÓGICA PARA TIPO DE PESSOA (FÍSICA/JURÍDICA) ---
     const pessoaTipo = document.getElementById('pessoa_tipo');
     const cpfCnpjLabel = document.getElementById('cpf_cnpj_label');
     const cpfCnpjInput = document.getElementById('cpf_cnpj');
-    const rgInput = document.getElementById('rg');
-    const cnhInput = document.getElementById('cnh');
-    const telefoneInput = document.getElementById('telefone');
 
-    function updateCpfCnpjField() {
+    function togglePessoaFields() {
         if (pessoaTipo.value === 'fisica') {
             cpfCnpjLabel.textContent = 'CPF';
             cpfCnpjInput.placeholder = 'Digite o CPF (11 dígitos)';
-            cpfCnpjInput.pattern = '\\d{11}';
-            cpfCnpjInput.title = 'CPF deve conter 11 dígitos.';
         } else {
             cpfCnpjLabel.textContent = 'CNPJ';
             cpfCnpjInput.placeholder = 'Digite o CNPJ (14 dígitos)';
-            cpfCnpjInput.pattern = '\\d{14}';
-            cpfCnpjInput.title = 'CNPJ deve conter 14 dígitos.';
         }
     }
+    pessoaTipo.addEventListener('change', togglePessoaFields);
+    togglePessoaFields(); // Executa ao carregar
 
-    function formatNumericInput(inputElement, maxLength) {
-        inputElement.addEventListener('input', function() {
-            this.value = this.value.replace(/\D/g, ''); // Remove non-digits
-            if (this.value.length > maxLength) {
-                this.value = this.value.slice(0, maxLength);
-            }
+    // --- LÓGICA PARA CONSULTA DE CEP (ViaCEP) ---
+    const cepInput = document.getElementById('cep');
+    const logradouroInput = document.getElementById('logradouro');
+    const bairroInput = document.getElementById('bairro');
+    const cidadeInput = document.getElementById('cidade');
+    const estadoInput = document.getElementById('estado');
+    const numeroInput = document.getElementById('numero');
+    const camposEndereco = [logradouroInput, bairroInput, cidadeInput, estadoInput];
+
+    const limparFormularioEndereco = () => {
+        camposEndereco.forEach(campo => {
+            campo.value = '';
         });
-    }
+    };
+
+    const preencherFormulario = (endereco) => {
+        logradouroInput.value = endereco.logradouro;
+        bairroInput.value = endereco.bairro;
+        cidadeInput.value = endereco.localidade;
+        estadoInput.value = endereco.uf;
+        numeroInput.focus();
+    };
     
-    // Initial setup
-    updateCpfCnpjField();
-    formatNumericInput(cpfCnpjInput, 14); // Max length for CNPJ
-    formatNumericInput(rgInput, 9);
-    formatNumericInput(cnhInput, 11);
-    formatNumericInput(telefoneInput, 11);
+    const consultarCEP = async () => {
+        const cep = cepInput.value.replace(/\D/g, '');
+        if (cep.length !== 8) {
+            limparFormularioEndereco();
+            return;
+        }
 
+        camposEndereco.forEach(c => c.value = "Buscando...");
+        const url = `https://viacep.com.br/ws/${cep}/json/`;
 
-    // Event listener for changes
-    pessoaTipo.addEventListener('change', updateCpfCnpjField);
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            if (data.erro) {
+                alert("CEP não encontrado.");
+                limparFormularioEndereco();
+            } else {
+                preencherFormulario(data);
+            }
+        } catch (error) {
+            alert("Não foi possível consultar o CEP. Verifique sua conexão.");
+            limparFormularioEndereco();
+        }
+    };
+    cepInput.addEventListener('blur', consultarCEP);
+
+    // --- MÁSCARAS DE INPUT (APENAS NÚMEROS) ---
+    ['telefone', 'cpf_cnpj', 'cep', 'rg', 'cnh'].forEach(id => {
+        const element = document.getElementById(id);
+        if(element) {
+            element.addEventListener('input', function(e) {
+                e.target.value = e.target.value.replace(/\D/g, '');
+            });
+        }
+    });
 });
 </script>
 {% endblock %}

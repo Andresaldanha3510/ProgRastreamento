@@ -1,77 +1,53 @@
-<form id="form-gerenciar-despesas" action="{{ url_for('salvar_custo_viagem') }}" method="POST" enctype="multipart/form-data">
+<form id="form-gerenciar-despesas" method="POST" action="{{ url_for('salvar_custo_viagem') }}" enctype="multipart/form-data">
     <input type="hidden" name="viagem_id" value="{{ viagem.id }}">
     
-    <h2 class="text-2xl font-bold mb-4">Gerenciar Despesas da Viagem #{{ viagem.id }}</h2>
-    
-    <fieldset class="border p-4 rounded-lg mb-6">
-        <legend class="text-lg font-semibold px-2">Despesas Gerais</legend>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <label for="pedagios" class="block text-sm font-medium text-gray-700">Pedágios (R$)</label>
-                <input type="number" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" id="pedagios" name="pedagios" value="{{ custo.pedagios or '' }}">
-            </div>
-            <div>
-                <label for="alimentacao" class="block text-sm font-medium text-gray-700">Alimentação (R$)</label>
-                <input type="number" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" id="alimentacao" name="alimentacao" value="{{ custo.alimentacao or '' }}">
-            </div>
-            <div>
-                <label for="hospedagem" class="block text-sm font-medium text-gray-700">Hospedagem (R$)</label>
-                <input type="number" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" id="hospedagem" name="hospedagem" value="{{ custo.hospedagem or '' }}">
-            </div>
-            <div>
-                <label for="outros" class="block text-sm font-medium text-gray-700">Outros Custos (R$)</label>
-                <input type="number" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" id="outros" name="outros" value="{{ custo.outros or '' }}">
-            </div>
-            <div class="md:col-span-2">
-                <label for="descricao_outros" class="block text-sm font-medium text-gray-700">Descrição (Outros Custos)</label>
-                <textarea class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" id="descricao_outros" name="descricao_outros" rows="2">{{ custo.descricao_outros or '' }}</textarea>
-            </div>
-        </div>
-        <div class="mt-4">
-             <button type="submit" class="btn btn-primary w-full md:w-auto">Salvar Despesas Gerais</button>
-        </div>
-    </fieldset>
+    <header class="flex justify-between items-center p-5 border-b bg-gray-200 rounded-t-lg">
+        <h2 class="text-xl font-bold text-gray-800">Gerenciar Despesas da Viagem #{{ viagem.id }}</h2>
+        <button type="button" onclick="closeModal('despesasModal')" class="text-gray-400 hover:text-gray-700 text-3xl font-light">&times;</button>
+    </header>
 
-    <fieldset class="border p-4 rounded-lg mb-6">
-        <legend class="text-lg font-semibold px-2">Abastecimentos</legend>
-        <div class="max-h-48 overflow-y-auto space-y-2">
-            {% for abast in abastecimentos %}
-            <div class="p-2 border-l-4 border-blue-500 bg-gray-50 rounded">
-                <p class="text-sm"><strong>Data:</strong> {{ abast.data_abastecimento.strftime('%d/%m/%Y') }} - <strong>Valor:</strong> R$ {{ "%.2f"|format(abast.custo_total) }}</p>
-                <p class="text-xs text-gray-600">{{ abast.litros }}L @ R$ {{ abast.preco_por_litro }}/L - Odômetro: {{ abast.odometro }} km</p>
+    <div class="p-6 overflow-y-auto" style="max-height: 65vh;">
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">Custos Gerais</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label for="pedagios" class="block text-sm font-medium text-gray-700">Pedágios</label>
+                <input type="number" step="0.01" name="pedagios" id="pedagios" value="{{ custo.pedagios if custo else '' }}" class="mt-1 w-full border-gray-300 rounded-md shadow-sm p-2" placeholder="0.00">
             </div>
+            <div>
+                <label for="alimentacao" class="block text-sm font-medium text-gray-700">Alimentação</label>
+                <input type="number" step="0.01" name="alimentacao" id="alimentacao" value="{{ custo.alimentacao if custo else '' }}" class="mt-1 w-full border-gray-300 rounded-md shadow-sm p-2" placeholder="0.00">
+            </div>
+            <div>
+                <label for="hospedagem" class="block text-sm font-medium text-gray-700">Hospedagem</label>
+                <input type="number" step="0.01" name="hospedagem" id="hospedagem" value="{{ custo.hospedagem if custo else '' }}" class="mt-1 w-full border-gray-300 rounded-md shadow-sm p-2" placeholder="0.00">
+            </div>
+            <div>
+                <label for="outros" class="block text-sm font-medium text-gray-700">Outros Custos</label>
+                <input type="number" step="0.01" name="outros" id="outros" value="{{ custo.outros if custo else '' }}" class="mt-1 w-full border-gray-300 rounded-md shadow-sm p-2" placeholder="0.00">
+            </div>
+            <div class="sm:col-span-2">
+                <label for="descricao_outros" class="block text-sm font-medium text-gray-700">Descrição (Outros Custos)</label>
+                <textarea name="descricao_outros" id="descricao_outros" rows="2" class="mt-1 w-full border-gray-300 rounded-md shadow-sm p-2">{{ custo.descricao_outros if custo else '' }}</textarea>
+            </div>
+        </div>
+
+        <hr class="my-6">
+
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">Abastecimentos Registrados</h3>
+        <div class="space-y-2">
+            {% for abast in abastecimentos %}
+                <div class="bg-gray-200 p-3 rounded-md border text-sm">
+                    <p><strong>Data:</strong> {{ abast.data_abastecimento.strftime('%d/%m/%Y') }} - <strong>Valor:</strong> R$ {{ "%.2f"|format(abast.custo_total)|replace('.', ',') }}</p>
+                    <p class="text-gray-600">{{ "%.2f"|format(abast.litros)|replace('.', ',') }}L @ R$ {{ "%.2f"|format(abast.preco_por_litro)|replace('.', ',') }}/L - Odômetro: {{ abast.odometro }} km</p>
+                </div>
             {% else %}
-            <p class="text-sm text-gray-500">Nenhum abastecimento registrado.</p>
+                <p class="text-sm text-gray-500">Nenhum abastecimento registrado para esta viagem.</p>
             {% endfor %}
         </div>
-         <p class="text-xs text-gray-500 mt-2">Para adicionar ou editar abastecimentos, utilize o Dashboard do Motorista.</p>
-    </fieldset>
-
-    <fieldset class="border p-4 rounded-lg">
-        <legend class="text-lg font-semibold px-2">Comprovantes Anexados</legend>
-        <div class="max-h-48 overflow-y-auto">
-            <ul class="list-disc list-inside space-y-1">
-                {% if custo and custo.anexos %}
-                    {% for anexo in custo.anexos.split(',') %}
-                        <li><a href="{{ anexo }}" target="_blank" class="text-blue-600 hover:underline">{{ anexo.split('/')[-1] }}</a></li>
-                    {% endfor %}
-                {% endif %}
-                {% for abast in abastecimentos if abast.anexo_comprovante %}
-                     <li><a href="{{ abast.anexo_comprovante }}" target="_blank" class="text-blue-600 hover:underline">{{ abast.anexo_comprovante.split('/')[-1] }}</a> (Abastecimento)</li>
-                {% endfor %}
-
-                {% if (not custo or not custo.anexos) and not abastecimentos|selectattr('anexo_comprovante')|list %}
-                    <li class="text-sm text-gray-500">Nenhum comprovante anexado.</li>
-                {% endif %}
-            </ul>
-        </div>
-        <div class="mt-4">
-             <label for="anexos_despesa" class="block text-sm font-medium text-gray-700">Adicionar Novos Comprovantes (Despesas Gerais)</label>
-             <input type="file" class="mt-1 block w-full text-sm" id="anexos_despesa" name="anexos_despesa" multiple>
-        </div>
-    </fieldset>
-
-    <div class="modal-buttons mt-6">
-        <button type="button" class="btn btn-secondary" onclick="closeModal('detalhesDespesaModal')">Fechar</button>
     </div>
+
+    <footer class="flex justify-end gap-4 p-4 border-t bg-gray-200 rounded-b-lg">
+        <button type="button" onclick="closeModal('despesasModal')" class="bg-gray-200 text-gray-800 px-5 py-2 rounded-md hover:bg-gray-300 transition">Fechar</button>
+        <button type="submit" class="bg-green-600 text-white px-5 py-2 rounded-md hover:bg-green-700 transition">Salvar Alterações</button>
+    </footer>
 </form>

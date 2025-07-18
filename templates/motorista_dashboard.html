@@ -4,7 +4,9 @@
 {% block styles %}
 {{ super() }}
 <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
+    #map { height: 400px; width: 100%; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
     .modal-input {
         background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 0.375rem;
         padding: 0.75rem; width: 100%; margin-top: 0.25rem;
@@ -32,25 +34,30 @@
         </h2>
 
         {% if viagem_ativa %}
-        <div id="active-trip-section">
+        <div id="active-trip-section" class="relative z-10">
             <h3 class="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-3"><i class="fas fa-route text-green-600"></i> Viagem em Andamento</h3>
-            <div class="bg-white p-6 rounded-xl shadow-lg border-l-8 border-green-500 space-y-4">
+            
+            <div id="map" data-route-geometry="{{ viagem_ativa.route_geometry }}" class="relative">
+                <button id="recenter-map-btn" class="absolute bottom-4 right-4 z-[1000] bg-white p-3 rounded-full shadow-lg text-blue-600 hover:bg-gray-100 transition">
+                    <i class="fas fa-crosshairs fa-lg"></i>
+                </button>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-lg mt-6 space-y-4">
                 <div>
                     <p class="text-sm text-gray-500">Cliente</p>
                     <p class="text-xl font-semibold text-slate-800">{{ viagem_ativa.cliente }}</p>
                 </div>
                 <div class="space-y-3">
                     <div>
-                        <p class="text-sm font-bold text-gray-500 flex items-center gap-2"><i class="fas fa-map-pin text-red-500"></i>Origem</p>
+                        <p class="text-sm font-bold text-gray-500 flex items-center gap-2"><i class="fas fa-flag-checkered text-green-500"></i> Origem</p>
                         <p class="font-medium pl-6">{{ viagem_ativa.endereco_saida }}</p>
                     </div>
                     <div>
-                        <p class="text-sm font-bold text-gray-500 flex items-center gap-2"><i class="fas fa-map-marker-alt text-blue-500"></i>Destinos</p>
+                        <p class="text-sm font-bold text-gray-500 flex items-center gap-2"><i class="fas fa-map-marker-alt text-blue-500"></i> Destinos</p>
                         <ol class="list-decimal list-inside pl-6 mt-1 space-y-1">
                             {% for destino in viagem_ativa.destinos|sort(attribute='ordem') %}
                                 <li class="font-medium">{{ destino.endereco }}</li>
-                            {% else %}
-                                <li class="font-medium">{{ viagem_ativa.endereco_destino }}</li>
                             {% endfor %}
                         </ol>
                     </div>
@@ -119,7 +126,6 @@
         </form>
     </div>
 </div>
-
 <div id="despesaModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4">
     <div class="bg-white p-6 rounded-xl w-full max-w-lg shadow-2xl">
         <div class="flex justify-between items-center mb-4">
@@ -129,11 +135,11 @@
         <form id="despesaForm" enctype="multipart/form-data">
             <input type="hidden" name="viagem_id" value="{{ viagem_ativa.id if viagem_ativa }}">
             <div class="space-y-4">
-                <div><label class="block text-sm font-medium text-gray-700">Pedágios (R$)</label><input type="number" step="0.01" id="expense-pedagios" name="pedagios" class="modal-input" placeholder="0,00"></div>
-                <div><label class="block text-sm font-medium text-gray-700">Alimentação (R$)</label><input type="number" step="0.01" id="expense-alimentacao" name="alimentacao" class="modal-input" placeholder="0,00"></div>
-                <div><label class="block text-sm font-medium text-gray-700">Hospedagem (R$)</label><input type="number" step="0.01" id="expense-hospedagem" name="hospedagem" class="modal-input" placeholder="0,00"></div>
-                <div><label class="block text-sm font-medium text-gray-700">Outros Gastos (R$)</label><input type="number" step="0.01" id="expense-outros" name="outros" class="modal-input" placeholder="0,00"></div>
-                <div><label class="block text-sm font-medium text-gray-700">Descrição dos Outros Gastos</label><textarea id="expense-descricao" name="descricao_outros" rows="2" class="modal-input" placeholder="Ex: Pernoite, taxa de descarga..."></textarea></div>
+                <div><label class="block text-sm font-medium text-gray-700">Pedágios (R$)</label><input type="number" step="0.01" name="pedagios" class="modal-input" placeholder="0,00"></div>
+                <div><label class="block text-sm font-medium text-gray-700">Alimentação (R$)</label><input type="number" step="0.01" name="alimentacao" class="modal-input" placeholder="0,00"></div>
+                <div><label class="block text-sm font-medium text-gray-700">Hospedagem (R$)</label><input type="number" step="0.01" name="hospedagem" class="modal-input" placeholder="0,00"></div>
+                <div><label class="block text-sm font-medium text-gray-700">Outros Gastos (R$)</label><input type="number" step="0.01" name="outros" class="modal-input" placeholder="0,00"></div>
+                <div><label class="block text-sm font-medium text-gray-700">Descrição dos Outros Gastos</label><textarea name="descricao_outros" rows="2" class="modal-input" placeholder="Ex: Manutenção leve, pernoite..."></textarea></div>
                 <div><label class="block text-sm font-medium text-gray-700">Anexar Comprovantes</label><input name="anexos_despesa" type="file" multiple class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"></div>
             </div>
             <div class="flex justify-end gap-3 mt-6">
@@ -143,7 +149,6 @@
         </form>
     </div>
 </div>
-
 <div id="abastecimentoModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4">
     <div class="bg-white p-6 rounded-xl w-full max-w-lg shadow-2xl">
          <div class="flex justify-between items-center mb-4">
@@ -174,9 +179,20 @@
 {% block scripts %}
 {{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/@mapbox/polyline@1.1.1/src/polyline.js"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
+    // --- VARIÁVEIS GLOBAIS ---
     const VIAGEM_ATIVA_ID = {{ viagem_ativa.id if viagem_ativa else 'null' }};
+    const DESTINOS_VIAGEM_ATIVA = {{ destinos_viagem_ativa|tojson if destinos_viagem_ativa else '[]' }};
+    
+    // Variáveis de estado para o mapa
+    let map = null;
+    let driverMarker = null;
+    let autoRecenter = true; // Centralização automática ligada por padrão
 
+    // --- FUNÇÕES UTILITÁRIAS (INTOCADAS) ---
     const showToast = (msg, type = 'info') => {
         const colors = {
             success: 'linear-gradient(to right, #16a34a, #6ee7b7)',
@@ -186,78 +202,139 @@
         Toastify({ text: msg, duration: 4000, gravity: 'top', position: 'center', style: { background: colors[type] } }).showToast();
     };
 
-    // --- LÓGICA DE CONTROLE DOS MODAIS (ROBUSTA E CENTRALIZADA) ---
-    function openModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) modal.classList.remove('hidden');
-    }
-
-    function closeModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) modal.classList.add('hidden');
-    }
+    function openModal(modalId) { document.getElementById(modalId)?.classList.remove('hidden'); }
+    function closeModal(modalId) { document.getElementById(modalId)?.classList.add('hidden'); }
     
-    // --- LÓGICA PRINCIPAL E SETUP DE EVENTOS ---
+    // --- LÓGICA PRINCIPAL (DOM LOADED) ---
     document.addEventListener('DOMContentLoaded', () => {
-        // Lógica principal do dashboard
         if (VIAGEM_ATIVA_ID) {
+            initializeActiveTripMap();
             startRealTimeTracking();
         } else {
             loadPendingTrips();
         }
         
-        // --- SETUP DE EVENTOS (A FORMA CORRETA E MODERNA) ---
-
-        // 1. Listeners para os formulários
-        document.getElementById('odometerForm').addEventListener('submit', handleOdometerSubmit);
-        document.getElementById('despesaForm').addEventListener('submit', handleExpenseSubmit);
-        document.getElementById('abastecimentoForm').addEventListener('submit', handleFuelSubmit);
-        
-        // 2. Listeners para abrir os modais
-        document.querySelectorAll('[data-open-modal]').forEach(button => {
-            button.addEventListener('click', () => {
-                const modalId = button.dataset.openModal;
-                openModalWithData(modalId);
-            });
-        });
-        
-        document.getElementById('finish-trip-btn')?.addEventListener('click', () => {
-            handleFinishTripClick(VIAGEM_ATIVA_ID);
-        });
-
-        // 3. Listeners para fechar os modais (botões 'cancelar', 'X' e clique no fundo)
-        document.querySelectorAll('[data-close-button]').forEach(button => {
-            button.addEventListener('click', () => {
-                const modal = button.closest('.fixed');
-                if(modal) closeModal(modal.id);
-            });
-        });
-        document.querySelectorAll('.fixed.inset-0').forEach(modal => {
-            modal.addEventListener('click', e => {
-                if (e.target === modal) {
-                    closeModal(modal.id);
-                }
-            });
-        });
-
-        // 4. Listeners para cálculo automático
+        // Listeners para os modais e botões (INTOCADOS)
+        document.getElementById('odometerForm')?.addEventListener('submit', handleOdometerSubmit);
+        document.getElementById('despesaForm')?.addEventListener('submit', handleExpenseSubmit);
+        document.getElementById('abastecimentoForm')?.addEventListener('submit', handleFuelSubmit);
+        document.querySelectorAll('[data-open-modal]').forEach(button => button.addEventListener('click', () => openModalWithData(button.dataset.openModal)));
+        document.getElementById('finish-trip-btn')?.addEventListener('click', () => handleFinishTripClick(VIAGEM_ATIVA_ID));
+        document.querySelectorAll('[data-close-button]').forEach(button => button.addEventListener('click', () => closeModal(button.closest('.fixed').id)));
+        document.querySelectorAll('.fixed.inset-0').forEach(modal => modal.addEventListener('click', e => { if (e.target === modal) closeModal(modal.id); }));
         document.getElementById('fuel-litros')?.addEventListener('input', updateFuelCost);
         document.getElementById('fuel-preco_litro')?.addEventListener('input', updateFuelCost);
     });
 
+    // --- FUNÇÕES DO MAPA (MODIFICADAS/MELHORADAS) ---
+    function initializeActiveTripMap() {
+        const mapElement = document.getElementById('map');
+        if (!mapElement) return;
+
+        // Adiciona o listener para o botão que já está no HTML
+        document.getElementById('recenter-map-btn').addEventListener('click', () => {
+            autoRecenter = !autoRecenter;
+            const btn = document.getElementById('recenter-map-btn');
+            btn.classList.toggle('text-blue-600', autoRecenter);
+            btn.classList.toggle('text-slate-600', !autoRecenter);
+            showToast(`Centralização automática ${autoRecenter ? 'ativada' : 'desativada'}.`, 'info');
+            if (autoRecenter && driverMarker) {
+                map.panTo(driverMarker.getLatLng());
+            }
+        });
+
+        const routeGeometry = mapElement.dataset.routeGeometry;
+        map = L.map('map').setView([-25.4284, -49.2733], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        const driverIcon = L.icon({
+            iconUrl: "{{ url_for('static', filename='localizacaoanimado.gif') }}",
+            iconSize: [40, 40],
+            iconAnchor: [20, 40],
+        });
+
+        if (routeGeometry) {
+            try {
+                const decodedRoute = polyline.decode(routeGeometry);
+                const routeLine = L.polyline(decodedRoute, { color: '#0055ff', weight: 5 }).addTo(map);
+                map.fitBounds(routeLine.getBounds().pad(0.1));
+                
+                L.marker(decodedRoute[0]).addTo(map).bindPopup("<b>Origem</b>").openPopup();
+                
+                DESTINOS_VIAGEM_ATIVA.forEach((destino, index) => {
+                    if (destino.latitude && destino.longitude) {
+                        const isLast = index === DESTINOS_VIAGEM_ATIVA.length - 1;
+                        const label = isLast ? 'Destino Final' : `Parada ${index + 1}`;
+                        L.marker([destino.latitude, destino.longitude]).addTo(map)
+                         .bindPopup(`<b>${label}:</b><br>${destino.endereco}`);
+                    }
+                });
+            } catch (e) { console.error("Erro ao decodificar rota:", e); }
+        }
+        
+        // Atualiza o mapa local do motorista em tempo real (sem API calls)
+        navigator.geolocation.watchPosition(position => {
+            const { latitude, longitude } = position.coords;
+            const latLng = [latitude, longitude];
+
+            if (!driverMarker) {
+                driverMarker = L.marker(latLng, { icon: driverIcon }).addTo(map).bindPopup("Você está aqui!");
+                map.setView(latLng, 16);
+            } else {
+                driverMarker.setLatLng(latLng);
+            }
+            if (autoRecenter) {
+                map.panTo(latLng);
+            }
+        }, () => {
+            showToast('Não foi possível obter a sua localização para o mapa.', 'error');
+        }, { enableHighAccuracy: true });
+    }
+
+    // --- RASTREAMENTO E COMUNICAÇÃO COM BACKEND (MODIFICADO/OTIMIZADO) ---
+    function startRealTimeTracking() {
+        const socket = io();
+        const locationDisplay = document.getElementById('location-display');
+        
+        // Entra na sala da viagem para receber atualizações de endereço do backend
+        socket.emit('join_trip_room', { viagem_id: VIAGEM_ATIVA_ID });
+        
+        // Ouve por atualizações de endereço (que o backend envia a cada 10 min)
+        socket.on('localizacao_atualizada', data => {
+            if (data.viagem_id === VIAGEM_ATIVA_ID && data.endereco) {
+                locationDisplay.innerHTML = `<img src="{{ url_for('static', filename='11188726.gif') }}" alt="Rastreamento" class="h-6"> ${data.endereco}`;
+            }
+        });
+
+        // Função que envia a posição para o backend
+        const sendPosition = () => {
+            if (!navigator.geolocation) { return; }
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    socket.emit('atualizar_localizacao_socket', { 
+                        viagem_id: VIAGEM_ATIVA_ID, 
+                        latitude: position.coords.latitude, 
+                        longitude: position.coords.longitude 
+                    });
+                }
+            );
+        };
+        
+        sendPosition(); // Envia a primeira vez
+        setInterval(sendPosition, 30000); // E depois a cada 30 segundos
+        showToast('Rastreamento da viagem iniciado.', 'info');
+    }
+
+    // --- FUNÇÕES DE LÓGICA DA APLICAÇÃO (INTOCADAS) ---
     async function openModalWithData(modalId) {
         const modal = document.getElementById(modalId);
         if (!modal) return;
-        
-        // Limpa formulários antes de abrir e carregar novos dados
         const form = modal.querySelector('form');
         if (form) form.reset();
-
         openModal(modalId);
-
         if (!VIAGEM_ATIVA_ID) return;
-
-        showToast('Buscando dados...', 'info');
         
         if (modalId === 'despesaModal') {
             const response = await fetch(`/api/viagem/${VIAGEM_ATIVA_ID}/despesas`);
@@ -307,9 +384,7 @@
             } else {
                 list.innerHTML = '<p class="text-center text-gray-500 py-8">Nenhuma viagem pendente.</p>';
             }
-        } catch (e) {
-            list.innerHTML = '<p class="text-center text-red-500 py-8">Erro ao carregar viagens.</p>';
-        }
+        } catch (e) { list.innerHTML = '<p class="text-center text-red-500 py-8">Erro ao carregar viagens.</p>'; }
     }
 
     function handleStartTripClick(tripId) {
@@ -356,15 +431,14 @@
             } else {
                 showToast(data.message || 'Ocorreu um erro desconhecido.', 'error');
             }
-        } catch (e) {
-            showToast('Erro de comunicação. Verifique sua conexão.', 'error');
-        }
+        } catch (e) { showToast('Erro de comunicação. Verifique sua conexão.', 'error'); }
     }
 
     function updateFuelCost(){
-        const litros = parseFloat(document.getElementById('fuel-litros').value) || 0;
-        const preco = parseFloat(document.getElementById('fuel-preco_litro').value) || 0;
-        document.getElementById('fuel-custo_total').value = (litros * preco).toFixed(2);
+        const litros = parseFloat(document.getElementById('fuel-litros')?.value) || 0;
+        const preco = parseFloat(document.getElementById('fuel-preco_litro')?.value) || 0;
+        const custoTotalEl = document.getElementById('fuel-custo_total');
+        if (custoTotalEl) custoTotalEl.value = (litros * preco).toFixed(2);
     }
 
     async function handleFuelSubmit(event) {
@@ -378,10 +452,7 @@
             const response = await fetch("{{ url_for('registrar_abastecimento') }}", { method: 'POST', body: formData });
             const data = await response.json();
             showToast(data.message, data.success ? 'success' : 'error');
-            if (data.success) {
-                closeModal('abastecimentoModal');
-                form.reset();
-            }
+            if (data.success) { closeModal('abastecimentoModal'); form.reset(); }
         } catch (e) {
             showToast('Erro ao enviar dados de abastecimento.', 'error');
         } finally {
@@ -397,43 +468,17 @@
         const submitButton = form.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Enviando...';
-        
         try {
             const response = await fetch("{{ url_for('salvar_custo_viagem') }}", { method: 'POST', body: formData });
             const data = await response.json();
             showToast(data.message, data.success ? 'success' : 'error');
-            if (data.success) {
-                closeModal('despesaModal');
-            }
+            if (data.success) { closeModal('despesaModal'); }
         } catch (e) {
             showToast('Erro ao enviar despesas.', 'error');
         } finally {
             submitButton.disabled = false;
             submitButton.innerHTML = 'Salvar Despesas';
         }
-    }
-    
-    function startRealTimeTracking() {
-        const socket = io();
-        const locationDisplay = document.getElementById('location-display');
-        socket.emit('join_trip_room', { viagem_id: VIAGEM_ATIVA_ID });
-        socket.on('localizacao_atualizada', data => {
-            if (data.viagem_id === VIAGEM_ATIVA_ID) {
-                locationDisplay.innerHTML = `<img src="{{ url_for('static', filename='11188726.gif') }}" alt="Rastreamento" class="h-6"> ${data.endereco || 'Buscando endereço…'}`;
-            }
-        });
-        const sendPosition = () => {
-            if (!navigator.geolocation) {
-                return showToast('Geolocalização não é suportada por este navegador.', 'error');
-            }
-            navigator.geolocation.getCurrentPosition(
-                p => socket.emit('atualizar_localizacao_socket', { viagem_id: VIAGEM_ATIVA_ID, latitude: p.coords.latitude, longitude: p.coords.longitude }),
-                () => showToast('Não foi possível obter a localização.', 'error')
-            );
-        };
-        sendPosition();
-        setInterval(sendPosition, 300000);
-        showToast('Rastreamento da viagem iniciado.', 'info');
     }
 </script>
 {% endblock %}

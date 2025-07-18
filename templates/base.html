@@ -17,7 +17,7 @@
 
     <style>
         body {
-            background-color: #f8fafc;
+            background: linear-gradient(to bottom, #cccccc, #dbd8d8);
             color: #1e293b; 
             font-family: 'Inter', sans-serif;
             overflow-x: hidden; 
@@ -132,7 +132,7 @@
                 <li class="mb-2"><a href="{{ url_for('consultar_viagens') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'consultar_viagens' %}active{% endif %}"><i class="fas fa-search w-6 text-center"></i> <span>Viagens</span></a></li>
 
                 <li class="menu-section-title">Operações</li>
-                <li class="mb-2"><a href="{{ url_for('iniciar_viagem') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'iniciar_viagem' %}active{% endif %}"><i class="fas fa-route w-6 text-center"></i> <span>Iniciar Viagem</span></a></li>
+                <li class="mb-2"><a href="{{ url_for('iniciar_viagem_page') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'iniciar_viagem' %}active{% endif %}"><i class="fas fa-route w-6 text-center"></i> <span>Iniciar Viagem</span></a></li>
                 <li class="mb-2"><a href="{{ url_for('consultar_cobrancas') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page in ['consultar_cobrancas', 'gerar_cobranca'] %}active{% endif %}"><i class="fas fa-wallet w-6 text-center"></i><span>Financeiro</span></a></li>
                 <li class="mb-2"><a href="{{ url_for('relatorios') }}" class="flex items-center gap-3 p-3 rounded-lg transition {% if active_page == 'relatorios' %}active{% endif %}"><i class="fas fa-chart-bar w-6 text-center"></i> <span>Relatórios</span></a></li>
             </ul>
