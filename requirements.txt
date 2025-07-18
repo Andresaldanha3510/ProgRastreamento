@@ -13,3 +13,6 @@ num2words
 Flask-Mail
 Flask-SocketIO==5.3.6
 eventlet
+Pillow
+pytesseract
+openrouteservice

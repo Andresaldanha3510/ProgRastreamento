@@ -10,12 +10,52 @@ const urlsToCache = [
   'https://cdn.jsdelivr.net/npm/toastify-js'
 ];
 
+// --- Início da Lógica Corrigida ---
+
+// Função para pegar a localização e enviar para o servidor
+function getCurrentPositionAndPostToServer() {
+    // A geolocalização só funciona em contextos seguros (HTTPS ou localhost)
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+            
+            // Usamos fetch para enviar os dados para a sua API no backend
+            fetch('/salvar_localizacao_motorista', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ latitude, longitude }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('SW: Localização enviada com sucesso.');
+                } else {
+                    console.error('SW: Falha ao enviar localização:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('SW: Erro de rede ao enviar localização:', error);
+            });
+        },
+        (error) => {
+            console.error("SW: Erro ao obter geolocalização:", error.message);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+}
+
+// --- Fim da Lógica Corrigida ---
+
+
 // Instalação: pré-cache de recursos essenciais e skipWaiting para ativar imediatamente
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(urlsToCache))
+      .catch(err => console.error("SW: Falha ao fazer cache dos recursos na instalação:", err))
   );
 });
 
@@ -37,28 +77,24 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(event.request, { cache: 'no-store' })
-      .then(networkResponse => {
-        // (Opcional) atualizar o cache com a resposta vinda do servidor:
-        // if (event.request.method === 'GET') {
-        //   caches.open(CACHE_NAME)
-        //     .then(cache => cache.put(event.request, networkResponse.clone()));
-        // }
-        return networkResponse;
-      })
       .catch(() => caches.match(event.request))
   );
 });
 
-// Periodic Background Sync (se estiver usando)
+
+// Listener do evento 'periodicsync' para rastreamento periódico
 self.addEventListener('periodicsync', event => {
-  if (event.tag === 'get-location-updates') {
-    event.waitUntil(requestAndSendLocation());
+  // A tag aqui deve ser a mesma que você usa para registrar o sync
+  if (event.tag === 'send-location-periodic-sync') {
+    console.log('SW: Sincronização periódica de localização acionada.');
+    event.waitUntil(getCurrentPositionAndPostToServer());
   }
 });
 
-function requestAndSendLocation() {
-  // Seu código de geolocalização em background aqui
-  return getCurrentPositionAndPostToServer();
-}
-
-// (Defina aqui a função getCurrentPositionAndPostToServer, ou importe de outro módulo)
+// Listener do evento de 'sync' para rastreamento em background
+self.addEventListener('sync', (event) => {
+    if (event.tag === 'send-location-sync') {
+        console.log('SW: Sincronização de localização em background acionada.');
+        event.waitUntil(getCurrentPositionAndPostToServer());
+    }
+});

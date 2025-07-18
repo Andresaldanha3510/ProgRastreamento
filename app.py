@@ -5,7 +5,7 @@ import uuid
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, make_response, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import requests
 import logging
 import os
@@ -27,6 +27,11 @@ from sqlalchemy import UniqueConstraint
 from num2words import num2words
 from collections import defaultdict
 from flask_socketio import SocketIO, emit, join_room, leave_room
+import pytesseract
+from PIL import Image
+import openrouteservice
+from sqlalchemy import extract
+
 
 
 
@@ -57,13 +62,15 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'w9z$kL2mNpQvR7tYxJ3hF8gWcPqB5vM2nZ4rT6yU')
 Maps_API_KEY = os.getenv('Maps_API_KEY', 'AIzaSyBPdSOZF2maHURmdRmVzLgVo5YO2wliylo')
 GEOAPIFY_API_KEY = os.getenv('GEOAPIFY_API_KEY', '7cd423ef184f48f0b770682cbebe11d0') # Usar os.getenv para Geoapify também
-# app.config['OPENCAGE_API_KEY'] = os.getenv('OPENCAGE_API_KEY') # REMOVIDO: Não mais utilizado
-
+OPENROUTESERVICE_API_KEY = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImE1NjM5YzEwODU3ZDRjYzI5OWU2ZmQ4YzVhYTk5OTQ4IiwiaCI6Im11cm11cjY0In0='
 app.config['CLOUDFLARE_R2_ENDPOINT'] = os.getenv('CLOUDFLARE_R2_ENDPOINT')
 app.config['CLOUDFLARE_R2_ACCESS_KEY'] = os.getenv('CLOUDFLARE_R2_ACCESS_KEY')
 app.config['CLOUDFLARE_R2_SECRET_KEY'] = os.getenv('CLOUDFLARE_R2_SECRET_KEY')
 app.config['CLOUDFLARE_R2_BUCKET'] = os.getenv('CLOUDFLARE_R2_BUCKET')
 app.config['CLOUDFLARE_R2_PUBLIC_URL'] = os.getenv('CLOUDFLARE_R2_PUBLIC_URL')
+
+last_geocode_time = {}
+GEOCODE_INTERVAL_SECONDS = 600 # 10 minutos
 
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -118,6 +125,30 @@ class Motorista(db.Model):
             'cnh': self.cnh,
             'validade_cnh': self.validade_cnh.isoformat() if self.validade_cnh else None,
             'anexos': self.anexos.split(',') if self.anexos else []
+        }
+    
+class Manutencao(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculo.id'), nullable=False)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
+    data = db.Column(db.Date, nullable=False, default=date.today)
+    odometro = db.Column(db.Integer, nullable=False)
+    tipo = db.Column(db.String(100), nullable=False) # Ex: Preventiva, Corretiva, Troca de Óleo, Pneus
+    descricao = db.Column(db.Text, nullable=False)
+    custo = db.Column(db.Float, nullable=False)
+    anexos = db.Column(db.String(1024)) # Armazenará URLs dos comprovantes, separadas por vírgula
+
+    veiculo = db.relationship('Veiculo', backref=db.backref('manutencoes', lazy=True, cascade="all, delete-orphan"))
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "data": self.data.strftime('%d/%m/%Y'),
+            "odometro": self.odometro,
+            "tipo": self.tipo,
+            "descricao": self.descricao,
+            "custo": self.custo,
+            "anexos": self.anexos.split(',') if self.anexos else []
         }
 
 class Licenca(db.Model):
@@ -292,10 +323,22 @@ class Abastecimento(db.Model):
     custo_total = db.Column(db.Float, nullable=False)
     odometro = db.Column(db.Float, nullable=False)
     anexo_comprovante = db.Column(db.String(500), nullable=True)
-    viagem_id = db.Column(db.Integer, db.ForeignKey('viagem.id'), nullable=False, index=True)
-    
+    viagem_id = db.Column(db.Integer, db.ForeignKey('viagem.id'), nullable=True, index=True) # Alterado para nullable=True
+
     veiculo = db.relationship('Veiculo', backref='abastecimentos')
     motorista = db.relationship('Motorista', backref='abastecimentos_registrados')
+
+    # MÉTODO ADICIONADO AQUI:
+    def to_dict(self):
+        """Converte o objeto para um dicionário."""
+        return {
+            'id': self.id,
+            'data_abastecimento': self.data_abastecimento.strftime('%d/%m/%Y'),
+            'litros': self.litros,
+            'preco_por_litro': self.preco_por_litro,
+            'custo_total': self.custo_total,
+            'odometro': self.odometro
+        }
 
 class CustoViagem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -365,6 +408,7 @@ class Viagem(db.Model):
     public_tracking_token = db.Column(db.String(36), default=lambda: str(uuid.uuid4()), nullable=False)
     odometro_inicial = db.Column(db.Float, nullable=True)
     odometro_final = db.Column(db.Float, nullable=True)
+    route_geometry = db.Column(db.Text, nullable=True)
     
     # --- LINHA CORRIGIDA ABAIXO ---
     destinos = db.relationship('Destino', backref='viagem', cascade='all, delete-orphan')
@@ -538,24 +582,21 @@ def search_clientes_simplificado():
     if not search_term or len(search_term) < 2:
         return jsonify([])
 
-    # 1. Busca no banco de dados. Esta é a única filtragem necessária.
+    # Agora a busca só acontece nos clientes da empresa do usuário logado
     clientes = Cliente.query.filter(
+        Cliente.empresa_id == current_user.empresa_id,  # <-- FILTRO DE SEGURANÇA ADICIONADO AQUI
         or_(
             Cliente.nome_razao_social.ilike(f'%{search_term}%'),
             Cliente.nome_fantasia.ilike(f'%{search_term}%')
         )
     ).limit(10).all()
-
-    # 2. Apenas coleta os nomes dos resultados encontrados, sem verificações extras.
-    # O uso de 'set' garante que não haverá nomes duplicados.
+    
     resultados = set()
     for cliente in clientes:
         resultados.add(cliente.nome_razao_social)
         if cliente.nome_fantasia:
-            # Adiciona o nome fantasia também, se existir e for diferente.
             resultados.add(cliente.nome_fantasia)
     
-    # 3. Converte para lista e retorna o JSON para a página.
     return jsonify(list(resultados))
 
 @app.route('/viagem/<int:viagem_id>/iniciar', methods=['POST'])
@@ -602,7 +643,7 @@ def iniciar_viagem_motorista(viagem_id):
 @login_required
 def despesas_form_modal(viagem_id):
     """Renderiza o formulário de despesas para ser carregado no modal."""
-    viagem = Viagem.query.get_or_404(viagem_id)
+    Viagem.query.filter_by(id=viagem_id, empresa_id=current_user.empresa_id).first_or_404()
     custo = CustoViagem.query.filter_by(viagem_id=viagem_id).first()
     # Renderiza o NOVO template que criamos
     return render_template('despesas_form_modal.html', viagem=viagem, custo=custo)
@@ -847,70 +888,184 @@ def validar_endereco(endereco):
         return False
 
 
-def calcular_distancia_e_duracao(enderecos):
-    if len(enderecos) < 2:
-        logger.error("Pelo menos dois endereços são necessários (origem e pelo menos um destino).")
-        return None, None
 
-    url = 'https://maps.googleapis.com/maps/api/directions/json'
-    origem = enderecos[0]
-    destinos = enderecos[1:]
-    total_distancia_km = 0
-    total_duracao_segundos = 0
+
+def calcular_rota_otimizada_ors(enderecos):
+    if len(enderecos) < 2:
+        return None, None, None, None, "São necessários ao menos um endereço de origem e um de destino."
 
     try:
-        logger.debug(f"Calculando rota para endereços: {enderecos}")
-        for i in range(len(destinos)):
-            params = {
-                'origin': origem,
-                'destination': destinos[i],
-                'key': Maps_API_KEY,
-                'units': 'metric',
-                'departure_time': 'now'
-            }
-            if i < len(destinos) - 1:
-                params['waypoints'] = destinos[i]
-                origem = destinos[i]
-            response = requests.get(url, params=params, timeout=5)
-            response.raise_for_status()
-            data = response.json()
-            if data['status'] == 'OK' and data['routes']:
-                route = data['routes'][0]['legs'][0]
-                total_distancia_km += route['distance']['value'] / 1000
-                total_duracao_segundos += route['duration']['value']
-            else:
-                logger.warning(f"Erro na Directions API para trecho {origem} -> {destinos[i]}: {data.get('error_message', 'Erro desconhecido')}")
-                lat1, lon1 = get_coordinates(origem)
-                lat2, lon2 = get_coordinates(destinos[i])
-                if lat1 is None or lat2 is None:
-                    flash(f'Não foi possível calcular a distância para o trecho {origem} -> {destinos[i]}.', 'error')
-                    return None, None
-                distancia_km = haversine_distance(lat1, lon1, lat2, lon2)
-                velocidade_media_kmh = 60
-                duracao_segundos = int((distancia_km / velocidade_media_kmh) * 3600)
-                total_distancia_km += distancia_km
-                total_duracao_segundos += duracao_segundos
-                flash(f'Distância calculada em linha reta para o trecho {origem} -> {destinos[i]}.', 'warning')
-                origem = destinos[i]
+        coordenadas = []
+        for end in enderecos:
+            lat, lon = get_coordinates(end)
+            if lat is None or lon is None:
+                return None, None, None, None, f"Não foi possível encontrar coordenadas para: {end}"
+            coordenadas.append((lon, lat))
 
-        return total_distancia_km, total_duracao_segundos
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Erro na Directions API: {str(e)}")
-        flash(f'Erro de conexão com a API do Google Maps: {str(e)}', 'error')
-        return None, None
+        client = openrouteservice.Client(key=OPENROUTESERVICE_API_KEY)
+        routes = client.directions(
+            coordinates=coordenadas,
+            profile='driving-car',
+            optimize_waypoints=True,
+            geometry=True # Pede a geometria da rota
+        )
+
+        route_data = routes['routes'][0]
+        geometria_rota = route_data.get('geometry') # Captura a geometria
+        
+        distancia_total_m, duracao_total_s = 0, 0
+        if 'summary' in route_data:
+            summary = route_data['summary']
+            distancia_total_m = summary.get('distance', 0)
+            duracao_total_s = summary.get('duration', 0)
+        else:
+            for segment in route_data.get('segments', []):
+                distancia_total_m += segment.get('distance', 0)
+                duracao_total_s += segment.get('duration', 0)
+
+        enderecos_processados = []
+        if 'waypoint_order' in route_data:
+            waypoint_order = route_data['waypoint_order']
+            enderecos_processados = [enderecos[0]] 
+            enderecos_processados.extend([enderecos[i] for i in waypoint_order])
+            if len(enderecos) > 1: enderecos_processados.append(enderecos[-1])
+        else:
+            enderecos_processados = enderecos
+
+        distancia_km = distancia_total_m / 1000.0
+        duracao_segundos = int(duracao_total_s)
+
+        from collections import OrderedDict
+        enderecos_otimizados = list(OrderedDict.fromkeys(enderecos_processados))
+
+        return enderecos_otimizados, distancia_km, duracao_segundos, geometria_rota, None
+
+    except Exception as e:
+        logger.error(f"Erro inesperado no cálculo de rota ORS: {e}", exc_info=True)
+        return None, None, None, None, f"Ocorreu um erro inesperado ao otimizar a rota: {e}"
+    
+    
+@app.route('/api/ocr-process', methods=['POST'])
+@login_required
+def ocr_process():
+    """Processa uma imagem enviada e retorna o texto extraído via OCR."""
+    if 'image' not in request.files:
+        return jsonify({'success': False, 'message': 'Nenhum arquivo de imagem enviado.'}), 400
+    
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'Nenhum arquivo selecionado.'}), 400
+
+    try:
+        # Lê a imagem em memória
+        image_bytes = file.read()
+        image = Image.open(io.BytesIO(image_bytes))
+        
+        # Usa o Pytesseract para extrair o texto (configure o idioma se necessário)
+        texto_extraido = pytesseract.image_to_string(image, lang='por') # 'por' para português
+        
+        # Limpa o texto, removendo quebras de linha excessivas
+        texto_limpo = " ".join(texto_extraido.split()).strip()
+
+        return jsonify({'success': True, 'text': texto_limpo})
+
+    except Exception as e:
+        logger.error(f"Erro no processamento OCR: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Erro ao processar a imagem: {e}'}), 500
+    
+@app.route('/editar_viagem/<int:viagem_id>', methods=['GET'])
+@login_required
+def editar_viagem_page(viagem_id):
+    viagem = Viagem.query.options(db.joinedload(Viagem.destinos)).filter_by(id=viagem_id, empresa_id=current_user.empresa_id).first_or_404()
+
+    motoristas = Motorista.query.filter_by(empresa_id=current_user.empresa_id).order_by(Motorista.nome).all()
+    
+    veiculos_disponiveis = Veiculo.query.filter_by(disponivel=True, empresa_id=current_user.empresa_id).all()
+    veiculo_atual = db.session.get(Veiculo, viagem.veiculo_id)
+    if veiculo_atual and veiculo_atual not in veiculos_disponiveis:
+        veiculos_disponiveis.insert(0, veiculo_atual)
+
+    return render_template('editar_viagem.html', 
+                           viagem=viagem,
+                           motoristas=motoristas, 
+                           veiculos=veiculos_disponiveis,
+                           ORS_API_KEY=OPENROUTESERVICE_API_KEY)
+
+
+@app.route('/api/viagem/editar/<int:viagem_id>', methods=['POST'])
+@login_required
+def editar_viagem_api(viagem_id):
+    viagem = Viagem.query.filter_by(id=viagem_id, empresa_id=current_user.empresa_id).first_or_404()
+    
+    try:
+        data = request.get_json()
+        
+        viagem.motorista_id = data.get('motorista_id')
+        viagem.veiculo_id = data.get('veiculo_id')
+        viagem.cliente = data.get('cliente')
+        viagem.data_inicio = datetime.strptime(data.get('data_inicio'), '%Y-%m-%dT%H:%M')
+        viagem.forma_pagamento = data.get('forma_pagamento')
+        viagem.valor_recebido = float(data.get('valor_recebido') or 0)
+        viagem.observacoes = data.get('observacoes')
+        
+        enderecos_destino = data.get('enderecos_destino', [])
+        
+        if not enderecos_destino:
+            return jsonify({'success': False, 'message': 'É necessário pelo menos um endereço de destino.'}), 400
+
+        todos_enderecos = [viagem.endereco_saida] + enderecos_destino
+        
+        # --- LINHA CORRIGIDA ---
+        rota_otimizada, distancia_km, duracao_segundos, geometria, erro = calcular_rota_otimizada_ors(todos_enderecos)
+
+        if erro:
+            return jsonify({'success': False, 'message': f'Erro ao recalcular a rota: {erro}'}), 400
+        
+        viagem.distancia_km = distancia_km
+        viagem.duracao_segundos = duracao_segundos
+        viagem.endereco_destino = rota_otimizada[-1]
+        viagem.route_geometry = geometria
+
+        Destino.query.filter_by(viagem_id=viagem_id).delete()
+        db.session.flush()
+
+        for ordem, endereco in enumerate(rota_otimizada[1:], 1):
+            destino = Destino(viagem_id=viagem_id, endereco=endereco, ordem=ordem)
+            db.session.add(destino)
+
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Viagem atualizada com sucesso!',
+            'roteiro': rota_otimizada,
+            'distancia': f"{distancia_km:.2f}",
+            'duracao_minutos': duracao_segundos // 60
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro na API ao editar viagem {viagem_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Ocorreu um erro inesperado ao salvar: {e}'}), 500
+
 
 @app.route('/cobrancas')
 @login_required
 def consultar_cobrancas():
-    # Query para buscar todas as cobranças, trazendo o cliente junto para evitar N+1 queries
-    cobrancas = Cobranca.query.options(db.joinedload(Cobranca.cliente)).order_by(Cobranca.data_vencimento.desc()).all()
+    # Query corrigida para buscar apenas cobranças da empresa do usuário logado
+    cobrancas = Cobranca.query.filter(
+        Cobranca.empresa_id == current_user.empresa_id
+    ).options(
+        db.joinedload(Cobranca.cliente)
+    ).order_by(Cobranca.data_vencimento.desc()).all()
     
-    # Atualiza o status para 'Vencida' se necessário
+    # Atualiza o status para 'Vencida' se necessário (apenas nas cobranças da empresa)
     for cobranca in cobrancas:
         if cobranca.is_vencida:
             cobranca.status = 'Vencida'
     db.session.commit()
 
+    # Cálculos de totais agora são feitos apenas com os dados da empresa correta
     total_pendente = sum(c.valor_total for c in cobrancas if c.status in ['Pendente', 'Vencida'])
     total_pago = sum(c.valor_total for c in cobrancas if c.status == 'Paga')
 
@@ -919,6 +1074,40 @@ def consultar_cobrancas():
                            total_pendente=total_pendente,
                            total_pago=total_pago,
                            active_page='cobrancas')
+
+@app.route('/api/viagem/<int:viagem_id>/map_data')
+@login_required
+def get_viagem_map_data(viagem_id):
+    viagem = Viagem.query.filter_by(id=viagem_id, empresa_id=current_user.empresa_id).first_or_404()
+    
+    ultima_localizacao = Localizacao.query.filter_by(viagem_id=viagem_id).order_by(Localizacao.timestamp.desc()).first()
+    
+    localizacao_data = None
+    if ultima_localizacao:
+        localizacao_data = {
+            'latitude': ultima_localizacao.latitude,
+            'longitude': ultima_localizacao.longitude,
+            'endereco': ultima_localizacao.endereco,
+            'timestamp': ultima_localizacao.timestamp.strftime('%d/%m/%Y %H:%M')
+        }
+
+    # Lógica para buscar as coordenadas de cada destino
+    destinos_com_coords = []
+    for destino in sorted(viagem.destinos, key=lambda x: x.ordem):
+        lat, lon = get_coordinates(destino.endereco)
+        destinos_com_coords.append({
+            'endereco': destino.endereco,
+            'latitude': lat,
+            'longitude': lon
+        })
+
+    return jsonify({
+        'success': True,
+        'route_geometry': viagem.route_geometry,
+        'ultima_localizacao': localizacao_data,
+        'destinos': destinos_com_coords,
+        'origem': viagem.endereco_saida
+    })
 
 
 @app.route('/cobranca/gerar', methods=['GET', 'POST'])
@@ -971,7 +1160,7 @@ def gerar_cobranca():
 @app.route('/api/cobranca/<int:cobranca_id>/marcar_paga', methods=['POST'])
 @login_required
 def api_marcar_paga(cobranca_id):
-    cobranca = Cobranca.query.get_or_404(cobranca_id)
+    Cobranca.query.filter_by(id=cobranca_id, empresa_id=current_user.empresa_id).first_or_404()
     try:
         data = request.get_json()
         meio_pagamento = data.get('meio_pagamento')
@@ -1030,14 +1219,52 @@ def api_viagens_nao_cobradas(cliente_id):
 @app.route('/')
 @login_required
 def index():
-    # CORREÇÃO: Filtra todas as consultas para mostrar apenas dados da empresa do usuário logado.
-    viagens_query = Viagem.query.filter_by(
-        empresa_id=current_user.empresa_id
-    ).options(
+    # --- LÓGICA DE FILTRAGEM E PROCESSAMENTO DE VIAGENS (EXISTENTE) ---
+    viagens_query = Viagem.query.filter_by(empresa_id=current_user.empresa_id).options(
         db.joinedload(Viagem.veiculo),
         db.joinedload(Viagem.motorista_formal)
     ).order_by(Viagem.data_inicio.desc()).all()
+
+    # --- LÓGICA DE KPIs OPERACIONAIS (EXISTENTE) ---
+    viagens_em_andamento_kpi = sum(1 for v in viagens_query if v.status == 'em_andamento')
+    viagens_pendentes_kpi = sum(1 for v in viagens_query if v.status == 'pendente')
+    veiculos_disponiveis_kpi = Veiculo.query.filter_by(empresa_id=current_user.empresa_id, disponivel=True).count()
+
+    # --- LÓGICA DE KPIs FINANCEIROS (CORRIGIDA PARA POSTGRESQL) ---
+    receita_mes = 0.0
+    custo_mes = 0.0
+    lucro_mes = 0.0
+
+    if current_user.role in ['Admin', 'Master']:
+        hoje = date.today()
+        
+        # CORREÇÃO: Usando db.extract, que é compatível com PostgreSQL e outros bancos
+        viagens_do_mes = Viagem.query.filter(
+            extract('year', Viagem.data_inicio) == hoje.year,
+            extract('month', Viagem.data_inicio) == hoje.month,
+            Viagem.empresa_id == current_user.empresa_id,
+            Viagem.status == 'concluida'
+        ).options(
+            db.joinedload(Viagem.custo_viagem),
+            db.joinedload(Viagem.abastecimentos)
+        ).all()
+
+        for v in viagens_do_mes:
+            receita_mes += v.valor_recebido or 0.0
+            
+            custo_despesas = 0
+            if v.custo_viagem:
+                custo_despesas = (v.custo_viagem.pedagios or 0) + \
+                                 (v.custo_viagem.alimentacao or 0) + \
+                                 (v.custo_viagem.hospedagem or 0) + \
+                                 (v.custo_viagem.outros or 0)
+            
+            custo_abastecimento = sum(a.custo_total for a in v.abastecimentos)
+            custo_mes += custo_despesas + custo_abastecimento
+
+        lucro_mes = receita_mes - custo_mes
     
+    # --- LÓGICA DE PROCESSAMENTO PARA LISTAS (EXISTENTE E INALTERADA) ---
     viagens = []
     for viagem in viagens_query:
         motorista_nome = 'N/A'
@@ -1045,14 +1272,14 @@ def index():
             motorista_nome = viagem.motorista_formal.nome
         elif viagem.motorista_cpf_cnpj:
             usuario_motorista = Usuario.query.filter_by(
-                cpf_cnpj=viagem.motorista_cpf_cnpj, 
+                cpf_cnpj=viagem.motorista_cpf_cnpj,
                 empresa_id=current_user.empresa_id
             ).first()
             if usuario_motorista:
                 motorista_nome = f"{usuario_motorista.nome} {usuario_motorista.sobrenome}"
 
         destinos_list = sorted(
-            [{'endereco': d.endereco, 'ordem': d.ordem} for d in viagem.destinos], 
+            [{'endereco': d.endereco, 'ordem': d.ordem} for d in viagem.destinos],
             key=lambda d: d.get('ordem', 0)
         )
 
@@ -1069,7 +1296,16 @@ def index():
             'data_fim': viagem.data_fim
         })
 
-    return render_template('index.html', viagens=viagens, Maps_API_KEY=Maps_API_KEY)
+    # --- RENDERIZAÇÃO DO TEMPLATE ---
+    return render_template('index.html',
+                           viagens=viagens,
+                           Maps_API_KEY=Maps_API_KEY,
+                           viagens_em_andamento=viagens_em_andamento_kpi,
+                           viagens_pendentes=viagens_pendentes_kpi,
+                           veiculos_disponiveis=veiculos_disponiveis_kpi,
+                           receita_mes=receita_mes,
+                           custo_mes=custo_mes,
+                           lucro_mes=lucro_mes)
 
 @app.route('/cadastrar_motorista', methods=['GET', 'POST'])
 @login_required # --- CORREÇÃO --- Adicionado para garantir que 'current_user' esteja sempre disponível.
@@ -1077,7 +1313,26 @@ def cadastrar_motorista():
     if request.method == 'POST':
         nome = request.form.get('nome', '').strip()
         data_nascimento = request.form.get('data_nascimento', '').strip()
-        endereco = request.form.get('endereco', '').strip()
+        
+        # --- INÍCIO DA COLETA DE ENDEREÇO MODIFICADA ---
+        cep = request.form.get('cep', '').strip()
+        logradouro = request.form.get('logradouro', '').strip()
+        numero = request.form.get('numero', '').strip()
+        complemento = request.form.get('complemento', '').strip() # Campo novo
+        bairro = request.form.get('bairro', '').strip()
+        cidade = request.form.get('cidade', '').strip()
+        estado = request.form.get('estado', '').strip().upper()
+
+        # Monta a string de endereço de forma mais robusta
+        endereco_parts = [f"{logradouro}, {numero}"]
+        if complemento:
+            endereco_parts.append(complemento)
+        endereco_parts.append(bairro)
+        endereco_parts.append(f"{cidade}/{estado}")
+        endereco_parts.append(f"CEP: {cep}")
+        endereco = " - ".join(endereco_parts)
+        # --- FIM DA COLETA DE ENDEREÇO MODIFICADA ---
+
         pessoa_tipo = request.form.get('pessoa_tipo', '').strip()
         cpf_cnpj = request.form.get('cpf_cnpj', '').strip()
         rg = request.form.get('rg', '').strip() or None
@@ -1086,7 +1341,7 @@ def cadastrar_motorista():
         validade_cnh = request.form.get('validade_cnh', '').strip()
         files = request.files.getlist('anexos')
 
-        if not all([nome, data_nascimento, endereco, pessoa_tipo, cpf_cnpj, telefone, cnh, validade_cnh]):
+        if not all([nome, data_nascimento, cep, logradouro, numero, bairro, cidade, estado, pessoa_tipo, cpf_cnpj, telefone, cnh, validade_cnh]):
             flash('Todos os campos obrigatórios devem ser preenchidos.', 'error')
             return redirect(url_for('cadastrar_motorista'))
 
@@ -1098,7 +1353,7 @@ def cadastrar_motorista():
             return redirect(url_for('cadastrar_motorista'))
 
         if not validate_cpf_cnpj(cpf_cnpj, pessoa_tipo):
-            flash(f"{'CPF' if pessoa_tipo == 'fisica' else 'CNPJ'} inválido. Deve conter {'11' if pessoa_tipo == 'fisica' else '14'} dígitos numéricos.", 'error')
+            flash(f"{'CPF' if pessoa_tipo == 'fisica' else 'CNPJ'} inválido.", 'error')
             return redirect(url_for('cadastrar_motorista'))
 
         if not validate_telefone(telefone):
@@ -1116,13 +1371,10 @@ def cadastrar_motorista():
             flash('Um perfil de motorista com esta CNH já foi cadastrado nesta empresa.', 'error')
             return redirect(url_for('cadastrar_motorista'))
 
-        # --- INÍCIO DA CORREÇÃO ---
-        # Procura pelo usuário (conta de login) que tenha o mesmo CPF/CNPJ na mesma empresa
         usuario_correspondente = Usuario.query.filter_by(
             cpf_cnpj=cpf_cnpj,
             empresa_id=current_user.empresa_id
         ).first()
-        # --- FIM DA CORREÇÃO ---
 
         anexos_urls = []
         allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png'}
@@ -1174,10 +1426,7 @@ def cadastrar_motorista():
             validade_cnh=validade_cnh,
             anexos=','.join(anexos_urls) if anexos_urls else None,
             empresa_id=current_user.empresa_id,
-            # --- INÍCIO DA CORREÇÃO ---
-            # Vincula o ID do usuário encontrado (se existir) ao perfil do motorista
             usuario_id=usuario_correspondente.id if usuario_correspondente else None
-            # --- FIM DA CORREÇÃO ---
         )
 
         try:
@@ -1270,9 +1519,9 @@ def criar_admin():
 @app.route('/consultar_motoristas', methods=['GET'])
 @login_required
 def consultar_motoristas():
-    search_query = request.args.get('search', '').strip()  # Obtém o parâmetro 'search' da query string
-    query = Motorista.query.filter_by(empresa_id=current_user.empresa_id)  # Filtra por empresa do usuário logado
-    
+    search_query = request.args.get('search', '').strip()
+    query = Motorista.query.filter_by(empresa_id=current_user.empresa_id)
+
     if search_query:
         search_filter = f"%{search_query}%"
         query = query.filter(
@@ -1282,10 +1531,27 @@ def consultar_motoristas():
                 Motorista.cnh.ilike(search_filter)
             )
         )
-    
-    motoristas = query.order_by(Motorista.nome.asc()).all()
-    return render_template('consultar_motoristas.html', motoristas=motoristas, search_query=search_query, active_page='consultar_motoristas')
 
+    motoristas_list = query.order_by(Motorista.nome.asc()).all()
+
+    # Adiciona o status a cada objeto motorista
+    for motorista in motoristas_list:
+        viagem_ativa = Viagem.query.filter(
+            Viagem.motorista_id == motorista.id,
+            Viagem.status == 'em_andamento'
+        ).first()
+        motorista.status = 'Em Viagem' if viagem_ativa else 'Disponível'
+
+    # Prepara os dados de data para o template
+    contexto = {
+        'motoristas': motoristas_list,
+        'search_query': search_query,
+        'active_page': 'consultar_motoristas',
+        'hoje': date.today(),
+        'data_alerta_cnh': date.today() + timedelta(days=30) # Define o período de alerta para 30 dias
+    }
+    
+    return render_template('consultar_motoristas.html', **contexto)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -1503,7 +1769,9 @@ def owner_empresa_detalhes(empresa_id):
 
 
 @app.route('/excluir_anexo/<int:motorista_id>/<path:anexo>', methods=['GET'])
+@login_required
 def excluir_anexo(motorista_id, anexo):
+    
     motorista = Motorista.query.filter_by(id=motorista_id, empresa_id=current_user.empresa_id).first_or_404()
     anexos_urls = motorista.anexos.split(',') if motorista.anexos else []
     if anexo in anexos_urls:
@@ -1532,6 +1800,7 @@ def excluir_anexo(motorista_id, anexo):
     return redirect(url_for('editar_motorista', motorista_id=motorista_id))
 
 @app.route('/excluir_motorista/<int:motorista_id>')
+@login_required
 def excluir_motorista(motorista_id):
     motorista = Motorista.query.filter_by(id=motorista_id, empresa_id=current_user.empresa_id).first_or_404()
     if Viagem.query.filter_by(motorista_id=motorista_id).first():
@@ -1562,6 +1831,7 @@ def excluir_motorista(motorista_id):
     return redirect(url_for('consultar_motoristas'))
 
 @app.route('/cadastrar_veiculo', methods=['GET', 'POST'])
+@login_required
 def cadastrar_veiculo():
     if request.method == 'POST':
         placa = request.form.get('placa', '').strip().upper()
@@ -1723,6 +1993,7 @@ def editar_veiculo(veiculo_id):
     return render_template('editar_veiculo.html', veiculo=veiculo, active_page='consultar_veiculos')
 
 @app.route('/excluir_veiculo/<int:veiculo_id>')
+@login_required
 def excluir_veiculo(veiculo_id):
     veiculo = Veiculo.query.filter_by(id=veiculo_id, empresa_id=current_user.empresa_id).first_or_404()
     if Viagem.query.filter_by(veiculo_id=veiculo_id).first():
@@ -1737,259 +2008,145 @@ def excluir_veiculo(veiculo_id):
         flash('Erro ao excluir veículo.', 'error')
     return redirect(url_for('consultar_veiculos'))
 
-@app.route('/iniciar_viagem', methods=['GET', 'POST'])
-def iniciar_viagem():
-    if request.method == 'POST':
-        try:
-            motorista_id = request.form.get('motorista_id', '').strip()
-            veiculo_id = request.form.get('veiculo_id', '').strip()
-            cliente = request.form.get('cliente', '').strip()
-            endereco_saida = request.form.get('endereco_saida', '').strip()
-            enderecos_destino = request.form.getlist('enderecos_destino[]')
-            data_inicio_str = request.form.get('data_inicio', '')
-            forma_pagamento = request.form.get('forma_pagamento', '')
-            status = request.form.get('status', '')
-            observacoes = request.form.get('observacoes', '').strip()
-            valor_recebido = request.form.get('valor_recebido')
-
-            if not all([motorista_id, veiculo_id, cliente, endereco_saida, enderecos_destino, data_inicio_str, forma_pagamento, status]):
-                flash('Todos os campos obrigatórios devem ser preenchidos.', 'error')
-                return redirect(url_for('iniciar_viagem'))
-
-            if not enderecos_destino:
-                flash('Pelo menos um endereço de destino é necessário.', 'error')
-                return redirect(url_for('iniciar_viagem'))
-
-            try:
-                data_inicio = datetime.strptime(data_inicio_str, '%Y-%m-%dT%H:%M')
-            except ValueError:
-                flash('Formato de data/hora inválido.', 'error')
-                return redirect(url_for('iniciar_viagem'))
-
-            motorista_selecionado = Motorista.query.get(motorista_id)
-            if not motorista_selecionado:
-                flash('Erro: Motorista selecionado não encontrado.', 'error')
-                return redirect(url_for('iniciar_viagem'))
-
-            veiculo = Veiculo.query.get(veiculo_id)
-            if not veiculo:
-                flash('Erro: Veículo não encontrado.', 'error')
-                return redirect(url_for('iniciar_viagem'))
-            if not veiculo.disponivel:
-                flash('Erro: Veículo já está em viagem.', 'error')
-                return redirect(url_for('iniciar_viagem'))
-
-            enderecos = [endereco_saida] + enderecos_destino
-            for endereco in enderecos:
-                if not validar_endereco(endereco):
-                    flash(f'Endereço inválido: {endereco}. Por favor, insira endereços válidos.', 'error')
-                    return redirect(url_for('iniciar_viagem'))
-
-            distancia_km, duracao_segundos = calcular_distancia_e_duracao(enderecos)
-            if distancia_km is None or duracao_segundos is None:
-                flash('Não foi possível calcular a distância ou duração.', 'error')
-                return redirect(url_for('iniciar_viagem'))
-
-            viagem = Viagem(
-                motorista_id=motorista_id,
-                motorista_cpf_cnpj=motorista_selecionado.cpf_cnpj,
-                veiculo_id=veiculo_id,
-                cliente=cliente,
-                valor_recebido=float(valor_recebido) if valor_recebido else None,
-                forma_pagamento=forma_pagamento,
-                endereco_saida=endereco_saida,
-                endereco_destino=enderecos_destino[-1],
-                distancia_km=distancia_km,
-                data_inicio=data_inicio,
-                duracao_segundos=duracao_segundos,
-                status=status,
-                observacoes=observacoes or None,
-                empresa_id=current_user.empresa_id
-            )
-            veiculo.disponivel = False
-            db.session.add(viagem)
-            db.session.flush()
-
-            for ordem, endereco in enumerate(enderecos_destino, 1):
-                destino = Destino(
-                    viagem_id=viagem.id,
-                    endereco=endereco,
-                    ordem=ordem
-                )
-                db.session.add(destino)
-
-            db.session.commit()
-            flash(f'Viagem iniciada com sucesso! Distância: {distancia_km:.2f} km, Duração estimada: {duracao_segundos//60} minutos', 'success')
-            return redirect(url_for('iniciar_viagem'))
-        except Exception as e:
-            logger.error(f"Erro ao iniciar viagem: {str(e)}")
-            db.session.rollback()
-            flash(f'Erro ao iniciar viagem: {str(e)}', 'error')
-            return redirect(url_for('iniciar_viagem'))
-
+@app.route('/iniciar_viagem', methods=['GET'])
+@login_required
+def iniciar_viagem_page():
+    """Apenas renderiza a página do formulário de iniciar viagem."""
     motoristas = Motorista.query.filter_by(empresa_id=current_user.empresa_id).order_by(Motorista.nome).all()
     veiculos = Veiculo.query.filter_by(disponivel=True, empresa_id=current_user.empresa_id).order_by(Veiculo.placa).all()
-    viagens = Viagem.query.filter_by(data_fim=None, empresa_id=current_user.empresa_id).order_by(Viagem.data_inicio.desc()).all()
+    # A lógica de POST foi movida para uma rota de API separada.
+    return render_template('iniciar_viagem.html', motoristas=motoristas, veiculos=veiculos, ORS_API_KEY=OPENROUTESERVICE_API_KEY)
+
+@app.route('/api/motorista/<int:motorista_id>/details')
+@login_required
+def get_motorista_details_api(motorista_id):
+    """
+    Esta rota de API retorna as estatísticas e o histórico de viagens
+    de um motorista em formato JSON para ser consumido pelo modal.
+    """
+    # Garante que o usuário só possa ver motoristas da sua própria empresa
+    motorista = Motorista.query.filter_by(id=motorista_id, empresa_id=current_user.empresa_id).first_or_404()
+
+    # Busca as viagens do motorista, carregando os dados relacionados para o cálculo de custos
+    viagens = Viagem.query.filter(Viagem.motorista_id == motorista.id).options(
+        db.joinedload(Viagem.custo_viagem),
+        db.joinedload(Viagem.abastecimentos)
+    ).order_by(Viagem.data_inicio.desc()).all()
+
+    # Lógica de cálculo de estatísticas (reaproveitando e melhorando a da página de perfil)
+    total_receita = 0
+    total_custo_detalhado = 0
     
-    viagens_data = []
-    for viagem in viagens:
-        data_inicio_formatada = viagem.data_inicio.strftime('%Y-%m-%d %H:%M:%S')[:-3]
-        horario_chegada = (viagem.data_inicio + timedelta(seconds=viagem.duracao_segundos)).strftime('%d/%m/%Y %H:%M') if viagem.duracao_segundos else 'Não calculado'
+    for v in viagens:
+        total_receita += v.valor_recebido or 0
         
-        motorista_nome = 'N/A'
-        if viagem.motorista_id:
-            motorista_nome = viagem.motorista_formal.nome if viagem.motorista_formal else 'N/A'
-        elif viagem.motorista_cpf_cnpj:
-            usuario_com_cpf = Usuario.query.filter_by(cpf_cnpj=viagem.motorista_cpf_cnpj).first()
-            if usuario_com_cpf:
-                motorista_nome = f"{usuario_com_cpf.nome} {usuario_com_cpf.sobrenome}"
-            else:
-                motorista_formal_cpf = Motorista.query.filter_by(cpf_cnpj=viagem.motorista_cpf_cnpj).first()
-                if motorista_formal_cpf:
-                    motorista_nome = motorista_formal_cpf.nome
+        # Calcula o custo detalhado da viagem
+        custo_despesas = 0
+        if v.custo_viagem:
+            custo_despesas = (v.custo_viagem.pedagios or 0) + (v.custo_viagem.alimentacao or 0) + (v.custo_viagem.hospedagem or 0) + (v.custo_viagem.outros or 0)
+        
+        custo_abastecimento = sum(a.custo_total for a in v.abastecimentos)
+        total_custo_detalhado += custo_despesas + custo_abastecimento
 
-        viagem_dict = {
-            'valor_recebido': viagem.valor_recebido or 0,
-            'id': viagem.id,
-            'motorista_id': viagem.motorista_id,
-            'motorista_cpf_cnpj': viagem.motorista_cpf_cnpj,
-            'veiculo_id': viagem.veiculo_id,
-            'cliente': viagem.cliente,
-            'endereco_saida': viagem.endereco_saida,
-            'endereco_destino': viagem.endereco_destino,
-            'data_inicio': data_inicio_formatada,
-            'duracao_segundos': viagem.duracao_segundos,
-            'custo': viagem.custo,
-            'forma_pagamento': viagem.forma_pagamento,
-            'status': viagem.status,
-            'observacoes': viagem.observacoes,
-            'motorista_nome': motorista_nome,
-            'veiculo_placa': viagem.veiculo.placa,
-            'veiculo_modelo': viagem.veiculo.modelo,
-            'distancia_km': viagem.distancia_km,
-            'horario_chegada': horario_chegada,
-            'destinos': [{'endereco': destino.endereco, 'ordem': destino.ordem} for destino in viagem.destinos]
-        }
-        viagens_data.append(viagem_dict)
-    return render_template('iniciar_viagem.html', motoristas=motoristas, veiculos=veiculos, viagens=viagens_data, Maps_API_KEY=Maps_API_KEY)
+    stats = {
+        'total_viagens': len(viagens),
+        'total_distancia': round(sum(v.distancia_km or 0 for v in viagens), 2),
+        'total_receita': round(total_receita, 2),
+        'total_custo': round(total_custo_detalhado, 2),
+        'lucro_total': round(total_receita - total_custo_detalhado, 2)
+    }
 
-@app.route('/editar_viagem/<int:viagem_id>', methods=['GET', 'POST'])
-def editar_viagem(viagem_id):
-    viagem = Viagem.query.filter_by(id=viagem_id, empresa_id=current_user.empresa_id).first_or_404()
-    if request.method == 'POST':
-        try:
-            motorista_id = request.form.get('motorista_id', '').strip()
-            veiculo_id = request.form.get('veiculo_id', '').strip()
-            cliente = request.form.get('cliente', '').strip()
-            endereco_saida = request.form.get('endereco_saida', '').strip()
-            enderecos_destino = request.form.getlist('enderecos_destino[]')
-            data_inicio_str = request.form.get('data_inicio', '')
-            forma_pagamento = request.form.get('forma_pagamento', '')
-            status = request.form.get('status', '')
-            observacoes = request.form.get('observacoes', '').strip()
-            valor_recebido = request.form.get('valor_recebido')
-
-            if not all([veiculo_id, cliente, endereco_saida, enderecos_destino, data_inicio_str, forma_pagamento, status]):
-                flash('Todos os campos obrigatórios devem ser preenchidos.', 'error')
-                return redirect(url_for('iniciar_viagem'))
-
-            if not enderecos_destino:
-                flash('Pelo menos um endereço de destino é necessário.', 'error')
-                return redirect(url_for('iniciar_viagem'))
-
-            try:
-                data_inicio = datetime.strptime(data_inicio_str, '%Y-%m-%dT%H:%M')
-            except ValueError:
-                flash('Formato de data/hora inválido.', 'error')
-                return redirect(url_for('iniciar_viagem'))
-
-            enderecos = [endereco_saida] + enderecos_destino
-            for endereco in enderecos:
-                if not validar_endereco(endereco):
-                    flash(f'Endereço inválido: {endereco}. Por favor, insira endereços válidos.', 'error')
-                    return redirect(url_for('iniciar_viagem'))
-
-            distancia_km, duracao_segundos = calcular_distancia_e_duracao(enderecos)
-            if distancia_km is None or duracao_segundos is None:
-                flash('Não foi possível recalcular a distância ou duração.', 'error')
-                return redirect(url_for('iniciar_viagem'))
-
-            viagem.motorista_id = motorista_id if motorista_id else None
-            viagem.veiculo_id = veiculo_id
-            viagem.cliente = cliente
-            viagem.endereco_saida = endereco_saida
-            viagem.endereco_destino = enderecos_destino[-1]
-            viagem.data_inicio = data_inicio
-            viagem.distancia_km = distancia_km
-            viagem.duracao_segundos = duracao_segundos
-            viagem.forma_pagamento = forma_pagamento
-            viagem.status = status
-            viagem.observacoes = observacoes or None
-            viagem.valor_recebido = float(valor_recebido) if valor_recebido else None
-
-            Destino.query.filter_by(viagem_id=viagem.id).delete()
-            for ordem, endereco in enumerate(enderecos_destino, 1):
-                destino = Destino(
-                    viagem_id=viagem.id,
-                    endereco=endereco,
-                    ordem=ordem
-                )
-                db.session.add(destino)
-
-            db.session.commit()
-            flash('Viagem atualizada com sucesso!', 'success')
-            return redirect(url_for('consultar_viagens'))
-        except Exception as e:
-            logger.error(f"Erro ao editar viagem: {str(e)}")
-            db.session.rollback()
-            flash(f'Erro ao editar viagem: {str(e)}', 'error')
-            return redirect(url_for('consultar_viagens'))
-
-    motoristas = Motorista.query.filter_by(empresa_id=current_user.empresa_id).order_by(Motorista.nome).all()
-    veiculos = Veiculo.query.filter_by(disponivel=True, empresa_id=current_user.empresa_id).order_by(Veiculo.placa).all()
-
-    if viagem.veiculo.disponivel == False:
-        veiculos.append(viagem.veiculo)
-    viagens = Viagem.query.filter_by(data_fim=None).order_by(Viagem.data_inicio.desc()).all()
+    # Formata os dados das viagens para o JSON
     viagens_data = []
     for v in viagens:
-        horario_chegada = (v.data_inicio + timedelta(seconds=v.duracao_segundos)).strftime('%d/%m/%Y %H:%M') if v.duracao_segundos else 'Não calculado'
-        
-        motorista_nome = 'N/A'
-        if v.motorista_id:
-            motorista_nome = v.motorista_formal.nome if v.motorista_formal else 'N/A'
-        elif v.motorista_cpf_cnpj:
-            usuario_com_cpf = Usuario.query.filter_by(cpf_cnpj=v.motorista_cpf_cnpj).first()
-            if usuario_com_cpf:
-                motorista_nome = f"{usuario_com_cpf.nome} {usuario_com_cpf.sobrenome}"
-            else:
-                motorista_formal_cpf = Motorista.query.filter_by(cpf_cnpj=v.motorista_cpf_cnpj).first()
-                if motorista_formal_cpf:
-                    motorista_nome = motorista_formal_cpf.nome
-
-        viagem_dict = {
+        viagens_data.append({
             'id': v.id,
-            'motorista_id': v.motorista_id,
-            'motorista_cpf_cnpj': v.motorista_cpf_cnpj,
-            'veiculo_id': v.veiculo_id,
             'cliente': v.cliente,
+            'data_inicio': v.data_inicio.isoformat(),
             'endereco_saida': v.endereco_saida,
             'endereco_destino': v.endereco_destino,
-            'data_inicio': v.data_inicio.strftime('%Y-%m-%dT%H:%M:%S'),
-            'duracao_segundos': v.duracao_segundos,
-            'custo': v.custo,
-            'forma_pagamento': v.forma_pagamento,
-            'status': v.status,
-            'observacoes': v.observacoes,
-            'motorista_nome': motorista_nome,
-            'veiculo_placa': v.veiculo.placa,
-            'veiculo_modelo': v.veiculo.modelo,
-            'distancia_km': v.distancia_km,
-            'horario_chegada': horario_chegada,
-            'destinos': [{'endereco': destino.endereco, 'ordem': destino.ordem} for destino in v.destinos]
-        }
-        viagens_data.append(viagem_dict)
-    return render_template('iniciar_viagem.html', motoristas=motoristas, veiculos=veiculos, viagens=viagens_data, viagem_edit=viagem, Maps_API_KEY=Maps_API_KEY)
+            'status': v.status
+        })
+
+    # Retorna o JSON completo que o JavaScript espera
+    return jsonify({
+        'success': True,
+        'stats': stats,
+        'viagens': viagens_data
+    })
+
+
+@app.route('/api/viagem/criar', methods=['POST'])
+@login_required
+def criar_viagem_api():
+    try:
+        data = request.get_json()
+        
+        motorista_id = data.get('motorista_id')
+        veiculo_id = data.get('veiculo_id')
+        cliente = data.get('cliente')
+        endereco_saida = data.get('endereco_saida')
+        enderecos_destino = data.get('enderecos_destino', [])
+        data_inicio_str = data.get('data_inicio')
+        
+        if not all([motorista_id, veiculo_id, cliente, endereco_saida, enderecos_destino, data_inicio_str]):
+            return jsonify({'success': False, 'message': 'Todos os campos são obrigatórios.'}), 400
+
+        motorista = db.session.get(Motorista, int(motorista_id))
+        veiculo = db.session.get(Veiculo, int(veiculo_id))
+        if not motorista or not veiculo:
+            return jsonify({'success': False, 'message': 'Motorista ou Veículo não encontrado.'}), 404
+        if not veiculo.disponivel:
+            return jsonify({'success': False, 'message': f'Veículo {veiculo.placa} já está em viagem.'}), 409
+            
+        todos_enderecos = [endereco_saida] + enderecos_destino
+        
+        # --- LINHA CORRIGIDA ---
+        rota_otimizada, distancia_km, duracao_segundos, geometria, erro = calcular_rota_otimizada_ors(todos_enderecos)
+
+        if erro:
+            return jsonify({'success': False, 'message': erro}), 400
+
+        nova_viagem = Viagem(
+            motorista_id=motorista_id,
+            motorista_cpf_cnpj=motorista.cpf_cnpj,
+            veiculo_id=veiculo_id,
+            cliente=cliente,
+            valor_recebido=float(data.get('valor_recebido') or 0),
+            forma_pagamento=data.get('forma_pagamento'),
+            endereco_saida=endereco_saida,
+            endereco_destino=rota_otimizada[-1],
+            distancia_km=distancia_km,
+            data_inicio=datetime.strptime(data_inicio_str, '%Y-%m-%dT%H:%M'),
+            duracao_segundos=duracao_segundos,
+            status='pendente',
+            observacoes=data.get('observacoes'),
+            route_geometry=geometria,
+            empresa_id=current_user.empresa_id
+        )
+        veiculo.disponivel = False
+        db.session.add(nova_viagem)
+        db.session.flush()
+
+        for ordem, endereco in enumerate(rota_otimizada[1:], 1):
+            destino = Destino(viagem_id=nova_viagem.id, endereco=endereco, ordem=ordem)
+            db.session.add(destino)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Viagem criada com sucesso!',
+            'viagem_id': nova_viagem.id,
+            'roteiro': rota_otimizada,
+            'distancia': f"{distancia_km:.2f}",
+            'duracao_minutos': duracao_segundos // 60
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro na API ao criar viagem: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Ocorreu um erro interno: {e}'}), 500
 
 @app.route('/excluir_viagem/<int:viagem_id>')
 @login_required 
@@ -2018,10 +2175,18 @@ def excluir_viagem(viagem_id):
 @app.route('/salvar_custo_viagem', methods=['POST'])
 @login_required
 def salvar_custo_viagem():
-    viagem_id = request.form.get('viagem_id')
+    # --- INÍCIO DA CORREÇÃO ---
+    # 1. Pega o ID da viagem que vem escondido no formulário
+    viagem_id = request.form.get('viagem_id', type=int)
     if not viagem_id:
-        return jsonify({'success': False, 'message': 'ID da viagem não fornecido.'}), 400
+        return jsonify({'success': False, 'message': 'ID da viagem não foi fornecido.'}), 400
 
+    # 2. Garante que a viagem pertence à empresa do usuário logado
+    viagem = Viagem.query.filter_by(id=viagem_id, empresa_id=current_user.empresa_id).first()
+    if not viagem:
+        return jsonify({'success': False, 'message': 'Viagem não encontrada ou acesso negado.'}), 404
+    # --- FIM DA CORREÇÃO ---
+    
     try:
         # LÓGICA DE 'UPDATE OR CREATE' (ATUALIZAR OU CRIAR)
         custo = CustoViagem.query.filter_by(viagem_id=viagem_id).first()
@@ -2034,12 +2199,21 @@ def salvar_custo_viagem():
         custo.hospedagem = float(request.form.get('hospedagem') or 0)
         custo.outros = float(request.form.get('outros') or 0)
         custo.descricao_outros = request.form.get('descricao_outros', '').strip()
-
-        # ... (lógica de upload de arquivos permanece a mesma) ...
         
-        viagem = Viagem.query.get(viagem_id)
-        custo_total = (custo.pedagios or 0) + (custo.alimentacao or 0) + (custo.hospedagem or 0) + (custo.outros or 0)
-        viagem.custo = custo_total # Atualiza o custo total na viagem principal
+        # Lógica para salvar anexos (se houver)
+        urls_anexos = custo.anexos.split(',') if custo.anexos else []
+        if 'anexos_despesa' in request.files:
+            for anexo in request.files.getlist('anexos_despesa'):
+                if anexo and anexo.filename != '':
+                    filename = f"custos/{viagem_id}/{uuid.uuid4()}_{secure_filename(anexo.filename)}"
+                    s3_client.upload_fileobj(anexo, R2_BUCKET_NAME, filename, ExtraArgs={'ContentType': anexo.content_type})
+                    urls_anexos.append(f"{R2_PUBLIC_URL}/{filename}")
+        if urls_anexos:
+            custo.anexos = ",".join(urls_anexos)
+
+        # Atualiza o custo total na viagem principal para consistência
+        custo_total_geral = (custo.pedagios or 0) + (custo.alimentacao or 0) + (custo.hospedagem or 0) + (custo.outros or 0)
+        viagem.custo = custo_total_geral
 
         db.session.commit()
         return jsonify({'success': True, 'message': 'Despesas salvas com sucesso!'})
@@ -2048,7 +2222,6 @@ def salvar_custo_viagem():
         db.session.rollback()
         logger.error(f"Erro ao salvar custo da viagem {viagem_id}: {str(e)}")
         return jsonify({'success': False, 'message': f'Erro interno do servidor: {str(e)}'}), 500
-    
 
 @app.route('/excluir_anexo_custo', methods=['POST'])
 @login_required
@@ -2094,6 +2267,7 @@ def excluir_anexo_custo():
         return jsonify({'success': False, 'message': f'Erro interno do servidor: {str(e)}'}), 500
 
 @app.route('/consultar_despesas/<int:viagem_id>', methods=['GET'])
+@login_required
 def consultar_despesas(viagem_id):
     try:
         viagem = Viagem.query.get_or_404(viagem_id)
@@ -2292,16 +2466,18 @@ def consultar_viagens():
 @app.route('/viagem/<int:viagem_id>/gerenciar_despesas')
 @login_required
 def gerenciar_despesas_viagem(viagem_id):
-    """Renderiza um formulário completo para gerenciar todas as despesas da viagem."""
-    viagem = Viagem.query.get_or_404(viagem_id)
+    # Garante que a viagem pertence à empresa do usuário
+    viagem = Viagem.query.filter_by(id=viagem_id, empresa_id=current_user.empresa_id).first_or_404()
+    
+    # Busca os custos e abastecimentos associados
     custo = CustoViagem.query.filter_by(viagem_id=viagem_id).first()
     abastecimentos = Abastecimento.query.filter_by(viagem_id=viagem_id).order_by(Abastecimento.data_abastecimento.desc()).all()
 
+    # Renderiza o novo template do modal
     return render_template('gerenciar_despesas_modal.html', 
                            viagem=viagem, 
                            custo=custo, 
                            abastecimentos=abastecimentos)
-    
 
 from flask import jsonify, request
 from datetime import datetime
@@ -2347,8 +2523,6 @@ from collections import defaultdict
 
 from collections import defaultdict
 
-# Em app.py, substitua a função relatorios inteira por esta:
-
 @app.route('/relatorios')
 @login_required
 def relatorios():
@@ -2358,11 +2532,11 @@ def relatorios():
         motorista_id_filter = request.args.get('motorista_id', '')
         veiculo_id_filter = request.args.get('veiculo_id', '')
         
-        query = Viagem.query.options(
+        query = Viagem.query.filter_by(empresa_id=current_user.empresa_id).options(
             db.joinedload(Viagem.custo_viagem),
             db.joinedload(Viagem.motorista_formal),
             db.joinedload(Viagem.veiculo),
-            db.joinedload(Viagem.abastecimentos) # Carrega os abastecimentos junto
+            db.joinedload(Viagem.abastecimentos)
         )
 
         if data_inicio_str:
@@ -2385,28 +2559,19 @@ def relatorios():
         
         dados_grafico_mensal = defaultdict(lambda: {'receita': 0.0, 'custo': 0.0})
         dados_grafico_categorias = defaultdict(float)
-        clientes_stats = defaultdict(lambda: {'viagens': 0, 'receita': 0.0})
-        motoristas_stats = defaultdict(lambda: {'id': None, 'nome': 'N/A', 'viagens': 0, 'receita': 0.0})
-        # Alterado para coletar mais dados
+        clientes_stats = defaultdict(lambda: {'nome': '', 'viagens': 0, 'receita': 0.0, 'custo': 0.0, 'lucro': 0.0})
+        motoristas_stats_dict = defaultdict(lambda: {'id': None, 'nome': 'N/A', 'viagens': 0, 'receita': 0.0}) # Renomeado para clareza
         veiculos_stats = defaultdict(lambda: {'id': None, 'modelo': 'N/A', 'placa': 'N/A', 'km': 0.0, 'custo': 0.0, 'litros': 0.0})
 
         for v in viagens_filtradas:
             receita_viagem = v.valor_recebido or 0.0
-
-            # Calcula custo de combustível REAL a partir dos abastecimentos
             custo_combustivel_viagem = sum(a.custo_total for a in v.abastecimentos)
             litros_viagem = sum(a.litros for a in v.abastecimentos)
-
-            # Calcula outros custos (sem combustível)
             custo_outros_viagem = 0
             if v.custo_viagem:
-                custo_outros_viagem += (v.custo_viagem.pedagios or 0)
-                custo_outros_viagem += (v.custo_viagem.alimentacao or 0)
-                custo_outros_viagem += (v.custo_viagem.hospedagem or 0)
-                custo_outros_viagem += (v.custo_viagem.outros or 0)
+                custo_outros_viagem += (v.custo_viagem.pedagios or 0) + (v.custo_viagem.alimentacao or 0) + (v.custo_viagem.hospedagem or 0) + (v.custo_viagem.outros or 0)
             
             custo_total_viagem = custo_combustivel_viagem + custo_outros_viagem
-
             total_receita += receita_viagem
             total_custo_combustivel += custo_combustivel_viagem
             total_custo_outros += custo_outros_viagem
@@ -2418,7 +2583,6 @@ def relatorios():
                 dados_grafico_mensal[mes]['receita'] += receita_viagem
                 dados_grafico_mensal[mes]['custo'] += custo_total_viagem
 
-            # Preenche dados para o gráfico de categorias
             dados_grafico_categorias['Combustível'] += custo_combustivel_viagem
             if v.custo_viagem:
                 dados_grafico_categorias['Pedágios'] += v.custo_viagem.pedagios or 0
@@ -2427,25 +2591,26 @@ def relatorios():
                 dados_grafico_categorias['Outros'] += v.custo_viagem.outros or 0
             
             if v.cliente:
+                clientes_stats[v.cliente]['nome'] = v.cliente
                 clientes_stats[v.cliente]['viagens'] += 1
                 clientes_stats[v.cliente]['receita'] += receita_viagem
+                clientes_stats[v.cliente]['custo'] += custo_total_viagem
+                clientes_stats[v.cliente]['lucro'] = clientes_stats[v.cliente]['receita'] - clientes_stats[v.cliente]['custo']
 
             if v.motorista_formal:
-                motoristas_stats[v.motorista_formal.id].update({
-                    'id': v.motorista_formal.id, 'nome': v.motorista_formal.nome
-                })
-                motoristas_stats[v.motorista_formal.id]['viagens'] += 1
-                motoristas_stats[v.motorista_formal.id]['receita'] += receita_viagem
+                motoristas_stats_dict[v.motorista_formal.id].update({'id': v.motorista_formal.id, 'nome': v.motorista_formal.nome})
+                motoristas_stats_dict[v.motorista_formal.id]['viagens'] += 1
+                motoristas_stats_dict[v.motorista_formal.id]['receita'] += receita_viagem
 
             if v.veiculo:
-                veiculos_stats[v.veiculo.id].update({
-                    'id': v.veiculo.id, 'placa': v.veiculo.placa, 'modelo': v.veiculo.modelo
-                })
+                veiculos_stats[v.veiculo.id].update({'id': v.veiculo.id, 'placa': v.veiculo.placa, 'modelo': v.veiculo.modelo})
                 veiculos_stats[v.veiculo.id]['km'] += v.distancia_km or 0.0
                 veiculos_stats[v.veiculo.id]['custo'] += custo_total_viagem
                 veiculos_stats[v.veiculo.id]['litros'] += litros_viagem
         
-        # Consolida o custo total e calcula a média geral de consumo
+        # --- LÓGICA DE ORDENAÇÃO ADICIONADA AQUI ---
+        motoristas_ordenados = sorted(motoristas_stats_dict.values(), key=lambda m: m['receita'], reverse=True)
+
         total_custo = total_custo_combustivel + total_custo_outros
         consumo_medio_geral = (total_distancia / total_litros) if total_litros > 0 else 0
 
@@ -2458,20 +2623,21 @@ def relatorios():
             total_viagens=len(viagens_filtradas),
             total_receita=total_receita,
             total_custo=total_custo,
-            consumo_medio_geral=consumo_medio_geral,  # <-- NOVO DADO
+            consumo_medio_geral=consumo_medio_geral,
             motoristas_filtro=motoristas_para_filtro,
             veiculos_filtro=veiculos_para_filtro,
             dados_grafico_mensal=dict(sorted(dados_grafico_mensal.items())),
             dados_grafico_categorias=dict(dados_grafico_categorias),
             clientes_stats=list(clientes_stats.values()),
-            motoristas=motoristas_stats,
-            veiculos_stats=list(veiculos_stats.values()) # <-- NOVO DADO
+            motoristas_stats=motoristas_ordenados, # Enviando a LISTA JÁ ORDENADA
+            veiculos_stats=list(veiculos_stats.values())
         )
 
     except Exception as e:
         logger.error(f"Erro ao gerar relatórios: {e}", exc_info=True)
         flash(f"Ocorreu um erro inesperado ao gerar os relatórios: {e}", "error")
         return redirect(url_for('index'))
+
 
 @app.route('/api/viagem/<int:viagem_id>/despesas', methods=['GET'])
 @login_required
@@ -2506,6 +2672,7 @@ def get_viagem_abastecimentos(viagem_id):
 
 
 @app.route('/exportar_relatorio')
+@login_required
 def exportar_relatorio():
     try:
         data_inicio = request.args.get('data_inicio', '')
@@ -2586,6 +2753,7 @@ def exportar_relatorio():
         return redirect(url_for('relatorios'))
 
 @app.route('/get_active_trip')
+@login_required
 def get_active_trip():
     viagem = Viagem.query.filter_by(data_fim=None, status='em_andamento').first()
     if viagem:
@@ -2843,18 +3011,16 @@ from sqlalchemy import or_
 @app.route('/motorista_dashboard')
 @login_required
 def motorista_dashboard():
-    # Garante que apenas usuários com o papel 'Motorista' acessem esta página.
     if current_user.role != 'Motorista':
         flash('Acesso negado. Esta página é restrita a motoristas.', 'error')
         return redirect(url_for('index'))
 
-    # Recupera o registro formal de Motorista para obter o ID
     motorista = Motorista.query.filter_by(
         cpf_cnpj=current_user.cpf_cnpj,
         empresa_id=current_user.empresa_id
     ).first()
 
-    # Busca a viagem em andamento via motorista_id OU via motorista_cpf_cnpj
+    # CORREÇÃO AQUI: Buscamos a viagem primeiro, sem o 'joinedload'
     viagem_ativa = Viagem.query.filter(
         or_(
             Viagem.motorista_id == (motorista.id if motorista else None),
@@ -2863,7 +3029,18 @@ def motorista_dashboard():
         Viagem.status == 'em_andamento'
     ).first()
 
-    # Histórico de viagens concluídas ou canceladas do motorista
+    destinos_com_coords = []
+    # Só processamos os destinos se a viagem realmente existir
+    if viagem_ativa:
+        for destino in sorted(viagem_ativa.destinos, key=lambda x: x.ordem):
+            lat, lon = get_coordinates(destino.endereco)
+            destinos_com_coords.append({
+                'endereco': destino.endereco,
+                'latitude': lat,
+                'longitude': lon
+            })
+
+    # A busca pelo histórico permanece a mesma
     viagens_concluidas = Viagem.query.filter(
         or_(
             Viagem.motorista_id == (motorista.id if motorista else None),
@@ -2875,7 +3052,8 @@ def motorista_dashboard():
     return render_template(
         'motorista_dashboard.html',
         viagem_ativa=viagem_ativa,
-        viagens=viagens_concluidas
+        viagens=viagens_concluidas,
+        destinos_viagem_ativa=destinos_com_coords
     )
 
 
@@ -2927,7 +3105,7 @@ def selecionar_viagem(viagem_id):
     if not current_user.cpf_cnpj:
         return jsonify({'success': False, 'message': 'Seu perfil de usuário não possui CPF/CNPJ. Preencha-o nas configurações para iniciar viagens.'})
 
-    viagem = Viagem.query.get(viagem_id)
+    Viagem.query.filter_by(id=viagem_id, empresa_id=current_user.empresa_id).first_or_404()
 
     if not viagem:
         return jsonify({'success': False, 'message': 'Viagem não encontrada'})
@@ -3165,55 +3343,55 @@ def perfil_motorista(motorista_id):
 @app.route('/romaneio/viagem/<int:viagem_id>', methods=['GET', 'POST'])
 @login_required
 def gerar_romaneio(viagem_id):
-    # Blindagem de Segurança: Garante que a viagem pertence à empresa do usuário
     viagem = Viagem.query.filter_by(id=viagem_id, empresa_id=current_user.empresa_id).first_or_404()
-    
-    # Busca o romaneio existente de forma segura
     romaneio = Romaneio.query.filter_by(viagem_id=viagem_id, empresa_id=current_user.empresa_id).first()
 
     if request.method == 'POST':
-        data_emissao_str = request.form.get('data_emissao')
-        observacoes = request.form.get('observacoes')
-        data_emissao = datetime.strptime(data_emissao_str, '%Y-%m-%d').date() if data_emissao_str else datetime.utcnow().date()
+        try:
+            data_emissao_str = request.form.get('data_emissao')
+            observacoes = request.form.get('observacoes')
+            data_emissao = datetime.strptime(data_emissao_str, '%Y-%m-%d').date() if data_emissao_str else datetime.utcnow().date()
 
-        if romaneio:
-            # --- LÓGICA DE ATUALIZAÇÃO ---
-            romaneio.data_emissao = data_emissao
-            romaneio.observacoes = observacoes
-            ItemRomaneio.query.filter_by(romaneio_id=romaneio.id).delete() # Limpa itens antigos para re-adicionar
-            flash_message = 'Romaneio atualizado com sucesso!'
-        else:
-            # --- LÓGICA DE CRIAÇÃO CORRIGIDA ---
-            romaneio = Romaneio(
-                viagem_id=viagem.id,
-                data_emissao=data_emissao,
-                observacoes=observacoes,
-                empresa_id=current_user.empresa_id  # <-- CORREÇÃO PRINCIPAL AQUI
-            )
-            db.session.add(romaneio)
-            db.session.flush()
-            flash_message = 'Romaneio salvo com sucesso!'
-
-        # Processar itens da carga (sem alteração)
-        item_counter = 1
-        while f'produto_{item_counter}' in request.form:
-            produto = request.form.get(f'produto_{item_counter}')
-            if produto:
-                item = ItemRomaneio(
-                    romaneio_id=romaneio.id,
-                    produto_descricao=produto,
-                    quantidade=int(request.form.get(f'qtd_{item_counter}', 1)),
-                    embalagem=request.form.get(f'embalagem_{item_counter}'),
-                    peso_kg=float(request.form.get(f'peso_{item_counter}', 0))
+            if romaneio:
+                romaneio.data_emissao = data_emissao
+                romaneio.observacoes = observacoes
+                ItemRomaneio.query.filter_by(romaneio_id=romaneio.id).delete()
+                flash_message = 'Romaneio atualizado com sucesso!'
+            else:
+                romaneio = Romaneio(
+                    viagem_id=viagem.id,
+                    data_emissao=data_emissao,
+                    observacoes=observacoes,
+                    empresa_id=current_user.empresa_id
                 )
-                db.session.add(item)
-            item_counter += 1
-            
-        db.session.commit()
-        flash(flash_message, 'success')
-        return redirect(url_for('gerar_romaneio', viagem_id=viagem_id))
+                db.session.add(romaneio)
+                db.session.flush()
+                flash_message = 'Romaneio salvo com sucesso!'
 
-    # --- LÓGICA GET (sem alteração significativa) ---
+            item_counter = 1
+            while f'produto_{item_counter}' in request.form:
+                produto = request.form.get(f'produto_{item_counter}')
+                if produto:
+                    item = ItemRomaneio(
+                        romaneio_id=romaneio.id,
+                        produto_descricao=produto,
+                        quantidade=int(request.form.get(f'qtd_{item_counter}', 1)),
+                        embalagem=request.form.get(f'embalagem_{item_counter}'),
+                        peso_kg=float(request.form.get(f'peso_{item_counter}', 0))
+                    )
+                    db.session.add(item)
+                item_counter += 1
+                
+            db.session.commit()
+            flash(flash_message, 'success')
+            return redirect(url_for('gerar_romaneio', viagem_id=viagem_id))
+        
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Erro ao salvar romaneio para viagem {viagem_id}: {e}", exc_info=True)
+            flash(f"Ocorreu um erro inesperado ao salvar o romaneio: {e}", "error")
+            return redirect(url_for('gerar_romaneio', viagem_id=viagem_id))
+
     if romaneio:
         return render_template('cadastro_romaneio.html', viagem=viagem, romaneio=romaneio)
     else:
@@ -3239,7 +3417,6 @@ def gerar_romaneio(viagem_id):
             dados=dados_novo_romaneio,
             numero_romaneio=ultimo_id + 1
         )
-    
 @app.route('/consultar_romaneios')
 @login_required
 def consultar_romaneios():
@@ -3268,8 +3445,51 @@ def consultar_romaneios():
 def handle_join_trip_room(data):
     viagem_id = data.get('viagem_id')
     if viagem_id:
+        # Sala para o admin/consultas
         join_room(f"trip_{viagem_id}")
-        logger.info(f"Cliente {request.sid} entrou em trip_{viagem_id}")
+        logger.info(f"Cliente {request.sid} entrou na sala de consulta trip_{viagem_id}")
+        
+        # Sala específica para o motorista da viagem
+        join_room(f"driver_{viagem_id}")
+        logger.info(f"Cliente {request.sid} entrou na sala do motorista driver_{viagem_id}")
+
+@app.route('/api/cliente/<int:cliente_id>/details')
+@login_required
+def get_cliente_details_api(cliente_id):
+
+    cliente = Cliente.query.filter_by(id=cliente_id, empresa_id=current_user.empresa_id).first_or_404()
+    
+    
+    viagens = Viagem.query.filter_by(cliente=cliente.nome_razao_social, empresa_id=current_user.empresa_id).options(
+        db.joinedload(Viagem.custo_viagem),
+        db.joinedload(Viagem.abastecimentos)
+    ).order_by(Viagem.data_inicio.desc()).all()
+
+    total_receita = 0
+    total_custo_detalhado = 0
+    for v in viagens:
+        total_receita += v.valor_recebido or 0
+        custo_despesas = (v.custo_viagem.pedagios or 0) + (v.custo_viagem.alimentacao or 0) + (v.custo_viagem.hospedagem or 0) + (v.custo_viagem.outros or 0) if v.custo_viagem else 0
+        custo_abastecimento = sum(a.custo_total for a in v.abastecimentos)
+        total_custo_detalhado += custo_despesas + custo_abastecimento
+    
+    stats = {
+        'total_viagens': len(viagens),
+        'total_receita': round(total_receita, 2),
+        'total_custo': round(total_custo_detalhado, 2),
+        'lucro_total': round(total_receita - total_custo_detalhado, 2)
+    }
+
+    viagens_data = [{
+        'id': v.id,
+        'data_inicio': v.data_inicio.strftime('%d/%m/%Y'),
+        'origem': v.endereco_saida,
+        'destino': v.endereco_destino,
+        'status': v.status,
+        'receita': v.valor_recebido or 0
+    } for v in viagens]
+
+    return jsonify({'success': True, 'stats': stats, 'viagens': viagens_data})
 
 
 
@@ -3356,38 +3576,187 @@ def handle_atualizar_localizacao_socket(data):
     longitude = data.get('longitude')
     viagem_id = data.get('viagem_id')
 
-    if not latitude or not longitude or not viagem_id:
+    if not all([latitude, longitude, viagem_id]):
         return
 
     try:
-        viagem = Viagem.query.get(int(viagem_id))
-        if not viagem:
+        viagem = db.session.get(Viagem, int(viagem_id))
+        if not viagem or not viagem.motorista_id:
             return
 
-        motorista_id = viagem.motorista_id
-        endereco = get_address_geoapify(latitude, longitude)
+        current_time = datetime.utcnow()
+        trip_last_geocode = last_geocode_time.get(viagem.id)
+        
+        should_geocode = False
+        if trip_last_geocode is None or (current_time - trip_last_geocode).total_seconds() > GEOCODE_INTERVAL_SECONDS:
+            should_geocode = True
 
+        endereco = None
+        if should_geocode:
+            endereco = get_address_geoapify(latitude, longitude)
+            last_geocode_time[viagem.id] = current_time # Atualiza o tempo do último geocode
+        
+        # Salva a localização no banco de dados. Se não geocodificou, o endereço fica nulo.
         nova_localizacao = Localizacao(
-            motorista_id=motorista_id,
+            motorista_id=viagem.motorista_id,
             viagem_id=viagem.id,
             latitude=latitude,
             longitude=longitude,
-            endereco=endereco
+            endereco=endereco # Pode ser None se should_geocode for False
         )
-
         db.session.add(nova_localizacao)
         db.session.commit()
 
-        # Envia para o frontend com o endereço resolvido
-        emit('localizacao_atualizada', {
+        # Prepara os dados para enviar via socket
+        socket_data = {
             'viagem_id': viagem.id,
             'latitude': latitude,
-            'longitude': longitude,
-            'endereco': endereco
-        }, room=f"trip_{viagem.id}")
+            'longitude': longitude
+        }
+        # Só envia o endereço se ele foi realmente buscado nesta chamada
+        if endereco:
+            socket_data['endereco'] = endereco
+
+        # Emite para a sala da viagem (para o admin em consultar_viagens)
+        emit('localizacao_atualizada', socket_data, room=f"trip_{viagem.id}")
+        
+        # Emite também para a sala do motorista para atualizar o display de endereço
+        # Isso garante que o "Iniciando rastreamento..." seja substituído pelo primeiro endereço
+        if endereco:
+             emit('localizacao_atualizada', {'endereco': endereco, 'viagem_id': viagem.id}, room=f"driver_{viagem.id}")
+
 
     except Exception as e:
-        print(f"Erro ao salvar localização: {e}")
+        logger.error(f"Erro ao salvar localização via socket: {e}", exc_info=True)
+        db.session.rollback()
+
+@app.route('/api/veiculo/<int:veiculo_id>/details')
+@login_required
+def get_veiculo_details_api(veiculo_id):
+    """API que busca todos os detalhes de um veículo para o modal."""
+    veiculo = Veiculo.query.filter_by(id=veiculo_id, empresa_id=current_user.empresa_id).first_or_404()
+    
+    # 1. Busca todos os dados necessários
+    viagens = Viagem.query.filter_by(veiculo_id=veiculo.id).options(
+        db.joinedload(Viagem.custo_viagem),
+        db.joinedload(Viagem.abastecimentos)
+    ).all()
+    
+    manutencoes = Manutencao.query.filter_by(veiculo_id=veiculo.id).order_by(Manutencao.data.desc()).all()
+    
+    # Busca abastecimentos diretamente pelo veículo, não só pela viagem
+    abastecimentos = Abastecimento.query.filter_by(veiculo_id=veiculo.id).order_by(Abastecimento.data_abastecimento.desc()).all()
+
+    # 2. LÓGICA DE CÁLCULO DE KPI CORRIGIDA
+    total_km = sum(v.distancia_km for v in viagens if v.distancia_km)
+    
+    # Soma os custos de todas as viagens
+    total_custo_viagens = 0
+    for v in viagens:
+        custo_despesas = 0
+        if v.custo_viagem:
+            custo_despesas = (v.custo_viagem.pedagios or 0) + (v.custo_viagem.alimentacao or 0) + (v.custo_viagem.hospedagem or 0) + (v.custo_viagem.outros or 0)
+        custo_abastecimento_viagem = sum(a.custo_total for a in v.abastecimentos)
+        total_custo_viagens += custo_despesas + custo_abastecimento_viagem
+
+    # Soma os custos de manutenções
+    total_custo_manutencao = sum(m.custo for m in manutencoes)
+    
+    custo_geral = total_custo_viagens + total_custo_manutencao
+    custo_por_km = (custo_geral / total_km) if total_km > 0 else 0
+    
+    kpis = {
+        "total_viagens": len(viagens),
+        "total_km": round(total_km, 2),
+        "custo_geral": round(custo_geral, 2),
+        "custo_por_km": round(custo_por_km, 2)
+    }
+
+    # 3. Retorna o JSON completo
+    return jsonify({
+        "success": True,
+        "kpis": kpis,
+        "manutencoes": [m.to_dict() for m in manutencoes],
+        "abastecimentos": [a.to_dict() for a in abastecimentos]
+    })
+
+
+@app.route('/veiculo/<int:veiculo_id>/adicionar_manutencao', methods=['POST'])
+@login_required
+def adicionar_manutencao(veiculo_id):
+    veiculo = Veiculo.query.filter_by(id=veiculo_id, empresa_id=current_user.empresa_id).first_or_404()
+    
+    try:
+        nova_manutencao = Manutencao(
+            veiculo_id=veiculo.id,
+            empresa_id=current_user.empresa_id,
+            data=datetime.strptime(request.form['data'], '%Y-%m-%d').date(),
+            odometro=int(request.form['odometro']),
+            tipo=request.form['tipo'],
+            descricao=request.form['descricao'],
+            custo=float(request.form['custo'])
+        )
+
+        urls_anexos = []
+        if 'anexos' in request.files:
+            anexos = request.files.getlist('anexos')
+            if anexos and any(anexo and anexo.filename for anexo in anexos):
+                
+                # --- INÍCIO DA CORREÇÃO ---
+                # Este bloco, que cria o s3_client, estava faltando.
+                s3_client = boto3.client(
+                    's3',
+                    endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+                    aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+                    aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
+                    region_name='auto'
+                )
+                R2_BUCKET_NAME = app.config['CLOUDFLARE_R2_BUCKET']
+                R2_PUBLIC_URL = app.config['CLOUDFLARE_R2_PUBLIC_URL']
+                # --- FIM DA CORREÇÃO ---
+
+                for anexo in anexos:
+                    if anexo and anexo.filename != '':
+                        filename = f"manutencao/{veiculo.id}/{uuid.uuid4()}_{secure_filename(anexo.filename)}"
+                        s3_client.upload_fileobj(anexo, R2_BUCKET_NAME, filename, ExtraArgs={'ContentType': anexo.content_type})
+                        urls_anexos.append(f"{R2_PUBLIC_URL}/{filename}")
+                
+                if urls_anexos:
+                    nova_manutencao.anexos = ",".join(urls_anexos)
+
+        db.session.add(nova_manutencao)
+        db.session.commit()
+        flash('Manutenção registrada com sucesso!', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao registrar manutenção: {str(e)}', 'error')
+        logger.error(f"Erro ao adicionar manutenção para veiculo {veiculo_id}: {e}", exc_info=True)
+
+    return redirect(url_for('consultar_veiculos'))
+
+
+@app.route('/manutencao/<int:manutencao_id>/excluir', methods=['POST'])
+@login_required
+def excluir_manutencao(manutencao_id):
+    manutencao = Manutencao.query.join(Veiculo).filter(
+        Manutencao.id == manutencao_id,
+        Veiculo.empresa_id == current_user.empresa_id
+    ).first_or_404()
+    
+    # Excluir anexos do R2 se existirem
+    if manutencao.anexos:
+        for url in manutencao.anexos.split(','):
+            try:
+                key = url.replace(f"{R2_PUBLIC_URL}/", "")
+                s3_client.delete_object(Bucket=R2_BUCKET_NAME, Key=key)
+            except Exception as e:
+                logger.error(f"Erro ao excluir anexo {url} do R2: {e}")
+
+    db.session.delete(manutencao)
+    db.session.commit()
+    flash('Registro de manutenção excluído com sucesso.', 'success')
+    return redirect(url_for('consultar_veiculos'))
 
         
 @app.route('/manifest.json')
