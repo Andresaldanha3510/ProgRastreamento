@@ -14,12 +14,9 @@ const urlsToCache = [
 
 // Função para pegar a localização e enviar para o servidor
 function getCurrentPositionAndPostToServer() {
-    // A geolocalização só funciona em contextos seguros (HTTPS ou localhost)
     navigator.geolocation.getCurrentPosition(
         (position) => {
             const { latitude, longitude } = position.coords;
-            
-            // Usamos fetch para enviar os dados para a sua API no backend
             fetch('/salvar_localizacao_motorista', {
                 method: 'POST',
                 headers: {
@@ -84,7 +81,6 @@ self.addEventListener('fetch', event => {
 
 // Listener do evento 'periodicsync' para rastreamento periódico
 self.addEventListener('periodicsync', event => {
-  // A tag aqui deve ser a mesma que você usa para registrar o sync
   if (event.tag === 'send-location-periodic-sync') {
     console.log('SW: Sincronização periódica de localização acionada.');
     event.waitUntil(getCurrentPositionAndPostToServer());
@@ -97,4 +93,31 @@ self.addEventListener('sync', (event) => {
         console.log('SW: Sincronização de localização em background acionada.');
         event.waitUntil(getCurrentPositionAndPostToServer());
     }
+});
+
+// ==================================================================
+// TRECHO ADICIONADO PARA CORRIGIR AS NOTIFICAÇÕES
+// ==================================================================
+self.addEventListener('notificationclick', event => {
+  // Fecha a notificação que foi clicada.
+  event.notification.close();
+
+  // (Opcional) Foca na janela do aplicativo ou abre uma nova.
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      // Define a URL para onde o usuário será levado ao clicar
+      const urlToOpen = '/consultar_viagens';
+
+      // Se uma janela com essa URL já estiver aberta, foca nela
+      for (const client of clientList) {
+        if (client.url.includes(urlToOpen) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Se não houver nenhuma janela aberta, abre uma nova
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
 });

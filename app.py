@@ -1,7 +1,8 @@
 import eventlet
 eventlet.monkey_patch()
 import uuid
-
+import xml.etree.ElementTree as ET
+import json
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, make_response, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -18,7 +19,7 @@ import io
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import or_
+from sqlalchemy import or_, and_, func
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_mail import Mail, Message
 from flask import jsonify
@@ -31,44 +32,90 @@ import pytesseract
 from PIL import Image
 import openrouteservice
 from sqlalchemy import extract
+import click
+from pathlib import Path
+from functools import wraps
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash('Acesso restrito ao administrador.', 'error')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def owner_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.role != 'Owner':
+            flash('Acesso restrito ao proprietário do sistema.', 'error')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def master_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or (current_user.role not in ['Admin', 'Master']):
+            flash('Acesso restrito a administradores ou masters.', 'error')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
+env_path = Path(__file__).resolve().with_name('.env')
 
 
-# ---- Configurações Iniciais ----
-load_dotenv()
+if not env_path.exists():
+    raise FileNotFoundError(f'Arquivo .env não encontrado em {env_path}')
 
-import os
-print("ENDPOINT:", os.getenv('CLOUDFLARE_R2_ENDPOINT'))
-print("ACCESS_KEY:", os.getenv('CLOUDFLARE_R2_ACCESS_KEY'))
-print("SECRET_KEY:", os.getenv('CLOUDFLARE_R2_SECRET_KEY'))
-print("BUCKET:", os.getenv('CLOUDFLARE_R2_BUCKET'))
-print("PUBLIC_URL:", os.getenv('CLOUDFLARE_R2_PUBLIC_URL'))
+load_dotenv(dotenv_path=env_path)
+
+# 2. Valida as variáveis críticas logo após carregar
+required_r2 = [
+    'CLOUDFLARE_R2_ENDPOINT',
+    'CLOUDFLARE_R2_ACCESS_KEY',
+    'CLOUDFLARE_R2_SECRET_KEY',
+    'CLOUDFLARE_R2_BUCKET',
+    'CLOUDFLARE_R2_PUBLIC_URL',
+]
+missing = [k for k in required_r2 if not os.getenv(k)]
+if missing:
+    raise ValueError(
+        'Variáveis faltando no .env: ' + ', '.join(missing)
+    )
+
+
+print('R2 config carregada:')
+for k in required_r2:
+    print(f'  {k}: {os.getenv(k)}')
+
 
 app = Flask(__name__)
-                                                                                                                
 
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'trackgo789@gmail.com'
-app.config['MAIL_PASSWORD'] = 'mmoa moxc juli sfbe'
-app.config['MAIL_DEFAULT_SENDER'] = 'trackgo789@gmail.com'
+app.config.update(
+    MAIL_SERVER='smtp.gmail.com',
+    MAIL_PORT=587,
+    MAIL_USE_TLS=True,
+    MAIL_USERNAME='trackgo789@gmail.com',
+    MAIL_PASSWORD='mmoa moxc juli sfbe',
+    MAIL_DEFAULT_SENDER='trackgo789@gmail.com',
+    SQLALCHEMY_DATABASE_URI=os.getenv('DATABASE_URL', 'sqlite:///transport.db'),
+    SQLALCHEMY_TRACK_MODIFICATIONS=False,
+    SECRET_KEY=os.getenv('SECRET_KEY', 'w9z$kL2mNpQvR7tYxJ3hF8gWcPqB5vM2nZ4rT6yU'),
+    CLOUDFLARE_R2_ENDPOINT=os.getenv('CLOUDFLARE_R2_ENDPOINT'),
+    CLOUDFLARE_R2_ACCESS_KEY=os.getenv('CLOUDFLARE_R2_ACCESS_KEY'),
+    CLOUDFLARE_R2_SECRET_KEY=os.getenv('CLOUDFLARE_R2_SECRET_KEY'),
+    CLOUDFLARE_R2_BUCKET=os.getenv('CLOUDFLARE_R2_BUCKET'),
+    CLOUDFLARE_R2_PUBLIC_URL=os.getenv('CLOUDFLARE_R2_PUBLIC_URL'),
+)
+GEOAPIFY_API_KEY = os.getenv('GEOAPIFY_API_KEY', '7cd423ef184f48f0b770682cbebe11d0') # Usar os.getenv para Geoapify também
+OPENROUTESERVICE_API_KEY = os.getenv('OPENROUTESERVICE_API_KEY')
 
 mail = Mail(app)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///transport.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'w9z$kL2mNpQvR7tYxJ3hF8gWcPqB5vM2nZ4rT6yU')
-Maps_API_KEY = os.getenv('Maps_API_KEY', 'AIzaSyBPdSOZF2maHURmdRmVzLgVo5YO2wliylo')
-GEOAPIFY_API_KEY = os.getenv('GEOAPIFY_API_KEY', '7cd423ef184f48f0b770682cbebe11d0') # Usar os.getenv para Geoapify também
-OPENROUTESERVICE_API_KEY = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImE1NjM5YzEwODU3ZDRjYzI5OWU2ZmQ4YzVhYTk5OTQ4IiwiaCI6Im11cm11cjY0In0='
-app.config['CLOUDFLARE_R2_ENDPOINT'] = os.getenv('CLOUDFLARE_R2_ENDPOINT')
-app.config['CLOUDFLARE_R2_ACCESS_KEY'] = os.getenv('CLOUDFLARE_R2_ACCESS_KEY')
-app.config['CLOUDFLARE_R2_SECRET_KEY'] = os.getenv('CLOUDFLARE_R2_SECRET_KEY')
-app.config['CLOUDFLARE_R2_BUCKET'] = os.getenv('CLOUDFLARE_R2_BUCKET')
-app.config['CLOUDFLARE_R2_PUBLIC_URL'] = os.getenv('CLOUDFLARE_R2_PUBLIC_URL')
-
+Maps_API_KEY = os.getenv('Maps_API_KEY')
+GEOAPIFY_API_KEY = os.getenv('GEOAPIFY_API_KEY')
 last_geocode_time = {}
 GEOCODE_INTERVAL_SECONDS = 600 # 10 minutos
 
@@ -93,63 +140,181 @@ def load_user(user_id):
 
 class Motorista(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), nullable=False)
-    data_nascimento = db.Column(db.Date, nullable=False)
-    endereco = db.Column(db.String(200), nullable=False)
-    pessoa_tipo = db.Column(db.String(10), nullable=False)
-    cpf_cnpj = db.Column(db.String(14), unique=True, nullable=False, index=True)
-    rg = db.Column(db.String(9), nullable=True)
-    telefone = db.Column(db.String(11), nullable=False)
-    cnh = db.Column(db.String(11), unique=True, nullable=False, index=True)
-    validade_cnh = db.Column(db.Date, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    anexos = db.Column(db.String(500), nullable=True)
-    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=True)
-    
-    # --- ADICIONADO ---
-    # Garante que cada motorista pertence a uma empresa.
     empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Aba: Dados Pessoais
+    nome = db.Column(db.String(100), nullable=False)
+    telefone = db.Column(db.String(20), nullable=True)
+    cpf = db.Column(db.String(14), unique=True, nullable=False, index=True)
+    data_nascimento = db.Column(db.Date, nullable=True)  # Mantido como opcional para flexibilidade
+    nacionalidade = db.Column(db.String(50), default='Nacional')
+    naturalidade = db.Column(db.String(100), nullable=True)
+    estado_civil = db.Column(db.String(50), nullable=True)
+    sexo = db.Column(db.String(20), nullable=True)
+    pai = db.Column(db.String(100), nullable=True)
+    mae = db.Column(db.String(100), nullable=True)
+    data_admissao = db.Column(db.Date, nullable=True)
+    situacao = db.Column(db.String(50), default='NORMAL / LIBERADO')
+    data_desativacao = db.Column(db.Date, nullable=True)
+    classificacao = db.Column(db.String(50), nullable=True)
+    cod_departamento = db.Column(db.String(50), nullable=True)
+    numero_ficha = db.Column(db.String(50), nullable=True)
+    foto = db.Column(db.String(500), nullable=True)
+    anexos = db.Column(db.String(2048), nullable=True)
+
+    # Aba: Endereço
+    cep = db.Column(db.String(9), nullable=True)
+    tipo_logradouro = db.Column(db.String(50), nullable=True)
+    logradouro = db.Column(db.String(255), nullable=True)
+    numero = db.Column(db.String(20), nullable=True)
+    complemento = db.Column(db.String(100), nullable=True)
+    bairro = db.Column(db.String(100), nullable=True)
+    cidade = db.Column(db.String(100), nullable=True)
+    uf = db.Column(db.String(2), nullable=True)
+    email = db.Column(db.String(120), nullable=True)
+    tipo_imovel = db.Column(db.String(50), nullable=True)
+    tempo_residencia = db.Column(db.String(50), nullable=True)
+
+    # Aba: Documentação
+    cnh_numero = db.Column(db.String(30), unique=True, nullable=False, index=True)
+    cnh_data_primeira = db.Column(db.Date, nullable=True)
+    
+    
+    cnh_data_vencimento = db.Column(db.Date, nullable=True)
+    cnh_categoria = db.Column(db.String(10), nullable=True)
+    # --- FIM DA CORREÇÃO ---
+    
+    cnh_cod_seguranca = db.Column(db.String(20), nullable=True)
+    rg = db.Column(db.String(20), nullable=True)
+    rg_uf = db.Column(db.String(2), nullable=True)
+    pis = db.Column(db.String(20), nullable=True)
+    inss = db.Column(db.String(20), nullable=True)
+    titulo_eleitor = db.Column(db.String(20), nullable=True)
+    ctps = db.Column(db.String(20), nullable=True)
+    funcao = db.Column(db.String(100), nullable=True)
+    mopp_numero = db.Column(db.String(20), nullable=True)
+    mopp_vencimento = db.Column(db.Date, nullable=True)
+    salario_base = db.Column(db.Float, nullable=True, default=0.0)
+
+    # Aba: Contatos de Referência
+    contato_nome = db.Column(db.String(100), nullable=True)
+    contato_tipo_ref = db.Column(db.String(50), nullable=True)
+    contato_tipo_fone = db.Column(db.String(50), nullable=True)
+    contato_telefone = db.Column(db.String(20), nullable=True)
+    contato_operadora = db.Column(db.String(50), nullable=True)
+    contato_obs = db.Column(db.String(255), nullable=True)
+
+
+    
     
     usuario = db.relationship('Usuario', backref='motorista', uselist=False)
-    viagens = db.relationship('Viagem', backref='motorista_formal')
+    viagens = db.relationship('Viagem', foreign_keys='Viagem.motorista_id', backref='motorista_formal')
 
-    def to_dict(self):
-        """Converte o objeto Motorista para um dicionário."""
-        return {
-            'id': self.id,
-            'nome': self.nome,
-            'data_nascimento': self.data_nascimento.isoformat() if self.data_nascimento else None,
-            'endereco': self.endereco,
-            'cpf_cnpj': self.cpf_cnpj,
-            'telefone': self.telefone,
-            'cnh': self.cnh,
-            'validade_cnh': self.validade_cnh.isoformat() if self.validade_cnh else None,
-            'anexos': self.anexos.split(',') if self.anexos else []
-        }
+    # Propriedades para compatibilidade
+    @property
+    def cpf_cnpj(self):
+        return self.cpf
+
+    @property
+    def cnh(self):
+        return self.cnh_numero
+
+    @property
+    def validade_cnh(self):
+        return self.cnh_data_vencimento
     
+class FolhaPagamento(db.Model):
+    __tablename__ = 'folha_pagamento'
+    id = db.Column(db.Integer, primary_key=True)
+    motorista_id = db.Column(db.Integer, db.ForeignKey('motorista.id'), nullable=False)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
+    
+    mes_referencia = db.Column(db.Integer, nullable=False, index=True)
+    ano_referencia = db.Column(db.Integer, nullable=False, index=True)
+    
+    salario_base_registro = db.Column(db.Float, default=0.0) # Salva o salário base no momento da criação
+    total_proventos = db.Column(db.Float, default=0.0)
+    total_descontos = db.Column(db.Float, default=0.0)
+    salario_liquido = db.Column(db.Float, default=0.0)
+    
+    status = db.Column(db.String(20), default='Em Aberto', index=True) # Em Aberto, Fechada, Paga
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+    data_fechamento = db.Column(db.DateTime, nullable=True)
+    data_pagamento = db.Column(db.DateTime, nullable=True)
+    meio_pagamento = db.Column(db.String(50), nullable=True)
+    comprovante_url = db.Column(db.String(500), nullable=True)
+    observacoes = db.Column(db.Text, nullable=True)
+    viagem_id = db.Column(db.Integer, db.ForeignKey('viagem.id'), nullable=True)
+    viagem = db.relationship('Viagem') # Facilita o acesso aos dados da viagem
+
+    motorista = db.relationship('Motorista', backref='folhas_pagamento')
+    itens = db.relationship('ItemFolhaPagamento', backref='folha', lazy='dynamic', cascade="all, delete-orphan")
+
+    __table_args__ = (db.UniqueConstraint('motorista_id', 'mes_referencia', 'ano_referencia', name='_motorista_mes_ano_uc'),)
+
+    def __repr__(self):
+        return f'<FolhaPagamento {self.id} para Motorista {self.motorista_id} - {self.mes_referencia}/{self.ano_referencia}>'
+
+    def recalcular_totais(self):
+        """Recalcula os totais com base nos itens."""
+        proventos = db.session.query(func.sum(ItemFolhaPagamento.valor)).filter(
+            ItemFolhaPagamento.folha_pagamento_id == self.id,
+            ItemFolhaPagamento.tipo == 'Provento'
+        ).scalar() or 0.0
+
+        descontos = db.session.query(func.sum(ItemFolhaPagamento.valor)).filter(
+            ItemFolhaPagamento.folha_pagamento_id == self.id,
+            ItemFolhaPagamento.tipo == 'Desconto'
+        ).scalar() or 0.0
+        
+        self.total_proventos = self.salario_base_registro + proventos
+        self.total_descontos = descontos
+        self.salario_liquido = self.total_proventos - self.total_descontos
+
+
+class ItemFolhaPagamento(db.Model):
+    __tablename__ = 'item_folha_pagamento'
+    id = db.Column(db.Integer, primary_key=True)
+    folha_pagamento_id = db.Column(db.Integer, db.ForeignKey('folha_pagamento.id'), nullable=False)
+    tipo = db.Column(db.String(10), nullable=False, index=True) # 'Provento' ou 'Desconto'
+    descricao = db.Column(db.String(255), nullable=False)
+    valor = db.Column(db.Float, nullable=False)
+
+    def __repr__(self):
+        return f'<ItemFolhaPagamento {self.id} - {self.tipo}: {self.descricao}>'
+
+
 class Manutencao(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculo.id'), nullable=False)
     empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
-    data = db.Column(db.Date, nullable=False, default=date.today)
+    itens = db.relationship('ManutencaoItem', backref='manutencao', lazy=True, cascade="all, delete-orphan")
+
+    data_entrada = db.Column(db.DateTime, default=datetime.utcnow)
+    data_saida = db.Column(db.DateTime, nullable=True)
     odometro = db.Column(db.Integer, nullable=False)
-    tipo = db.Column(db.String(100), nullable=False) # Ex: Preventiva, Corretiva, Troca de Óleo, Pneus
-    descricao = db.Column(db.Text, nullable=False)
-    custo = db.Column(db.Float, nullable=False)
-    anexos = db.Column(db.String(1024)) # Armazenará URLs dos comprovantes, separadas por vírgula
+    custo_total = db.Column(db.Float, nullable=True)
+    servicos_executados = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(50), nullable=False) # Ex: Agendada, Em Andamento, Concluída
+    tipo_manutencao = db.Column(db.String(50), nullable=False, default='Corretiva') # Ex: Preventiva, Corretiva
+    descricao_problema = db.Column(db.Text, nullable=True)
 
-    veiculo = db.relationship('Veiculo', backref=db.backref('manutencoes', lazy=True, cascade="all, delete-orphan"))
+    veiculo_plano_veiculo_id = db.Column(db.Integer)
+    veiculo_plano_plano_id = db.Column(db.Integer)
 
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "data": self.data.strftime('%d/%m/%Y'),
-            "odometro": self.odometro,
-            "tipo": self.tipo,
-            "descricao": self.descricao,
-            "custo": self.custo,
-            "anexos": self.anexos.split(',') if self.anexos else []
-        }
+    __table_args__ = (db.ForeignKeyConstraint(
+        ['veiculo_plano_veiculo_id', 'veiculo_plano_plano_id'],
+        ['veiculo_plano.veiculo_id', 'veiculo_plano.plano_id'],
+    ),)
+
+    veiculo = db.relationship('Veiculo', back_populates='manutencoes')
+    veiculo_plano_associado = db.relationship('VeiculoPlano', back_populates='manutencoes')
+
+    def __repr__(self):
+        return f'<Manutencao {self.id} para Veiculo {self.veiculo_id}>'
+
 
 class Licenca(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -256,30 +421,105 @@ class Veiculo(db.Model):
     placa = db.Column(db.String(7), unique=True, nullable=False, index=True)
     categoria = db.Column(db.String(50), nullable=True)
     modelo = db.Column(db.String(50), nullable=False)
+    marca = db.Column(db.String(50), nullable=True)
+    renavam = db.Column(db.String(20), nullable=True)
     ano = db.Column(db.Integer, nullable=True)
     valor = db.Column(db.Float, nullable=True)
-    km_rodados = db.Column(db.Float, nullable=True)
+    km_rodados = db.Column(db.Float, nullable=True, default=0.0)
     ultima_manutencao = db.Column(db.Date, nullable=True)
-    disponivel = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    consumo_medio_km_l = db.Column(db.Float, nullable=True, default=10.0) # Ex: 10.0 km/l
     
-    # --- ADICIONADO ---
+    # Campo 'disponivel' foi substituído por 'status'
+    status = db.Column(db.String(50), default='Disponível') # Ex: Disponível, Em Rota, Em Manutenção
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
 
-    viagens = db.relationship('Viagem', backref='veiculo')
+    viagens = db.relationship('Viagem', backref='veiculo', lazy=True, cascade="all, delete-orphan")
+    
+    # Novos relacionamentos para o sistema de oficina
+    manutencoes = db.relationship('Manutencao', back_populates='veiculo', lazy='dynamic', cascade="all, delete-orphan")
+    planos_associados = db.relationship('VeiculoPlano', back_populates='veiculo', cascade="all, delete-orphan")
 
     def to_dict(self):
         return {
             'id': self.id,
             'placa': self.placa,
-            'categoria': self.categoria,
             'modelo': self.modelo,
-            'ano': self.ano,
-            'valor': self.valor,
-            'km_rodados': self.km_rodados,
-            'ultima_manutencao': self.ultima_manutencao.isoformat() if self.ultima_manutencao else None,
-            'disponivel': self.disponivel
+            'marca': self.marca,
+            'renavam': self.renavam,
+            'status': self.status,
+            'km_rodados': self.km_rodados
         }
+
+    def __repr__(self):
+        return f'<Veiculo {self.modelo} {self.placa}>'
+
+class PlanoDeManutencao(db.Model):
+    __tablename__ = 'plano_de_manutencao'
+    id = db.Column(db.Integer, primary_key=True)
+    descricao = db.Column(db.String(150), unique=True, nullable=False)
+    intervalo_km_padrao = db.Column(db.Integer)
+    intervalo_meses_padrao = db.Column(db.Integer)
+    veiculos = db.relationship('VeiculoPlano', back_populates='plano', cascade="all, delete-orphan")
+    insumos_associados = db.relationship('PlanoInsumo', back_populates='plano', cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f'<PlanoDeManutencao {self.descricao}>'
+
+class VeiculoPlano(db.Model):
+    __tablename__ = 'veiculo_plano'
+    veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculo.id'), primary_key=True)
+    plano_id = db.Column(db.Integer, db.ForeignKey('plano_de_manutencao.id'), primary_key=True)
+    
+    intervalo_km = db.Column(db.Integer)
+    intervalo_meses = db.Column(db.Integer)
+    
+    km_ultima_manutencao = db.Column(db.Integer, nullable=True)
+    data_ultima_manutencao = db.Column(db.Date, nullable=True)
+
+    veiculo = db.relationship('Veiculo', back_populates='planos_associados')
+    plano = db.relationship('PlanoDeManutencao', back_populates='veiculos')
+    manutencoes = db.relationship('Manutencao', back_populates='veiculo_plano_associado')
+
+class ManutencaoItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    manutencao_id = db.Column(db.Integer, db.ForeignKey('manutencao.id'), nullable=False)
+    data = db.Column(db.Date, nullable=False, default=date.today)
+    descricao = db.Column(db.String(255), nullable=False)
+    quantidade = db.Column(db.Float, nullable=False, default=1)
+    custo_unitario = db.Column(db.Float, nullable=False, default=0)
+
+    @property
+    def custo_total_item(self):
+        return self.quantidade * self.custo_unitario
+
+class Insumo(db.Model):
+    __tablename__ = 'insumo'
+    id = db.Column(db.Integer, primary_key=True)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
+    
+    descricao = db.Column(db.String(200), nullable=False)
+    codigo_peca = db.Column(db.String(50), nullable=True)
+    custo_unitario_medio = db.Column(db.Float, nullable=True, default=0.0)
+    
+    quantidade_em_estoque = db.Column(db.Float, nullable=False, server_default='0')
+    ponto_ressuprimento = db.Column(db.Float, nullable=True)
+
+    __table_args__ = (db.UniqueConstraint('descricao', 'empresa_id', name='uq_insumo_descricao_empresa'),)
+
+    def __repr__(self):
+        return f'<Insumo {self.descricao}>'
+
+class PlanoInsumo(db.Model):
+    __tablename__ = 'plano_insumo'
+    plano_id = db.Column(db.Integer, db.ForeignKey('plano_de_manutencao.id'), primary_key=True)
+    insumo_id = db.Column(db.Integer, db.ForeignKey('insumo.id'), primary_key=True)
+    
+    quantidade = db.Column(db.Float, nullable=False, default=1)
+    
+    plano = db.relationship('PlanoDeManutencao', back_populates='insumos_associados')
+    insumo = db.relationship('Insumo')
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
@@ -383,8 +623,6 @@ class Cliente(db.Model):
     def __repr__(self):
         return f'<Cliente {self.id}: {self.nome_razao_social}>'
 
-
-
 class Viagem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     motorista_id = db.Column(db.Integer, db.ForeignKey('motorista.id'), nullable=True)
@@ -395,7 +633,7 @@ class Viagem(db.Model):
     forma_pagamento = db.Column(db.String(50), nullable=True)
     endereco_saida = db.Column(db.String(200), nullable=False)
     endereco_destino = db.Column(db.String(200), nullable=False)
-    distancia_km = db.Column(db.Float, nullable=True)
+    distancia_km = db.Column(db.Float, nullable=True) # Distância da API (pode ser usada como estimativa)
     data_inicio = db.Column(db.DateTime, nullable=False)
     data_fim = db.Column(db.DateTime, nullable=True)
     duracao_segundos = db.Column(db.Integer, nullable=True)
@@ -410,22 +648,23 @@ class Viagem(db.Model):
     odometro_final = db.Column(db.Float, nullable=True)
     route_geometry = db.Column(db.Text, nullable=True)
     
-    # --- LINHA CORRIGIDA ABAIXO ---
     destinos = db.relationship('Destino', backref='viagem', cascade='all, delete-orphan')
-    
     abastecimentos = db.relationship('Abastecimento', backref='viagem', lazy=True)
     localizacoes = db.relationship('Localizacao', backref='viagem', lazy=True, cascade="all, delete-orphan")
+    peso_toneladas = db.Column(db.Float, nullable=True)
+    custo_motorista_variavel = db.Column(db.Float, nullable=True) 
 
+    # PROPRIEDADE INTELIGENTE PARA CALCULAR A DISTÂNCIA REAL
     @property
     def distancia_percorrida(self):
         if self.odometro_inicial is not None and self.odometro_final is not None:
             if self.odometro_final >= self.odometro_inicial:
                 return self.odometro_final - self.odometro_inicial
-        return 0.0
+        return 0.0 # Retorna 0 se os dados do odômetro não estiverem disponíveis
 
     @property
     def consumo_medio(self):
-        distancia = self.distancia_percorrida
+        distancia = self.distancia_percorrida # Usa a nova propriedade
         if not distancia > 0 or not self.abastecimentos:
             return 0.0
         total_litros = sum(abast.litros for abast in self.abastecimentos if abast.litros is not None)
@@ -433,6 +672,603 @@ class Viagem(db.Model):
             return distancia / total_litros
         return 0.0
 
+  
+
+    @property
+    def custo_real_completo(self):
+        """
+        Calcula o custo REAL e completo da viagem, incluindo custos diretos e rateados DINAMICAMENTE.
+        """
+        
+        # --- 1. Custos Diretos da Viagem ---
+        # Soma despesas como pedágio, alimentação, hospedagem, etc., registradas na viagem.
+        custos_diretos_viagem = 0
+        if self.custo_viagem:
+            custos_diretos_viagem = (self.custo_viagem.pedagios or 0) + \
+                                    (self.custo_viagem.alimentacao or 0) + \
+                                    (self.custo_viagem.hospedagem or 0) + \
+                                    (self.custo_viagem.outros or 0)
+
+        # Soma o custo real de todos os abastecimentos registrados para esta viagem.
+        custo_combustivel_real = sum(abast.custo_total for abast in self.abastecimentos)
+
+        
+        custo_desgaste_veiculo = 0
+        if self.veiculo_id and self.distancia_percorrida > 0:
+            # Calcula o custo fixo médio por KM com base no histórico do veículo
+            custo_fixo_km = calcular_custo_fixo_por_km(self.veiculo_id)
+            # Calcula o custo de manutenção médio por KM com base no histórico do veículo
+            custo_manutencao_km = calcular_custo_manutencao_por_km(self.veiculo_id)
+            
+            # Multiplica a média de custo pela distância real percorrida na viagem
+            custo_desgaste_veiculo = self.distancia_percorrida * (custo_fixo_km + custo_manutencao_km)
+
+        # Custo do Motorista, com lógica flexível para pagamento variável ou fixo.
+        custo_motorista = 0
+        if self.custo_motorista_variavel and self.custo_motorista_variavel > 0:
+            # Se houver um custo variável registrado (ex: frete por tonelada), usa-o.
+            custo_motorista = self.custo_motorista_variavel
+        elif self.motorista_formal and self.duracao_segundos and self.duracao_segundos > 0:
+            # Senão, calcula com base no salário fixo (para viagens normais).
+            salario_base = self.motorista_formal.salario_base or 0.0
+            custo_hora_motorista = salario_base / 220  # Custo por hora, considerando 220h/mês
+            duracao_horas = self.duracao_segundos / 3600
+            custo_motorista = duracao_horas * custo_hora_motorista
+
+        # --- 3. Soma Total ---
+        # Soma todos os componentes para obter o custo real completo.
+        custo_total = custos_diretos_viagem + custo_combustivel_real + custo_desgaste_veiculo + custo_motorista
+        
+        return custo_total
+
+    @property
+    def lucro_real(self):
+        """Calcula o lucro real com base no custo completo."""
+        if self.valor_recebido is None:
+            # Se não houver receita, o "lucro" é negativo, igual ao custo total.
+            return -self.custo_real_completo
+        return self.valor_recebido - self.custo_real_completo
+    @property
+    def lucro_real(self):
+        """Calcula o lucro real com base no custo completo."""
+        if self.valor_recebido is None:
+            # Se não houver receita, o "lucro" é negativo, igual ao custo total.
+            return -self.custo_real_completo
+        return self.valor_recebido - self.custo_real_completo
+    @property
+    def lucro_real(self):
+        """Calcula o lucro real com base no custo completo."""
+        if self.valor_recebido is None:
+            # Se não houver receita, o "lucro" é negativo, igual ao custo total.
+            return -self.custo_real_completo
+        return self.valor_recebido - self.custo_real_completo
+    
+
+def get_distancia_total_periodo(veiculo_id, dias=365):
+    """
+    Calcula o total de KM percorridos por um veículo em viagens concluídas
+    nos últimos X dias.
+    """
+    try:
+        data_limite = datetime.utcnow() - timedelta(days=dias)
+        
+        # Soma a 'distancia_percorrida' (odometro_final - odometro_inicial) de todas as viagens no período.
+        distancia_query = db.session.query(
+            func.sum(Viagem.odometro_final - Viagem.odometro_inicial)
+        ).filter(
+            Viagem.veiculo_id == veiculo_id,
+            Viagem.status == 'concluida',
+            Viagem.data_fim >= data_limite,
+            Viagem.odometro_final.isnot(None),
+            Viagem.odometro_inicial.isnot(None)
+        ).scalar()
+        
+        return distancia_query or 0.0
+    except Exception as e:
+        logger.error(f"Erro ao calcular distância total para veículo {veiculo_id}: {e}", exc_info=True)
+        return 0.0
+    
+
+def calcular_custo_manutencao_por_km(veiculo_id, dias=365):
+    """
+    Calcula o custo médio de manutenção por KM para um veículo.
+    Custo Total de Manutenções / KM Totais Rodados no período.
+    """
+    # 1. Calcula o custo total de manutenções concluídas no período.
+    data_limite = datetime.utcnow() - timedelta(days=dias)
+    custo_total_manutencoes = db.session.query(
+        func.sum(Manutencao.custo_total)
+    ).filter(
+        Manutencao.veiculo_id == veiculo_id,
+        Manutencao.status == 'Concluída',
+        Manutencao.data_saida >= data_limite
+    ).scalar() or 0.0
+
+    # 2. Pega a distância total rodada no mesmo período.
+    distancia_total = get_distancia_total_periodo(veiculo_id, dias)
+
+    # 3. Calcula a média e retorna (evitando divisão por zero).
+    if distancia_total > 0:
+        return custo_total_manutencoes / distancia_total
+    return 0.0
+
+def calcular_custo_fixo_por_km(veiculo_id, dias=365):
+    """
+    Calcula o custo médio de despesas fixas (IPVA, Seguro) por KM.
+    Custo Total de Despesas Fixas / KM Totais Rodados no período.
+    """
+    # 1. Calcula o custo total de despesas diversas (fixas) no período.
+    data_limite = (datetime.utcnow() - timedelta(days=dias)).date()
+    custo_total_fixo = db.session.query(
+        func.sum(DespesaVeiculo.valor)
+    ).filter(
+        DespesaVeiculo.veiculo_id == veiculo_id,
+        DespesaVeiculo.data >= data_limite
+    ).scalar() or 0.0
+
+    # 2. Pega a distância total rodada no mesmo período.
+    distancia_total = get_distancia_total_periodo(veiculo_id, dias)
+    
+    # 3. Calcula a média e retorna.
+    if distancia_total > 0:
+        return custo_total_fixo / distancia_total
+    return 0.0
+
+
+@app.route('/lancar_frete_rapido', methods=['POST'])
+@login_required
+def lancar_frete_rapido():
+    try:
+        # 1. Obter todos os dados do formulário de frete
+        data_str = request.form.get('data')
+        veiculo_id = request.form.get('veiculo_id')
+        motorista_id = request.form.get('motorista_id')
+        cliente = request.form.get('cliente')
+        origem = request.form.get('origem')
+        material = request.form.get('material')
+        peso = float(request.form.get('peso_toneladas'))
+        valor_frete_total = float(request.form.get('valor_frete_total'))
+        valor_por_tonelada_motorista = float(request.form.get('valor_por_tonelada_motorista'))
+        
+        # 2. Calcular o pagamento variável do motorista para esta viagem específica
+        pagamento_motorista = peso * valor_por_tonelada_motorista
+
+        # 3. Criar o objeto Viagem com os novos campos preenchidos
+        novo_frete = Viagem(
+            motorista_id=int(motorista_id),
+            veiculo_id=int(veiculo_id),
+            cliente=cliente,
+            valor_recebido=valor_frete_total,
+            endereco_saida=origem,
+            endereco_destino=cliente, # Simplificando, o destino é a empresa cliente
+            data_inicio=datetime.strptime(data_str, '%Y-%m-%d'),
+            status='concluida', # Lançamentos de frete já entram como concluídos
+            observacoes=f"Material: {material}", # Usamos observações para o material
+            empresa_id=current_user.empresa_id,
+            # Preenchendo os novos campos do banco de dados:
+            peso_toneladas=peso,
+            custo_motorista_variavel=pagamento_motorista
+        )
+        
+        db.session.add(novo_frete)
+        db.session.commit()
+        
+        flash('Frete lançado com sucesso!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao lançar frete rápido: {e}", exc_info=True)
+        flash(f'Erro ao lançar frete: {e}', 'error')
+        
+    return redirect(url_for('iniciar_viagem_page'))
+
+@app.route('/financeiro/folha_pagamento')
+@login_required
+@master_required # Apenas Admins e Masters podem ver
+def folha_pagamento_dashboard():
+    hoje = date.today()
+    
+    # Filtros
+    mes_filtro = request.args.get('mes', hoje.month, type=int)
+    ano_filtro = request.args.get('ano', hoje.year, type=int)
+    motorista_filtro = request.args.get('search', '').strip()
+
+    query = FolhaPagamento.query.filter(
+        FolhaPagamento.empresa_id == current_user.empresa_id,
+        FolhaPagamento.mes_referencia == mes_filtro,
+        FolhaPagamento.ano_referencia == ano_filtro
+    ).join(Motorista)
+
+    if motorista_filtro:
+        query = query.filter(Motorista.nome.ilike(f'%{motorista_filtro}%'))
+    
+    folhas = query.order_by(Motorista.nome).all()
+    
+    return render_template('folha_pagamento_dashboard.html', 
+                           folhas=folhas,
+                           mes_filtro=mes_filtro,
+                           ano_filtro=ano_filtro,
+                           search_query=motorista_filtro,
+                           active_page='folha_pagamento')
+
+def calcular_consumo_medio_real(veiculo_id, periodo_dias=90):
+    """
+    Calcula o consumo médio real (km/l) de um veículo com base no histórico
+    de abastecimentos nos últimos 'periodo_dias'.
+    """
+    try:
+        # 1. Define o período de análise (padrão: últimos 90 dias)
+        data_limite = datetime.utcnow() - timedelta(days=periodo_dias)
+
+        # 2. Busca todos os abastecimentos do veículo no período, ordenados pelo odômetro
+        abastecimentos = Abastecimento.query.filter(
+            Abastecimento.veiculo_id == veiculo_id,
+            Abastecimento.data_abastecimento >= data_limite
+        ).order_by(Abastecimento.odometro.asc()).all()
+
+        # 3. Se não houver pelo menos 2 registros, não é possível calcular a média
+        if len(abastecimentos) < 2:
+            return 0.0  # Retorna 0 se não houver dados suficientes
+
+        total_km_rodados = 0.0
+        total_litros_consumidos = 0.0
+
+        # 4. Itera entre os abastecimentos para calcular a distância e o consumo por trecho
+        for i in range(len(abastecimentos) - 1):
+            abastecimento_anterior = abastecimentos[i]
+            abastecimento_atual = abastecimentos[i+1]
+
+            # Distância percorrida entre os dois abastecimentos
+            distancia_trecho = abastecimento_atual.odometro - abastecimento_anterior.odometro
+            
+            # Consideramos que os litros do abastecimento ANTERIOR foram consumidos neste trecho
+            litros_trecho = abastecimento_anterior.litros
+
+            if distancia_trecho > 0 and litros_trecho > 0:
+                total_km_rodados += distancia_trecho
+                total_litros_consumidos += litros_trecho
+
+        # 5. Calcula a média final
+        if total_litros_consumidos > 0:
+            media_consumo = total_km_rodados / total_litros_consumidos
+            return media_consumo
+        
+        return 0.0
+
+    except Exception as e:
+        logger.error(f"Erro ao calcular consumo médio para veiculo {veiculo_id}: {e}", exc_info=True)
+        return 0.0 # Retorna 0 em caso de erro
+
+def obter_preco_medio_combustivel_recente(empresa_id, default=5.80, limit=20):
+    """
+    Busca a média de preço por litro dos últimos 'limit' abastecimentos da empresa.
+    """
+    try:
+        # Busca o preço médio diretamente no banco de dados
+        preco_medio_query = db.session.query(
+            func.avg(Abastecimento.preco_por_litro)
+        ).join(Veiculo).filter(
+            Veiculo.empresa_id == empresa_id
+        ).scalar()
+
+        # Se houver um resultado, retorna ele. Senão, usa o valor padrão.
+        return preco_medio_query if preco_medio_query else default
+    except Exception as e:
+        logger.error(f"Erro ao obter preço médio do combustível para empresa {empresa_id}: {e}")
+        return default
+    
+
+def calcular_consumo_medio_real(veiculo_id, periodo_dias=90):
+    """
+    Calcula o consumo médio real (km/l) de um veículo com base no histórico
+    de abastecimentos nos últimos 'periodo_dias'.
+    """
+    try:
+        data_limite = datetime.utcnow() - timedelta(days=periodo_dias)
+
+        abastecimentos = Abastecimento.query.filter(
+            Abastecimento.veiculo_id == veiculo_id,
+            Abastecimento.data_abastecimento >= data_limite
+        ).order_by(Abastecimento.odometro.asc()).all()
+
+        if len(abastecimentos) < 2:
+            return 0.0
+
+        total_km_rodados = 0.0
+        total_litros_consumidos = 0.0
+
+        for i in range(len(abastecimentos) - 1):
+            abastecimento_anterior = abastecimentos[i]
+            abastecimento_atual = abastecimentos[i+1]
+
+            distancia_trecho = abastecimento_atual.odometro - abastecimento_anterior.odometro
+            litros_trecho = abastecimento_anterior.litros
+
+            if distancia_trecho > 0 and litros_trecho > 0:
+                total_km_rodados += distancia_trecho
+                total_litros_consumidos += litros_trecho
+
+        if total_litros_consumidos > 0:
+            media_consumo = total_km_rodados / total_litros_consumidos
+            return media_consumo
+        
+        return 0.0
+
+    except Exception as e:
+        logger.error(f"Erro ao calcular consumo médio para veiculo {veiculo_id}: {e}", exc_info=True)
+        return 0.0
+
+def obter_preco_medio_combustivel_recente(empresa_id, default=5.80):
+    """
+    Busca a média de preço por litro dos últimos abastecimentos da empresa.
+    """
+    try:
+        preco_medio_query = db.session.query(
+            func.avg(Abastecimento.preco_por_litro)
+        ).join(Veiculo).filter(
+            Veiculo.empresa_id == empresa_id
+        ).scalar()
+
+        return float(preco_medio_query) if preco_medio_query else default
+    except Exception as e:
+        logger.error(f"Erro ao obter preço médio do combustível para empresa {empresa_id}: {e}")
+        return default
+
+# --- Rota Principal da API de Estimativa ---
+
+@app.route('/api/viagem/estimar_custo', methods=['POST'])
+@login_required
+def estimar_custo_viagem_api():
+    """
+    API para estimar o custo total de uma viagem (Combustível + Motorista + Desgaste do Veículo).
+    Utiliza dados históricos para maior precisão.
+    """
+    try:
+        data = request.get_json()
+        veiculo_id = data.get('veiculo_id')
+        motorista_id = data.get('motorista_id')
+        distancia_km = data.get('distancia_km')
+        duracao_segundos = data.get('duracao_segundos')
+
+        if not all([veiculo_id, motorista_id, distancia_km is not None, duracao_segundos is not None]):
+            return jsonify({'success': False, 'message': 'Dados insuficientes para estimar o custo.'}), 400
+
+        veiculo = db.session.get(Veiculo, int(veiculo_id))
+        motorista = db.session.get(Motorista, int(motorista_id))
+
+        if not veiculo or not motorista:
+            return jsonify({'success': False, 'message': 'Veículo ou motorista não encontrado.'}), 404
+
+        # 1. Custo de Combustível (Lógica Inteligente com Fallback)
+        consumo_real = calcular_consumo_medio_real(veiculo.id)
+        consumo_a_ser_usado = consumo_real or veiculo.consumo_medio_km_l or 1.0
+        preco_combustivel_para_calculo = obter_preco_medio_combustivel_recente(current_user.empresa_id)
+        
+        litros_estimados = distancia_km / consumo_a_ser_usado
+        custo_combustivel = litros_estimados * preco_combustivel_para_calculo
+
+        # 2. Custo do Motorista (Rateado por hora)
+        salario_base = motorista.salario_base or 0.0
+        custo_hora_motorista = salario_base / 220  # Custo/hora considerando 220h/mês
+        duracao_horas = duracao_segundos / 3600
+        custo_motorista = duracao_horas * custo_hora_motorista
+
+        # 3. Custo Fixo e Manutenção do Veículo (Rateado por KM)
+        # Estes valores são placeholders. No futuro, podem ser substituídos por
+        # funções que calculam a média real com base nos modelos Manutencao e DespesaVeiculo.
+        CUSTO_FIXO_POR_KM = 0.55       # Ex: IPVA, Seguro, etc.
+        CUSTO_MANUTENCAO_POR_KM = 0.40 # Ex: Pneus, óleo, peças de desgaste.
+        custo_desgaste_veiculo = (CUSTO_FIXO_POR_KM + CUSTO_MANUTENCAO_POR_KM) * distancia_km
+
+        # 4. Totalização dos custos
+        custo_total_estimado = custo_combustivel + custo_motorista + custo_desgaste_veiculo
+
+        # 5. Retorno dos dados em formato JSON para o Frontend
+        return jsonify({
+            'success': True,
+            'custos': {
+                'combustivel': round(custo_combustivel, 2),
+                'motorista': round(custo_motorista, 2),
+                'veiculo': round(custo_desgaste_veiculo, 2),
+                'total': round(custo_total_estimado, 2)
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Erro na API de estimar custo: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Ocorreu um erro interno: {e}'}), 500
+
+
+
+
+@app.route('/financeiro/folha_pagamento/gerar', methods=['POST'])
+@login_required
+@master_required
+def gerar_folhas_mes():
+    mes = request.form.get('mes', type=int)
+    ano = request.form.get('ano', type=int)
+
+    if not mes or not ano:
+        flash('Mês e Ano são obrigatórios para gerar as folhas.', 'error')
+        return redirect(url_for('folha_pagamento_dashboard'))
+
+    motoristas_ativos = Motorista.query.filter_by(empresa_id=current_user.empresa_id, situacao='NORMAL / LIBERADO').all()
+    criadas = 0
+    atualizadas = 0
+    
+    for motorista in motoristas_ativos:
+        folha = FolhaPagamento.query.filter_by(
+            motorista_id=motorista.id,
+            mes_referencia=mes,
+            ano_referencia=ano
+        ).first()
+
+        if not folha:
+            folha = FolhaPagamento(
+                motorista_id=motorista.id,
+                empresa_id=current_user.empresa_id,
+                mes_referencia=mes,
+                ano_referencia=ano,
+                salario_base_registro=motorista.salario_base or 0.0,
+                status='Em Aberto'
+            )
+            db.session.add(folha)
+            db.session.flush()
+            criadas += 1
+        elif folha.status != 'Em Aberto':
+            continue
+        else:
+            atualizadas += 1
+
+        viagens_do_mes = Viagem.query.filter(
+            Viagem.motorista_id == motorista.id,
+            Viagem.status == 'concluida',
+            Viagem.custo_motorista_variavel > 0,
+            extract('month', Viagem.data_inicio) == mes,
+            extract('year', Viagem.data_inicio) == ano
+        ).all()
+
+        for viagem in viagens_do_mes:
+            item_existente = ItemFolhaPagamento.query.filter_by(
+                folha_pagamento_id=folha.id,
+                viagem_id=viagem.id
+            ).first()
+
+            if not item_existente:
+                novo_provento = ItemFolhaPagamento(
+                    folha_pagamento_id=folha.id,
+                    tipo='Provento',
+                    descricao=f"Frete: {viagem.cliente} ({viagem.data_inicio.strftime('%d/%m')})",
+                    valor=viagem.custo_motorista_variavel,
+                    viagem_id=viagem.id
+                )
+                db.session.add(novo_provento)
+        
+        folha.recalcular_totais()
+            
+    try:
+        db.session.commit()
+        flash(f'{criadas} folha(s) criada(s) e {atualizadas} atualizada(s) com os fretes do mês.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao gerar/atualizar folhas de pagamento: {e}', 'error')
+        
+    return redirect(url_for('folha_pagamento_dashboard', mes=mes, ano=ano))
+
+
+@app.route('/financeiro/folha_pagamento/<int:folha_id>', methods=['GET', 'POST'])
+@login_required
+@master_required
+def detalhes_folha_pagamento(folha_id):
+    folha = FolhaPagamento.query.options(
+        db.joinedload(FolhaPagamento.motorista)
+    ).filter_by(id=folha_id, empresa_id=current_user.empresa_id).first_or_404()
+
+    if request.method == 'POST':
+        if folha.status != 'Em Aberto':
+            flash('Esta folha de pagamento está fechada e não pode ser editada.', 'error')
+            return redirect(url_for('detalhes_folha_pagamento', folha_id=folha.id))
+
+        # Deleta itens antigos para recriar
+        folha.itens.delete()
+
+        # Processa Proventos
+        i = 1
+        while f'provento_descricao_{i}' in request.form:
+            descricao = request.form[f'provento_descricao_{i}']
+            valor = request.form.get(f'provento_valor_{i}', type=float)
+            if descricao and valor is not None:
+                item = ItemFolhaPagamento(folha_pagamento_id=folha.id, tipo='Provento', descricao=descricao, valor=valor)
+                db.session.add(item)
+            i += 1
+        
+        # Processa Descontos
+        i = 1
+        while f'desconto_descricao_{i}' in request.form:
+            descricao = request.form[f'desconto_descricao_{i}']
+            valor = request.form.get(f'desconto_valor_{i}', type=float)
+            if descricao and valor is not None:
+                item = ItemFolhaPagamento(folha_pagamento_id=folha.id, tipo='Desconto', descricao=descricao, valor=valor)
+                db.session.add(item)
+            i += 1
+
+        folha.salario_base_registro = request.form.get('salario_base', type=float, default=0.0)
+        folha.observacoes = request.form.get('observacoes')
+        folha.recalcular_totais()
+        
+        # Lógica de Ações (Salvar, Fechar, Pagar)
+        action = request.form.get('action')
+        if action == 'fechar':
+            folha.status = 'Fechada'
+            folha.data_fechamento = datetime.utcnow()
+            flash_msg = 'Folha de pagamento fechada com sucesso!'
+        elif action == 'pagar':
+            folha.status = 'Paga'
+            folha.data_pagamento = datetime.strptime(request.form.get('data_pagamento'), '%Y-%m-%d')
+            folha.meio_pagamento = request.form.get('meio_pagamento')
+            # Lógica de upload de comprovante aqui (se necessário)
+            flash_msg = 'Folha de pagamento marcada como paga!'
+        else: # Salvar
+            flash_msg = 'Alterações salvas com sucesso!'
+        
+        try:
+            db.session.commit()
+            flash(flash_msg, 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao salvar: {e}', 'error')
+
+        return redirect(url_for('detalhes_folha_pagamento', folha_id=folha.id))
+
+    proventos = folha.itens.filter_by(tipo='Provento').all()
+    descontos = folha.itens.filter_by(tipo='Desconto').all()
+    
+    return render_template('detalhes_folha_pagamento.html', 
+                           folha=folha,
+                           proventos=proventos,
+                           descontos=descontos,
+                           active_page='folha_pagamento')
+
+
+@app.route('/financeiro/folha_pagamento/<int:folha_id>/holerite')
+@login_required
+@master_required
+def gerar_holerite(folha_id):
+    folha = FolhaPagamento.query.filter_by(id=folha_id, empresa_id=current_user.empresa_id).first_or_404()
+    proventos = folha.itens.filter_by(tipo='Provento').all()
+    descontos = folha.itens.filter_by(tipo='Desconto').all()
+    
+    return render_template('holerite.html', 
+                           folha=folha,
+                           proventos=proventos,
+                           descontos=descontos)
+
+class DespesaVeiculo(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculo.id'), nullable=False)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
+    data = db.Column(db.Date, nullable=False, default=date.today)
+    
+    # Categoria: 'IPVA', 'Seguro', 'Multa', 'Salário Fixo', 'Pneus', 'Outros'
+    categoria = db.Column(db.String(100), nullable=False, index=True)
+    descricao = db.Column(db.Text, nullable=True)
+    valor = db.Column(db.Float, nullable=False)
+    
+    # Armazenará URLs dos comprovantes, separadas por vírgula
+    anexos = db.Column(db.String(1024), nullable=True) 
+
+    veiculo = db.relationship('Veiculo', backref=db.backref('despesas_diversas', lazy=True, cascade="all, delete-orphan"))
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "data": self.data.strftime('%d/%m/%Y'),
+            "categoria": self.categoria,
+            "descricao": self.descricao,
+            "valor": self.valor,
+            "anexos": self.anexos.split(',') if self.anexos else []
+        }
+    
 class Localizacao(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     motorista_id = db.Column(db.Integer, db.ForeignKey('motorista.id'), nullable=False)
@@ -442,34 +1278,164 @@ class Localizacao(db.Model):
     endereco = db.Column(db.String(200), nullable=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
-from functools import wraps
+class Documento(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Informações do Documento
+    tipo_documento = db.Column(db.String(100), nullable=False, index=True) # Ex: CNH, CRLV, ANTT, Seguro
+    descricao = db.Column(db.String(255), nullable=True) # Ex: Apólice de Seguro XYZ
+    numero_documento = db.Column(db.String(100), nullable=True)
+    data_emissao = db.Column(db.Date, nullable=True)
+    data_validade = db.Column(db.Date, nullable=False, index=True) # Essencial para os alertas
+    url_anexo = db.Column(db.String(500), nullable=True) # Link para o arquivo no Cloudflare R2
+    
+    # Chaves estrangeiras para ligar o documento a outras partes do sistema
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
+    
+    # Relacionamento: Um documento pertence ou a um motorista OU a um veículo
+    motorista_id = db.Column(db.Integer, db.ForeignKey('motorista.id'), nullable=True)
+    veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculo.id'), nullable=True)
 
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin:
-            flash('Acesso restrito ao administrador.', 'error')
-            return redirect(url_for('index'))
-        return f(*args, **kwargs)
-    return decorated_function
+    # Relacionamentos para facilitar o acesso aos objetos
+    motorista = db.relationship('Motorista', backref=db.backref('documentos', lazy=True, cascade="all, delete-orphan"))
+    veiculo = db.relationship('Veiculo', backref=db.backref('documentos', lazy=True, cascade="all, delete-orphan"))
 
-def owner_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or current_user.role != 'Owner':
-            flash('Acesso restrito ao proprietário do sistema.', 'error')
-            return redirect(url_for('index'))
-        return f(*args, **kwargs)
-    return decorated_function
+    def __repr__(self):
+        return f'<Documento {self.id} - {self.tipo_documento}>'    
 
-def master_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or (current_user.role not in ['Admin', 'Master']):
-            flash('Acesso restrito a administradores ou masters.', 'error')
-            return redirect(url_for('index'))
-        return f(*args, **kwargs)
-    return decorated_function
+
+
+
+def parse_nfe_xml(xml_file):
+    """
+    Extrai dados de um arquivo XML de NF-e, incluindo informações
+    detalhadas do cliente e da viagem.
+    """
+    try:
+        xml_file.seek(0)
+        tree = ET.parse(xml_file)
+        root = tree.getroot()
+        ns = {'nfe': 'http://www.portalfiscal.inf.br/nfe'}
+
+        # --- Dados do Destinatário (Cliente) ---
+        dest_element = root.find('.//nfe:dest', ns)
+        if dest_element is None: return None
+        
+        ender_dest = dest_element.find('nfe:enderDest', ns)
+        
+        # Determina se é CNPJ ou CPF
+        cpf_cnpj_node = dest_element.find('nfe:CNPJ', ns)
+        pessoa_tipo = 'juridica'
+        if cpf_cnpj_node is None:
+            cpf_cnpj_node = dest_element.find('nfe:CPF', ns)
+            pessoa_tipo = 'fisica'
+        
+        cpf_cnpj = cpf_cnpj_node.text if cpf_cnpj_node is not None else None
+
+        cpf_cnpj_limpo = re.sub(r'\D', '', cpf_cnpj) if cpf_cnpj else ''
+        # Coleta todos os dados do cliente
+        cliente_info = {
+                'pessoa_tipo': pessoa_tipo,
+                'cpf_cnpj': cpf_cnpj_limpo if cpf_cnpj_limpo else None,
+                'nome_razao_social': dest_element.find('nfe:xNome', ns).text,
+                'inscricao_estadual': getattr(dest_element.find('nfe:IE', ns), 'text', None),
+                'logradouro': ender_dest.find('nfe:xLgr', ns).text,
+                'numero': ender_dest.find('nfe:nro', ns).text,
+                'complemento': getattr(ender_dest.find('nfe:xCpl', ns), 'text', None),
+                'bairro': ender_dest.find('nfe:xBairro', ns).text,
+                'cidade': ender_dest.find('nfe:xMun', ns).text,
+                'estado': ender_dest.find('nfe:UF', ns).text,
+                'cep': re.sub(r'\D', '', ender_dest.find('nfe:CEP', ns).text),
+                'email': f"{cpf_cnpj_limpo}@email.xml", # <-- Agora esta linha funciona
+                'telefone': '00000000000'
+        }
+
+        # --- Dados do Emissor (Endereço de Saída) ---
+        emit_element = root.find('.//nfe:emit', ns)
+        ender_emit = emit_element.find('nfe:enderEmit', ns)
+        saida_rua = ender_emit.find('nfe:xLgr', ns).text
+        saida_num = ender_emit.find('nfe:nro', ns).text
+        saida_bairro = ender_emit.find('nfe:xBairro', ns).text
+        saida_cidade = ender_emit.find('nfe:xMun', ns).text
+        saida_uf = ender_emit.find('nfe:UF', ns).text
+        endereco_saida_completo = f"{saida_rua}, {saida_num} - {saida_bairro}, {saida_cidade} - {saida_uf}"
+
+        # --- Dados da Viagem ---
+        viagem_info = {
+            "cliente": cliente_info['nome_razao_social'],
+            "endereco_saida": endereco_saida_completo,
+            "endereco_destino": f"{cliente_info['logradouro']}, {cliente_info['numero']} - {cliente_info['bairro']}, {cliente_info['cidade']} - {cliente_info['estado']}",
+            "nome_arquivo": getattr(xml_file, 'filename', 'N/A')
+        }
+
+        return {
+            "viagem_info": viagem_info,
+            "cliente_info": cliente_info
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao processar XML: {e}", exc_info=True)
+        return None
+
+@app.route('/veiculo/<int:veiculo_id>/lancar_despesa_diversa', methods=['POST'])
+@login_required
+def lancar_despesa_diversa(veiculo_id):
+    """
+    Recebe os dados do formulário de lançamento rápido do dashboard do veículo.
+    """
+    veiculo = Veiculo.query.filter_by(id=veiculo_id, empresa_id=current_user.empresa_id).first_or_404()
+    
+    try:
+        # Cria uma nova instância do modelo DespesaVeiculo com os dados do formulário
+        nova_despesa = DespesaVeiculo(
+            veiculo_id=veiculo.id,
+            empresa_id=current_user.empresa_id,
+            data=datetime.strptime(request.form['data'], '%Y-%m-%d').date(),
+            categoria=request.form['categoria'],
+            descricao=request.form.get('descricao', ''),
+            valor=float(request.form['valor'])
+        )
+
+        # Lógica para Upload de Anexos
+        urls_anexos = []
+        files = request.files.getlist('anexos')
+        if files and any(f and f.filename for f in files):
+            s3_client = boto3.client(
+                's3',
+                endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+                aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+                aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
+                region_name='auto'
+            )
+            bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
+            public_url_base = app.config['CLOUDFLARE_R2_PUBLIC_URL']
+
+            for file in files:
+                if file and file.filename: # Checagem extra
+                    filename = secure_filename(file.filename)
+                    s3_path = f"despesas_veiculo/{veiculo.id}/{uuid.uuid4()}-{filename}"
+                    
+                    s3_client.upload_fileobj(
+                        file, bucket_name, s3_path,
+                        ExtraArgs={'ContentType': file.content_type or 'application/octet-stream'}
+                    )
+                    urls_anexos.append(f"{public_url_base}/{s3_path}")
+        
+        if urls_anexos:
+            nova_despesa.anexos = ",".join(urls_anexos)
+
+        # Adiciona e salva a nova despesa no banco de dados
+        db.session.add(nova_despesa)
+        db.session.commit()
+        flash('Despesa registrada com sucesso!', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao registrar despesa: {e}', 'error')
+        logger.error(f"Erro ao adicionar despesa para veiculo {veiculo_id}: {e}", exc_info=True)
+
+    # Redireciona de volta para o dashboard do veículo após o lançamento
+    return redirect(url_for('veiculo_dashboard', veiculo_id=veiculo_id))
 
 
 def validate_cpf_cnpj(cpf_cnpj, pessoa_tipo):
@@ -495,6 +1461,83 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     a = math.sin(delta_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
+
+@app.route('/painel')
+@login_required
+def painel():
+    """
+    Esta rota agora carrega o dashboard principal da sua aplicação.
+    Ela contém toda a lógica para buscar os dados das viagens e KPIs.
+    """
+    # Query base para buscar todas as viagens da empresa, já carregando dados relacionados
+    viagens_query = Viagem.query.filter_by(empresa_id=current_user.empresa_id).options(
+        db.joinedload(Viagem.veiculo),
+        db.joinedload(Viagem.motorista_formal)
+    ).order_by(Viagem.data_inicio.desc()).all()
+
+    # --- KPIs Operacionais ---
+    viagens_em_andamento_kpi = sum(1 for v in viagens_query if v.status == 'em_andamento')
+    viagens_pendentes_kpi = sum(1 for v in viagens_query if v.status == 'pendente')
+    veiculos_disponiveis_kpi = Veiculo.query.filter_by(empresa_id=current_user.empresa_id, status='Disponível').count()
+
+    # --- KPIs Financeiros (para o mês atual) ---
+    receita_mes = 0.0
+    custo_mes = 0.0
+
+    if current_user.role in ['Admin', 'Master']:
+        hoje = date.today()
+        viagens_do_mes = Viagem.query.filter(
+            extract('year', Viagem.data_inicio) == hoje.year,
+            extract('month', Viagem.data_inicio) == hoje.month,
+            Viagem.empresa_id == current_user.empresa_id,
+            Viagem.status == 'concluida'
+        ).options(db.joinedload(Viagem.custo_viagem), db.joinedload(Viagem.abastecimentos)).all()
+
+        for v in viagens_do_mes:
+            receita_mes += v.valor_recebido or 0.0
+            custo_despesas = 0
+            if v.custo_viagem:
+                custo_despesas = (v.custo_viagem.pedagios or 0) + (v.custo_viagem.alimentacao or 0) + (v.custo_viagem.hospedagem or 0) + (v.custo_viagem.outros or 0)
+            custo_abastecimento = sum(a.custo_total for a in v.abastecimentos)
+            custo_mes += custo_despesas + custo_abastecimento
+
+    lucro_mes = receita_mes - custo_mes
+    
+    # --- Processa a lista de viagens para exibir na página principal ---
+    viagens_para_template = []
+    for viagem in viagens_query:
+        motorista_nome = 'N/A'
+        if viagem.motorista_formal:
+            motorista_nome = viagem.motorista_formal.nome
+
+        destinos_list = sorted(
+            [{'endereco': d.endereco, 'ordem': d.ordem} for d in viagem.destinos],
+            key=lambda d: d.get('ordem', 0)
+        )
+
+        viagens_para_template.append({
+            'id': viagem.id,
+            'cliente': viagem.cliente,
+            'motorista_nome': motorista_nome,
+            'endereco_saida': viagem.endereco_saida,
+            'destinos': destinos_list,
+            'status': viagem.status,
+            'veiculo_placa': viagem.veiculo.placa if viagem.veiculo else 'N/A',
+            'veiculo_modelo': viagem.veiculo.modelo if viagem.veiculo else 'N/A',
+            'data_inicio': viagem.data_inicio,
+            'data_fim': viagem.data_fim
+        })
+
+    # Renderiza o template do painel, que agora se chama 'painel.html'
+    return render_template('painel.html',
+                           viagens=viagens_para_template,
+                           Maps_API_KEY=Maps_API_KEY,
+                           viagens_em_andamento=viagens_em_andamento_kpi,
+                           viagens_pendentes=viagens_pendentes_kpi,
+                           veiculos_disponiveis=veiculos_disponiveis_kpi,
+                           receita_mes=receita_mes,
+                           custo_mes=custo_mes,
+                           lucro_mes=lucro_mes)
 
 @app.route('/cadastrar_cliente', methods=['GET', 'POST'])
 @login_required
@@ -652,7 +1695,10 @@ def despesas_form_modal(viagem_id):
 @login_required
 def registrar_abastecimento():
     try:
-        motorista_formal = Motorista.query.filter_by(cpf_cnpj=current_user.cpf_cnpj).first()
+        # --- CORREÇÃO APLICADA AQUI ---
+        # A busca agora é feita pela coluna correta 'cpf' em vez da propriedade 'cpf_cnpj'
+        motorista_formal = Motorista.query.filter_by(cpf=current_user.cpf_cnpj).first()
+        
         if not motorista_formal:
              return jsonify({'success': False, 'message': 'Perfil de motorista formal não encontrado para o usuário atual.'}), 400
 
@@ -781,6 +1827,27 @@ def registrar_com_token(token):
 
     return render_template('registrar_token.html', email=convite.email, role=convite.role)
 
+def calcular_media_km_veiculo(veiculo_id):
+    """Calcula a média de KM rodados por dia para um veículo (versão corrigida para SQLite)."""
+    hoje = date.today()
+    data_limite = hoje - timedelta(days=90)
+    
+    # O cálculo (odometro_final - odometro_inicial) é feito diretamente no SQL.
+    resultado = db.session.query(
+        func.sum(Viagem.odometro_final - Viagem.odometro_inicial).label('total_km'),
+        func.count(func.distinct(func.date(Viagem.data_inicio))).label('dias_com_viagem')
+    ).filter(
+        Viagem.veiculo_id == veiculo_id,
+        Viagem.status == 'concluida',
+        Viagem.odometro_final.isnot(None),
+        Viagem.odometro_inicial.isnot(None),
+        Viagem.data_inicio >= data_limite
+    ).first()
+
+    if resultado and resultado.total_km and resultado.dias_com_viagem > 0:
+        return resultado.total_km / resultado.dias_com_viagem
+    
+    return 100 # Retorna um valor padrão de 100 km/dia se não houver dados
 
 def get_coordinates(endereco):
     url = 'https://maps.googleapis.com/maps/api/geocode/json'
@@ -944,6 +2011,8 @@ def calcular_rota_otimizada_ors(enderecos):
         logger.error(f"Erro inesperado no cálculo de rota ORS: {e}", exc_info=True)
         return None, None, None, None, f"Ocorreu um erro inesperado ao otimizar a rota: {e}"
     
+
+    
     
 @app.route('/api/ocr-process', methods=['POST'])
 @login_required
@@ -979,18 +2048,18 @@ def editar_viagem_page(viagem_id):
     viagem = Viagem.query.options(db.joinedload(Viagem.destinos)).filter_by(id=viagem_id, empresa_id=current_user.empresa_id).first_or_404()
 
     motoristas = Motorista.query.filter_by(empresa_id=current_user.empresa_id).order_by(Motorista.nome).all()
-    
-    veiculos_disponiveis = Veiculo.query.filter_by(disponivel=True, empresa_id=current_user.empresa_id).all()
+
+    # LINHA A SER CORRIGIDA:
+    veiculos_disponiveis = Veiculo.query.filter_by(status='Disponível', empresa_id=current_user.empresa_id).all() #
     veiculo_atual = db.session.get(Veiculo, viagem.veiculo_id)
     if veiculo_atual and veiculo_atual not in veiculos_disponiveis:
         veiculos_disponiveis.insert(0, veiculo_atual)
 
     return render_template('editar_viagem.html', 
-                           viagem=viagem,
-                           motoristas=motoristas, 
-                           veiculos=veiculos_disponiveis,
-                           ORS_API_KEY=OPENROUTESERVICE_API_KEY)
-
+                        viagem=viagem,
+                        motoristas=motoristas, 
+                        veiculos=veiculos_disponiveis,
+                        ORS_API_KEY=OPENROUTESERVICE_API_KEY)
 
 @app.route('/api/viagem/editar/<int:viagem_id>', methods=['POST'])
 @login_required
@@ -1217,169 +2286,41 @@ def api_viagens_nao_cobradas(cliente_id):
     return jsonify(viagens_data)
 
 @app.route('/')
-@login_required
 def index():
-    # --- LÓGICA DE FILTRAGEM E PROCESSAMENTO DE VIAGENS (EXISTENTE) ---
-    viagens_query = Viagem.query.filter_by(empresa_id=current_user.empresa_id).options(
-        db.joinedload(Viagem.veiculo),
-        db.joinedload(Viagem.motorista_formal)
-    ).order_by(Viagem.data_inicio.desc()).all()
 
-    # --- LÓGICA DE KPIs OPERACIONAIS (EXISTENTE) ---
-    viagens_em_andamento_kpi = sum(1 for v in viagens_query if v.status == 'em_andamento')
-    viagens_pendentes_kpi = sum(1 for v in viagens_query if v.status == 'pendente')
-    veiculos_disponiveis_kpi = Veiculo.query.filter_by(empresa_id=current_user.empresa_id, disponivel=True).count()
+    return render_template('index.html')
 
-    # --- LÓGICA DE KPIs FINANCEIROS (CORRIGIDA PARA POSTGRESQL) ---
-    receita_mes = 0.0
-    custo_mes = 0.0
-    lucro_mes = 0.0
-
-    if current_user.role in ['Admin', 'Master']:
-        hoje = date.today()
-        
-        # CORREÇÃO: Usando db.extract, que é compatível com PostgreSQL e outros bancos
-        viagens_do_mes = Viagem.query.filter(
-            extract('year', Viagem.data_inicio) == hoje.year,
-            extract('month', Viagem.data_inicio) == hoje.month,
-            Viagem.empresa_id == current_user.empresa_id,
-            Viagem.status == 'concluida'
-        ).options(
-            db.joinedload(Viagem.custo_viagem),
-            db.joinedload(Viagem.abastecimentos)
-        ).all()
-
-        for v in viagens_do_mes:
-            receita_mes += v.valor_recebido or 0.0
-            
-            custo_despesas = 0
-            if v.custo_viagem:
-                custo_despesas = (v.custo_viagem.pedagios or 0) + \
-                                 (v.custo_viagem.alimentacao or 0) + \
-                                 (v.custo_viagem.hospedagem or 0) + \
-                                 (v.custo_viagem.outros or 0)
-            
-            custo_abastecimento = sum(a.custo_total for a in v.abastecimentos)
-            custo_mes += custo_despesas + custo_abastecimento
-
-        lucro_mes = receita_mes - custo_mes
-    
-    # --- LÓGICA DE PROCESSAMENTO PARA LISTAS (EXISTENTE E INALTERADA) ---
-    viagens = []
-    for viagem in viagens_query:
-        motorista_nome = 'N/A'
-        if viagem.motorista_formal:
-            motorista_nome = viagem.motorista_formal.nome
-        elif viagem.motorista_cpf_cnpj:
-            usuario_motorista = Usuario.query.filter_by(
-                cpf_cnpj=viagem.motorista_cpf_cnpj,
-                empresa_id=current_user.empresa_id
-            ).first()
-            if usuario_motorista:
-                motorista_nome = f"{usuario_motorista.nome} {usuario_motorista.sobrenome}"
-
-        destinos_list = sorted(
-            [{'endereco': d.endereco, 'ordem': d.ordem} for d in viagem.destinos],
-            key=lambda d: d.get('ordem', 0)
-        )
-
-        viagens.append({
-            'id': viagem.id,
-            'cliente': viagem.cliente,
-            'motorista_nome': motorista_nome,
-            'endereco_saida': viagem.endereco_saida,
-            'destinos': destinos_list,
-            'status': viagem.status,
-            'veiculo_placa': viagem.veiculo.placa,
-            'veiculo_modelo': viagem.veiculo.modelo,
-            'data_inicio': viagem.data_inicio,
-            'data_fim': viagem.data_fim
-        })
-
-    # --- RENDERIZAÇÃO DO TEMPLATE ---
-    return render_template('index.html',
-                           viagens=viagens,
-                           Maps_API_KEY=Maps_API_KEY,
-                           viagens_em_andamento=viagens_em_andamento_kpi,
-                           viagens_pendentes=viagens_pendentes_kpi,
-                           veiculos_disponiveis=veiculos_disponiveis_kpi,
-                           receita_mes=receita_mes,
-                           custo_mes=custo_mes,
-                           lucro_mes=lucro_mes)
+# Em app.py, substitua a rota 'cadastrar_motorista' por esta versão completa
 
 @app.route('/cadastrar_motorista', methods=['GET', 'POST'])
-@login_required # --- CORREÇÃO --- Adicionado para garantir que 'current_user' esteja sempre disponível.
+@login_required
 def cadastrar_motorista():
     if request.method == 'POST':
-        nome = request.form.get('nome', '').strip()
-        data_nascimento = request.form.get('data_nascimento', '').strip()
-        
-        # --- INÍCIO DA COLETA DE ENDEREÇO MODIFICADA ---
-        cep = request.form.get('cep', '').strip()
-        logradouro = request.form.get('logradouro', '').strip()
-        numero = request.form.get('numero', '').strip()
-        complemento = request.form.get('complemento', '').strip() # Campo novo
-        bairro = request.form.get('bairro', '').strip()
-        cidade = request.form.get('cidade', '').strip()
-        estado = request.form.get('estado', '').strip().upper()
-
-        # Monta a string de endereço de forma mais robusta
-        endereco_parts = [f"{logradouro}, {numero}"]
-        if complemento:
-            endereco_parts.append(complemento)
-        endereco_parts.append(bairro)
-        endereco_parts.append(f"{cidade}/{estado}")
-        endereco_parts.append(f"CEP: {cep}")
-        endereco = " - ".join(endereco_parts)
-        # --- FIM DA COLETA DE ENDEREÇO MODIFICADA ---
-
-        pessoa_tipo = request.form.get('pessoa_tipo', '').strip()
-        cpf_cnpj = request.form.get('cpf_cnpj', '').strip()
-        rg = request.form.get('rg', '').strip() or None
-        telefone = request.form.get('telefone', '').strip()
-        cnh = request.form.get('cnh', '').strip()
-        validade_cnh = request.form.get('validade_cnh', '').strip()
-        files = request.files.getlist('anexos')
-
-        if not all([nome, data_nascimento, cep, logradouro, numero, bairro, cidade, estado, pessoa_tipo, cpf_cnpj, telefone, cnh, validade_cnh]):
-            flash('Todos os campos obrigatórios devem ser preenchidos.', 'error')
-            return redirect(url_for('cadastrar_motorista'))
-
         try:
-            data_nascimento = datetime.strptime(data_nascimento, '%Y-%m-%d').date()
-            validade_cnh = datetime.strptime(validade_cnh, '%Y-%m-%d').date()
-        except ValueError:
-            flash('Formato de data inválido.', 'error')
-            return redirect(url_for('cadastrar_motorista'))
+            # Validações iniciais (CPF, CNH)
+            cpf = re.sub(r'\D', '', request.form.get('cpf'))
+            cnh_numero = re.sub(r'\D', '', request.form.get('cnh_numero'))
 
-        if not validate_cpf_cnpj(cpf_cnpj, pessoa_tipo):
-            flash(f"{'CPF' if pessoa_tipo == 'fisica' else 'CNPJ'} inválido.", 'error')
-            return redirect(url_for('cadastrar_motorista'))
+            if Motorista.query.filter_by(cpf=cpf, empresa_id=current_user.empresa_id).first():
+                flash('Um motorista com este CPF já foi cadastrado.', 'error')
+                return render_template('cadastrar_motorista.html', motorista=request.form)
+            
+            if Motorista.query.filter_by(cnh_numero=cnh_numero, empresa_id=current_user.empresa_id).first():
+                flash('Um motorista com esta CNH já foi cadastrado.', 'error')
+                return render_template('cadastrar_motorista.html', motorista=request.form)
 
-        if not validate_telefone(telefone):
-            flash('Telefone inválido. Deve conter 10 ou 11 dígitos numéricos.', 'error')
-            return redirect(url_for('cadastrar_motorista'))
+            # --- INÍCIO DA CORREÇÃO 1: Lógica para múltiplos anexos e download ---
+            
+            anexos_urls = []
+            anexos_files = request.files.getlist("anexos")
 
-        if not validate_cnh(cnh):
-            flash('CNH inválida. Deve conter 11 dígitos numéricos.', 'error')
-            return redirect(url_for('cadastrar_motorista'))
+            if anexos_files and any(f.filename for f in anexos_files):
+                # Validação das credenciais do Cloudflare R2
+                bucket_name = app.config.get('CLOUDFLARE_R2_BUCKET')
+                if not bucket_name:
+                    flash('Erro de configuração: O nome do bucket do Cloudflare R2 não foi definido nas variáveis de ambiente.', 'error')
+                    return render_template('cadastrar_motorista.html', motorista=request.form)
 
-        if Motorista.query.filter_by(cpf_cnpj=cpf_cnpj, empresa_id=current_user.empresa_id).first():
-            flash('Um perfil de motorista com este CPF/CNPJ já foi cadastrado nesta empresa.', 'error')
-            return redirect(url_for('cadastrar_motorista'))
-        if Motorista.query.filter_by(cnh=cnh, empresa_id=current_user.empresa_id).first():
-            flash('Um perfil de motorista com esta CNH já foi cadastrado nesta empresa.', 'error')
-            return redirect(url_for('cadastrar_motorista'))
-
-        usuario_correspondente = Usuario.query.filter_by(
-            cpf_cnpj=cpf_cnpj,
-            empresa_id=current_user.empresa_id
-        ).first()
-
-        anexos_urls = []
-        allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png'}
-        if files and any(f.filename for f in files):
-            try:
                 s3_client = boto3.client(
                     's3',
                     endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
@@ -1387,60 +2328,110 @@ def cadastrar_motorista():
                     aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
                     region_name='auto'
                 )
-                bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
-
-                for file in files:
-                    if file and file.filename:
-                        extension = os.path.splitext(file.filename)[1].lower()
-                        if extension not in allowed_extensions:
-                            flash(f'Arquivo {file.filename} não permitido. Use PDF, JPG ou PNG.', 'error')
-                            continue
-
-                        filename = secure_filename(file.filename)
-                        s3_path = f"motoristas/{cpf_cnpj}/{filename}"
-
+                public_url_base = app.config['CLOUDFLARE_R2_PUBLIC_URL']
+                
+                for anexo_file in anexos_files:
+                    if anexo_file.filename:
+                        filename = secure_filename(anexo_file.filename)
+                        s3_path = f"motoristas/{cpf}/anexos/{uuid.uuid4()}-{filename}"
+                        
                         s3_client.upload_fileobj(
-                            file,
+                            anexo_file,
                             bucket_name,
                             s3_path,
                             ExtraArgs={
-                                'ContentType': file.content_type or 'application/octet-stream',
+                                'ContentType': anexo_file.content_type or 'application/octet-stream',
                                 'ContentDisposition': 'attachment'
                             }
                         )
-                        public_url = f"{app.config['CLOUDFLARE_R2_PUBLIC_URL']}/{s3_path}"
-                        anexos_urls.append(public_url)
-            except Exception as e:
-                flash(f'Erro ao fazer upload dos arquivos: {str(e)}', 'error')
-                return redirect(url_for('cadastrar_motorista'))
+                        anexos_urls.append(f"{public_url_base}/{s3_path}")
 
-        motorista = Motorista(
-            nome=nome,
-            data_nascimento=data_nascimento,
-            endereco=endereco,
-            pessoa_tipo=pessoa_tipo,
-            cpf_cnpj=cpf_cnpj,
-            rg=rg,
-            telefone=telefone,
-            cnh=cnh,
-            validade_cnh=validade_cnh,
-            anexos=','.join(anexos_urls) if anexos_urls else None,
-            empresa_id=current_user.empresa_id,
-            usuario_id=usuario_correspondente.id if usuario_correspondente else None
-        )
+            # --- FIM DA CORREÇÃO 1 ---
 
-        try:
-            db.session.add(motorista)
+            def to_date(date_string):
+                return datetime.strptime(date_string, '%Y-%m-%d').date() if date_string else None
+
+            usuario_correspondente = Usuario.query.filter_by(cpf_cnpj=cpf, empresa_id=current_user.empresa_id).first()
+
+            novo_motorista = Motorista(
+                empresa_id=current_user.empresa_id,
+                usuario_id=usuario_correspondente.id if usuario_correspondente else None,
+                nome=request.form.get('nome'),
+                telefone=re.sub(r'\D', '', request.form.get('telefone')),
+                cpf=cpf,
+                data_nascimento=to_date(request.form.get('data_nascimento')),
+                nacionalidade=request.form.get('nacionalidade'),
+                naturalidade=request.form.get('naturalidade'),
+                estado_civil=request.form.get('estado_civil'),
+                sexo=request.form.get('sexo'),
+                pai=request.form.get('pai'),
+                mae=request.form.get('mae'),
+                data_admissao=to_date(request.form.get('data_admissao')),
+                situacao=request.form.get('situacao'),
+                data_desativacao=to_date(request.form.get('data_desativacao')),
+                classificacao=request.form.get('classificacao'),
+                cod_departamento=request.form.get('cod_departamento'),
+                numero_ficha=request.form.get('numero_ficha'),
+                foto=None,
+                anexos=','.join(anexos_urls) if anexos_urls else None,
+                cep=re.sub(r'\D', '', request.form.get('cep')),
+                tipo_logradouro=request.form.get('tipo_logradouro'),
+                logradouro=request.form.get('logradouro'),
+                numero=request.form.get('numero'),
+                complemento=request.form.get('complemento'),
+                bairro=request.form.get('bairro'),
+                cidade=request.form.get('cidade'),
+                uf=request.form.get('uf'),
+                email=request.form.get('email'),
+                tipo_imovel=request.form.get('tipo_imovel'),
+                tempo_residencia=request.form.get('tempo_residencia'),
+                cnh_numero=cnh_numero,
+                cnh_data_primeira=to_date(request.form.get('cnh_data_primeira')),
+                cnh_data_vencimento=to_date(request.form.get('cnh_data_vencimento')),
+                cnh_categoria=request.form.get('cnh_categoria'),
+                cnh_cod_seguranca=request.form.get('cnh_cod_seguranca'),
+                rg=request.form.get('rg'),
+                rg_uf=request.form.get('rg_uf'),
+                pis=request.form.get('pis'),
+                inss=request.form.get('inss'),
+                titulo_eleitor=request.form.get('titulo_eleitor'),
+                ctps=request.form.get('ctps'),
+                funcao=request.form.get('funcao'),
+                mopp_numero=request.form.get('mopp_numero'),
+                mopp_vencimento=to_date(request.form.get('mopp_vencimento')),
+                contato_nome=request.form.get('contato_nome'),
+                contato_tipo_ref=request.form.get('contato_tipo_ref'),
+                contato_tipo_fone=request.form.get('contato_tipo_fone'),
+                contato_telefone=re.sub(r'\D', '', request.form.get('contato_telefone')),
+                contato_operadora=request.form.get('contato_operadora'),
+                contato_obs=request.form.get('contato_obs')
+            )
+            
+            db.session.add(novo_motorista)
             db.session.commit()
             flash('Motorista cadastrado com sucesso!', 'success')
             return redirect(url_for('consultar_motoristas'))
+
         except Exception as e:
             db.session.rollback()
-            flash(f'Erro ao cadastrar motorista: {str(e)}', 'error')
-            return redirect(url_for('cadastrar_motorista'))
+            logger.error(f"Erro ao cadastrar motorista: {e}", exc_info=True)
+            flash(f'Ocorreu um erro ao salvar o motorista: {e}', 'error')
+            return render_template('cadastrar_motorista.html', motorista=request.form)
 
-    return render_template('cadastrar_motorista.html', active_page='cadastrar_motorista')
+    return render_template('cadastrar_motorista.html', motorista={}, active_page='cadastrar_motorista')
 
+# Substitua sua função 'dateformat' por esta versão
+@app.template_filter('dateformat')
+def dateformat(value):
+    # --- INÍCIO DA CORREÇÃO 2: Filtro de data inteligente ---
+    if isinstance(value, (date, datetime)):
+        return value.strftime('%Y-%m-%d')
+    # Se o valor já for uma string (como ao recarregar o form após um erro),
+    # apenas o retorna sem tentar formatar.
+    if isinstance(value, str):
+        return value
+    return ''
+    # --- FIM DA CORREÇÃO 2 ---
 
 @app.route('/editar_cliente/<int:cliente_id>', methods=['GET', 'POST'])
 @login_required
@@ -1499,19 +2490,7 @@ def visualizar_nota_debito(cobranca_id):
         empresa=empresa_emissora,
         valor_extenso=valor_por_extenso
     )
-@app.route('/criar_admin')
-def criar_admin():
-    if not Usuario.query.filter_by(email='adminadmin@admin.com').first():
-        admin = Usuario(
-            nome='Admin',
-            sobrenome='Master',
-            email='adminadmin@admin.com'
-        )
-        admin.set_password('admin123')
-        db.session.add(admin)
-        db.session.commit()
-        return "Admin criado com sucesso"
-    return "Admin já existe"
+
 
 
 
@@ -1527,20 +2506,30 @@ def consultar_motoristas():
         query = query.filter(
             or_(
                 Motorista.nome.ilike(search_filter),
-                Motorista.cpf_cnpj.ilike(search_filter),
-                Motorista.cnh.ilike(search_filter)
+                Motorista.cpf.ilike(search_filter),
+                Motorista.cnh_numero.ilike(search_filter)
             )
         )
 
     motoristas_list = query.order_by(Motorista.nome.asc()).all()
 
-    # Adiciona o status a cada objeto motorista
+    # Adiciona o status e corrige a data da CNH para cada objeto motorista
     for motorista in motoristas_list:
+        # Define o status de viagem do motorista
         viagem_ativa = Viagem.query.filter(
             Viagem.motorista_id == motorista.id,
             Viagem.status == 'em_andamento'
         ).first()
         motorista.status = 'Em Viagem' if viagem_ativa else 'Disponível'
+
+        # --- INÍCIO DA CORREÇÃO ---
+        # Se a data de vencimento da CNH não estiver definida (for None),
+        # o template irá gerar um TypeError ao tentar comparar None < date.
+        # Para evitar isso, atribuímos temporariamente uma data máxima ao campo.
+        # Esta alteração não é persistida no banco de dados.
+        if motorista.cnh_data_vencimento is None:
+            motorista.cnh_data_vencimento = date.max
+        # --- FIM DA CORREÇÃO ---
 
     # Prepara os dados de data para o template
     contexto = {
@@ -1583,7 +2572,7 @@ def login():
         elif usuario.role == 'Motorista':
             return redirect(url_for('motorista_dashboard'))
         else:
-            return redirect(url_for('index'))
+            return redirect(url_for('painel'))
             
     return render_template('login.html')
 
@@ -1636,32 +2625,328 @@ def dateformat(value):
 @app.route('/editar_motorista/<int:motorista_id>', methods=['GET', 'POST'])
 @login_required
 def editar_motorista(motorista_id):
-    # CORREÇÃO: Garante que o admin só possa editar motoristas da sua empresa.
+    # Busca o motorista que pertence à empresa do usuário, ou retorna erro 404.
     motorista = Motorista.query.filter_by(id=motorista_id, empresa_id=current_user.empresa_id).first_or_404()
 
     if request.method == 'POST':
         try:
-            # Validação de dados (CPF/CNPJ, CNH, etc.) para evitar duplicatas.
-            # ...
+            # Coleta os dados do formulário
+            cpf = re.sub(r'\D', '', request.form.get('cpf', ''))
+            cnh_numero = re.sub(r'\D', '', request.form.get('cnh_numero', ''))
+
+            # --- PRINCÍPIO DE VALIDAÇÃO PARA EDIÇÃO APLICADO ---
+
+            # 1. Valida se o CPF informado já pertence a OUTRO motorista, ignorando o motorista atual.
+            motorista_com_mesmo_cpf = Motorista.query.filter(
+                Motorista.id != motorista_id,  # A CONDIÇÃO MAIS IMPORTANTE: Exclui o próprio registro da busca.
+                Motorista.cpf == cpf,
+                Motorista.empresa_id == current_user.empresa_id
+            ).first()
+
+            if motorista_com_mesmo_cpf:
+                flash('Erro: Este CPF já está cadastrado para outro motorista.', 'error')
+                return redirect(url_for('editar_motorista', motorista_id=motorista_id))
             
-            # Atualização dos campos do motorista.
-            motorista.nome = request.form.get('nome').strip()
-            motorista.data_nascimento = datetime.strptime(request.form.get('data_nascimento'), '%Y-%m-%d').date()
-            motorista.endereco = request.form.get('endereco').strip()
-            motorista.telefone = request.form.get('telefone').strip()
-            motorista.validade_cnh = datetime.strptime(request.form.get('validade_cnh'), '%Y-%m-%d').date()
+            # 2. Valida se a CNH informada já pertence a OUTRO motorista, aplicando o mesmo princípio.
+            motorista_com_mesma_cnh = Motorista.query.filter(
+                Motorista.id != motorista_id, # A CONDIÇÃO MAIS IMPORTANTE: Exclui o próprio registro da busca.
+                Motorista.cnh_numero == cnh_numero,
+                Motorista.empresa_id == current_user.empresa_id
+            ).first()
+
+            if motorista_com_mesma_cnh:
+                flash('Erro: Esta CNH já está cadastrada para outro motorista.', 'error')
+                return redirect(url_for('editar_motorista', motorista_id=motorista_id))
             
-            # Lógica para upload de novos anexos, se houver.
-            # ...
+            # --- FIM DA APLICAÇÃO DO PRINCÍPIO ---
+
+            def to_date(date_string):
+                return datetime.strptime(date_string, '%Y-%m-%d').date() if date_string else None
             
+            # Atualiza todos os campos do objeto motorista com os dados do formulário
+            motorista.nome = request.form.get('nome')
+            motorista.telefone = re.sub(r'\D', '', request.form.get('telefone', ''))
+            motorista.cpf = cpf
+            motorista.data_nascimento = to_date(request.form.get('data_nascimento'))
+            motorista.nacionalidade = request.form.get('nacionalidade')
+            motorista.naturalidade = request.form.get('naturalidade')
+            motorista.estado_civil = request.form.get('estado_civil')
+            motorista.sexo = request.form.get('sexo')
+            motorista.pai = request.form.get('pai')
+            motorista.mae = request.form.get('mae')
+            motorista.data_admissao = to_date(request.form.get('data_admissao'))
+            motorista.situacao = request.form.get('situacao')
+            motorista.data_desativacao = to_date(request.form.get('data_desativacao'))
+            motorista.classificacao = request.form.get('classificacao')
+            motorista.cod_departamento = request.form.get('cod_departamento')
+            motorista.numero_ficha = request.form.get('numero_ficha')
+            motorista.cep = re.sub(r'\D', '', request.form.get('cep', ''))
+            motorista.tipo_logradouro = request.form.get('tipo_logradouro')
+            motorista.logradouro = request.form.get('logradouro')
+            motorista.numero = request.form.get('numero')
+            motorista.complemento = request.form.get('complemento')
+            motorista.bairro = request.form.get('bairro')
+            motorista.cidade = request.form.get('cidade')
+            motorista.uf = request.form.get('uf')
+            motorista.email = request.form.get('email')
+            motorista.tipo_imovel = request.form.get('tipo_imovel')
+            motorista.tempo_residencia = request.form.get('tempo_residencia')
+            motorista.cnh_numero = cnh_numero
+            motorista.cnh_data_primeira = to_date(request.form.get('cnh_data_primeira'))
+            motorista.cnh_data_vencimento = to_date(request.form.get('cnh_data_vencimento'))
+            motorista.cnh_categoria = request.form.get('cnh_categoria')
+            motorista.cnh_cod_seguranca = request.form.get('cnh_cod_seguranca')
+            motorista.rg = request.form.get('rg')
+            motorista.rg_uf = request.form.get('rg_uf')
+            motorista.pis = request.form.get('pis')
+            motorista.inss = request.form.get('inss')
+            motorista.titulo_eleitor = request.form.get('titulo_eleitor')
+            motorista.ctps = request.form.get('ctps')
+            motorista.funcao = request.form.get('funcao')
+
+            # ▼▼▼ LINHA ADICIONADA AQUI ▼▼▼
+            motorista.salario_base = request.form.get('salario_base', type=float, default=0.0)
+            
+            motorista.mopp_numero = request.form.get('mopp_numero')
+            motorista.mopp_vencimento = to_date(request.form.get('mopp_vencimento'))
+            motorista.contato_nome = request.form.get('contato_nome')
+            motorista.contato_tipo_ref = request.form.get('contato_tipo_ref')
+            motorista.contato_tipo_fone = request.form.get('contato_tipo_fone')
+            motorista.contato_telefone = re.sub(r'\D', '', request.form.get('contato_telefone', ''))
+            motorista.contato_operadora = request.form.get('contato_operadora')
+            motorista.contato_obs = request.form.get('contato_obs')
+
+            # Salva as alterações no banco de dados
             db.session.commit()
             flash('Dados do motorista atualizados com sucesso!', 'success')
-            return redirect(url_for('consultar_motoristas'))
+            return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+
         except Exception as e:
             db.session.rollback()
+            logger.error(f"Erro ao editar motorista {motorista_id}: {e}", exc_info=True)
             flash(f'Ocorreu um erro ao salvar as alterações: {e}', 'error')
+            return redirect(url_for('editar_motorista', motorista_id=motorista_id))
 
+    # Método GET: apenas renderiza a página com os dados do motorista
     return render_template('editar_motorista.html', motorista=motorista)
+
+@app.route('/relatorios/dre')
+@login_required
+def relatorio_financeiro_dre():
+    """
+    Rota para gerar um Demonstrativo de Resultado do Exercício (DRE) simplificado.
+    Calcula receitas e custos fixos/variáveis dentro de um período.
+    """
+    try:
+        # Pega as datas do filtro, com valores padrão para o mês atual
+        hoje = date.today()
+        primeiro_dia_mes_str = hoje.replace(day=1).strftime('%Y-%m-%d')
+        data_inicio_str = request.args.get('data_inicio', primeiro_dia_mes_str)
+        data_fim_str = request.args.get('data_fim', hoje.strftime('%Y-%m-%d'))
+        
+        data_inicio = datetime.strptime(data_inicio_str, '%Y-%m-%d')
+        # Adiciona um dia ao fim para incluir o dia inteiro na consulta
+        data_fim = datetime.strptime(data_fim_str, '%Y-%m-%d') + timedelta(days=1)
+
+        empresa_id = current_user.empresa_id
+
+        # 1. RECEITA BRUTA (Viagens concluídas no período)
+        receita_bruta = db.session.query(func.sum(Viagem.valor_recebido)).filter(
+            Viagem.empresa_id == empresa_id,
+            Viagem.status == 'concluida',
+            Viagem.data_fim >= data_inicio,
+            Viagem.data_fim < data_fim
+        ).scalar() or 0.0
+
+        # 2. CUSTOS VARIÁVEIS (Diretamente ligados às viagens)
+        custos_variaveis = defaultdict(float)
+        viagens_no_periodo = Viagem.query.filter(
+            Viagem.empresa_id == empresa_id,
+            Viagem.data_inicio >= data_inicio,
+            Viagem.data_inicio < data_fim
+        ).options(db.joinedload(Viagem.custo_viagem), db.joinedload(Viagem.abastecimentos)).all()
+
+        for viagem in viagens_no_periodo:
+            if viagem.custo_viagem:
+                custos_variaveis['Pedágios'] += viagem.custo_viagem.pedagios or 0
+                custos_variaveis['Alimentação'] += viagem.custo_viagem.alimentacao or 0
+                custos_variaveis['Hospedagem'] += viagem.custo_viagem.hospedagem or 0
+                custos_variaveis['Outros (Viagem)'] += viagem.custo_viagem.outros or 0
+            for abast in viagem.abastecimentos:
+                custos_variaveis['Combustível'] += abast.custo_total or 0
+        
+        custos_variaveis['Total'] = sum(custos_variaveis.values())
+
+        # 3. CUSTOS FIXOS (Despesas gerais dos veículos no período)
+        custos_fixos = defaultdict(float)
+        despesas_veiculares = DespesaVeiculo.query.filter(
+            DespesaVeiculo.empresa_id == empresa_id,
+            DespesaVeiculo.data >= data_inicio.date(),
+            DespesaVeiculo.data < data_fim.date()
+        ).all()
+        for despesa in despesas_veiculares:
+            custos_fixos[despesa.categoria] += despesa.valor
+        
+        custos_fixos_total = sum(custos_fixos.values())
+
+        # 4. Montagem do DRE
+        margem_contribuicao = receita_bruta - custos_variaveis['Total']
+        lucro_operacional = margem_contribuicao - custos_fixos_total
+        
+        dre = {
+            'receita_bruta': receita_bruta,
+            'custos_variaveis': dict(custos_variaveis),
+            'margem_contribuicao': margem_contribuicao,
+            'custos_fixos': {'Total': custos_fixos_total, 'Detalhado': dict(custos_fixos)},
+            'lucro_operacional': lucro_operacional
+        }
+
+        return render_template('relatorio_dre.html', dre=dre)
+        
+    except Exception as e:
+        logger.error(f"Erro ao gerar relatório DRE: {e}", exc_info=True)
+        flash("Ocorreu um erro ao gerar o relatório DRE.", "error")
+        return redirect(url_for('relatorios'))
+    
+@app.route('/adicionar_anexo/motorista/<int:motorista_id>', methods=['POST'])
+@login_required
+def adicionar_anexo_motorista(motorista_id):
+    motorista = Motorista.query.filter_by(id=motorista_id, empresa_id=current_user.empresa_id).first_or_404()
+    
+    novos_anexos = request.files.getlist("anexos")
+
+    if not novos_anexos or not any(f.filename for f in novos_anexos):
+        flash('Nenhum arquivo selecionado para upload.', 'warning')
+        return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+
+    try:
+        anexos_atuais = motorista.anexos.split(',') if motorista.anexos else []
+        
+        # Lógica de Upload (reutilizada da sua função original)
+        bucket_name = app.config.get('CLOUDFLARE_R2_BUCKET')
+        s3_client = boto3.client(
+            's3',
+            endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+            aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+            aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
+            region_name='auto'
+        )
+        public_url_base = app.config['CLOUDFLARE_R2_PUBLIC_URL']
+        
+        for anexo in novos_anexos:
+            if anexo.filename:
+                filename = secure_filename(anexo.filename)
+                s3_path = f"motoristas/{motorista.cpf}/anexos/{uuid.uuid4()}-{filename}"
+                s3_client.upload_fileobj(
+                    anexo, bucket_name, s3_path,
+                    ExtraArgs={'ContentType': anexo.content_type or 'application/octet-stream', 'ContentDisposition': 'attachment'}
+                )
+                anexos_atuais.append(f"{public_url_base}/{s3_path}")
+        
+        motorista.anexos = ','.join(filter(None, anexos_atuais))
+        db.session.commit()
+        flash('Anexo(s) adicionado(s) com sucesso!', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao fazer upload do anexo: {e}', 'error')
+        logger.error(f"Erro no upload de anexo para motorista {motorista_id}: {e}", exc_info=True)
+
+    return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+
+@app.route('/relatorios/veiculos')
+@login_required
+def relatorio_desempenho_veiculos():
+    """
+    Rota para gerar um relatório detalhado do desempenho de cada veículo.
+    """
+    try:
+        empresa_id = current_user.empresa_id
+        veiculos = Veiculo.query.filter_by(empresa_id=empresa_id).all()
+        stats_finais = []
+
+        for veiculo in veiculos:
+            viagens = Viagem.query.filter_by(veiculo_id=veiculo.id).all()
+            abastecimentos = Abastecimento.query.filter_by(veiculo_id=veiculo.id).all()
+            despesas_gerais = DespesaVeiculo.query.filter_by(veiculo_id=veiculo.id).all()
+            manutencoes = Manutencao.query.filter_by(veiculo_id=veiculo.id).all()
+
+            km_rodados = sum(v.distancia_percorrida for v in viagens)
+            receita_total = sum(v.valor_recebido or 0 for v in viagens)
+            
+            custo_combustivel = sum(a.custo_total for a in abastecimentos)
+            custo_despesas_viagens = sum(
+                (v.custo_viagem.pedagios or 0) + (v.custo_viagem.alimentacao or 0) + 
+                (v.custo_viagem.hospedagem or 0) + (v.custo_viagem.outros or 0)
+                for v in viagens if v.custo_viagem
+            )
+            custo_despesas_fixas = sum(d.valor for d in despesas_gerais)
+            custo_manutencoes = sum(m.custo_total or 0 for m in manutencoes)
+            
+            custo_total = custo_combustivel + custo_despesas_viagens + custo_despesas_fixas + custo_manutencoes
+            lucro_total = receita_total - custo_total
+            total_litros = sum(a.litros for a in abastecimentos)
+
+            stats = {
+                'info': veiculo,
+                'km_rodados': km_rodados,
+                'consumo_medio': (km_rodados / total_litros) if total_litros > 0 else 0,
+                'receita_km': (receita_total / km_rodados) if km_rodados > 0 else 0,
+                'custo_real_km': (custo_total / km_rodados) if km_rodados > 0 else 0,
+                'lucro_km': (lucro_total / km_rodados) if km_rodados > 0 else 0,
+                'custo_total': custo_total
+            }
+            stats_finais.append(stats)
+
+        return render_template('relatorio_veiculos.html', veiculos_stats=stats_finais)
+
+    except Exception as e:
+        logger.error(f"Erro ao gerar relatório de veículos: {e}", exc_info=True)
+        flash("Ocorreu um erro ao gerar o relatório de desempenho dos veículos.", "error")
+        return redirect(url_for('relatorios'))
+
+@app.route('/relatorios/contas_a_receber')
+@login_required
+def relatorio_contas_a_receber():
+    """
+    Rota para gerar um relatório de contas a receber, categorizado por data de vencimento.
+    """
+    try:
+        empresa_id = current_user.empresa_id
+        hoje = date.today()
+        
+        contas = Cobranca.query.filter(
+            Cobranca.empresa_id == empresa_id,
+            Cobranca.status.in_(['Pendente', 'Vencida'])
+        ).order_by(Cobranca.data_vencimento.asc()).all()
+
+        relatorio = {
+            'vencidas': [], 'vence_hoje': [], 'vence_7_dias': [],
+            'vence_30_dias': [], 'futuras': []
+        }
+        total_a_receber = 0.0
+
+        for c in contas:
+            total_a_receber += c.valor_total
+            delta_dias = (c.data_vencimento - hoje).days
+            
+            if delta_dias < 0:
+                relatorio['vencidas'].append(c)
+            elif delta_dias == 0:
+                relatorio['vence_hoje'].append(c)
+            elif 1 <= delta_dias <= 7:
+                relatorio['vence_7_dias'].append(c)
+            elif 8 <= delta_dias <= 30:
+                relatorio['vence_30_dias'].append(c)
+            else:
+                relatorio['futuras'].append(c)
+
+        return render_template('relatorio_contas_receber.html', relatorio=relatorio, total_a_receber=total_a_receber)
+
+    except Exception as e:
+        logger.error(f"Erro ao gerar relatório de contas a receber: {e}", exc_info=True)
+        flash("Ocorreu um erro ao gerar o relatório de contas a receber.", "error")
+        return redirect(url_for('relatorios'))
 
 @app.route('/owner/dashboard')
 @login_required
@@ -1768,14 +3053,26 @@ def owner_empresa_detalhes(empresa_id):
     return render_template('owner_empresa_detalhes.html', empresa=empresa)
 
 
-@app.route('/excluir_anexo/<int:motorista_id>/<path:anexo>', methods=['GET'])
+@app.route('/excluir_anexo/motorista/<int:motorista_id>', methods=['POST'])
 @login_required
-def excluir_anexo(motorista_id, anexo):
-    
+def excluir_anexo_motorista(motorista_id):
     motorista = Motorista.query.filter_by(id=motorista_id, empresa_id=current_user.empresa_id).first_or_404()
-    anexos_urls = motorista.anexos.split(',') if motorista.anexos else []
-    if anexo in anexos_urls:
+    anexo_url_para_excluir = request.form.get('anexo_url')
+    
+    if not anexo_url_para_excluir:
+        flash('Nenhum anexo especificado para exclusão.', 'error')
+        return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+
+    anexos_atuais = motorista.anexos.split(',') if motorista.anexos else []
+    
+    if anexo_url_para_excluir in anexos_atuais:
         try:
+            # Lógica para excluir do Cloudflare R2
+            bucket_name = app.config.get('CLOUDFLARE_R2_BUCKET')
+            if not bucket_name:
+                flash('Erro de configuração: O nome do bucket do Cloudflare R2 não foi definido.', 'error')
+                return redirect(url_for('editar_motorista', motorista_id=motorista_id))
+
             s3_client = boto3.client(
                 's3',
                 endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
@@ -1783,22 +3080,33 @@ def excluir_anexo(motorista_id, anexo):
                 aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
                 region_name='auto'
             )
-            bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
-            filename = anexo.replace(app.config['CLOUDFLARE_R2_PUBLIC_URL'] + '/', '')
-            try:
-                s3_client.delete_object(Bucket=bucket_name, Key=filename)
-            except Exception as e:
-                logger.error(f"Erro ao excluir anexo {filename}: {str(e)}")
-            anexos_urls.remove(anexo)
-            motorista.anexos = ','.join(anexos_urls) if anexos_urls else None
+            key = anexo_url_para_excluir.replace(app.config['CLOUDFLARE_R2_PUBLIC_URL'] + '/', '')
+            s3_client.delete_object(Bucket=bucket_name, Key=key)
+            
+            anexos_atuais.remove(anexo_url_para_excluir)
+            motorista.anexos = ','.join(filter(None, anexos_atuais)) or None
             db.session.commit()
-            flash('Anexo excluído com sucesso!', 'success')
+            flash('Anexo removido com sucesso!', 'success')
         except Exception as e:
-            flash(f'Erro ao excluir o anexo: {str(e)}', 'error')
+            db.session.rollback()
+            flash(f'Erro ao remover anexo do Cloudflare: {e}', 'error')
     else:
-        flash('Anexo não encontrado.', 'error')
+        flash('Anexo não encontrado ou permissão negada.', 'error')
+        
     return redirect(url_for('editar_motorista', motorista_id=motorista_id))
 
+# E substitua sua função 'dateformat' por esta versão mais robusta:
+@app.template_filter('dateformat')
+def dateformat(value):
+    if isinstance(value, (date, datetime)):
+        return value.strftime('%Y-%m-%d')
+    if isinstance(value, str):
+        # Tenta converter a string para data antes de formatar
+        try:
+            return datetime.strptime(value, '%Y-%m-%d').strftime('%Y-%m-%d')
+        except ValueError:
+            return value
+    return ''
 @app.route('/excluir_motorista/<int:motorista_id>')
 @login_required
 def excluir_motorista(motorista_id):
@@ -1834,79 +3142,79 @@ def excluir_motorista(motorista_id):
 @login_required
 def cadastrar_veiculo():
     if request.method == 'POST':
-        placa = request.form.get('placa', '').strip().upper()
-        categoria = request.form.get('categoria', '').strip()
-        modelo = request.form.get('modelo', '').strip()
-        ano = request.form.get('ano', '').strip()
-        valor = request.form.get('valor', '').strip()
-        km_rodados = request.form.get('km_rodados', '').strip()
-        ultima_manutencao = request.form.get('ultima_manutencao', '').strip()
-
-        if not placa or not modelo:
-            flash('Placa e modelo são obrigatórios.', 'error')
-            return redirect(url_for('cadastrar_veiculo'))
-        if not validate_placa(placa):
-            flash('Placa inválida. Deve conter 7 caracteres alfanuméricos.', 'error')
-            return redirect(url_for('cadastrar_veiculo'))
-        if ano:
-            try:
-                ano = int(ano)
-                if ano < 1900 or ano > datetime.now().year:
-                    flash('Ano inválido.', 'error')
-                    return redirect(url_for('cadastrar_veiculo'))
-            except ValueError:
-                flash('Ano deve ser um número válido.', 'error')
-                return redirect(url_for('cadastrar_veiculo'))
-        if valor:
-            try:
-                valor = float(valor)
-                if valor < 0:
-                    flash('Valor deve ser positivo.', 'error')
-                    return redirect(url_for('cadastrar_veiculo'))
-            except ValueError:
-                flash('Valor deve ser um número válido.', 'error')
-                return redirect(url_for('cadastrar_veiculo'))
-        if km_rodados:
-            try:
-                km_rodados = float(km_rodados)
-                if km_rodados < 0:
-                    flash('Km rodados deve ser positivo.', 'error')
-                    return redirect(url_for('cadastrar_veiculo'))
-            except ValueError:
-                flash('Km rodados deve ser um número válido.', 'error')
-                return redirect(url_for('cadastrar_veiculo'))
-        if ultima_manutencao:
-            try:
-                ultima_manutencao = datetime.strptime(ultima_manutencao, '%Y-%m-%d').date()
-                if ultima_manutencao > datetime.now().date():
-                    flash('Data de última manutenção não pode ser no futuro.', 'error')
-                    return redirect(url_for('cadastrar_veiculo'))
-            except ValueError:
-                flash('Formato de data inválido para última manutenção.', 'error')
-                return redirect(url_for('cadastrar_veiculo'))
-
-        veiculo = Veiculo(
-            placa=placa,
-            categoria=categoria or None,
-            modelo=modelo,
-            ano=ano if ano else None,
-            valor=valor if valor else None,
-            km_rodados=km_rodados if km_rodados else None,
-            ultima_manutencao=ultima_manutencao if ultima_manutencao else None,
-            empresa_id=current_user.empresa_id
-        )
         try:
-            db.session.add(veiculo)
+            placa = request.form.get('placa', '').strip().upper()
+            modelo = request.form.get('modelo', '').strip()
+            
+            if not placa or not modelo:
+                flash('Placa e modelo são obrigatórios.', 'error')
+                return redirect(url_for('cadastrar_veiculo'))
+
+            if not validate_placa(placa):
+                flash('Placa inválida. Deve conter 7 caracteres alfanuméricos.', 'error')
+                return redirect(url_for('cadastrar_veiculo'))
+            
+            if Veiculo.query.filter_by(placa=placa, empresa_id=current_user.empresa_id).first():
+                flash('Erro: Um veículo com esta placa já foi cadastrado.', 'error')
+                return redirect(url_for('cadastrar_veiculo'))
+
+            # --- CORREÇÃO APLICADA AQUI ---
+            # Conversão e validação dos dados em um único lugar, sem repetição
+            
+            ano_str = request.form.get('ano')
+            ano = int(ano_str) if ano_str else None
+            if ano and (ano < 1900 or ano > datetime.now().year):
+                flash('Ano do veículo inválido.', 'error')
+                return redirect(url_for('cadastrar_veiculo'))
+
+            valor_str = request.form.get('valor')
+            valor = float(valor_str) if valor_str else None
+
+            km_rodados_str = request.form.get('km_rodados')
+            km_rodados = float(km_rodados_str) if km_rodados_str else 0.0
+
+            marca = request.form.get('marca', '').strip()
+            renavam = re.sub(r'\D', '', request.form.get('renavam', ''))
+
+            ultima_manutencao_str = request.form.get('ultima_manutencao')
+            ultima_manutencao = datetime.strptime(ultima_manutencao_str, '%Y-%m-%d').date() if ultima_manutencao_str else None
+            
+            if ultima_manutencao and ultima_manutencao > date.today():
+                flash('Data de última manutenção não pode ser no futuro.', 'error')
+                return redirect(url_for('cadastrar_veiculo'))
+            
+            # --- FIM DA CORREÇÃO ---
+
+            novo_veiculo = Veiculo(
+                placa=placa,
+                categoria=request.form.get('categoria', '').strip(),
+                modelo=modelo,
+                ano=ano,
+                marca=marca,
+                renavam=renavam,
+                valor=valor,
+                km_rodados=km_rodados,
+                ultima_manutencao=ultima_manutencao,
+                status='Disponível',
+                empresa_id=current_user.empresa_id
+            )
+
+            db.session.add(novo_veiculo)
             db.session.commit()
             flash('Veículo cadastrado com sucesso!', 'success')
-            return redirect(url_for('index'))
-        except IntegrityError:
+            return redirect(url_for('consultar_veiculos'))
+
+        except ValueError:
             db.session.rollback()
-            flash('Erro: Placa já cadastrada.', 'error')
+            flash('Erro de valor inválido. Verifique se os números e datas estão corretos.', 'error')
         except Exception as e:
             db.session.rollback()
-            flash(f'Erro ao cadastrar veículo: {str(e)}', 'error')
-            print(f"Erro ao cadastrar veículo: {str(e)}")
+            logger.error(f"Erro ao cadastrar veículo: {e}", exc_info=True)
+            flash(f'Ocorreu um erro inesperado ao cadastrar o veículo: {e}', 'error')
+        
+        return redirect(url_for('cadastrar_veiculo'))
+
+    # Para requisições GET
     return render_template('cadastrar_veiculo.html', active_page='cadastrar_veiculo')
 
 @app.route('/consultar_veiculos', methods=['GET'])
@@ -2008,12 +3316,74 @@ def excluir_veiculo(veiculo_id):
         flash('Erro ao excluir veículo.', 'error')
     return redirect(url_for('consultar_veiculos'))
 
+@app.route('/api/viagem/processar_nfe', methods=['POST'])
+@login_required
+def processar_nfe_api():
+    if 'nfe_files' not in request.files:
+        return jsonify({'success': False, 'message': 'Nenhum arquivo enviado.'}), 400
+    
+    files = request.files.getlist('nfe_files')
+    viagens_processadas = []
+    clientes_criados = 0
+
+    for file in files:
+        if file and file.filename.endswith('.xml'):
+            parsed_data = parse_nfe_xml(file)
+            if not parsed_data:
+                continue
+
+            cliente_info = parsed_data['cliente_info']
+            viagem_info = parsed_data['viagem_info']
+            
+            try:
+                if cliente_info and cliente_info['cpf_cnpj']:
+                    cliente_existente = Cliente.query.filter_by(
+                        cpf_cnpj=cliente_info['cpf_cnpj'],
+                        empresa_id=current_user.empresa_id
+                    ).first()
+
+                    if not cliente_existente:
+                        novo_cliente = Cliente(
+                            empresa_id=current_user.empresa_id,
+                            cadastrado_por_id=current_user.id,
+                            **cliente_info
+                        )
+                        db.session.add(novo_cliente)
+                        clientes_criados += 1
+                
+                viagens_processadas.append(viagem_info)
+
+            except Exception as e:
+                db.session.rollback()
+                logger.error(f"Erro ao criar cliente a partir do XML {viagem_info['nome_arquivo']}: {e}", exc_info=True)
+                continue
+
+    if clientes_criados > 0:
+        db.session.commit()
+
+    if not viagens_processadas:
+        return jsonify({'success': False, 'message': 'Nenhum dado de viagem pôde ser extraído dos arquivos XML fornecidos.'}), 400
+
+    mensagem_sucesso = f"{len(viagens_processadas)} NF-e(s) processada(s). "
+    if clientes_criados > 0:
+        mensagem_sucesso += f"E {clientes_criados} novo(s) cliente(s) foram cadastrados automaticamente."
+
+    return jsonify({'success': True, 'viagens': viagens_processadas, 'message': mensagem_sucesso})
+
+@app.route('/viagem/importar_nfe')
+@login_required
+def importar_nfe_page():
+    """Renderiza a nova página de importação."""
+    motoristas = Motorista.query.filter_by(empresa_id=current_user.empresa_id, situacao='NORMAL / LIBERADO').order_by(Motorista.nome).all()
+    veiculos = Veiculo.query.filter_by(status='Disponível', empresa_id=current_user.empresa_id).order_by(Veiculo.placa).all()
+    return render_template('importar_nfe.html', motoristas=motoristas, veiculos=veiculos)
+
 @app.route('/iniciar_viagem', methods=['GET'])
 @login_required
 def iniciar_viagem_page():
     """Apenas renderiza a página do formulário de iniciar viagem."""
     motoristas = Motorista.query.filter_by(empresa_id=current_user.empresa_id).order_by(Motorista.nome).all()
-    veiculos = Veiculo.query.filter_by(disponivel=True, empresa_id=current_user.empresa_id).order_by(Veiculo.placa).all()
+    veiculos = Veiculo.query.filter_by(status='Disponível', empresa_id=current_user.empresa_id).order_by(Veiculo.placa).all()
     # A lógica de POST foi movida para uma rota de API separada.
     return render_template('iniciar_viagem.html', motoristas=motoristas, veiculos=veiculos, ORS_API_KEY=OPENROUTESERVICE_API_KEY)
 
@@ -2076,6 +3446,7 @@ def get_motorista_details_api(motorista_id):
     })
 
 
+
 @app.route('/api/viagem/criar', methods=['POST'])
 @login_required
 def criar_viagem_api():
@@ -2088,6 +3459,7 @@ def criar_viagem_api():
         endereco_saida = data.get('endereco_saida')
         enderecos_destino = data.get('enderecos_destino', [])
         data_inicio_str = data.get('data_inicio')
+        valor_recebido = float(data.get('valor_recebido') or 0) # Captura o valor recebido
         
         if not all([motorista_id, veiculo_id, cliente, endereco_saida, enderecos_destino, data_inicio_str]):
             return jsonify({'success': False, 'message': 'Todos os campos são obrigatórios.'}), 400
@@ -2096,23 +3468,42 @@ def criar_viagem_api():
         veiculo = db.session.get(Veiculo, int(veiculo_id))
         if not motorista or not veiculo:
             return jsonify({'success': False, 'message': 'Motorista ou Veículo não encontrado.'}), 404
-        if not veiculo.disponivel:
-            return jsonify({'success': False, 'message': f'Veículo {veiculo.placa} já está em viagem.'}), 409
+        if veiculo.status != 'Disponível':
+            return jsonify({'success': False, 'message': f'Veículo {veiculo.placa} não está disponível (Status: {veiculo.status}).'}), 409
             
         todos_enderecos = [endereco_saida] + enderecos_destino
         
-        # --- LINHA CORRIGIDA ---
         rota_otimizada, distancia_km, duracao_segundos, geometria, erro = calcular_rota_otimizada_ors(todos_enderecos)
 
         if erro:
             return jsonify({'success': False, 'message': erro}), 400
+
+        # --- CÁLCULO DA ESTIMATIVA DE CUSTO (Lógica reutilizada da API de estimativa) ---
+        consumo_real = calcular_consumo_medio_real(veiculo.id)
+        consumo_a_ser_usado = consumo_real or veiculo.consumo_medio_km_l or 1.0
+        preco_combustivel_para_calculo = obter_preco_medio_combustivel_recente(current_user.empresa_id)
+        litros_estimados = distancia_km / consumo_a_ser_usado
+        custo_combustivel = litros_estimados * preco_combustivel_para_calculo
+
+        salario_base = motorista.salario_base or 0.0
+        custo_hora_motorista = salario_base / 220
+        duracao_horas = duracao_segundos / 3600
+        custo_motorista = duracao_horas * custo_hora_motorista
+
+        custo_fixo_km = calcular_custo_fixo_por_km(veiculo.id)
+        custo_manutencao_km = calcular_custo_manutencao_por_km(veiculo.id)
+        custo_desgaste_veiculo = distancia_km * (custo_fixo_km + custo_manutencao_km)
+        
+        custo_total_estimado = custo_combustivel + custo_motorista + custo_desgaste_veiculo
+        lucro_estimado = valor_recebido - custo_total_estimado
+        # --- FIM DO CÁLCULO ---
 
         nova_viagem = Viagem(
             motorista_id=motorista_id,
             motorista_cpf_cnpj=motorista.cpf_cnpj,
             veiculo_id=veiculo_id,
             cliente=cliente,
-            valor_recebido=float(data.get('valor_recebido') or 0),
+            valor_recebido=valor_recebido,
             forma_pagamento=data.get('forma_pagamento'),
             endereco_saida=endereco_saida,
             endereco_destino=rota_otimizada[-1],
@@ -2124,7 +3515,7 @@ def criar_viagem_api():
             route_geometry=geometria,
             empresa_id=current_user.empresa_id
         )
-        veiculo.disponivel = False
+        veiculo.status = 'Em Rota'
         db.session.add(nova_viagem)
         db.session.flush()
 
@@ -2134,13 +3525,17 @@ def criar_viagem_api():
 
         db.session.commit()
 
+        # Adiciona os novos dados ao JSON de retorno
         return jsonify({
             'success': True,
             'message': 'Viagem criada com sucesso!',
             'viagem_id': nova_viagem.id,
             'roteiro': rota_otimizada,
             'distancia': f"{distancia_km:.2f}",
-            'duracao_minutos': duracao_segundos // 60
+            'duracao_minutos': duracao_segundos // 60,
+           
+            'custo_estimado': f"{custo_total_estimado:.2f}",
+            'lucro_estimado': f"{lucro_estimado:.2f}"
         })
 
     except Exception as e:
@@ -2151,15 +3546,12 @@ def criar_viagem_api():
 @app.route('/excluir_viagem/<int:viagem_id>')
 @login_required 
 def excluir_viagem(viagem_id):
-    
     viagem = Viagem.query.filter_by(id=viagem_id, empresa_id=current_user.empresa_id).first_or_404()
 
     try:
-       
         if not viagem.data_fim and viagem.veiculo:
-            viagem.veiculo.disponivel = True
-        
-        
+            # LINHA A SER CORRIGIDA:
+            viagem.veiculo.status = 'Disponível' #
         db.session.delete(viagem)
         db.session.commit()
         flash('Viagem excluída com sucesso!', 'success')
@@ -2169,7 +3561,6 @@ def excluir_viagem(viagem_id):
         logger.error(f"Erro ao excluir viagem: {str(e)}")
         flash(f'Erro ao excluir viagem: {str(e)}', 'error')
 
-    
     return redirect(url_for('consultar_viagens'))
 
 @app.route('/salvar_custo_viagem', methods=['POST'])
@@ -2296,52 +3687,42 @@ def atualizar_status_viagem(viagem_id):
         if novo_status not in ['pendente', 'em_andamento', 'concluida', 'cancelada']:
             return jsonify({'success': False, 'message': 'Status inválido'}), 400
 
-        # Blindagem de Segurança: Busca a viagem garantindo que ela pertence à empresa do usuário.
         viagem = Viagem.query.filter_by(id=viagem_id, empresa_id=current_user.empresa_id).first_or_404()
-        
+
         status_antigo = viagem.status
         viagem.status = novo_status
 
-        # --- LÓGICA DE NEGÓCIO CORRIGIDA E ADICIONADA ---
-
-        # 1. Se a viagem for finalizada (concluída ou cancelada)
         if novo_status in ['concluida', 'cancelada']:
-            # Define a data de fim se ainda não tiver
             if not viagem.data_fim:
                 viagem.data_fim = datetime.utcnow()
-            # Libera o veículo para a próxima viagem
             if viagem.veiculo:
-                viagem.veiculo.disponivel = True
-        
-        # 2. Se uma viagem finalizada for reaberta para "Em Andamento"
+                viagem.veiculo.status = 'Disponível' #
+
         elif novo_status == 'em_andamento' and status_antigo in ['concluida', 'cancelada']:
-            viagem.data_fim = None # Remove a data de fim, pois a viagem foi reaberta
+            viagem.data_fim = None
             if viagem.veiculo:
-                # Antes de ocupar o veículo, verifica se ele já não foi alocado para outra viagem
                 outra_viagem_ativa = Viagem.query.filter(
                     Viagem.veiculo_id == viagem.veiculo_id,
-                    Viagem.status == 'em_andamento',
-                    Viagem.id != viagem.id  # Exclui a própria viagem da busca
+                    Viagem.veiculo.has(status='Em Rota'), # Certifique-se de que o filtro aqui também está correto.
+                    Viagem.id != viagem.id
                 ).first()
 
                 if outra_viagem_ativa:
-                    # Impede a ação se o veículo já estiver em uso
                     flash(f'Erro: O veículo {viagem.veiculo.placa} já está em uso na viagem #{outra_viagem_ativa.id}.', 'error')
-                    db.session.rollback() # Desfaz a mudança de status
-                    return jsonify({'success': False, 'message': f'Veículo já está em outra viagem.'}), 409 # 'Conflict'
-                
-                # Se o veículo estiver livre, ocupa-o novamente
-                viagem.veiculo.disponivel = False
+                    db.session.rollback()
+                    return jsonify({'success': False, 'message': f'Veículo já está em outra viagem.'}), 409
+
+                # LINHA A SER CORRIGIDA:
+                viagem.veiculo.status = 'Em Rota' #
 
         db.session.commit()
         flash('Status da viagem atualizado com sucesso!', 'success')
         return jsonify({'success': True, 'message': 'Status atualizado com sucesso.'})
-        
+
     except Exception as e:
         db.session.rollback()
         logger.error(f"Erro ao atualizar status da viagem {viagem_id}: {e}", exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500
-
     
 @app.route('/api/viagem/<int:viagem_id>/despesas_detalhes')
 @login_required
@@ -2491,12 +3872,11 @@ def finalizar_viagem(viagem_id):
     viagem = Viagem.query.filter_by(id=viagem_id, empresa_id=current_user.empresa_id, status='em_andamento').first_or_404()
     
     data = request.get_json()
-    # --- CORREÇÃO AQUI ---
-    odometro_str = data.get('odometer') # Alterado de 'odometro' para 'odometer'
+    odometro_str = data.get('odometer')
 
     try:
         odometro_final = float(odometro_str)
-        if odometro_final < viagem.odometro_inicial:
+        if viagem.odometro_inicial is not None and odometro_final < viagem.odometro_inicial:
             return jsonify({'success': False, 'message': 'Odômetro final não pode ser menor que o inicial.'}), 400
     except (ValueError, TypeError):
         return jsonify({'success': False, 'message': 'Odômetro final inválido. Por favor, insira um número válido.'}), 400
@@ -2506,11 +3886,11 @@ def finalizar_viagem(viagem_id):
     viagem.odometro_final = odometro_final
     
     if viagem.veiculo:
-        viagem.veiculo.disponivel = True
+        viagem.veiculo.status = 'Disponível'
+        viagem.veiculo.km_rodados = odometro_final
         
     db.session.commit()
     
-    # Emite evento para atualizar telas de admin em tempo real
     socketio.emit('status_viagem_atualizado', {
         'viagem_id': viagem.id, 
         'status': 'concluida'
@@ -2669,7 +4049,582 @@ def get_viagem_abastecimentos(viagem_id):
         })
     return jsonify({'success': False, 'message': 'Nenhum abastecimento encontrado.'})
 
+@app.route('/oficina')
+@login_required
+def oficina():
+    """ Rota principal do dashboard da oficina. """
+    todos_veiculos_obj = Veiculo.query.filter_by(empresa_id=current_user.empresa_id).order_by(Veiculo.modelo).all()
+    
+    alertas = []
+    veiculos_data = []
+    limite_km_alerta = 1000
+    limite_dias_alerta = 30
 
+    for veiculo in todos_veiculos_obj:
+        planos_progresso = []
+        progresso_maximo = -1
+        next_maint_summary = {}
+
+        for plano_assoc in veiculo.planos_associados:
+            alerta_gerado = False
+            mensagem = ""
+            km_desde_ultima = 0
+            progresso_km = 0
+            
+            if plano_assoc.intervalo_km and plano_assoc.intervalo_km > 0 and veiculo.km_rodados is not None:
+                km_desde_ultima = (veiculo.km_rodados or 0) - (plano_assoc.km_ultima_manutencao or 0)
+                if km_desde_ultima < 0: km_desde_ultima = 0
+                
+                progresso_km = (km_desde_ultima / plano_assoc.intervalo_km) * 100
+
+                if km_desde_ultima >= plano_assoc.intervalo_km:
+                    alerta_gerado = True
+                    mensagem = "Vencido por KM"
+                elif plano_assoc.intervalo_km - km_desde_ultima <= limite_km_alerta:
+                    alerta_gerado = True
+                    mensagem = "Próximo por KM"
+
+            planos_progresso.append({
+                "descricao": plano_assoc.plano.descricao,
+                "progresso": int(progresso_km),
+                "km_desde_ultima": km_desde_ultima,
+                "intervalo_km": plano_assoc.intervalo_km,
+            })
+
+            if not alerta_gerado and plano_assoc.intervalo_meses and plano_assoc.data_ultima_manutencao:
+                data_proxima = plano_assoc.data_ultima_manutencao + timedelta(days=plano_assoc.intervalo_meses * 30)
+                dias_restantes = (data_proxima - date.today()).days
+                if dias_restantes <= 0:
+                    alerta_gerado = True
+                    mensagem = "Vencido por tempo"
+                elif dias_restantes <= limite_dias_alerta:
+                    alerta_gerado = True
+                    mensagem = "Próximo por tempo"
+
+            if alerta_gerado:
+                alertas.append({
+                    "veiculo": veiculo,
+                    "plano": plano_assoc.plano,
+                    "km_ultima_manutencao": plano_assoc.km_ultima_manutencao,
+                    "intervalo_km": plano_assoc.intervalo_km,
+                    "mensagem": mensagem
+                })
+
+            if progresso_km > progresso_maximo:
+                progresso_maximo = progresso_km
+                next_maint_summary = {
+                    "descricao": plano_assoc.plano.descricao,
+                    "progresso": int(progresso_km),
+                    "km_desde_ultima": km_desde_ultima,
+                    "intervalo_km": plano_assoc.intervalo_km
+                }
+
+        manutencao_id_ativa = None
+        if veiculo.status == 'Em Manutenção':
+            manutencao_ativa = Manutencao.query.filter_by(veiculo_id=veiculo.id, status='Em Andamento').first()
+            if manutencao_ativa:
+                manutencao_id_ativa = manutencao_ativa.id
+                
+        veiculos_data.append({
+            "id": veiculo.id,
+            "modelo": veiculo.modelo,
+            "placa": veiculo.placa,
+            "km_rodados": veiculo.km_rodados or 0,
+            "status": veiculo.status,
+            "manutencao_id": manutencao_id_ativa,
+            "proxima_manutencao": next_maint_summary if progresso_maximo > -1 else None,
+            "planos_progresso": sorted(planos_progresso, key=lambda x: x['progresso'], reverse=True)
+        })
+
+    manutencoes_em_andamento = Manutencao.query.filter(
+        Manutencao.veiculo.has(empresa_id=current_user.empresa_id),
+        Manutencao.status.in_(['Em Andamento', 'Agendada'])
+    ).all()
+    
+    hoje = date.today()
+    primeiro_dia_mes = hoje.replace(day=1)
+    q_kpis = db.session.query(
+        func.count(Manutencao.id).label('concluidas_no_mes'),
+        func.sum(Manutencao.custo_total).label('custo_mes_atual')
+    ).join(Veiculo).filter(
+        Veiculo.empresa_id == current_user.empresa_id,
+        Manutencao.status == 'Concluída',
+        Manutencao.data_saida >= primeiro_dia_mes
+    ).first()
+    kpis = {
+        'concluidas_no_mes': q_kpis.concluidas_no_mes or 0,
+        'custo_mes_atual': q_kpis.custo_mes_atual or 0.0,
+    }
+
+    alertas_de_estoque = Insumo.query.filter(
+        Insumo.empresa_id == current_user.empresa_id,
+        Insumo.ponto_ressuprimento.isnot(None),
+        Insumo.quantidade_em_estoque <= Insumo.ponto_ressuprimento
+    ).all()
+
+    return render_template(
+        'oficina.html',
+        alertas=alertas,
+        manutencoes_em_andamento=manutencoes_em_andamento,
+        todos_veiculos=veiculos_data,
+        kpis=kpis,
+        alertas_de_estoque=alertas_de_estoque
+    )
+
+@app.route('/oficina/iniciar', methods=['POST'])
+@login_required
+def iniciar_manutencao_oficina():
+    """ Inicia uma nova manutenção, com automação de kit de peças. """
+    veiculo_id = request.form.get('veiculo_id', type=int)
+    hodometro = request.form.get('hodometro', type=int)
+    status = request.form.get('status')
+    plano_id_str = request.form.get('plano_id')
+    descricao = request.form.get('descricao')
+
+    veiculo = Veiculo.query.get_or_404(veiculo_id)
+    
+    nova_manutencao = Manutencao(
+        veiculo_id=veiculo.id,
+        odometro=hodometro,
+        status=status,
+        empresa_id=current_user.empresa_id
+    )
+
+    if plano_id_str and plano_id_str.isdigit():
+        plano_id = int(plano_id_str)
+        nova_manutencao.tipo_manutencao = 'Preventiva'
+        
+        plano_assoc = VeiculoPlano.query.filter_by(veiculo_id=veiculo_id, plano_id=plano_id).first()
+        if plano_assoc:
+            nova_manutencao.veiculo_plano_veiculo_id = veiculo_id
+            nova_manutencao.veiculo_plano_plano_id = plano_id
+        
+        kit_de_insumos = PlanoInsumo.query.filter_by(plano_id=plano_id).all()
+        
+        for item_do_kit in kit_de_insumos:
+            item_manutencao = ManutencaoItem(
+                manutencao=nova_manutencao, 
+                data=date.today(),
+                descricao=item_do_kit.insumo.descricao,
+                quantidade=item_do_kit.quantidade,
+                custo_unitario=item_do_kit.insumo.custo_unitario_medio or 0.0
+            )
+            db.session.add(item_manutencao)
+            
+    else:
+        nova_manutencao.tipo_manutencao = 'Corretiva'
+        nova_manutencao.descricao_problema = descricao
+
+    if status == 'Em Andamento':
+        veiculo.status = 'Em Manutenção'
+    
+    veiculo.km_rodados = max(veiculo.km_rodados or 0, hodometro)
+
+    db.session.add(nova_manutencao)
+    db.session.commit()
+
+    flash(f'Manutenção registrada! Status do veículo {veiculo.placa} atualizado.', 'success')
+    return redirect(url_for('oficina'))
+
+@app.route('/oficina/finalizar', methods=['POST'])
+@login_required
+def finalizar_manutencao_oficina():
+    """ Finaliza uma manutenção, com automação de baixa de estoque. """
+    manutencao_id = request.form.get('manutencao_id', type=int)
+    manutencao = Manutencao.query.get_or_404(manutencao_id)
+    
+    veiculo = manutencao.veiculo
+    
+    manutencao.status = 'Concluída'
+    manutencao.data_saida = datetime.utcnow()
+    manutencao.servicos_executados = request.form.get('servicos_executados')
+    manutencao.custo_total = request.form.get('custo_total', type=float)
+    
+    veiculo.status = 'Disponível'
+    veiculo.km_rodados = max(veiculo.km_rodados or 0, manutencao.odometro)
+
+    if manutencao.tipo_manutencao == 'Preventiva' and manutencao.veiculo_plano_associado:
+        assoc = manutencao.veiculo_plano_associado
+        assoc.km_ultima_manutencao = manutencao.odometro
+        assoc.data_ultima_manutencao = manutencao.data_saida.date()
+
+    try:
+        itens_utilizados = ManutencaoItem.query.filter_by(manutencao_id=manutencao.id).all()
+        for item in itens_utilizados:
+            insumo_correspondente = Insumo.query.filter_by(
+                descricao=item.descricao,
+                empresa_id=current_user.empresa_id
+            ).first()
+            
+            if insumo_correspondente:
+                insumo_correspondente.quantidade_em_estoque -= item.quantidade
+        
+        db.session.commit()
+        flash(f'Manutenção finalizada e estoque atualizado! Veículo {veiculo.placa} agora está disponível.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Manutenção finalizada, mas ocorreu um erro ao atualizar o estoque: {e}', 'error')
+        logger.error(f"Erro na baixa de estoque para manutenção {manutencao_id}: {e}", exc_info=True)
+
+    return redirect(url_for('oficina'))
+
+@app.route('/api/planos', methods=['GET'])
+@login_required
+def api_get_todos_planos():
+    planos = PlanoDeManutencao.query.order_by(PlanoDeManutencao.descricao).all()
+    return jsonify([{
+        'id': plano.id,
+        'descricao': plano.descricao,
+        'intervalo_km_padrao': plano.intervalo_km_padrao,
+        'intervalo_meses_padrao': plano.intervalo_meses_padrao
+    } for plano in planos])
+
+@app.route('/api/veiculo/<int:veiculo_id>/planos', methods=['GET', 'POST'])
+@login_required
+def api_gerenciar_planos_veiculo(veiculo_id):
+    veiculo = Veiculo.query.get_or_404(veiculo_id)
+    if veiculo.empresa_id != current_user.empresa_id:
+        return jsonify({'message': 'Acesso negado'}), 403
+
+    if request.method == 'GET':
+        planos_atribuidos = [{
+            'id': assoc.plano.id,
+            'descricao': assoc.plano.descricao,
+            'intervalo_km': assoc.intervalo_km,
+            'intervalo_meses': assoc.intervalo_meses,
+            'km_ultima_manutencao': assoc.km_ultima_manutencao,
+            'data_ultima_manutencao': assoc.data_ultima_manutencao.strftime('%Y-%m-%d') if assoc.data_ultima_manutencao else None,
+        } for assoc in veiculo.planos_associados]
+        return jsonify(planos_atribuidos)
+
+    if request.method == 'POST':
+        try:
+            data = request.json
+            # Deleta as associações antigas para recriá-las com os novos dados
+            VeiculoPlano.query.filter_by(veiculo_id=veiculo_id).delete()
+            
+            for plano_data in data:
+                plano = PlanoDeManutencao.query.filter_by(descricao=plano_data['descricao']).first()
+                if not plano: # Se o plano não existe, cria um novo
+                    plano = PlanoDeManutencao(descricao=plano_data['descricao'])
+                    db.session.add(plano)
+                    db.session.flush() # Garante que o 'plano.id' esteja disponível
+
+                data_ultima = None
+                if data_str := plano_data.get('data_ultima_manutencao'):
+                    data_ultima = datetime.strptime(data_str, '%Y-%m-%d').date()
+
+                nova_assoc = VeiculoPlano(
+                    veiculo_id=veiculo.id,
+                    plano_id=plano.id,
+                    intervalo_km=plano_data.get('intervalo_km'),
+                    intervalo_meses=plano_data.get('intervalo_meses'),
+                    km_ultima_manutencao=plano_data.get('km_ultima_manutencao'), # Salva o valor exato (número ou null)
+                    data_ultima_manutencao=data_ultima
+                )
+                db.session.add(nova_assoc)
+                if plano_data.get('atualizar_padrao'):
+                    plano.intervalo_km_padrao = int(plano_data['intervalo_km']) if plano_data.get('intervalo_km') else None
+                    plano.intervalo_meses_padrao = int(plano_data['intervalo_meses']) if plano_data.get('intervalo_meses') else None
+            
+            db.session.commit()
+            return jsonify({'message': 'Planos atualizados com sucesso!'}), 200
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Erro ao salvar planos para veiculo {veiculo_id}: {e}", exc_info=True)
+            return jsonify({'message': f'Erro interno do servidor: {e}'}), 500
+
+@app.route('/api/manutencao/<int:manutencao_id>/itens', methods=['GET'])
+@login_required
+def get_manutencao_itens(manutencao_id):
+    manutencao = Manutencao.query.join(Veiculo).filter(
+        Manutencao.id == manutencao_id,
+        Veiculo.empresa_id == current_user.empresa_id
+    ).first_or_404()
+    
+    itens = [{
+        'id': item.id,
+        'data': item.data.strftime('%d/%m/%Y'),
+        'descricao': item.descricao,
+        'quantidade': item.quantidade,
+        'custo_unitario': item.custo_unitario,
+        'custo_total_item': item.custo_total_item
+    } for item in manutencao.itens]
+    
+    return jsonify(itens)
+
+@app.route('/api/manutencao/<int:manutencao_id>/adicionar_item', methods=['POST'])
+@login_required
+def add_manutencao_item(manutencao_id):
+    manutencao = Manutencao.query.join(Veiculo).filter(
+        Manutencao.id == manutencao_id,
+        Veiculo.empresa_id == current_user.empresa_id
+    ).first_or_404()
+    
+    data = request.json
+    try:
+        novo_item = ManutencaoItem(
+            manutencao_id=manutencao.id,
+            data=datetime.strptime(data['data'], '%Y-%m-%d').date(),
+            descricao=data['descricao'],
+            quantidade=float(data['quantidade']),
+            custo_unitario=float(data['custo_unitario'])
+        )
+        db.session.add(novo_item)
+        db.session.commit()
+
+        custo_atualizado = db.session.query(func.sum(ManutencaoItem.quantidade * ManutencaoItem.custo_unitario)).filter_by(manutencao_id=manutencao.id).scalar()
+        manutencao.custo_total = custo_atualizado or 0
+        db.session.commit()
+
+        return jsonify({'success': True, 'message': 'Item adicionado com sucesso!'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/veiculo/<int:veiculo_id>/historico')
+@login_required
+def api_historico_veiculo(veiculo_id):
+    query = db.session.query(
+        Manutencao,
+        PlanoDeManutencao.descricao.label('plano_descricao')
+    ).outerjoin(
+        VeiculoPlano, and_(
+            Manutencao.veiculo_plano_veiculo_id == VeiculoPlano.veiculo_id,
+            Manutencao.veiculo_plano_plano_id == VeiculoPlano.plano_id
+        )
+    ).outerjoin(PlanoDeManutencao).filter(Manutencao.veiculo_id == veiculo_id).order_by(Manutencao.data_entrada.desc())
+
+    historico = [{
+        'data_saida': m.data_saida.isoformat() if m.data_saida else None,
+        'data_entrada': m.data_entrada.isoformat() if m.data_entrada else None,
+        'tipo_manutencao': m.tipo_manutencao,
+        'plano_descricao': plano_desc,
+        'odometro': m.odometro,
+        'servicos_executados': m.servicos_executados,
+        'descricao_problema': m.descricao_problema,
+        'custo_total': m.custo_total,
+        'status': m.status
+    } for m, plano_desc in query.all()]
+    return jsonify(historico)
+
+@app.route('/api/manutencoes/historico', methods=['GET'])
+@login_required
+def get_historico_manutencoes():
+    query = Manutencao.query.join(Veiculo).filter(
+        Veiculo.empresa_id == current_user.empresa_id,
+        Manutencao.status == 'Concluída'
+    )
+    if placa := request.args.get('placa'):
+        query = query.filter(Veiculo.placa.ilike(f'%{placa}%'))
+    if data_inicio_str := request.args.get('data_inicio'):
+        query = query.filter(Manutencao.data_saida >= datetime.strptime(data_inicio_str, '%Y-%m-%d').date())
+    if data_fim_str := request.args.get('data_fim'):
+        query = query.filter(Manutencao.data_saida <= datetime.strptime(data_fim_str, '%Y-%m-%d').date())
+    if tipo := request.args.get('tipo'):
+        query = query.filter(Manutencao.tipo_manutencao == tipo)
+
+    manutencoes = query.order_by(Manutencao.data_saida.desc()).all()
+    resultado = [{
+        'veiculo': f"{m.veiculo.modelo} ({m.veiculo.placa})",
+        'data_saida': m.data_saida.strftime('%d/%m/%Y') if m.data_saida else 'N/A',
+        'tipo': m.tipo_manutencao,
+        'servicos': m.servicos_executados or 'N/A',
+        'custo': m.custo_total or 0
+    } for m in manutencoes]
+    return jsonify(resultado)
+
+@app.route('/oficina/insumos')
+@login_required
+def gerenciar_insumos_page():
+    """ Renderiza a página para o CRUD de Insumos. """
+    insumos = Insumo.query.filter_by(empresa_id=current_user.empresa_id).order_by(Insumo.descricao).all()
+    return render_template('gerenciar_insumos.html', insumos=insumos)
+
+@app.route('/oficina/api/insumos', methods=['POST'])
+@login_required
+def api_criar_insumo():
+    """ API para criar um novo insumo (versão corrigida). """
+    data = request.json
+    try:
+        custo = float(data.get('custo_unitario_medio')) if data.get('custo_unitario_medio') else 0.0
+        qtd_estoque = float(data.get('quantidade_em_estoque')) if data.get('quantidade_em_estoque') else 0.0
+        ponto_ressuprimento = float(data.get('ponto_ressuprimento')) if data.get('ponto_ressuprimento') else None
+
+        novo_insumo = Insumo(
+            empresa_id=current_user.empresa_id,
+            descricao=data['descricao'],
+            codigo_peca=data.get('codigo_peca'),
+            custo_unitario_medio=custo,
+            quantidade_em_estoque=qtd_estoque,
+            ponto_ressuprimento=ponto_ressuprimento
+        )
+        db.session.add(novo_insumo)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Insumo criado com sucesso!'}), 201
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Já existe um insumo com esta descrição.'}), 409
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao criar insumo: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/oficina/api/insumos/<int:insumo_id>/entrada', methods=['POST'])
+@login_required
+def api_entrada_estoque_insumo(insumo_id):
+    """ API para registrar a entrada de novas unidades de um insumo no estoque (versão corrigida). """
+    insumo = Insumo.query.filter_by(id=insumo_id, empresa_id=current_user.empresa_id).first_or_404()
+    data = request.json
+    try:
+        quantidade_entrada = float(data.get('quantidade', 0))
+        if quantidade_entrada <= 0:
+            return jsonify({'success': False, 'message': 'A quantidade deve ser maior que zero.'}), 400
+
+        insumo.quantidade_em_estoque += quantidade_entrada
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Entrada de {quantidade_entrada} unidade(s) registrada com sucesso!',
+            'novo_estoque': insumo.quantidade_em_estoque 
+        }), 200
+        
+    except (ValueError, TypeError):
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Quantidade inválida.'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/oficina/planos_de_manutencao')
+@login_required
+def gerenciar_planos_page():
+    """ Renderiza a página para gerenciar os Planos de Manutenção e seus kits. """
+    planos = PlanoDeManutencao.query.order_by(PlanoDeManutencao.descricao).all()
+    insumos = Insumo.query.filter_by(empresa_id=current_user.empresa_id).order_by(Insumo.descricao).all()
+    return render_template('gerenciar_planos.html', planos=planos, insumos=insumos)
+
+@app.route('/api/planos/<int:plano_id>/insumos', methods=['GET'])
+@login_required
+def api_get_kit_do_plano(plano_id):
+    """ Retorna a lista de insumos (kit) de um plano específico. """
+    kit = PlanoInsumo.query.filter_by(plano_id=plano_id).all()
+    kit_data = [{
+        'insumo_id': item.insumo_id,
+        'insumo_descricao': item.insumo.descricao,
+        'quantidade': item.quantidade
+    } for item in kit]
+    return jsonify(kit_data)
+
+@app.route('/api/planos/<int:plano_id>/insumos', methods=['POST'])
+@login_required
+def api_salvar_kit_do_plano(plano_id):
+    """ Salva o kit de insumos E os detalhes de um plano específico (versão corrigida). """
+    plano = PlanoDeManutencao.query.get_or_404(plano_id)
+    data = request.json
+    
+    try:
+        plano.intervalo_km_padrao = int(data['intervalo_km']) if data.get('intervalo_km') else None
+        plano.intervalo_meses_padrao = int(data['intervalo_meses']) if data.get('intervalo_meses') else None
+
+        PlanoInsumo.query.filter_by(plano_id=plano_id).delete()
+        
+        for item_raw in data.get('kit', []):
+            item_data = json.loads(item_raw) if isinstance(item_raw, str) else item_raw
+            novo_item_kit = PlanoInsumo(
+                plano_id=plano.id,
+                insumo_id=int(item_data['insumo_id']),
+                quantidade=float(item_data['quantidade'])
+            )
+            db.session.add(novo_item_kit)
+            
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Plano e Kit de peças salvos com sucesso!'})
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao salvar kit para o plano {plano_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/oficina/api/insumos/<int:insumo_id>', methods=['DELETE'])
+@login_required
+def api_deletar_insumo(insumo_id):
+    """ API para deletar um insumo (versão corrigida). """
+    insumo = Insumo.query.filter_by(id=insumo_id, empresa_id=current_user.empresa_id).first_or_404()
+    try:
+        db.session.delete(insumo)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Insumo deletado com sucesso!'})
+    
+    # ### CORREÇÃO APLICADA AQUI ###
+    # Capturamos o erro específico de integridade do banco de dados.
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({
+            'success': False, 
+            'message': 'Erro: Este insumo não pode ser excluído pois está em uso em um ou mais Kits de Planos.'
+        }), 409 # HTTP 409 Conflict é um bom status para este caso.
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao deletar insumo {insumo_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/oficina/previsao')
+@login_required
+def previsao_custos_manutencao():
+    """ Rota para a página de previsão de custos e orçamento de frota. """
+    previsoes_detalhadas = []
+    custo_mensal = defaultdict(float)
+    hoje = date.today()
+    
+    veiculos = Veiculo.query.filter_by(empresa_id=current_user.empresa_id).all()
+
+    for veiculo in veiculos:
+        media_km_dia = calcular_media_km_veiculo(veiculo.id)
+        
+        for plano_assoc in veiculo.planos_associados:
+            if not plano_assoc.intervalo_km or media_km_dia <= 0:
+                continue
+
+            km_desde_ultima = (veiculo.km_rodados or 0) - (plano_assoc.km_ultima_manutencao or 0)
+            km_restantes = plano_assoc.intervalo_km - km_desde_ultima
+
+            if km_restantes > 0:
+                dias_para_manutencao = km_restantes / media_km_dia
+                data_prevista = hoje + timedelta(days=dias_para_manutencao)
+                
+                custo_estimado_plano = db.session.query(
+                    func.sum(PlanoInsumo.quantidade * Insumo.custo_unitario_medio)
+                ).join(Insumo).filter(PlanoInsumo.plano_id == plano_assoc.plano_id).scalar() or 0.0
+
+                if custo_estimado_plano > 0:
+                    previsao = {
+                        'veiculo_modelo': veiculo.modelo,
+                        'veiculo_placa': veiculo.placa,
+                        'plano_descricao': plano_assoc.plano.descricao,
+                        'km_restantes': km_restantes,
+                        'data_prevista': data_prevista,
+                        'custo_estimado': custo_estimado_plano
+                    }
+                    previsoes_detalhadas.append(previsao)
+                    
+                    mes_ano = data_prevista.strftime('%Y-%m')
+                    custo_mensal[mes_ano] += custo_estimado_plano
+
+    previsoes_detalhadas.sort(key=lambda x: x['data_prevista'])
+    
+    orcamento_formatado = {
+        'labels': sorted(custo_mensal.keys()),
+        'data': [custo_mensal[key] for key in sorted(custo_mensal.keys())]
+    }
+    
+    return render_template(
+        'previsao_custos.html',
+        previsoes=previsoes_detalhadas,
+        orcamento=orcamento_formatado,
+        today=hoje # Passa a data de hoje para o template
+    )
 
 @app.route('/exportar_relatorio')
 @login_required
@@ -2784,23 +4739,7 @@ def get_active_trip():
         return jsonify(trip_data)
     return jsonify({'trip': None})
 
-@app.route('/create_admin')
-def create_admin():
-    if not Usuario.query.filter_by(email='adminadmin@admin.com').first():
-        admin = Usuario(
-            nome='Admin',
-            sobrenome='Admin',
-            email='adminadmin@admin.com',
-            telefone='11999999999',
-            role='Admin',
-            is_admin=True,
-            cpf_cnpj='00000000000' # CPF/CNPJ padrão para admin
-        )
-        admin.set_password('admin123')
-        db.session.add(admin)
-        db.session.commit()
-        return 'Usuário admin criado!'
-    return 'Usuário já existe'
+
 
 
 @app.route('/logout')
@@ -2997,14 +4936,7 @@ def excluir_usuario(usuario_id):
         flash(f'Erro ao excluir usuário: {str(e)}', 'error')
     return redirect(url_for('configuracoes'))
 
-def master_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or (current_user.role not in ['Admin', 'Master']):
-            flash('Acesso restrito a administradores ou masters.', 'error')
-            return redirect(url_for('index'))
-        return f(*args, **kwargs)
-    return decorated_function
+
 
 from sqlalchemy import or_
 
@@ -3139,7 +5071,7 @@ def viagens_pendentes():
 
         # PASSO 1: O sistema tenta encontrar o perfil "Motorista" que corresponde ao "Usuário" logado.
         motorista_formal = Motorista.query.filter_by(
-            cpf_cnpj=current_user.cpf_cnpj, 
+            cpf=current_user.cpf_cnpj, 
             empresa_id=current_user.empresa_id
         ).first()
 
@@ -3256,10 +5188,21 @@ def seed_database(force=False):
 
                 # 4. Criar Motoristas
                 motorista1_db = Motorista(
-                    nome="Carlos Silva", data_nascimento=datetime(1985, 5, 15).date(),
-                    endereco="Rua das Flores, 123, São Paulo, SP", pessoa_tipo="fisica",
-                    cpf_cnpj="12345678901", rg="123456789", telefone="11987654323",
-                    cnh="98765432101", validade_cnh=datetime(2026, 12, 31).date(),
+                    nome="Carlos Silva",
+                    data_nascimento=datetime(1985, 5, 15).date(),
+                    # Campos de endereço atualizados:
+                    logradouro="Rua das Flores",
+                    numero="123",
+                    cidade="São Paulo",
+                    uf="SP",
+                    # Campos de documento atualizados:
+                    cpf="12345678901",
+                    rg="123456789",
+                    telefone="11987654323",
+                    cnh_numero="98765432101",
+                    cnh_data_vencimento=datetime(2026, 12, 31).date(),
+                    cnh_categoria="AB", # Adicionado campo obrigatório
+                    # IDs de relacionamento:
                     usuario_id=motorista1_user.id,
                     empresa_id=empresa_exemplo.id
                 )
@@ -3491,6 +5434,12 @@ def get_cliente_details_api(cliente_id):
 
     return jsonify({'success': True, 'stats': stats, 'viagens': viagens_data})
 
+@app.route('/veiculo/<int:veiculo_id>/dashboard')
+@login_required
+def veiculo_dashboard(veiculo_id):
+    veiculo = Veiculo.query.filter_by(id=veiculo_id, empresa_id=current_user.empresa_id).first_or_404()
+    # PASSE A DATA DE HOJE PARA O TEMPLATE
+    return render_template('veiculo_dashboard.html', veiculo=veiculo, hoje=date.today())
 
 
 @app.template_filter('get_usuario')
@@ -3630,27 +5579,80 @@ def handle_atualizar_localizacao_socket(data):
         logger.error(f"Erro ao salvar localização via socket: {e}", exc_info=True)
         db.session.rollback()
 
+@app.route('/api/veiculo/<int:veiculo_id>/despesas_consolidadas')
+@login_required
+def get_veiculo_despesas_consolidadas(veiculo_id):
+    Veiculo.query.filter_by(id=veiculo_id, empresa_id=current_user.empresa_id).first_or_404()
+    
+    extrato_final = []
+
+    # 1. Buscar Manutenções (Lógica atualizada)
+    manutencoes = Manutencao.query.filter_by(veiculo_id=veiculo_id).all()
+    for despesa in manutencoes:
+        extrato_final.append({
+            "data": despesa.data_entrada.isoformat(),
+            "categoria": f"Manutenção ({despesa.tipo_manutencao})",
+            "descricao": despesa.servicos_executados or despesa.descricao_problema or 'N/A',
+            "valor": despesa.custo_total,
+            "anexos": []
+        })
+
+    # 2. Buscar Abastecimentos (Lógica existente)
+    abastecimentos = Abastecimento.query.filter_by(veiculo_id=veiculo_id).all()
+    for despesa in abastecimentos:
+        extrato_final.append({
+            "data": despesa.data_abastecimento.isoformat(),
+            "categoria": "Combustível",
+            "descricao": f"{despesa.litros:.2f}L @ R$ {despesa.preco_por_litro:.2f}/L (Odôm: {despesa.odometro}km)",
+            "valor": despesa.custo_total,
+            "anexos": [despesa.anexo_comprovante] if despesa.anexo_comprovante else []
+        })
+
+    # 3. Buscar Despesas de Viagem (Lógica existente)
+    viagens_do_veiculo = Viagem.query.filter_by(veiculo_id=veiculo_id).options(db.joinedload(Viagem.custo_viagem)).all()
+    for viagem in viagens_do_veiculo:
+        if viagem.custo_viagem:
+            custo = viagem.custo_viagem
+            anexos_custo = custo.anexos.split(',') if custo.anexos else []
+            if custo.pedagios and custo.pedagios > 0:
+                extrato_final.append({"data": viagem.data_inicio.isoformat(), "categoria": "Pedágio", "descricao": f"Ref. Viagem #{viagem.id}", "valor": custo.pedagios, "anexos": anexos_custo})
+            if custo.alimentacao and custo.alimentacao > 0:
+                extrato_final.append({"data": viagem.data_inicio.isoformat(), "categoria": "Alimentação", "descricao": f"Ref. Viagem #{viagem.id}", "valor": custo.alimentacao, "anexos": anexos_custo})
+            if custo.hospedagem and custo.hospedagem > 0:
+                extrato_final.append({"data": viagem.data_inicio.isoformat(), "categoria": "Hospedagem", "descricao": f"Ref. Viagem #{viagem.id}", "valor": custo.hospedagem, "anexos": anexos_custo})
+            if custo.outros and custo.outros > 0:
+                extrato_final.append({"data": viagem.data_inicio.isoformat(), "categoria": "Outras Desp. (Viagem)", "descricao": custo.descricao_outros, "valor": custo.outros, "anexos": anexos_custo})
+
+    # 4. Buscar Despesas Diversas (Lógica existente)
+    despesas_diversas = DespesaVeiculo.query.filter_by(veiculo_id=veiculo_id).all()
+    for despesa in despesas_diversas:
+         extrato_final.append({
+            "data": despesa.data.isoformat(),
+            "categoria": despesa.categoria,
+            "descricao": despesa.descricao,
+            "valor": despesa.valor,
+            "anexos": despesa.anexos.split(',') if despesa.anexos else []
+        })
+
+    extrato_ordenado = sorted(extrato_final, key=lambda d: d['data'], reverse=True)
+    return jsonify(success=True, extrato=extrato_ordenado)
+
 @app.route('/api/veiculo/<int:veiculo_id>/details')
 @login_required
 def get_veiculo_details_api(veiculo_id):
-    """API que busca todos os detalhes de um veículo para o modal."""
     veiculo = Veiculo.query.filter_by(id=veiculo_id, empresa_id=current_user.empresa_id).first_or_404()
     
-    # 1. Busca todos os dados necessários
     viagens = Viagem.query.filter_by(veiculo_id=veiculo.id).options(
         db.joinedload(Viagem.custo_viagem),
         db.joinedload(Viagem.abastecimentos)
     ).all()
     
-    manutencoes = Manutencao.query.filter_by(veiculo_id=veiculo.id).order_by(Manutencao.data.desc()).all()
-    
-    # Busca abastecimentos diretamente pelo veículo, não só pela viagem
+    manutencoes = Manutencao.query.filter_by(veiculo_id=veiculo.id).order_by(Manutencao.data_entrada.desc()).all()
     abastecimentos = Abastecimento.query.filter_by(veiculo_id=veiculo.id).order_by(Abastecimento.data_abastecimento.desc()).all()
 
-    # 2. LÓGICA DE CÁLCULO DE KPI CORRIGIDA
-    total_km = sum(v.distancia_km for v in viagens if v.distancia_km)
+    total_km = veiculo.km_rodados or 0.0
     
-    # Soma os custos de todas as viagens
+    
     total_custo_viagens = 0
     for v in viagens:
         custo_despesas = 0
@@ -3659,8 +5661,7 @@ def get_veiculo_details_api(veiculo_id):
         custo_abastecimento_viagem = sum(a.custo_total for a in v.abastecimentos)
         total_custo_viagens += custo_despesas + custo_abastecimento_viagem
 
-    # Soma os custos de manutenções
-    total_custo_manutencao = sum(m.custo for m in manutencoes)
+    total_custo_manutencao = sum(m.custo_total or 0 for m in manutencoes)
     
     custo_geral = total_custo_viagens + total_custo_manutencao
     custo_por_km = (custo_geral / total_km) if total_km > 0 else 0
@@ -3672,93 +5673,55 @@ def get_veiculo_details_api(veiculo_id):
         "custo_por_km": round(custo_por_km, 2)
     }
 
-    # 3. Retorna o JSON completo
+    manutencoes_data = [{
+        "id": m.id,
+        "data": m.data_entrada.strftime('%d/%m/%Y'),
+        "odometro": m.odometro,
+        "tipo": m.tipo_manutencao,
+        "descricao": m.servicos_executados or m.descricao_problema or 'N/A',
+        "custo": m.custo_total
+    } for m in manutencoes]
+
     return jsonify({
         "success": True,
         "kpis": kpis,
-        "manutencoes": [m.to_dict() for m in manutencoes],
+        "manutencoes": manutencoes_data,
         "abastecimentos": [a.to_dict() for a in abastecimentos]
     })
 
-
-@app.route('/veiculo/<int:veiculo_id>/adicionar_manutencao', methods=['POST'])
+@app.route('/veiculo/<int:veiculo_id>/lancar_receita', methods=['POST'])
 @login_required
-def adicionar_manutencao(veiculo_id):
+def lancar_receita_veiculo(veiculo_id):
     veiculo = Veiculo.query.filter_by(id=veiculo_id, empresa_id=current_user.empresa_id).first_or_404()
     
     try:
-        nova_manutencao = Manutencao(
+        # Cada frete cria um registro de viagem, mesmo que simplificado
+        nova_viagem_receita = Viagem(
             veiculo_id=veiculo.id,
             empresa_id=current_user.empresa_id,
-            data=datetime.strptime(request.form['data'], '%Y-%m-%d').date(),
-            odometro=int(request.form['odometro']),
-            tipo=request.form['tipo'],
-            descricao=request.form['descricao'],
-            custo=float(request.form['custo'])
+            # Usamos o campo 'cliente' para a Fazenda/Empresa do frete
+            cliente=request.form.get('cliente'), 
+            valor_recebido=float(request.form.get('valor_frete')),
+            data_inicio=datetime.strptime(request.form.get('data'), '%Y-%m-%d'),
+            # Usamos 'observacoes' para guardar detalhes como material, peso, etc.
+            observacoes=f"Material: {request.form.get('material', '')} | Peso: {request.form.get('peso', '')} TN",
+            # Preenchemos campos obrigatórios com valores padrão
+            endereco_saida='N/A',
+            endereco_destino='N/A',
+            status='concluida' # Marcamos como concluída, pois é apenas um registro de faturamento
         )
-
-        urls_anexos = []
-        if 'anexos' in request.files:
-            anexos = request.files.getlist('anexos')
-            if anexos and any(anexo and anexo.filename for anexo in anexos):
-                
-                # --- INÍCIO DA CORREÇÃO ---
-                # Este bloco, que cria o s3_client, estava faltando.
-                s3_client = boto3.client(
-                    's3',
-                    endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
-                    aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
-                    aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
-                    region_name='auto'
-                )
-                R2_BUCKET_NAME = app.config['CLOUDFLARE_R2_BUCKET']
-                R2_PUBLIC_URL = app.config['CLOUDFLARE_R2_PUBLIC_URL']
-                # --- FIM DA CORREÇÃO ---
-
-                for anexo in anexos:
-                    if anexo and anexo.filename != '':
-                        filename = f"manutencao/{veiculo.id}/{uuid.uuid4()}_{secure_filename(anexo.filename)}"
-                        s3_client.upload_fileobj(anexo, R2_BUCKET_NAME, filename, ExtraArgs={'ContentType': anexo.content_type})
-                        urls_anexos.append(f"{R2_PUBLIC_URL}/{filename}")
-                
-                if urls_anexos:
-                    nova_manutencao.anexos = ",".join(urls_anexos)
-
-        db.session.add(nova_manutencao)
+        
+        db.session.add(nova_viagem_receita)
         db.session.commit()
-        flash('Manutenção registrada com sucesso!', 'success')
+        flash('Receita (frete) lançada com sucesso!', 'success')
 
     except Exception as e:
         db.session.rollback()
-        flash(f'Erro ao registrar manutenção: {str(e)}', 'error')
-        logger.error(f"Erro ao adicionar manutenção para veiculo {veiculo_id}: {e}", exc_info=True)
+        flash(f'Erro ao lançar receita: {e}', 'error')
+        logger.error(f"Erro ao lançar receita para o veículo {veiculo_id}: {e}", exc_info=True)
 
-    return redirect(url_for('consultar_veiculos'))
+    return redirect(url_for('veiculo_dashboard', veiculo_id=veiculo_id))
 
-
-@app.route('/manutencao/<int:manutencao_id>/excluir', methods=['POST'])
-@login_required
-def excluir_manutencao(manutencao_id):
-    manutencao = Manutencao.query.join(Veiculo).filter(
-        Manutencao.id == manutencao_id,
-        Veiculo.empresa_id == current_user.empresa_id
-    ).first_or_404()
-    
-    # Excluir anexos do R2 se existirem
-    if manutencao.anexos:
-        for url in manutencao.anexos.split(','):
-            try:
-                key = url.replace(f"{R2_PUBLIC_URL}/", "")
-                s3_client.delete_object(Bucket=R2_BUCKET_NAME, Key=key)
-            except Exception as e:
-                logger.error(f"Erro ao excluir anexo {url} do R2: {e}")
-
-    db.session.delete(manutencao)
-    db.session.commit()
-    flash('Registro de manutenção excluído com sucesso.', 'success')
-    return redirect(url_for('consultar_veiculos'))
-
-        
 @app.route('/manifest.json')
 def manifest():
     return send_from_directory('templates', 'manifest.json')
@@ -3847,4 +5810,5 @@ if __name__ == '__main__':
    
     # Inicia o servidor com suporte a SocketIO e debug
     print("Iniciando o servidor com SocketIO...")
+
     socketio.run(app, debug=True)
