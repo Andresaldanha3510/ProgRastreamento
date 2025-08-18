@@ -10,7 +10,7 @@
         padding: 2rem;
         border-radius: 0.5rem;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        margin: 0; /* Remove a centralização */
+        margin: 0;
     }
 
     .form-container h1 {
@@ -66,35 +66,43 @@
                 <input type="text" name="placa" id="placa" required class="form-input" pattern="[A-Z0-9]{7}" placeholder="ABC1D23">
             </div>
             <div class="mb-4">
-                <label for="categoria_veiculo" class="block text-gray-700 font-medium mb-2">Categoria do Veículo</label>
-                <input type="text" name="categoria_veiculo" id="categoria_veiculo" required class="form-input" placeholder="Ex: Caminhão, Van">
+                <label for="categoria" class="block text-gray-700 font-medium mb-2">Categoria do Veículo</label>
+                <input type="text" name="categoria" id="categoria" required class="form-input" placeholder="Ex: Caminhão, Van">
             </div>
             <div class="mb-4">
                 <label for="modelo" class="block text-gray-700 font-medium mb-2">Modelo</label>
                 <input type="text" name="modelo" id="modelo" required class="form-input" placeholder="Ex: Scania P310">
             </div>
             <div class="mb-4">
-                <label for="ano_veiculo" class="block text-gray-700 font-medium mb-2">Ano do Veículo</label>
-                <select name="ano_veiculo" id="ano_veiculo" required class="form-select">
+                <label for="marca" class="block text-gray-700 font-medium mb-2">Marca</label>
+                <input type="text" name="marca" id="marca" class="form-input" placeholder="Ex: Scania">
+            </div>
+            <div class="mb-4">
+                <label for="renavam" class="block text-gray-700 font-medium mb-2">Renavam</label>
+                <input type="text" name="renavam" id="renavam" class="form-input" placeholder="11 dígitos">
+            </div>
+            <div class="mb-4">
+                <label for="ano" class="block text-gray-700 font-medium mb-2">Ano do Veículo</label>
+                <select name="ano" id="ano" required class="form-select">
                     <option value="">Selecione o ano</option>
                 </select>
             </div>
             <div class="mb-4">
-                <label for="valorveiculo" class="block text-gray-700 font-medium mb-2">Valor do Veículo</label>
-                <input type="text" name="valorveiculo" id="valorveiculo" required class="form-input" placeholder="R$ 0,00">
+                <label for="valor" class="block text-gray-700 font-medium mb-2">Valor do Veículo</label>
+                <input type="text" name="valor" id="valor" required class="form-input" placeholder="R$ 0,00">
             </div>
             <div class="mb-4">
-                <label for="kmveiculo" class="block text-gray-700 font-medium mb-2">Km Rodados</label>
-                <input type="number" name="kmveiculo" id="kmveiculo" required class="form-input" placeholder="Ex: 150000">
+                <label for="km_rodados" class="block text-gray-700 font-medium mb-2">Km Rodados</label>
+                <input type="number" name="km_rodados" id="km_rodados" required class="form-input" placeholder="Ex: 150000">
             </div>
             <div class="md:col-span-2 mb-4">
-                <label for="ultimamanut" class="block text-gray-700 font-medium mb-2">Última Manutenção</label>
-                <input type="date" name="ultimamanut" id="ultimamanut" required class="form-input">
+                <label for="ultima_manutencao" class="block text-gray-700 font-medium mb-2">Última Manutenção</label>
+                <input type="date" name="ultima_manutencao" id="ultima_manutencao" required class="form-input">
             </div>
         </div>
 
         <div class="mt-6 flex items-center justify-end gap-4">
-            <a href="{{ url_for('index') }}" class="btn-back">Voltar</a>
+            <a href="{{ url_for('painel') }}" class="btn-back">Voltar</a>
             <button type="submit" class="btn-submit">Cadastrar</button>
         </div>
     </form>
@@ -106,7 +114,8 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // Popula o select de anos
-    const selectAno = document.getElementById('ano_veiculo');
+    // CORRIGIDO: document.getElementById('ano')
+    const selectAno = document.getElementById('ano');
     if (selectAno) {
         const anoAtual = new Date().getFullYear();
         for (let ano = anoAtual; ano >= 2000; ano--) {
@@ -118,7 +127,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Formata o campo de valor para moeda brasileira
-    const inputValor = document.getElementById('valorveiculo');
+    // CORRIGIDO: document.getElementById('valor')
+    const inputValor = document.getElementById('valor');
     if (inputValor) {
         inputValor.addEventListener('input', function (e) {
             let value = e.target.value.replace(/\D/g, '');

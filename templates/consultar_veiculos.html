@@ -7,74 +7,77 @@
 <style>
     .action-buttons { display: flex; gap: 0.5rem; justify-content: center; }
     .btn-small { padding: 0.5rem 0.75rem; font-size: 0.875rem; line-height: 1; border-radius: 0.375rem; color: white; transition: background-color 0.2s; }
-    .tab-button.active { border-bottom: 2px solid #16a34a; color: #16a34a; font-weight: 600; }
+    
+    /* Estilos para os novos status */
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-flex;
+        align-items: center;
+    }
+    .status-disponivel { background-color: #d1fae5; color: #065f46; }
+    .status-em-rota { background-color: #dbeafe; color: #1e40af; }
+    .status-em-manutencao { background-color: #fef3c7; color: #92400e; }
+
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="p-6 bg-gray-200 min-h-screen">
+<div class="p-6 bg-gray-100 min-h-screen">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Consultar Veículos</h1>
+        <h1 class="text-3xl font-bold text-gray-800">Frota de Veículos</h1>
         <a href="{{ url_for('cadastrar_veiculo') }}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2">
             <i class="fas fa-plus"></i> Novo Veículo
         </a>
     </div>
 
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-        <table class="w-full">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Placa</th>
-                    <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Modelo/Marca</th>
-                    <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Ano</th>
-                    <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th class="p-4 text-center text-xs font-medium text-gray-500 uppercase">Ações</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-                {% for veiculo in veiculos %}
-                <tr class="hover:bg-gray-100" data-veiculo-id="{{ veiculo.id }}">
-                    <td class="p-4 text-sm font-bold text-gray-900">{{ veiculo.placa }}</td>
-                    <td class="p-4 text-sm text-gray-600">{{ veiculo.modelo }} / {{ veiculo.marca }}</td>
-                    <td class="p-4 text-sm text-gray-600">{{ veiculo.ano }}</td>
-                    <td class="p-4 text-sm">
-                        {% if veiculo.disponivel %}
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Disponível</span>
-                        {% else %}
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Em Viagem</span>
-                        {% endif %}
-                    </td>
-                    <td class="p-4">
-                        <div class="action-buttons">
-                            <button onclick="openVehicleModal({{ veiculo.id }})" class="btn-small bg-blue-600 hover:bg-blue-700" title="Ver Detalhes, KPIs e Manutenção"><i class="fas fa-search-plus"></i></button>
-                            <a href="{{ url_for('editar_veiculo', veiculo_id=veiculo.id) }}" class="btn-small bg-indigo-600 hover:bg-indigo-700" title="Editar Cadastro"><i class="fas fa-edit"></i></a>
-                            <a href="{{ url_for('excluir_veiculo', veiculo_id=veiculo.id) }}" onclick="return confirm('Tem certeza que deseja excluir o veículo {{ veiculo.placa }}?')" class="btn-small bg-red-600 hover:bg-red-700" title="Excluir Veículo"><i class="fas fa-trash"></i></a>
-                        </div>
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="5" class="p-6 text-center text-gray-500">Nenhum veículo encontrado.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<div id="vehicleModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col">
-        <header class="flex justify-between items-center p-4 border-b">
-            <h2 class="text-xl font-bold text-gray-800">Detalhes do Veículo: <span id="modal-vehicle-plate"></span></h2>
-            <button type="button" onclick="closeModal('vehicleModal')" class="text-gray-400 hover:text-gray-700 text-3xl">&times;</button>
-        </header>
-        <div class="border-b"><nav class="flex px-4">
-            <button id="tab-kpis" class="tab-button py-3 px-4" onclick="switchTab('kpis')">KPIs</button>
-            <button id="tab-manutencoes" class="tab-button py-3 px-4" onclick="switchTab('manutencoes')">Manutenções</button>
-            <button id="tab-abastecimentos" class="tab-button py-3 px-4" onclick="switchTab('abastecimentos')">Abastecimentos</button>
-        </nav></div>
-        <div class="p-6 overflow-y-auto bg-gray-50">
-            <div id="content-kpis" class="tab-content"></div>
-            <div id="content-manutencoes" class="tab-content hidden"></div>
-            <div id="content-abastecimentos" class="tab-content hidden"></div>
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="p-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Placa</th>
+                        <th class="p-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Modelo</th>
+                        <th class="p-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ano</th>
+                        <th class="p-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                        <th class="p-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for veiculo in veiculos %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-4 text-sm font-bold text-gray-900 font-mono">{{ veiculo.placa }}</td>
+                        <td class="p-4 text-sm text-gray-700">{{ veiculo.modelo }}</td>
+                        <td class="p-4 text-sm text-gray-600">{{ veiculo.ano or 'N/A' }}</td>
+                        <td class="p-4 text-sm">
+                            
+                            {% if veiculo.status == 'Disponível' %}
+                                <span class="status-badge status-disponivel">Disponível</span>
+                            {% elif veiculo.status == 'Em Manutenção' %}
+                                <span class="status-badge status-em-manutencao">Em Manutenção</span>
+                            {% elif veiculo.status == 'Em Rota' %}
+                                <span class="status-badge status-em-rota">Em Rota</span>
+                            {% else %}
+                                <span class="status-badge">{{ veiculo.status }}</span>
+                            {% endif %}
+                            </td>
+                        <td class="p-4">
+                            <div class="action-buttons">
+                                <a href="{{ url_for('veiculo_dashboard', veiculo_id=veiculo.id) }}" class="btn-small bg-blue-600 hover:bg-blue-700" title="Ver Dashboard Financeiro"><i class="fas fa-chart-line"></i></a>
+                                <a href="{{ url_for('editar_veiculo', veiculo_id=veiculo.id) }}" class="btn-small bg-indigo-600 hover:bg-indigo-700" title="Editar Cadastro"><i class="fas fa-edit"></i></a>
+                                <a href="{{ url_for('excluir_veiculo', veiculo_id=veiculo.id) }}" onclick="return confirm('Tem certeza que deseja excluir o veículo {{ veiculo.placa }}?')" class="btn-small bg-red-600 hover:bg-red-700" title="Excluir Veículo"><i class="fas fa-trash"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="p-6 text-center text-gray-500">Nenhum veículo encontrado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -82,111 +85,4 @@
 
 {% block scripts %}
 {{ super() }}
-<script>
-function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
-function switchTab(tabName) {
-    document.querySelectorAll('#vehicleModal .tab-content').forEach(c => c.classList.add('hidden'));
-    document.querySelectorAll('#vehicleModal .tab-button').forEach(b => b.classList.remove('active'));
-    document.getElementById(`content-${tabName}`).classList.remove('hidden');
-    document.getElementById(`tab-${tabName}`).classList.add('active');
-}
-function toggleMaintenanceForm() {
-    document.getElementById('add-maintenance-form').classList.toggle('hidden');
-}
-
-async function openVehicleModal(veiculoId) {
-    const modal = document.getElementById('vehicleModal');
-    modal.classList.remove('hidden');
-    switchTab('kpis');
-    
-    const kpisContainer = document.getElementById('content-kpis');
-    const maintContainer = document.getElementById('content-manutencoes');
-    const fuelContainer = document.getElementById('content-abastecimentos');
-    kpisContainer.innerHTML = '<p class="text-center p-8 text-gray-500">Carregando KPIs...</p>';
-    maintContainer.innerHTML = '<p class="text-center p-8 text-gray-500">Carregando manutenções...</p>';
-    fuelContainer.innerHTML = '<p class="text-center p-8 text-gray-500">Carregando abastecimentos...</p>';
-
-    try {
-        const response = await fetch(`/api/veiculo/${veiculoId}/details`);
-        if (!response.ok) throw new Error('Falha ao buscar dados do veículo.');
-        const data = await response.json();
-
-        const veiculoPlaca = document.querySelector(`tr[data-veiculo-id='${veiculoId}'] td:first-child`)?.innerText || `ID ${veiculoId}`;
-        document.getElementById('modal-vehicle-plate').innerText = veiculoPlaca;
-        
-        // --- INÍCIO DA CORREÇÃO ---
-        // Renderiza KPIs com tratamento para valores nulos/undefined
-        const kpis = data.kpis;
-        kpisContainer.innerHTML = `
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
-                <div class="bg-blue-100 p-4 rounded-lg shadow-sm"><p class="text-2xl font-bold text-blue-800">${kpis.total_viagens || 0}</p><p class="text-sm text-blue-600">Total de Viagens</p></div>
-                <div class="bg-indigo-100 p-4 rounded-lg shadow-sm"><p class="text-2xl font-bold text-indigo-800">${Number(kpis.total_km || 0).toFixed(2).replace('.', ',')} km</p><p class="text-sm text-indigo-600">Distância Total</p></div>
-                <div class="bg-red-100 p-4 rounded-lg shadow-sm"><p class="text-2xl font-bold text-red-800">R$ ${Number(kpis.custo_geral || 0).toFixed(2).replace('.', ',')}</p><p class="text-sm text-red-600">Custo Geral</p></div>
-                <div class="bg-yellow-100 p-4 rounded-lg shadow-sm"><p class="text-2xl font-bold text-yellow-800">R$ ${Number(kpis.custo_por_km || 0).toFixed(2).replace('.', ',')}</p><p class="text-sm text-yellow-600">Custo por KM</p></div>
-            </div>`;
-        // --- FIM DA CORREÇÃO ---
-
-        // Renderiza Manutenções
-        let maintHtml = `
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold">Histórico de Manutenções</h3>
-                <button onclick="toggleMaintenanceForm()" class="bg-green-100 text-green-800 px-3 py-1 text-sm font-semibold rounded-md hover:bg-green-200">Adicionar Nova</button>
-            </div>
-            <div id="add-maintenance-form" class="hidden bg-white p-4 rounded-md border mb-4 shadow-sm">
-                <form action="/veiculo/${veiculoId}/adicionar_manutencao" method="POST" enctype="multipart/form-data">
-                    <h4 class="font-semibold mb-2">Registrar Nova Manutenção</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label class="block text-sm">Data</label><input type="date" name="data" required class="w-full p-2 border rounded-md"></div>
-                        <div><label class="block text-sm">Odômetro (km)</label><input type="number" name="odometro" required class="w-full p-2 border rounded-md" placeholder="Ex: 150000"></div>
-                        <div><label class="block text-sm">Tipo de Serviço</label><input type="text" name="tipo" required class="w-full p-2 border rounded-md" list="tipos-manutencao" placeholder="Ex: Troca de Óleo"></div>
-                        <div><label class="block text-sm">Custo (R$)</label><input type="number" step="0.01" name="custo" required class="w-full p-2 border rounded-md" placeholder="Ex: 350.50"></div>
-                        <div class="md:col-span-2"><label class="block text-sm">Descrição do Serviço</label><textarea name="descricao" required class="w-full p-2 border rounded-md" rows="2"></textarea></div>
-                        <div class="md:col-span-2"><label class="block text-sm">Anexar Comprovantes</label><input type="file" name="anexos" multiple class="w-full text-sm"></div>
-                    </div>
-                    <div class="text-right mt-4"><button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Salvar Manutenção</button></div>
-                </form>
-                <datalist id="tipos-manutencao"><option value="Preventiva"><option value="Corretiva"><option value="Troca de Óleo e Filtros"><option value="Troca de Pneus"><option value="Alinhamento e Balanceamento"><option value="Sistema de Freios"></datalist>
-            </div>
-            <div class="space-y-3">`;
-        if (data.manutencoes.length > 0) {
-            data.manutencoes.forEach(m => {
-                maintHtml += `<div class="bg-white p-3 border rounded-md shadow-sm"><div class="flex justify-between items-start"><div><p class="font-bold">${m.tipo} - R$ ${Number(m.custo || 0).toFixed(2).replace('.', ',')}</p><p class="text-sm text-gray-600">${m.descricao}</p><p class="text-xs text-gray-500 mt-1">Data: ${m.data} | Odômetro: ${m.odometro} km</p></div><form action="/manutencao/${m.id}/excluir" method="POST" onsubmit="return confirm('Excluir este registro de manutenção?')"><button type="submit" class="text-red-500 hover:text-red-700" title="Excluir"><i class="fas fa-trash"></i></button></form></div>`;
-                if(m.anexos.length > 0) {
-                    maintHtml += `<div class="mt-2 border-t pt-2">`;
-                    m.anexos.forEach(url => { maintHtml += `<a href="${url}" target="_blank" class="text-blue-600 text-sm hover:underline mr-2"><i class="fas fa-paperclip"></i> Anexo</a>`; });
-                    maintHtml += `</div>`;
-                }
-                maintHtml += `</div>`;
-            });
-        } else { maintHtml += '<p class="text-center text-gray-500 py-4">Nenhum registro de manutenção.</p>'; }
-        maintHtml += '</div>';
-        maintContainer.innerHTML = maintHtml;
-
-        // Renderiza Abastecimentos
-        let fuelHtml = '<div class="space-y-3">';
-        if (data.abastecimentos.length > 0) {
-            data.abastecimentos.forEach(a => {
-                fuelHtml += `<div class="bg-white p-3 border rounded-md shadow-sm text-sm"><p><strong>Data:</strong> ${a.data_abastecimento} - <strong>Valor:</strong> R$ ${Number(a.custo_total || 0).toFixed(2).replace('.', ',')}</p><p class="text-gray-600">${Number(a.litros || 0).toFixed(2).replace('.', ',')}L @ R$ ${Number(a.preco_por_litro || 0).toFixed(2).replace('.', ',')}/L - Odômetro: ${a.odometro} km</p></div>`;
-            });
-        } else { fuelHtml += '<p class="text-center text-gray-500 py-4">Nenhum abastecimento encontrado.</p>'; }
-        fuelHtml += '</div>';
-        fuelContainer.innerHTML = fuelHtml;
-
-    } catch (error) {
-        console.error("Erro no modal do veículo:", error);
-        kpisContainer.innerHTML = `<p class="text-center text-red-500">${error.message}</p>`;
-    }
-}
-
-// Adicionar data-veiculo-id para cada linha para pegar a placa no modal
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('tbody tr[data-veiculo-id]').forEach(row => {
-        const button = row.querySelector('button[onclick^="openVehicleModal"]');
-        if (button) {
-            const veiculoId = row.dataset.veiculoId;
-            button.onclick = () => openVehicleModal(veiculoId);
-        }
-    });
-});
-</script>
 {% endblock %}

@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Relatório de Manutenção - TrackBras{% endblock %}
+
+{% block content %}
+<div class="p-4 md:p-6 bg-gray-100 min-h-screen">
+    <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">Relatório de Manutenção</h1>
+        <a href="{{ url_for('exportar_relatorio_manutencao', **request.args) }}" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors w-full md:w-auto justify-center">
+            <i class="fas fa-file-excel"></i> Exportar para Excel
+        </a>
+    </div>
+
+    <div class="bg-white p-4 rounded-xl shadow-md mb-6">
+        <form action="{{ url_for('relatorio_manutencao') }}" method="GET" id="filter-form">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div>
+                    <label for="data_inicio" class="block text-sm font-medium text-gray-700">Data Início</label>
+                    <input type="date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" id="data_inicio" name="data_inicio" value="{{ request.args.get('data_inicio', '') }}">
+                </div>
+                <div>
+                    <label for="data_fim" class="block text-sm font-medium text-gray-700">Data Fim</label>
+                    <input type="date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" id="data_fim" name="data_fim" value="{{ request.args.get('data_fim', '') }}">
+                </div>
+                <div>
+                    <label for="veiculo_id" class="block text-sm font-medium text-gray-700">Veículo</label>
+                    <select id="veiculo_id" name="veiculo_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                        <option value="">Todos</option>
+                        {% for v in veiculos_filtro %}
+                            <option value="{{ v.id }}" {% if request.args.get('veiculo_id')|int == v.id %}selected{% endif %}>{{ v.placa }} - {{ v.modelo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="tipo_manutencao" class="block text-sm font-medium text-gray-700">Tipo</label>
+                    <select id="tipo_manutencao" name="tipo_manutencao" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                        <option value="">Todos</option>
+                        <option value="Preventiva" {% if request.args.get('tipo_manutencao') == 'Preventiva' %}selected{% endif %}>Preventiva</option>
+                        <option value="Corretiva" {% if request.args.get('tipo_manutencao') == 'Corretiva' %}selected{% endif %}>Corretiva</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2"><i class="fas fa-filter"></i>Aplicar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-lg shadow-md"><h2 class="text-lg font-semibold text-gray-500">Total de Ordens</h2><p class="text-4xl font-bold text-gray-800 mt-2">{{ kpis.total_ordens }}</p></div>
+        <div class="bg-white p-6 rounded-lg shadow-md"><h2 class="text-lg font-semibold text-gray-500">Custo Total (Período)</h2><p class="text-4xl font-bold text-red-600 mt-2">R$ {{ "{:,.2f}".format(kpis.custo_total).replace(",", "X").replace(".", ",").replace("X", ".") }}</p></div>
+        <div class="bg-white p-6 rounded-lg shadow-md"><h2 class="text-lg font-semibold text-gray-500">Ordens Concluídas</h2><p class="text-4xl font-bold text-green-600 mt-2">{{ kpis.concluidas }}</p></div>
+        <div class="bg-white p-6 rounded-lg shadow-md"><h2 class="text-lg font-semibold text-gray-500">Em Andamento</h2><p class="text-4xl font-bold text-yellow-600 mt-2">{{ kpis.em_andamento }}</p></div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="overflow-x-auto responsive-table">
+            <table class="w-full text-sm text-left">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="p-4 font-medium text-gray-500 uppercase">Veículo</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase">Datas</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase">Tipo</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase">Serviços / Problema</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase text-right">Custo</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for m in manutencoes %}
+                    <tr class="hover:bg-gray-50">
+                        <td data-label="Veículo" class="p-4 font-medium text-gray-800">{{ m.veiculo.modelo }} <span class="font-mono text-gray-600">({{ m.veiculo.placa }})</span></td>
+                        <td data-label="Datas" class="p-4 text-gray-600">
+                            <div>Entrada: {{ m.data_entrada.strftime('%d/%m/%Y') if m.data_entrada else 'N/A' }}</div>
+                            <div>Saída: {{ m.data_saida.strftime('%d/%m/%Y') if m.data_saida else 'N/A' }}</div>
+                        </td>
+                        <td data-label="Tipo" class="p-4 text-gray-600">{{ m.tipo_manutencao }}</td>
+                        <td data-label="Serviços" class="p-4 text-gray-600 max-w-sm truncate">{{ m.servicos_executados or m.descricao_problema or 'N/A' }}</td>
+                        <td data-label="Custo" class="p-4 font-semibold text-gray-700 text-right">R$ {{ "{:,.2f}".format(m.custo_total or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
+                        <td data-label="Status" class="p-4 text-center">
+                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if m.status == 'Concluída' %} bg-green-100 text-green-800
+                                {% elif m.status == 'Agendada' %} bg-indigo-100 text-indigo-800
+                                {% elif m.status == 'Em Andamento' %} bg-yellow-100 text-yellow-800
+                                {% else %} bg-gray-100 text-gray-800 {% endif %}">
+                                {{ m.status }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="p-8 text-center text-gray-500">Nenhum registro de manutenção encontrado para os filtros aplicados.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

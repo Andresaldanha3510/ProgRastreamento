@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Holerite - {{ folha.motorista.nome }} - {{ "%02d"|format(folha.mes_referencia) }}/{{ folha.ano_referencia }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @media print {
+            body { -webkit-print-color-adjust: exact; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4 md:p-8">
+        <div class="bg-white p-8 rounded-lg shadow-lg max-w-4xl mx-auto">
+            <div class="no-print mb-6 text-right">
+                <button onclick="window.print()" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Imprimir</button>
+            </div>
+
+            <div class="flex justify-between items-start border-b-2 border-gray-200 pb-4">
+                <div>
+                    <h1 class="text-2xl font-bold">{{ folha.motorista.empresa.nome_fantasia or folha.motorista.empresa.razao_social }}</h1>
+                    <p class="text-sm text-gray-600">{{ folha.motorista.empresa.razao_social }}</p>
+                    <p class="text-sm text-gray-600">CNPJ: {{ folha.motorista.empresa.cnpj }}</p>
+                    <p class="text-sm text-gray-600">{{ folha.motorista.empresa.endereco }}, {{ folha.motorista.empresa.cidade }} - {{ folha.motorista.empresa.estado }}</p>
+                </div>
+                <div class="text-right">
+                    <h2 class="text-xl font-semibold">Demonstrativo de Pagamento</h2>
+                    <p class="text-md text-gray-700">Referência: <strong>{{ "%02d"|format(folha.mes_referencia) }}/{{ folha.ano_referencia }}</strong></p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mt-4 border-b border-gray-200 pb-4">
+                 <div>
+                    <p class="text-sm font-semibold text-gray-500">FUNCIONÁRIO</p>
+                    <p class="text-lg font-bold">{{ folha.motorista.nome }}</p>
+                 </div>
+                 <div>
+                    <p class="text-sm font-semibold text-gray-500">CPF</p>
+                    <p class="text-lg">{{ folha.motorista.cpf }}</p>
+                 </div>
+            </div>
+
+            <table class="w-full mt-6 text-sm">
+                <thead>
+                    <tr class="border-b bg-gray-50">
+                        <th class="text-left font-semibold p-2">DESCRIÇÃO</th>
+                        <th class="text-right font-semibold p-2">PROVENTOS (R$)</th>
+                        <th class="text-right font-semibold p-2">DESCONTOS (R$)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-b">
+                        <td class="p-2">SALÁRIO BASE</td>
+                        <td class="text-right p-2">{{ "%.2f"|format(folha.salario_base_registro) }}</td>
+                        <td class="text-right p-2"></td>
+                    </tr>
+                    {% for item in proventos %}
+                    <tr class="border-b">
+                        <td class="p-2">{{ item.descricao.upper() }}</td>
+                        <td class="text-right p-2">{{ "%.2f"|format(item.valor) }}</td>
+                        <td class="text-right p-2"></td>
+                    </tr>
+                    {% endfor %}
+                    {% for item in descontos %}
+                    <tr class="border-b">
+                        <td class="p-2">{{ item.descricao.upper() }}</td>
+                        <td class="text-right p-2"></td>
+                        <td class="text-right p-2">{{ "%.2f"|format(item.valor) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="bg-gray-100 font-bold">
+                        <td class="text-left p-2">TOTAIS</td>
+                        <td class="text-right p-2">{{ "%.2f"|format(folha.total_proventos) }}</td>
+                        <td class="text-right p-2">{{ "%.2f"|format(folha.total_descontos) }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <div class="mt-6 flex justify-end">
+                <div class="w-full md:w-1/3">
+                    <div class="flex justify-between p-2">
+                        <span class="font-semibold">Salário Bruto:</span>
+                        <span>R$ {{ "%.2f"|format(folha.total_proventos) }}</span>
+                    </div>
+                     <div class="flex justify-between p-2">
+                        <span class="font-semibold">Total Descontos:</span>
+                        <span>R$ {{ "%.2f"|format(folha.total_descontos) }}</span>
+                    </div>
+                     <div class="flex justify-between p-2 bg-green-100 rounded-md mt-2">
+                        <span class="font-bold text-lg">Líquido a Receber:</span>
+                        <span class="font-bold text-lg">R$ {{ "%.2f"|format(folha.salario_liquido) }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-24 text-center">
+                <div class="inline-block border-t w-64">
+                    <p class="text-sm">Assinatura do Funcionário</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

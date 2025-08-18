@@ -6,122 +6,483 @@
 {{ super() }}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBh_dlLDOc=" crossorigin=""/>
 <style>
-    .modal-content.mapa { max-width: 80vw; width: 1200px; }
+    .modal-content.mapa { max-width: 85vw; width: 1400px; }
     .modal-content.despesas { max-width: 700px; }
-    #map-container { height: 70vh; width: 100%; border-radius: 0.5rem; }
+    #map-container { height: 75vh; width: 100%; border-radius: 0.5rem; }
     .btn-small { padding: .4rem .8rem; font-size: .8rem; line-height: 1.5; }
     .action-buttons { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; justify-content: flex-start; }
     .status-select { padding: .35rem; border: 1px solid #d1d5db; border-radius: .375rem; background-color: #fff; }
+
+    /* Cards visuais para mobile */
+    .trip-card {
+        background: linear-gradient(135deg, #f8fafc 0%, #fff 100%);
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: all 0.2s ease;
+    }
+    
+    .trip-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+
+    /* Status badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .status-pendente { background: #fef3c7; color: #92400e; }
+    .status-em_andamento { background: #dbeafe; color: #1e40af; }
+    .status-concluida { background: #d1fae5; color: #065f46; }
+    .status-cancelada { background: #fee2e2; color: #991b1b; }
+
+    /* Filtros colapsáveis */
+    .filters-collapsed {
+        max-height: 60px;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+    }
+    
+    .filters-expanded {
+        max-height: 300px;
+        transition: max-height 0.3s ease;
+    }
+
+    /* Indicadores visuais */
+    .profit-indicator {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .profit-indicator::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 4px;
+        border-radius: 0 2px 2px 0;
+    }
+    
+    .profit-positive::before { background: #10b981; }
+    .profit-negative::before { background: #ef4444; }
+
+    /* Paginação melhorada */
+    .pagination-info {
+        background: #f1f5f9;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    /* Loading states */
+    .skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+    }
+    
+    @keyframes loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    /* Responsividade melhorada */
+    @media (max-width: 767px) {
+        .responsive-table thead { display: none; }
+        .responsive-table tbody, .responsive-table tr, .responsive-table td {
+            display: block;
+            width: 100%;
+        }
+        .responsive-table tr {
+            background: white;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            position: relative;
+        }
+        .responsive-table td {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 0.5rem 0;
+            text-align: right;
+        }
+        .responsive-table td:not(:last-child) {
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .responsive-table td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            text-align: left;
+            margin-right: 1rem;
+            color: #475569;
+            flex-shrink: 0;
+        }
+        .action-buttons {
+            justify-content: flex-end;
+        }
+        .responsive-table td[data-label="Ações"]::before {
+            content: none;
+        }
+    }
+
+    /* Quick actions */
+    .quick-actions {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    /* Melhor indicação de rotas */
+    .route-info {
+        position: relative;
+        padding-left: 1.5rem;
+    }
+    
+    .route-info::before {
+        content: '';
+        position: absolute;
+        left: 0.5rem;
+        top: 0.75rem;
+        bottom: 0.75rem;
+        width: 2px;
+        background: linear-gradient(to bottom, #10b981, #3b82f6);
+        border-radius: 1px;
+    }
 </style>
 {% endblock %}
 
-
 {% block content %}
-<div class="p-6 bg-gray-200 min-h-screen">
+<div class="p-4 md:p-6 bg-gray-50 min-h-screen">
     
-    <h1 class="text-3xl font-bold text-gray-800 mb-6">Consultar Viagens</h1>
+    <!-- Header com estatísticas rápidas -->
+    <div class="mb-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between mb-4">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Consultar Viagens</h1>
+            <div class="flex gap-3 mt-4 md:mt-0">
+                <div class="bg-white px-4 py-2 rounded-lg shadow-sm">
+                    <span class="text-sm text-gray-500">Total</span>
+                    <div class="font-bold text-lg text-gray-800">{{ viagens|length }}</div>
+                </div>
+                <div class="bg-green-50 px-4 py-2 rounded-lg shadow-sm">
+                    <span class="text-sm text-green-600">Concluídas</span>
+                    <div class="font-bold text-lg text-green-700">{{ viagens|selectattr('status', 'equalto', 'concluida')|list|length }}</div>
+                </div>
+                <div class="bg-blue-50 px-4 py-2 rounded-lg shadow-sm">
+                    <span class="text-sm text-blue-600">Em Andamento</span>
+                    <div class="font-bold text-lg text-blue-700">{{ viagens|selectattr('status', 'equalto', 'em_andamento')|list|length }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <div class="bg-white p-4 rounded-lg shadow-sm mb-6">
-        <form method="GET" action="{{ url_for('consultar_viagens') }}" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
-            <div class="col-span-1 md:col-span-3 lg:col-span-1">
-                <label for="search" class="block text-sm font-medium text-gray-700">Busca Rápida</label>
-                <input type="text" name="search" id="search" value="{{ request.args.get('search', '') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 text-sm" placeholder="Cliente, motorista, placa...">
+    <!-- Filtros melhorados com collapse -->
+    <div class="bg-white rounded-xl shadow-sm mb-6 overflow-hidden" x-data="{ filtersExpanded: false }">
+        <div class="p-4 border-b border-gray-100">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-700 flex items-center gap-2">
+                    <i class="fas fa-filter text-green-600"></i>
+                    Filtros de Busca
+                </h3>
+                <button @click="filtersExpanded = !filtersExpanded" class="flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors">
+                    <span x-text="filtersExpanded ? 'Menos filtros' : 'Mais filtros'"></span>
+                    <i class="fas fa-chevron-down transition-transform duration-200" :class="{ 'rotate-180': filtersExpanded }"></i>
+                </button>
             </div>
-            <div>
-                <label for="data_inicio" class="block text-sm font-medium text-gray-700">Data Início</label>
-                <input type="date" name="data_inicio" id="data_inicio" value="{{ request.args.get('data_inicio', '') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 text-sm">
+        </div>
+        
+        <form method="GET" action="{{ url_for('consultar_viagens') }}" class="p-4">
+            <!-- Filtros sempre visíveis -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Busca Rápida</label>
+                    <div class="relative">
+                        <input type="text" name="search" id="search" value="{{ request.args.get('search', '') }}" 
+                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                               placeholder="Cliente, motorista, placa...">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                </div>
+                <div>
+                    <label for="data_inicio" class="block text-sm font-medium text-gray-700 mb-1">Data Início</label>
+                    <input type="date" name="data_inicio" id="data_inicio" value="{{ request.args.get('data_inicio', '') }}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                </div>
+                <div>
+                    <label for="data_fim" class="block text-sm font-medium text-gray-700 mb-1">Data Fim</label>
+                    <input type="date" name="data_fim" id="data_fim" value="{{ request.args.get('data_fim', '') }}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                </div>
             </div>
-            <div>
-                <label for="data_fim" class="block text-sm font-medium text-gray-700">Data Fim</label>
-                <input type="date" name="data_fim" id="data_fim" value="{{ request.args.get('data_fim', '') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 text-sm">
+
+            <!-- Filtros expandíveis -->
+            <div x-show="filtersExpanded" x-collapse>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 pt-4 border-t border-gray-100">
+                    <div>
+                        <label for="motorista_id" class="block text-sm font-medium text-gray-700 mb-1">Motorista</label>
+                        <select name="motorista_id" id="motorista_id" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                            <option value="">Todos os motoristas</option>
+                            {% for motorista in motoristas %}
+                                <option value="{{ motorista.id }}" {% if request.args.get('motorista_id')|int == motorista.id %}selected{% endif %}>{{ motorista.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="status_filter" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select name="status_filter" id="status_filter" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                            <option value="">Todos os status</option>
+                            <option value="pendente" {% if request.args.get('status_filter') == 'pendente' %}selected{% endif %}>Pendente</option>
+                            <option value="em_andamento" {% if request.args.get('status_filter') == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
+                            <option value="concluida" {% if request.args.get('status_filter') == 'concluida' %}selected{% endif %}>Concluída</option>
+                            <option value="cancelada" {% if request.args.get('status_filter') == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="valor_min" class="block text-sm font-medium text-gray-700 mb-1">Valor Mínimo</label>
+                        <input type="number" name="valor_min" id="valor_min" value="{{ request.args.get('valor_min', '') }}" 
+                               step="0.01" min="0" placeholder="0,00"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                    </div>
+                    <div>
+                        <label for="valor_max" class="block text-sm font-medium text-gray-700 mb-1">Valor Máximo</label>
+                        <input type="number" name="valor_max" id="valor_max" value="{{ request.args.get('valor_max', '') }}" 
+                               step="0.01" min="0" placeholder="999999,99"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                    </div>
+                </div>
             </div>
-            <div>
-                <label for="motorista_id" class="block text-sm font-medium text-gray-700">Motorista</label>
-                <select name="motorista_id" id="motorista_id" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
-                    <option value="">Todos</option>
-                    {% for motorista in motoristas %}
-                        <option value="{{ motorista.id }}" {% if request.args.get('motorista_id')|int == motorista.id %}selected{% endif %}>{{ motorista.nome }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-             <div class="flex gap-2">
-                <button type="submit" class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">Filtrar</button>
-                <a href="{{ url_for('consultar_viagens') }}" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50" title="Limpar Filtros">
+
+            <div class="flex flex-col sm:flex-row gap-3 justify-end">
+                <button type="submit" 
+                        class="flex items-center justify-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-sm transition-colors">
+                    <i class="fas fa-search"></i>
+                    Buscar
+                </button>
+                <a href="{{ url_for('consultar_viagens') }}" 
+                   class="flex items-center justify-center gap-2 px-6 py-2.5 border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 font-medium rounded-lg shadow-sm transition-colors">
                     <i class="fas fa-times"></i>
+                    Limpar
                 </a>
+                <button type="button" onclick="exportarViagens()" 
+                        class="flex items-center justify-center gap-2 px-6 py-2.5 border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 font-medium rounded-lg shadow-sm transition-colors">
+                    <i class="fas fa-download"></i>
+                    Exportar
+                </button>
             </div>
         </form>
     </div>
 
-    <div class="overflow-x-auto bg-white rounded-lg shadow">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+    <!-- Ações rápidas -->
+    <div class="quick-actions bg-white rounded-xl shadow-sm p-4 mb-6">
+        <div class="flex flex-wrap gap-3 items-center justify-between">
+            <div class="flex flex-wrap gap-3">
+                <button onclick="selecionarTodasViagens()" class="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                    <i class="fas fa-check-square"></i>
+                    Selecionar Todas
+                </button>
+                <button onclick="atualizarStatusSelecionadas('concluida')" class="flex items-center gap-2 px-4 py-2 text-sm bg-green-100 text-green-700 hover:bg-green-200 rounded-lg transition-colors">
+                    <i class="fas fa-check"></i>
+                    Marcar como Concluídas
+                </button>
+            </div>
+            <div class="pagination-info">
+                Exibindo {{ viagens|length }} de {{ total_viagens or viagens|length }} viagens
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela melhorada -->
+    <div class="bg-white shadow-lg rounded-xl overflow-hidden">
+        <table class="w-full responsive-table">
+            <thead class="bg-gradient-to-r from-gray-50 to-gray-100 hidden md:table-header-group">
                 <tr>
-                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Viagem</th>
-                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Motorista/Veículo</th>
-                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider w-2/5">Origem e Paradas</th>
-                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Custo Total</th>
-                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                    <th class="px-6 py-4 text-left">
+                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" class="rounded border-gray-300 text-green-600 focus:ring-green-500">
+                    </th>
+                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Viagem</th>
+                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Motorista/Veículo</th>
+                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Rota</th>
+                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Financeiro</th>
+                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Ações</th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            <tbody class="md:divide-y md:divide-gray-200">
                 {% for viagem in viagens %}
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap align-top">
-                        <div class="text-base font-semibold text-gray-900">#{{ viagem.id }} - {{ viagem.cliente }}</div>
-                        <div class="text-sm text-gray-500">{{ viagem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</div>
+                <tr class="trip-card hover:bg-gray-50 transition-colors" data-viagem-id="{{ viagem.id }}">
+                    <td class="px-6 py-4">
+                        <input type="checkbox" class="trip-checkbox rounded border-gray-300 text-green-600 focus:ring-green-500" value="{{ viagem.id }}">
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap align-top">
-                        <div class="text-base text-gray-900">{{ viagem.motorista_nome }}</div>
-                        <div class="text-sm text-gray-500">{{ viagem.veiculo.placa }} - {{ viagem.veiculo.modelo }}</div>
+                    <td data-label="Viagem" class="px-6 py-4 align-top">
+                        <div class="flex items-start gap-3">
+                            <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                                {{ viagem.id }}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-semibold text-gray-900 truncate">{{ viagem.cliente }}</div>
+                                <div class="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                                    <i class="fas fa-calendar text-xs"></i>
+                                    {{ viagem.data_inicio.strftime('%d/%m/%Y') }}
+                                </div>
+                                <div class="text-sm text-gray-500 flex items-center gap-2">
+                                    <i class="fas fa-clock text-xs"></i>
+                                    {{ viagem.data_inicio.strftime('%H:%M') }}
+                                </div>
+                            </div>
+                        </div>
                     </td>
-                     <td class="px-6 py-4 whitespace-nowrap text-gray-600 align-top">
-                        <p title="{{ viagem.endereco_saida }}" class="font-semibold text-base"><i class="fas fa-flag-checkered text-green-600 mr-2"></i> {{ viagem.endereco_saida|truncate(50) }}</p>
-                        <ol class="list-decimal list-inside pl-4 mt-1 space-y-1">
-                            {% for destino in viagem.destinos|sort(attribute='ordem') %}
-                                <li class="text-sm text-gray-500" title="{{ destino.endereco }}">{{ destino.endereco|truncate(45) }}</li>
-                            {% endfor %}
-                        </ol>
+                    <td data-label="Motorista/Veículo" class="px-6 py-4 align-top">
+                        <div class="flex items-start gap-3">
+                            <div class="flex-shrink-0 w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-gray-600 text-xs"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-900">{{ viagem.motorista_nome }}</div>
+                                <div class="text-sm text-gray-500 flex items-center gap-1">
+                                    <i class="fas fa-car text-xs"></i>
+                                    {{ viagem.veiculo.placa }} - {{ viagem.veiculo.modelo }}
+                                </div>
+                            </div>
+                        </div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap align-top">
-                        <select onchange="atualizarStatus(this)" data-viagem-id="{{ viagem.id }}" class="status-select w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 text-base">
-                            <option value="pendente" {% if viagem.status == 'pendente' %}selected{% endif %}>Pendente</option>
-                            <option value="em_andamento" {% if viagem.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
-                            <option value="concluida" {% if viagem.status == 'concluida' %}selected{% endif %}>Concluída</option>
-                            <option value="cancelada" {% if viagem.status == 'cancelada' %}selected{% endif %}>Cancelada</option>
-                        </select>
+                    <td data-label="Rota" class="px-6 py-4 text-gray-600 align-top">
+                        <div class="route-info">
+                            <div class="flex items-start gap-2 mb-2">
+                                <i class="fas fa-play text-green-600 text-xs mt-1"></i>
+                                <div>
+                                    <div class="font-medium text-sm" title="{{ viagem.endereco_saida }}">
+                                        {{ viagem.endereco_saida|truncate(40) }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% if viagem.destinos %}
+                                <div class="space-y-1 ml-2">
+                                    {% for destino in viagem.destinos|sort(attribute='ordem') %}
+                                        <div class="flex items-start gap-2">
+                                            {% if loop.last %}
+                                                <i class="fas fa-flag-checkered text-red-500 text-xs mt-1"></i>
+                                            {% else %}
+                                                <i class="fas fa-circle text-blue-400 text-xs mt-1" style="font-size: 4px;"></i>
+                                            {% endif %}
+                                            <div class="text-sm text-gray-500" title="{{ destino.endereco }}">
+                                                {{ destino.endereco|truncate(35) }}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-center align-top">
-                        <button class="text-blue-600 hover:underline font-medium text-base" onclick="abrirModalGerenciarDespesas({{ viagem.id }})">
-                            R$ {{ "%.2f"|format(viagem.custo_total_calculado)|replace('.', ',') if viagem.custo_total_calculado else '0,00' }}
-                        </button>
+                    <td data-label="Status" class="px-6 py-4 align-top">
+                        <div class="space-y-2">
+                            <span class="status-badge status-{{ viagem.status }}">
+                                {% if viagem.status == 'pendente' %}Pendente
+                                {% elif viagem.status == 'em_andamento' %}Em Andamento
+                                {% elif viagem.status == 'concluida' %}Concluída
+                                {% else %}Cancelada{% endif %}
+                            </span>
+                            <select onchange="atualizarStatus(this)" data-viagem-id="{{ viagem.id }}" 
+                                    class="status-select w-full text-xs mt-1">
+                                <option value="pendente" {% if viagem.status == 'pendente' %}selected{% endif %}>Pendente</option>
+                                <option value="em_andamento" {% if viagem.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
+                                <option value="concluida" {% if viagem.status == 'concluida' %}selected{% endif %}>Concluída</option>
+                                <option value="cancelada" {% if viagem.status == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                            </select>
+                        </div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap font-medium align-top">
-                        <div class="flex flex-col gap-1.5">
-                            <div class="action-buttons">
+                    <td data-label="Financeiro" class="px-6 py-4 align-top">
+                        <div class="profit-indicator {% if viagem.lucro_real < 0 %}profit-negative{% else %}profit-positive{% endif %} pl-4">
+                            <div class="space-y-2">
+                                <div class="text-sm">
+                                    <span class="text-gray-500">Receita:</span>
+                                    <div class="font-semibold text-green-700">R$ {{ "%.2f"|format(viagem.valor_recebido or 0)|replace('.', ',') }}</div>
+                                </div>
+                                <button class="text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors" 
+                                        onclick="abrirModalGerenciarDespesas({{ viagem.id }})">
+                                    <span class="text-gray-500">Custo:</span>
+                                    <div class="font-semibold">R$ {{ "%.2f"|format(viagem.custo_real_completo)|replace('.', ',') }}</div>
+                                </button>
+                                <div class="text-sm">
+                                    <span class="text-gray-500">Lucro:</span>
+                                    <div class="font-bold {% if viagem.lucro_real < 0 %}text-red-600{% else %}text-green-600{% endif %}">
+                                        R$ {{ "%.2f"|format(viagem.lucro_real)|replace('.', ',') }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td data-label="Ações" class="px-6 py-4 align-top">
+                        <div class="flex flex-col gap-2">
+                            <!-- Primeira linha de ações -->
+                            <div class="flex gap-1 flex-wrap">
                                 {% if viagem.public_tracking_token %}
                                     {% set tracking_link = url_for('public_tracking_page', token=viagem.public_tracking_token, _external=True) %}
-                                    <button onclick="compartilharLink('{{ tracking_link }}')" type="button" class="btn-small text-white bg-gray-500 hover:bg-gray-600" title="Compartilhar Link"><i class="fas fa-share-alt"></i></button>
+                                    <button onclick="compartilharLink('{{ tracking_link }}')" type="button" 
+                                            class="btn-small text-white bg-gray-500 hover:bg-gray-600 rounded-lg transition-colors" 
+                                            title="Compartilhar Link">
+                                        <i class="fas fa-share-alt"></i>
+                                    </button>
                                     {% if viagem.cliente_telefone %}
-                                        <button onclick="enviarLinkClienteWhatsApp('{{ viagem.cliente_telefone }}', '{{ tracking_link }}')" type="button" class="btn-small text-white bg-green-500 hover:bg-green-600" title="WhatsApp Cliente"><i class="fab fa-whatsapp"></i></button>
+                                        <button onclick="enviarLinkClienteWhatsApp('{{ viagem.cliente_telefone }}', '{{ tracking_link }}')" type="button" 
+                                                class="btn-small text-white bg-green-500 hover:bg-green-600 rounded-lg transition-colors" 
+                                                title="WhatsApp Cliente">
+                                            <i class="fab fa-whatsapp"></i>
+                                        </button>
                                     {% endif %}
                                 {% endif %}
                                 {% if viagem.status == 'em_andamento' %}
-                                    <button onclick="openMapModal({{ viagem.id }})" class="btn-small text-white bg-blue-600 hover:bg-blue-700" title="Ver no Mapa"><i class="fas fa-map-marked-alt"></i></button>
+                                    <button onclick="openMapModal({{ viagem.id }})" 
+                                            class="btn-small text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors" 
+                                            title="Ver no Mapa">
+                                        <i class="fas fa-map-marked-alt"></i>
+                                    </button>
                                 {% endif %}
                             </div>
-                            <div class="action-buttons">
-                                <a href="{{ url_for('editar_viagem_page', viagem_id=viagem.id) }}" class="btn-small text-white bg-indigo-600 hover:bg-indigo-700" title="Editar"><i class="fas fa-edit"></i></a>
-                                <a href="{{ url_for('gerar_romaneio', viagem_id=viagem.id) }}" class="btn-small text-white bg-purple-600 hover:bg-purple-700" title="Romaneio"><i class="fas fa-file-alt"></i></a>
-                                <a href="{{ url_for('excluir_viagem', viagem_id=viagem.id) }}" onclick="return confirm('Tem certeza?')" class="btn-small text-white bg-red-600 hover:bg-red-700" title="Excluir"><i class="fas fa-trash"></i></a>
+                            <!-- Segunda linha de ações -->
+                            <div class="flex gap-1 flex-wrap">
+                                <a href="{{ url_for('editar_viagem_page', viagem_id=viagem.id) }}" 
+                                   class="btn-small text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors" 
+                                   title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{{ url_for('gerar_romaneio', viagem_id=viagem.id) }}" 
+                                   class="btn-small text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors" 
+                                   title="Romaneio">
+                                    <i class="fas fa-file-alt"></i>
+                                </a>
+                                <button onclick="confirmarExclusao({{ viagem.id }})" 
+                                        class="btn-small text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors" 
+                                        title="Excluir">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
                         </div>
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-500">Nenhuma viagem encontrada.</td>
+                    <td colspan="7" class="px-6 py-12 text-center">
+                        <div class="flex flex-col items-center justify-center space-y-3">
+                            <i class="fas fa-road text-4xl text-gray-300"></i>
+                            <h3 class="text-lg font-medium text-gray-500">Nenhuma viagem encontrada</h3>
+                            <p class="text-gray-400">Tente ajustar os filtros de busca</p>
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -129,25 +490,84 @@
     </div>
 </div>
 
+<!-- Modal do Mapa (melhorado) -->
 <div id="mapModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[2000] hidden" onclick="closeModal('mapModal')">
-    <div class="modal-content mapa bg-white rounded-lg shadow-xl max-h-[90vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
-        <header class="flex justify-between items-center p-4 border-b">
-            <h2 id="map-modal-title" class="text-xl font-bold text-gray-800">Rastreamento da Viagem</h2>
-            <button onclick="closeModal('mapModal')" class="text-gray-400 hover:text-gray-700 text-3xl font-light">&times;</button>
+    <div class="modal-content mapa bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+        <header class="flex justify-between items-center p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-100">
+            <h2 id="map-modal-title" class="text-xl font-bold text-gray-800 flex items-center gap-3">
+                <i class="fas fa-map-marked-alt text-blue-600"></i>
+                Rastreamento da Viagem
+            </h2>
+            <button onclick="closeModal('mapModal')" 
+                    class="text-gray-400 hover:text-gray-700 text-2xl font-light transition-colors p-2 hover:bg-gray-100 rounded-lg">
+                &times;
+            </button>
         </header>
-        <div id="map-container" class="w-full"></div>
+        <div id="map-container" class="w-full flex-1"></div>
+        <div class="p-4 bg-gray-50 border-t border-gray-200">
+            <div class="flex items-center justify-between text-sm text-gray-600">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <span>Origem</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        <span>Paradas</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <span>Destino Final</span>
+                    </div>
+                </div>
+                <div id="map-status" class="text-gray-500">Carregando...</div>
+            </div>
+        </div>
     </div>
 </div>
 
+<!-- Modal de Despesas (melhorado) -->
 <div id="despesasModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[2000] hidden" onclick="closeModal('despesasModal')">
-    <div class="modal-content despesas bg-white rounded-lg shadow-xl" onclick="event.stopPropagation()">
+    <div class="modal-content despesas bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
         <div id="despesasContent">
+            <div class="flex items-center justify-center p-8">
+                <div class="flex flex-col items-center space-y-3">
+                    <div class="skeleton w-12 h-12 rounded-full"></div>
+                    <div class="skeleton w-32 h-4 rounded"></div>
+                    <div class="skeleton w-24 h-3 rounded"></div>
+                </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[2000] hidden" onclick="closeModal('deleteModal')">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6" onclick="event.stopPropagation()">
+        <div class="flex items-center gap-4 mb-4">
+            <div class="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">Confirmar Exclusão</h3>
+                <p class="text-sm text-gray-500">Esta ação não pode ser desfeita.</p>
+            </div>
+        </div>
+        <p class="text-gray-700 mb-6">Tem certeza que deseja excluir esta viagem? Todos os dados relacionados serão permanentemente removidos.</p>
+        <div class="flex gap-3 justify-end">
+            <button onclick="closeModal('deleteModal')" 
+                    class="px-4 py-2 border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 rounded-lg transition-colors">
+                Cancelar
+            </button>
+            <button id="confirmDeleteBtn" onclick="executarExclusao()" 
+                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
+                Excluir Viagem
+            </button>
+        </div>
     </div>
 </div>
 
 {% endblock %}
-
 
 {% block scripts %}
 {{ super() }}
@@ -159,6 +579,7 @@
     let driverMarker = null;
     let socket = null;
     let currentTripId = null;
+    let viagemParaExcluir = null;
 
     const driverIcon = L.icon({
         iconUrl: "{{ url_for('static', filename='localizacaoanimado.gif') }}",
@@ -166,6 +587,33 @@
         iconAnchor: [20, 40],
         popupAnchor: [0, -40]
     });
+
+    // Função para mostrar notificações toast
+    function showToast(message, type = 'success') {
+        const colors = {
+            success: { bg: '#10b981', color: '#ffffff' },
+            error: { bg: '#ef4444', color: '#ffffff' },
+            info: { bg: '#3b82f6', color: '#ffffff' },
+            warning: { bg: '#f59e0b', color: '#ffffff' }
+        };
+        
+        if (typeof Toastify !== 'undefined') {
+            Toastify({
+                text: message,
+                duration: 3000,
+                gravity: "top",
+                position: "right",
+                style: {
+                    background: colors[type].bg,
+                    color: colors[type].color,
+                    borderRadius: "8px",
+                    fontWeight: "500"
+                }
+            }).showToast();
+        } else {
+            alert(message);
+        }
+    }
 
     function closeModal(modalId) {
         if (modalId === 'mapModal') {
@@ -184,13 +632,19 @@
         if (modalId === 'despesasModal') {
             document.getElementById('despesasContent').innerHTML = '';
         }
+        if (modalId === 'deleteModal') {
+            viagemParaExcluir = null;
+        }
         document.getElementById(modalId)?.classList.add('hidden');
     }
 
     async function openMapModal(viagemId) {
         const modal = document.getElementById('mapModal');
         const container = document.getElementById('map-container');
-        container.innerHTML = '<p class="h-full w-full flex items-center justify-center text-gray-500">Carregando mapa...</p>';
+        const statusDiv = document.getElementById('map-status');
+        
+        container.innerHTML = '<div class="h-full w-full flex items-center justify-center bg-gray-50"><div class="text-center"><i class="fas fa-spinner fa-spin text-3xl text-gray-400 mb-3"></i><p class="text-gray-500">Carregando mapa...</p></div></div>';
+        statusDiv.textContent = 'Carregando...';
         modal.classList.remove('hidden');
 
         try {
@@ -198,24 +652,58 @@
             if (!response.ok) throw new Error('Falha ao buscar dados do mapa.');
             const data = await response.json();
 
-            document.getElementById('map-modal-title').innerText = `Rastreamento da Viagem #${viagemId}`;
+            document.getElementById('map-modal-title').innerHTML = `
+                <i class="fas fa-map-marked-alt text-blue-600"></i>
+                Rastreamento da Viagem #${viagemId}
+            `;
             
-            map = L.map(container).setView([-15, -55], 4);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            map = L.map(container, {
+                zoomControl: true,
+                scrollWheelZoom: true,
+                doubleClickZoom: true
+            }).setView([-15, -55], 4);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
 
             if (data.route_geometry) {
                 const decodedRoute = polyline.decode(data.route_geometry);
-                const routeLine = L.polyline(decodedRoute, { color: '#0055ff', weight: 5 }).addTo(map);
+                const routeLine = L.polyline(decodedRoute, { 
+                    color: '#3b82f6', 
+                    weight: 4,
+                    opacity: 0.8
+                }).addTo(map);
                 map.fitBounds(routeLine.getBounds().pad(0.1));
                 
-                L.marker(decodedRoute[0]).addTo(map).bindPopup(`<b>Origem:</b><br>${data.origem}`);
+                // Marcador de origem
+                const originIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: '<div class="w-6 h-6 bg-green-500 border-2 border-white rounded-full shadow-lg flex items-center justify-center"><i class="fas fa-play text-white text-xs"></i></div>',
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
                 
+                L.marker(decodedRoute[0], { icon: originIcon }).addTo(map)
+                 .bindPopup(`<div class="text-sm"><b>🚀 Origem:</b><br>${data.origem}</div>`);
+                
+                // Marcadores de destinos
                 data.destinos.forEach((destino, index) => {
                     if (destino.latitude && destino.longitude) {
                         const isLast = index === data.destinos.length - 1;
-                        const label = isLast ? 'Destino Final' : `Parada ${index + 1}`;
-                        L.marker([destino.latitude, destino.longitude]).addTo(map)
-                         .bindPopup(`<b>${label}:</b><br>${destino.endereco}`);
+                        const markerColor = isLast ? 'red' : 'blue';
+                        const markerIcon = isLast ? 'flag-checkered' : 'circle';
+                        
+                        const destinoIcon = L.divIcon({
+                            className: 'custom-marker',
+                            html: `<div class="w-6 h-6 bg-${markerColor}-500 border-2 border-white rounded-full shadow-lg flex items-center justify-center"><i class="fas fa-${markerIcon} text-white text-xs"></i></div>`,
+                            iconSize: [24, 24],
+                            iconAnchor: [12, 12]
+                        });
+                        
+                        const label = isLast ? '🏁 Destino Final' : `📍 Parada ${index + 1}`;
+                        L.marker([destino.latitude, destino.longitude], { icon: destinoIcon }).addTo(map)
+                         .bindPopup(`<div class="text-sm"><b>${label}:</b><br>${destino.endereco}</div>`);
                     }
                 });
             }
@@ -223,8 +711,11 @@
             if (data.ultima_localizacao) {
                 const { latitude, longitude, endereco, timestamp } = data.ultima_localizacao;
                 driverMarker = L.marker([latitude, longitude], { icon: driverIcon }).addTo(map)
-                    .bindPopup(`<b>Última Posição:</b><br>${endereco}<br><small>${timestamp}</small>`)
+                    .bindPopup(`<div class="text-sm"><b>📍 Posição Atual:</b><br>${endereco}<br><small class="text-gray-500">${timestamp}</small></div>`)
                     .openPopup();
+                statusDiv.textContent = `Última atualização: ${timestamp}`;
+            } else {
+                statusDiv.textContent = 'Aguardando localização...';
             }
 
             currentTripId = viagemId;
@@ -234,17 +725,20 @@
                 if (locData.viagem_id === currentTripId && driverMarker) {
                     const newLatLng = [locData.latitude, locData.longitude];
                     driverMarker.setLatLng(newLatLng);
-                    driverMarker.getPopup().setContent(`<b>Posição Atual:</b><br>${locData.endereco}<br><small>Agora</small>`);
+                    driverMarker.getPopup().setContent(`<div class="text-sm"><b>📍 Posição Atual:</b><br>${locData.endereco}<br><small class="text-green-600">Agora</small></div>`);
                     map.panTo(newLatLng);
+                    statusDiv.textContent = 'Atualizado agora';
                 } else if (locData.viagem_id === currentTripId && !driverMarker) {
                      driverMarker = L.marker([locData.latitude, locData.longitude], { icon: driverIcon }).addTo(map)
-                    .bindPopup(`<b>Posição Atual:</b><br>${locData.endereco}<br><small>Agora</small>`)
+                    .bindPopup(`<div class="text-sm"><b>📍 Posição Atual:</b><br>${locData.endereco}<br><small class="text-green-600">Agora</small></div>`)
                     .openPopup();
+                    statusDiv.textContent = 'Atualizado agora';
                 }
             });
 
         } catch (error) {
-            container.innerHTML = `<div class="p-8 text-center text-red-600">${error.message}</div>`;
+            container.innerHTML = `<div class="h-full flex items-center justify-center"><div class="text-center text-red-600"><i class="fas fa-exclamation-triangle text-3xl mb-3"></i><p>${error.message}</p></div></div>`;
+            statusDiv.textContent = 'Erro ao carregar';
             console.error(error);
         }
     }
@@ -256,6 +750,9 @@
 
         if (novoStatus === originalValue) return;
 
+        // Mostrar loading
+        selectElement.disabled = true;
+        
         try {
             const response = await fetch(`/atualizar_status_viagem/${viagemId}`, {
                 method: 'POST',
@@ -264,36 +761,76 @@
             });
             const result = await response.json();
             if (result.success) {
-                alert('Status atualizado com sucesso!');
-                window.location.reload();
+                showToast('Status atualizado com sucesso!', 'success');
+                // Atualizar o badge de status visualmente
+                const statusBadge = selectElement.closest('td').querySelector('.status-badge');
+                if (statusBadge) {
+                    statusBadge.className = `status-badge status-${novoStatus}`;
+                    const statusTexts = {
+                        'pendente': 'Pendente',
+                        'em_andamento': 'Em Andamento', 
+                        'concluida': 'Concluída',
+                        'cancelada': 'Cancelada'
+                    };
+                    statusBadge.textContent = statusTexts[novoStatus];
+                }
+                setTimeout(() => window.location.reload(), 1000);
             } else {
                 throw new Error(result.message || 'Erro ao atualizar status.');
             }
         } catch (error) {
-            alert(error.message);
+            showToast(error.message, 'error');
             selectElement.value = originalValue;
+        } finally {
+            selectElement.disabled = false;
         }
     }
 
     async function compartilharLink(link) {
         try {
-            await navigator.share({ title: 'Rastreamento de Entrega', text: 'Acompanhe sua entrega:', url: link });
+            await navigator.share({ 
+                title: 'Rastreamento de Entrega', 
+                text: 'Acompanhe sua entrega em tempo real:', 
+                url: link 
+            });
         } catch (err) {
-            await navigator.clipboard.writeText(link);
-            alert('Link de rastreamento copiado!');
+            try {
+                await navigator.clipboard.writeText(link);
+                showToast('Link de rastreamento copiado para a área de transferência!', 'success');
+            } catch (clipboardErr) {
+                prompt('Copie o link de rastreamento:', link);
+            }
         }
     }
 
     function enviarLinkClienteWhatsApp(numeroCliente, trackingLink) {
-        const texto = encodeURIComponent(`Olá! Segue o link para rastreamento da sua entrega:\n${trackingLink}`);
+        const texto = encodeURIComponent(`Olá! 👋\n\nSegue o link para rastreamento da sua entrega:\n🚚 ${trackingLink}\n\nVocê pode acompanhar a localização em tempo real!`);
         window.open(`https://api.whatsapp.com/send?phone=55${numeroCliente}&text=${texto}`, '_blank');
     }
 
     async function abrirModalGerenciarDespesas(viagemId) {
         const modal = document.getElementById('despesasModal');
         const contentDiv = document.getElementById('despesasContent');
-        contentDiv.innerHTML = '<p class="text-center p-5">Carregando...</p>';
+        
+        // Mostrar skeleton loading
+        contentDiv.innerHTML = `
+            <div class="p-6">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="skeleton w-10 h-10 rounded-full"></div>
+                    <div class="flex-1">
+                        <div class="skeleton w-48 h-5 rounded mb-2"></div>
+                        <div class="skeleton w-32 h-4 rounded"></div>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <div class="skeleton w-full h-10 rounded"></div>
+                    <div class="skeleton w-full h-10 rounded"></div>
+                    <div class="skeleton w-full h-10 rounded"></div>
+                </div>
+            </div>
+        `;
         modal.classList.remove('hidden');
+        
         try {
             const response = await fetch(`/viagem/${viagemId}/gerenciar_despesas`);
             if (!response.ok) throw new Error('Falha ao carregar o gerenciador de despesas.');
@@ -303,27 +840,169 @@
             if (form) {
                 form.addEventListener('submit', async (e) => {
                     e.preventDefault();
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.innerHTML;
+                    
+                    // Loading state
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Salvando...';
+                    
                     const formData = new FormData(form);
                     try {
                         const saveResponse = await fetch(form.action, { method: 'POST', body: formData });
                         const result = await saveResponse.json();
                         if (result.success) {
-                            alert('Despesas salvas com sucesso!');
-                            location.reload(); 
+                            showToast('Despesas salvas com sucesso!', 'success');
+                            closeModal('despesasModal');
+                            setTimeout(() => location.reload(), 1000);
                         } else {
                             throw new Error(result.message || 'Erro desconhecido ao salvar.');
                         }
                     } catch (error) {
-                        alert(`Erro: ${error.message}`);
+                        showToast(`Erro: ${error.message}`, 'error');
+                    } finally {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
                     }
                 });
             }
         } catch (error) {
-            contentDiv.innerHTML = `<p class="text-red-500 text-center p-5">${error.message}</p>`;
+            contentDiv.innerHTML = `
+                <div class="p-6 text-center">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-3xl mb-3"></i>
+                    <p class="text-red-500 font-medium">${error.message}</p>
+                    <button onclick="closeModal('despesasModal')" class="mt-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                        Fechar
+                    </button>
+                </div>
+            `;
         }
     }
 
+    function confirmarExclusao(viagemId) {
+        viagemParaExcluir = viagemId;
+        document.getElementById('deleteModal').classList.remove('hidden');
+    }
+
+    async function executarExclusao() {
+        if (!viagemParaExcluir) return;
+        
+        const btn = document.getElementById('confirmDeleteBtn');
+        const originalText = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Excluindo...';
+        
+        try {
+            const response = await fetch(`{{ url_for('excluir_viagem', viagem_id=0) }}`.replace('0', viagemParaExcluir), {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                showToast('Viagem excluída com sucesso!', 'success');
+                closeModal('deleteModal');
+                // Remover a linha da tabela com animação
+                const row = document.querySelector(`tr[data-viagem-id="${viagemParaExcluir}"]`);
+                if (row) {
+                    row.style.transition = 'all 0.3s ease';
+                    row.style.opacity = '0';
+                    row.style.transform = 'translateX(-100%)';
+                    setTimeout(() => row.remove(), 300);
+                }
+            } else {
+                throw new Error('Erro ao excluir viagem');
+            }
+        } catch (error) {
+            showToast('Erro ao excluir viagem: ' + error.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+
+    // Funções de seleção múltipla
+    function toggleSelectAll(checkbox) {
+        const checkboxes = document.querySelectorAll('.trip-checkbox');
+        checkboxes.forEach(cb => cb.checked = checkbox.checked);
+        updateBulkActionsVisibility();
+    }
+
+    function selecionarTodasViagens() {
+        const selectAll = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.trip-checkbox');
+        
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        checkboxes.forEach(cb => cb.checked = !allChecked);
+        selectAll.checked = !allChecked;
+        updateBulkActionsVisibility();
+    }
+
+    function updateBulkActionsVisibility() {
+        const checkedBoxes = document.querySelectorAll('.trip-checkbox:checked');
+        const bulkActions = document.querySelector('.quick-actions');
+        
+        if (checkedBoxes.length > 0) {
+            bulkActions.style.borderColor = '#10b981';
+            bulkActions.style.backgroundColor = '#f0fdf4';
+        } else {
+            bulkActions.style.borderColor = '';
+            bulkActions.style.backgroundColor = '';
+        }
+    }
+
+    async function atualizarStatusSelecionadas(novoStatus) {
+        const checkedBoxes = document.querySelectorAll('.trip-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            showToast('Selecione pelo menos uma viagem.', 'warning');
+            return;
+        }
+
+        const viagemIds = Array.from(checkedBoxes).map(cb => cb.value);
+        
+        if (!confirm(`Atualizar ${viagemIds.length} viagem(ns) para "${novoStatus}"?`)) {
+            return;
+        }
+
+        try {
+            const promises = viagemIds.map(id => 
+                fetch(`/atualizar_status_viagem/${id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: novoStatus })
+                })
+            );
+
+            await Promise.all(promises);
+            showToast(`${viagemIds.length} viagem(ns) atualizada(s) com sucesso!`, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+            
+        } catch (error) {
+            showToast('Erro ao atualizar viagens: ' + error.message, 'error');
+        }
+    }
+
+    function exportarViagens() {
+        const params = new URLSearchParams(window.location.search);
+        params.set('export', 'csv');
+        
+        const link = document.createElement('a');
+        link.href = `${window.location.pathname}?${params.toString()}`;
+        link.download = `viagens_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast('Exportação iniciada!', 'info');
+    }
+
+    // Event listeners
     document.addEventListener('DOMContentLoaded', function() {
+        // Listener para checkboxes
+        document.querySelectorAll('.trip-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', updateBulkActionsVisibility);
+        });
+
+        // Listener para modais
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('click', function(event) {
                 if (event.target === this) {
@@ -331,6 +1010,26 @@
                 }
             });
         });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const visibleModal = document.querySelector('.fixed:not(.hidden)');
+                if (visibleModal) {
+                    closeModal(visibleModal.id);
+                }
+            }
+        });
+
+        // Auto-refresh para viagens em andamento (opcional)
+        const viagensEmAndamento = document.querySelectorAll('[data-status="em_andamento"]');
+        if (viagensEmAndamento.length > 0) {
+            setTimeout(() => {
+                if (confirm('Existem viagens em andamento. Deseja atualizar a página para ver o status mais recente?')) {
+                    location.reload();
+                }
+            }, 60000); // 1 minuto
+        }
     });
 </script>
 {% endblock %}

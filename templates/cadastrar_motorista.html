@@ -4,147 +4,408 @@
 
 {% block styles %}
 <style>
+    /* Estilos gerais do formulário com foco em consistência e modernidade */
     .form-container {
-        background-color: #e9ecef;
-        padding: 2rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        background-color: #ffffff;
+        padding: 1.5rem; /* p-6 para mobile */
+        border-radius: 0.5rem; /* rounded-lg */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         margin: 0;
     }
-    /* Estilos copiados do cadastrar_cliente para garantir identidade visual */
-    .form-section-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        margin-top: 1.5rem;
-        margin-bottom: 1rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 1px solid #e5e7eb;
+    
+    /* Media query para telas maiores (desktop) */
+    @media (min-width: 768px) {
+        .form-container {
+            padding: 2rem; /* Mais espaçamento em telas maiores */
+        }
     }
-    .form-section-title:first-of-type {
-        margin-top: 0;
-    }
-    .form-input, .form-select {
+
+    .form-input,
+    .form-select {
         width: 100%;
         padding: 0.75rem;
-        border: 1px solid #d1d5db;
-        border-radius: 0.375rem;
+        border: 1px solid #d1d5db; /* border-gray-300 */
+        border-radius: 0.375rem; /* rounded-md */
         transition: border-color 0.2s, box-shadow 0.2s;
+        background-color: #fff;
+        font-size: 0.9rem;
     }
-    .form-input:focus, .form-select:focus {
-        outline: none;
-        border-color: #2e7d32;
-        box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+    
+    .form-input:focus,
+    .form-select:focus {
+        outline: 2px solid transparent;
+        outline-offset: 2px;
+        border-color: #2563eb; /* Cor de foco consistente */
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
     }
-    .form-input[readonly] {
-        background-color: #f3f4f6;
-        cursor: not-allowed;
+
+    /* Estilos aprimorados para as abas */
+    .tab-container {
+        display: flex;
+        flex-wrap: wrap; /* Permite que as abas quebrem linha em telas pequenas */
+        border-bottom: 2px solid #e5e7eb; /* Linha mais sutil */
+        margin-bottom: 1.5rem;
     }
-    .btn-submit {
-        background-color: #2563eb; color: white;
-        padding: 0.5rem 1rem; border-radius: 0.375rem;
+
+    .tab-link {
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px; /* Alinha com a borda inferior */
+        font-weight: 600;
+        color: #6b7280;
+        transition: color 0.2s, border-color 0.2s;
+        white-space: nowrap; /* Impede que o texto da aba quebre */
     }
-    .btn-submit:hover {
-        background-color: #1d4ed8;
+
+    .tab-link.active {
+        color: #1d4ed8;
+        border-color: #1d4ed8;
     }
-    .btn-back {
-        background-color: #6b7280; color: white;
-        padding: 0.5rem 1rem; border-radius: 0.375rem;
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.375rem;
+        text-decoration: none;
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s;
     }
-    .btn-back:hover {
-        background-color: #4b5563;
+
+    .btn-submit { background-color: #2563eb; }
+    .btn-submit:hover { background-color: #1d4ed8; }
+    .btn-back { background-color: #6b7280; }
+    .btn-back:hover { background-color: #4b5563; }
+
+    label {
+        display: block;
+        color: #374151;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="form-container">
-    <h1 class="text-3xl font-bold mb-6 text-gray-800 text-center">Cadastrar Novo Motorista</h1>
+<div class="form-container" x-data="anexosManager()">
+    <h1 class="text-2xl md:text-3xl font-bold mb-6 text-gray-800 text-center">Cadastro de Motorista</h1>
 
-    <form method="POST" enctype="multipart/form-data">
-        
-        <h2 class="form-section-title">Dados Pessoais</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-            <div>
-                <label for="nome" class="block text-gray-700 font-medium mb-2">Nome Completo</label>
-                <input type="text" id="nome" name="nome" required class="form-input" placeholder="Nome completo do motorista">
-            </div>
-            <div>
-                <label for="data_nascimento" class="block text-gray-700 font-medium mb-2">Data de Nascimento</label>
-                <input type="date" id="data_nascimento" name="data_nascimento" required class="form-input">
-            </div>
-             <div>
-                <label for="pessoa_tipo" class="block text-gray-700 font-medium mb-2">Pessoa Física ou Jurídica</label>
-                <select id="pessoa_tipo" name="pessoa_tipo" required class="form-select">
-                    <option value="fisica">Pessoa Física</option>
-                    <option value="juridica">Pessoa Jurídica</option>
-                </select>
-            </div>
-            <div>
-                <label id="cpf_cnpj_label" for="cpf_cnpj" class="block text-gray-700 font-medium mb-2">CPF</label>
-                <input type="text" id="cpf_cnpj" name="cpf_cnpj" required class="form-input" placeholder="Apenas números">
+    <form id="motorista-form" method="POST" action="{{ url_for('cadastrar_motorista') }}" enctype="multipart/form-data" novalidate>
+        <div class="tab-container">
+            <div class="tab-link active" onclick="openTab(event, 'pessoais')">Dados Pessoais</div>
+            <div class="tab-link" onclick="openTab(event, 'endereco')">Endereço</div>
+            <div class="tab-link" onclick="openTab(event, 'documentacao')">Documentação</div>
+            <div class="tab-link" onclick="openTab(event, 'contatos')">Contato</div>
+        </div>
+
+        <div id="pessoais" class="tab-content active">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div>
+                    <label for="nome">Nome Completo*</label>
+                    <input type="text" name="nome" id="nome" required class="form-input" value="{{ motorista.nome or '' }}">
+                </div>
+                <div>
+                    <label for="telefone">Telefone Principal</label>
+                    <input type="text" name="telefone" id="telefone" class="form-input" placeholder="(00) 00000-0000" value="{{ motorista.telefone or '' }}">
+                </div>
+                <div>
+                    <label for="cpf">CPF*</label>
+                    <input type="text" name="cpf" id="cpf" required class="form-input" placeholder="000.000.000-00" value="{{ motorista.cpf or '' }}">
+                </div>
+                <div>
+                    <label for="data_nascimento">Data de Nascimento*</label>
+                    <input type="date" name="data_nascimento" id="data_nascimento" class="form-input" value="{{ motorista.data_nascimento or '' }}">
+                </div>
+                <div>
+                    <label for="nacionalidade">Nacionalidade</label>
+                    <select name="nacionalidade" id="nacionalidade" class="form-select">
+                        <option value="Nacional" {% if motorista.nacionalidade=='Nacional' %}selected{% endif %}>Nacional</option>
+                        <option value="Estrangeira" {% if motorista.nacionalidade=='Estrangeira' %}selected{% endif %}>Estrangeira</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="naturalidade">Naturalidade</label>
+                    <input type="text" name="naturalidade" id="naturalidade" class="form-input" placeholder="Ex: Curitiba - PR" value="{{ motorista.naturalidade or '' }}">
+                </div>
+                <div>
+                    <label for="estado_civil">Estado Civil</label>
+                    <select name="estado_civil" id="estado_civil" class="form-select">
+                        <option value="">Selecione</option>
+                        <option value="Solteiro(a)" {% if motorista.estado_civil=='Solteiro(a)' %}selected{% endif %}>Solteiro(a)</option>
+                        <option value="Casado(a)" {% if motorista.estado_civil=='Casado(a)' %}selected{% endif %}>Casado(a)</option>
+                        <option value="Divorciado(a)" {% if motorista.estado_civil=='Divorciado(a)' %}selected{% endif %}>Divorciado(a)</option>
+                        <option value="Viúvo(a)" {% if motorista.estado_civil=='Viúvo(a)' %}selected{% endif %}>Viúvo(a)</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="sexo">Sexo</label>
+                    <select name="sexo" id="sexo" class="form-select">
+                        <option value="">Selecione</option>
+                        <option value="Masculino" {% if motorista.sexo=='Masculino' %}selected{% endif %}>Masculino</option>
+                        <option value="Feminino" {% if motorista.sexo=='Feminino' %}selected{% endif %}>Feminino</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="pai">Nome do Pai</label>
+                    <input type="text" name="pai" id="pai" class="form-input" value="{{ motorista.pai or '' }}">
+                </div>
+                <div>
+                    <label for="mae">Nome da Mãe</label>
+                    <input type="text" name="mae" id="mae" class="form-input" value="{{ motorista.mae or '' }}">
+                </div>
+                <div>
+                    <label for="data_admissao">Data Admissão</label>
+                    <input type="date" name="data_admissao" id="data_admissao" class="form-input" value="{{ motorista.data_admissao or '' }}">
+                </div>
+                <div>
+                    <label for="situacao">Situação</label>
+                    <select name="situacao" id="situacao" class="form-select">
+                        <option value="NORMAL / LIBERADO" {% if motorista.situacao=='NORMAL / LIBERADO' %}selected{% endif %}>NORMAL / LIBERADO</option>
+                        <option value="INATIVO" {% if motorista.situacao=='INATIVO' %}selected{% endif %}>INATIVO</option>
+                        <option value="BLOQUEADO" {% if motorista.situacao=='BLOQUEADO' %}selected{% endif %}>BLOQUEADO</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="data_desativacao">Data Desativação</label>
+                    <input type="date" name="data_desativacao" id="data_desativacao" class="form-input" value="{{ motorista.data_desativacao or '' }}">
+                </div>
+                <div>
+                    <label for="classificacao">Classificação</label>
+                    <select name="classificacao" id="classificacao" class="form-select">
+                        <option value="PSA" {% if motorista.classificacao=='PSA' %}selected{% endif %}>PSA</option>
+                        <option value="Outro" {% if motorista.classificacao=='Outro' %}selected{% endif %}>Outro</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="cod_departamento">Cód. Departamento</label>
+                    <input type="text" name="cod_departamento" id="cod_departamento" class="form-input" value="{{ motorista.cod_departamento or '' }}">
+                </div>
+                <div>
+                    <label for="numero_ficha">Nº Ficha</label>
+                    <input type="text" name="numero_ficha" id="numero_ficha" class="form-input" value="{{ motorista.numero_ficha or '' }}">
+                </div>
+                <div class="sm:col-span-2 lg:col-span-3">
+                    <label>Documentos</label>
+                    <button type="button" @click="isAnexosModalOpen = true" class="btn bg-gray-600 hover:bg-gray-700 w-full sm:w-auto">
+                        <i class="fas fa-paperclip mr-2"></i>
+                        Anexar Arquivos (<span x-text="files.length">0</span>)
+                    </button>
+                </div>
             </div>
         </div>
 
-        <h2 class="form-section-title">Endereço</h2>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-4">
-            <div class="md:col-span-1">
-                <label for="cep" class="block text-gray-700 font-medium mb-2">CEP</label>
-                <input type="text" id="cep" name="cep" required class="form-input" placeholder="Apenas números" maxlength="8">
-            </div>
-            <div class="md:col-span-3">
-                <label for="logradouro" class="block text-gray-700 font-medium mb-2">Endereço (Logradouro)</label>
-                <input type="text" id="logradouro" name="logradouro" required class="form-input" readonly>
-            </div>
-            <div class="md:col-span-1">
-                <label for="numero" class="block text-gray-700 font-medium mb-2">Número</label>
-                <input type="text" id="numero" name="numero" required class="form-input">
-            </div>
-            <div class="md:col-span-3">
-                <label for="complemento" class="block text-gray-700 font-medium mb-2">Complemento</label>
-                <input type="text" id="complemento" name="complemento" class="form-input" placeholder="Apto, Bloco, etc.">
-            </div>
-            <div class="md:col-span-2">
-                <label for="bairro" class="block text-gray-700 font-medium mb-2">Bairro</label>
-                <input type="text" id="bairro" name="bairro" required class="form-input" readonly>
-            </div>
-            <div class="md:col-span-1">
-                <label for="cidade" class="block text-gray-700 font-medium mb-2">Cidade</label>
-                <input type="text" id="cidade" name="cidade" required class="form-input" readonly>
-            </div>
-            <div class="md:col-span-1">
-                <label for="estado" class="block text-gray-700 font-medium mb-2">Estado (UF)</label>
-                <input type="text" id="estado" name="estado" required class="form-input" readonly>
-            </div>
-        </div>
-        
-        <h2 class="form-section-title">Documentos e Contato</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-            <div>
-                <label for="rg" class="block text-gray-700 font-medium mb-2">RG</label>
-                <input type="text" id="rg" name="rg" class="form-input" placeholder="Apenas números">
-            </div>
-            <div>
-                <label for="telefone" class="block text-gray-700 font-medium mb-2">Telefone/WhatsApp</label>
-                <input type="text" id="telefone" name="telefone" required class="form-input" placeholder="DDD + Número">
-            </div>
-            <div>
-                <label for="cnh" class="block text-gray-700 font-medium mb-2">CNH</label>
-                <input type="text" id="cnh" name="cnh" required class="form-input" placeholder="Apenas números">
-            </div>
-            <div>
-                <label for="validade_cnh" class="block text-gray-700 font-medium mb-2">Validade da CNH</label>
-                <input type="date" name="validade_cnh" id="validade_cnh" required class="form-input">
-            </div>
-            <div class="md:col-span-2">
-                <label for="anexos" class="block text-gray-700 font-medium mb-2">Anexo de Documentos</label>
-                <input type="file" id="anexos" name="anexos" multiple accept=".pdf,.jpg,.jpeg,.png" class="form-input">
-                <p class="text-sm text-gray-500 mt-1">CNH, Comprovante de Residência, etc.</p>
+        <div id="endereco" class="tab-content">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div>
+                    <label for="cep">CEP</label>
+                    <input type="text" name="cep" id="cep" class="form-input" placeholder="00000-000" value="{{ motorista.cep or '' }}">
+                </div>
+                <div>
+                    <label for="tipo_logradouro">Tipo</label>
+                    <select name="tipo_logradouro" id="tipo_logradouro" class="form-select">
+                        <option value="AVENIDA" {% if motorista.tipo_logradouro=='AVENIDA' %}selected{% endif %}>AVENIDA</option>
+                        <option value="RUA" {% if not motorista.tipo_logradouro or motorista.tipo_logradouro=='RUA' %}selected{% endif %}>RUA</option>
+                        <option value="TRAVESSA" {% if motorista.tipo_logradouro=='TRAVESSA' %}selected{% endif %}>TRAVESSA</option>
+                        <option value="ALAMEDA" {% if motorista.tipo_logradouro=='ALAMEDA' %}selected{% endif %}>ALAMEDA</option>
+                    </select>
+                </div>
+                <div class="sm:col-span-2 lg:col-span-1">
+                    <label for="logradouro">Logradouro</label>
+                    <input type="text" name="logradouro" id="logradouro" class="form-input" value="{{ motorista.logradouro or '' }}">
+                </div>
+                <div>
+                    <label for="numero">Número</label>
+                    <input type="text" name="numero" id="numero" class="form-input" value="{{ motorista.numero or '' }}">
+                </div>
+                <div>
+                    <label for="complemento">Complemento</label>
+                    <input type="text" name="complemento" id="complemento" class="form-input" value="{{ motorista.complemento or '' }}">
+                </div>
+                <div>
+                    <label for="bairro">Bairro</label>
+                    <input type="text" name="bairro" id="bairro" class="form-input" value="{{ motorista.bairro or '' }}">
+                </div>
+                <div>
+                    <label for="cidade">Cidade</label>
+                    <input type="text" name="cidade" id="cidade" class="form-input" value="{{ motorista.cidade or '' }}">
+                </div>
+                <div>
+                    <label for="uf">UF</label>
+                    <select name="uf" id="uf" class="form-select" data-selected-uf="{{ motorista.uf or '' }}"></select>
+                </div>
+                <div>
+                    <label for="email">E-mail</label>
+                    <input type="email" name="email" id="email" class="form-input" value="{{ motorista.email or '' }}">
+                </div>
+                <div>
+                    <label for="tipo_imovel">Tipo Imóvel</label>
+                    <select name="tipo_imovel" id="tipo_imovel" class="form-select">
+                        <option value="">Selecione</option>
+                        <option value="Próprio" {% if motorista.tipo_imovel=='Próprio' %}selected{% endif %}>Próprio</option>
+                        <option value="Alugado" {% if motorista.tipo_imovel=='Alugado' %}selected{% endif %}>Alugado</option>
+                        <option value="Cedido" {% if motorista.tipo_imovel=='Cedido' %}selected{% endif %}>Cedido</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="tempo_residencia">Tempo Residência</label>
+                    <input type="text" name="tempo_residencia" id="tempo_residencia" class="form-input" placeholder="Ex: 5 anos" value="{{ motorista.tempo_residencia or '' }}">
+                </div>
             </div>
         </div>
 
-        <div class="mt-8 flex justify-end gap-4">
-            <a href="{{ url_for('consultar_motoristas') }}" class="btn-back">Voltar</a>
-            <button type="submit" class="btn-submit">Cadastrar Motorista</button>
+        <div id="documentacao" class="tab-content">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div>
+                    <label for="cnh_numero">Nº Registro CNH*</label>
+                    <input type="text" name="cnh_numero" id="cnh_numero" required class="form-input" placeholder="11 dígitos" value="{{ motorista.cnh_numero or '' }}">
+                </div>
+                <div>
+                    <label for="cnh_data_primeira">1ª Habilitação</label>
+                    <input type="date" name="cnh_data_primeira" id="cnh_data_primeira" class="form-input" value="{{ motorista.cnh_data_primeira | dateformat if motorista else '' }}">
+                </div>
+                <div>
+                    <label for="cnh_data_vencimento">Vencimento CNH*</label>
+                    <input type="date" name="cnh_data_vencimento" id="cnh_data_vencimento" required class="form-input" value="{{ motorista.cnh_data_vencimento | dateformat if motorista else '' }}">
+                </div>
+                <div>
+                    <label for="cnh_categoria">Categoria CNH*</label>
+                    <input type="text" name="cnh_categoria" id="cnh_categoria" required class="form-input" placeholder="AB" value="{{ motorista.cnh_categoria or '' }}">
+                </div>
+                <div>
+                    <label for="cnh_cod_seguranca">Cód. Segurança CNH</label>
+                    <input type="text" name="cnh_cod_seguranca" id="cnh_cod_seguranca" class="form-input" value="{{ motorista.cnh_cod_seguranca or '' }}">
+                </div>
+                <div>
+                    <label for="rg">Nº RG / UF</label>
+                    <div class="flex gap-2">
+                        <input type="text" name="rg" id="rg" class="form-input flex-grow" value="{{ motorista.rg or '' }}">
+                        <select name="rg_uf" id="rg_uf" class="form-select w-24" data-selected-uf="{{ motorista.rg_uf or '' }}"></select>
+                    </div>
+                </div>
+                <div>
+                    <label for="pis">Nº PIS</label>
+                    <input type="text" name="pis" id="pis" class="form-input" value="{{ motorista.pis or '' }}">
+                </div>
+                <div>
+                    <label for="inss">Nº INSS</label>
+                    <input type="text" name="inss" id="inss" class="form-input" value="{{ motorista.inss or '' }}">
+                </div>
+                <div>
+                    <label for="titulo_eleitor">Nº Título de Eleitor</label>
+                    <input type="text" name="titulo_eleitor" id="titulo_eleitor" class="form-input" value="{{ motorista.titulo_eleitor or '' }}">
+                </div>
+                <div>
+                    <label for="ctps">Nº CTPS</label>
+                    <input type="text" name="ctps" id="ctps" class="form-input" value="{{ motorista.ctps or '' }}">
+                </div>
+                <div>
+                    <label for="funcao">Função</label>
+                    <input type="text" name="funcao" id="funcao" value="{{ motorista.funcao or 'Motorista' }}" class="form-input">
+                </div>
+                <div>
+                    <label for="salario_base">Salário Base (R$)</label>
+                    <input type="number" step="0.01" name="salario_base" id="salario_base" class="form-input" placeholder="0.00" value="{{ motorista.salario_base or '' }}">
+                </div>
+                <div>
+                    <label for="mopp_numero">Nº MOPP</label>
+                    <input type="text" name="mopp_numero" id="mopp_numero" class="form-input" value="{{ motorista.mopp_numero or '' }}">
+                </div>
+                <div>
+                    <label for="mopp_vencimento">Vencimento MOPP</label>
+                    <input type="date" name="mopp_vencimento" id="mopp_vencimento" class="form-input" value="{{ motorista.mopp_vencimento | dateformat if motorista else '' }}">
+                </div>
+            </div>
+        </div>
+
+        <div id="contatos" class="tab-content">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div>
+                    <label for="contato_nome">Nome do Contato</label>
+                    <input type="text" name="contato_nome" id="contato_nome" class="form-input" value="{{ motorista.contato_nome or '' }}">
+                </div>
+                <div>
+                    <label for="contato_tipo_ref">Tipo de Referência</label>
+                    <select name="contato_tipo_ref" id="contato_tipo_ref" class="form-select">
+                        <option value="Pessoal" {% if motorista.contato_tipo_ref=='Pessoal' %}selected{% endif %}>Pessoal</option>
+                        <option value="Comercial" {% if motorista.contato_tipo_ref=='Comercial' %}selected{% endif %}>Comercial</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="contato_tipo_fone">Tipo Fone</label>
+                    <select name="contato_tipo_fone" id="contato_tipo_fone" class="form-select">
+                        <option value="Celular" {% if motorista.contato_tipo_fone=='Celular' %}selected{% endif %}>Celular</option>
+                        <option value="Fixo" {% if motorista.contato_tipo_fone=='Fixo' %}selected{% endif %}>Fixo</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="contato_telefone">Telefone do Contato</label>
+                    <input type="text" name="contato_telefone" id="contato_telefone" class="form-input" value="{{ motorista.contato_telefone or '' }}">
+                </div>
+                <div>
+                    <label for="contato_operadora">Operadora</label>
+                    <input type="text" name="contato_operadora" id="contato_operadora" class="form-input" value="{{ motorista.contato_operadora or '' }}">
+                </div>
+                <div class="sm:col-span-2 lg:col-span-1">
+                    <label for="contato_obs">Observação</label>
+                    <input type="text" name="contato_obs" id="contato_obs" class="form-input" value="{{ motorista.contato_obs or '' }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 flex items-center justify-end gap-4">
+            <a href="{{ url_for('consultar_motoristas') }}" class="btn btn-back">Voltar</a>
+            <button type="submit" class="btn btn-submit">Cadastrar Motorista</button>
+        </div>
+
+        <div x-show="isAnexosModalOpen" 
+             x-transition:enter="ease-out duration-300" enter-start-class="opacity-0" enter-end-class="opacity-100"
+             x-transition:leave="ease-in duration-200" leave-start-class="opacity-100" leave-end-class="opacity-0"
+             class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50" 
+             style="display: none;">
+            
+            <div @click.away="isAnexosModalOpen = false" class="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+                <header class="flex justify-between items-center p-4 border-b">
+                    <h2 class="text-xl font-bold text-gray-800">Anexar Arquivos</h2>
+                    <button type="button" @click="isAnexosModalOpen = false" class="text-gray-400 hover:text-gray-700 text-3xl">&times;</button>
+                </header>
+                
+                <div class="p-6 max-h-[60vh] overflow-y-auto">
+                    <label for="anexos-input" class="btn bg-blue-600 hover:bg-blue-700 w-full cursor-pointer">
+                        <i class="fas fa-plus mr-2"></i> Adicionar um ou vários arquivos
+                    </label>
+                    <input type="file" name="anexos" id="anexos-input" @change="addFiles($event)" multiple class="hidden">
+                    
+                    <p class="text-sm text-gray-500 mt-4 mb-2">Arquivos selecionados para envio:</p>
+                    <ul class="space-y-2">
+                        <template x-if="files.length === 0">
+                            <li class="text-center text-gray-500 py-4">Nenhum arquivo selecionado.</li>
+                        </template>
+                        <template x-for="(file, index) in files" :key="index">
+                            <li class="flex justify-between items-center bg-gray-50 p-2 rounded-md border">
+                                <span class="text-gray-700 truncate pr-2" x-text="file.name"></span>
+                                <button type="button" @click="removeFile(index)" class="text-red-500 hover:text-red-700" title="Remover Anexo">
+                                    <i class="fas fa-times-circle"></i>
+                                </button>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+
+                <footer class="p-4 bg-gray-50 border-t text-right">
+                    <button type="button" @click="isAnexosModalOpen = false" class="btn bg-gray-500 hover:bg-gray-600">
+                        Fechar
+                    </button>
+                </footer>
+            </div>
         </div>
     </form>
 </div>
@@ -153,82 +414,125 @@
 {% block scripts %}
 {{ super() }}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // --- LÓGICA PARA TIPO DE PESSOA (FÍSICA/JURÍDICA) ---
-    const pessoaTipo = document.getElementById('pessoa_tipo');
-    const cpfCnpjLabel = document.getElementById('cpf_cnpj_label');
-    const cpfCnpjInput = document.getElementById('cpf_cnpj');
-
-    function togglePessoaFields() {
-        if (pessoaTipo.value === 'fisica') {
-            cpfCnpjLabel.textContent = 'CPF';
-            cpfCnpjInput.placeholder = 'Digite o CPF (11 dígitos)';
-        } else {
-            cpfCnpjLabel.textContent = 'CNPJ';
-            cpfCnpjInput.placeholder = 'Digite o CNPJ (14 dígitos)';
-        }
-    }
-    pessoaTipo.addEventListener('change', togglePessoaFields);
-    togglePessoaFields(); // Executa ao carregar
-
-    // --- LÓGICA PARA CONSULTA DE CEP (ViaCEP) ---
-    const cepInput = document.getElementById('cep');
-    const logradouroInput = document.getElementById('logradouro');
-    const bairroInput = document.getElementById('bairro');
-    const cidadeInput = document.getElementById('cidade');
-    const estadoInput = document.getElementById('estado');
-    const numeroInput = document.getElementById('numero');
-    const camposEndereco = [logradouroInput, bairroInput, cidadeInput, estadoInput];
-
-    const limparFormularioEndereco = () => {
-        camposEndereco.forEach(campo => {
-            campo.value = '';
-        });
-    };
-
-    const preencherFormulario = (endereco) => {
-        logradouroInput.value = endereco.logradouro;
-        bairroInput.value = endereco.bairro;
-        cidadeInput.value = endereco.localidade;
-        estadoInput.value = endereco.uf;
-        numeroInput.focus();
-    };
-    
-    const consultarCEP = async () => {
-        const cep = cepInput.value.replace(/\D/g, '');
-        if (cep.length !== 8) {
-            limparFormularioEndereco();
-            return;
-        }
-
-        camposEndereco.forEach(c => c.value = "Buscando...");
-        const url = `https://viacep.com.br/ws/${cep}/json/`;
-
-        try {
-            const response = await fetch(url);
-            const data = await response.json();
-            if (data.erro) {
-                alert("CEP não encontrado.");
-                limparFormularioEndereco();
-            } else {
-                preencherFormulario(data);
+    function anexosManager() {
+        return {
+            isAnexosModalOpen: false,
+            files: [],
+            addFiles(event) {
+                const newFiles = Array.from(event.target.files);
+                this.files.push(...newFiles);
+                this.updateFileInput();
+            },
+            removeFile(index) {
+                this.files.splice(index, 1);
+                this.updateFileInput();
+            },
+            updateFileInput() {
+                const dataTransfer = new DataTransfer();
+                this.files.forEach(file => dataTransfer.items.add(file));
+                document.getElementById('anexos-input').files = dataTransfer.files;
             }
-        } catch (error) {
-            alert("Não foi possível consultar o CEP. Verifique sua conexão.");
-            limparFormularioEndereco();
-        }
-    };
-    cepInput.addEventListener('blur', consultarCEP);
+        };
+    }
 
-    // --- MÁSCARAS DE INPUT (APENAS NÚMEROS) ---
-    ['telefone', 'cpf_cnpj', 'cep', 'rg', 'cnh'].forEach(id => {
-        const element = document.getElementById(id);
-        if(element) {
-            element.addEventListener('input', function(e) {
-                e.target.value = e.target.value.replace(/\D/g, '');
+    function openTab(event, tabName) {
+        let i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].classList.remove("active");
+        }
+        tablinks = document.getElementsByClassName("tab-link");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].classList.remove("active");
+        }
+        document.getElementById(tabName).classList.add("active");
+        event.currentTarget.classList.add("active");
+    }
+
+    function preencherEndereco(cepInput) {
+        const cep = cepInput.value.replace(/\D/g, '');
+        if (cep.length !== 8) return;
+        const form = cepInput.closest('form');
+        form.querySelector('#logradouro').value = '...';
+        form.querySelector('#bairro').value = '...';
+        form.querySelector('#cidade').value = '...';
+        fetch(`https://viacep.com.br/ws/${cep}/json/`)
+            .then(response => response.json())
+            .then(data => {
+                if (!data.erro) {
+                    form.querySelector('#logradouro').value = data.logradouro;
+                    form.querySelector('#bairro').value = data.bairro;
+                    form.querySelector('#cidade').value = data.localidade;
+                    form.querySelector('#uf').value = data.uf;
+                    form.querySelector('#numero').focus();
+                } else {
+                    alert('CEP não encontrado.');
+                    form.querySelector('#logradouro').value = '';
+                    form.querySelector('#bairro').value = '';
+                    form.querySelector('#cidade').value = '';
+                }
+            })
+            .catch(error => console.error('Erro ao buscar CEP:', error));
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('motorista-form');
+        if (form) {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const firstInvalidField = form.querySelector(':invalid');
+                    if (firstInvalidField) {
+                        const label = document.querySelector(`label[for='${firstInvalidField.id}']`);
+                        const fieldName = label ? label.innerText.replace('*', '').trim() : 'Um campo obrigatório';
+                        Toastify({
+                            text: `Por favor, preencha o campo "${fieldName}".`,
+                            duration: 5000, close: true, gravity: "top", position: "center", stopOnFocus: true,
+                            style: { background: "linear-gradient(to right, #ef4444, #f87171)", borderRadius: "0.5rem" },
+                        }).showToast();
+                        const tabPane = firstInvalidField.closest('.tab-content');
+                        if (tabPane) {
+                            document.querySelector(`.tab-link[onclick*="'${tabPane.id}'"]`).click();
+                            setTimeout(() => firstInvalidField.focus(), 100);
+                        }
+                    }
+                }
             });
         }
+        
+        document.querySelector('.tab-link').click();
+        const ufs = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"];
+        function populateSelect(selectElement) {
+            if (!selectElement) return;
+            const selectedValue = selectElement.getAttribute('data-selected-uf');
+            ufs.forEach(uf => {
+                const option = document.createElement('option');
+                option.value = uf;
+                option.text = uf;
+                if (uf === selectedValue) option.selected = true;
+                selectElement.appendChild(option);
+            });
+            if (!selectedValue) selectElement.value = "PR";
+        }
+        populateSelect(document.getElementById('uf'));
+        populateSelect(document.getElementById('rg_uf'));
+
+        const inputCPF = document.getElementById('cpf');
+        if (inputCPF) {
+            inputCPF.addEventListener('input', function (e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 11) value = value.slice(0, 11);
+                value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+                e.target.value = value;
+            });
+        }
+        const cepInput = document.getElementById('cep');
+        if (cepInput) {
+            cepInput.addEventListener('blur', () => preencherEndereco(cepInput));
+        }
     });
-});
 </script>
 {% endblock %}

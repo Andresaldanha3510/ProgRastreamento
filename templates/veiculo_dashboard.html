@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard do Veículo {{ veiculo.placa }}{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    /* Estilos para os cards de KPI */
+    .kpi-card { 
+        background-color: #fff; 
+        border-radius: 0.75rem; 
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); 
+        padding: 1.5rem; 
+        text-align: center; 
+    }
+    /* Estilo para a aba ativa */
+    .tab-button.active { 
+        border-bottom: 3px solid #16a34a; /* Verde mais forte para destaque */
+        color: #16a34a; 
+        font-weight: 600; 
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-4 md:p-6 bg-gray-100 min-h-screen">
+    <div class="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Dashboard do Veículo</h1>
+            <p class="text-lg text-gray-600 font-mono">{{ veiculo.placa }} - {{ veiculo.modelo }}</p>
+        </div>
+        <a href="{{ url_for('consultar_veiculos') }}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 self-start md:self-center">
+            <i class="fas fa-arrow-left"></i> Voltar para a Frota
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <div class="lg:col-span-2 bg-white rounded-lg shadow-lg">
+            <div class="p-4 md:p-6">
+                <nav class="flex border-b mb-4">
+                    <button class="tab-button py-2 px-4" onclick="switchTab('extrato')">Extrato Financeiro</button>
+                    <button class="tab-button py-2 px-4" onclick="switchTab('manutencoes')">Manutenções</button>
+                    <button class="tab-button py-2 px-4" onclick="switchTab('abastecimentos')">Abastecimentos</button>
+                </nav>
+
+                <div id="content-extrato" class="tab-content"></div>
+
+                <div id="content-manutencoes" class="tab-content hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-700">Histórico de Manutenções</h3>
+                    </div>
+
+                    <div id="maintenance-list-container"></div>
+                </div>
+
+                <div id="content-abastecimentos" class="tab-content hidden"></div>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            <div id="kpi-container" class="grid grid-cols-2 gap-4">
+                <div class="kpi-card"><p class="text-2xl font-bold text-gray-400">...</p><p class="text-sm text-gray-500">Carregando</p></div>
+                <div class="kpi-card"><p class="text-2xl font-bold text-gray-400">...</p><p class="text-sm text-gray-500">Carregando</p></div>
+                <div class="kpi-card"><p class="text-2xl font-bold text-gray-400">...</p><p class="text-sm text-gray-500">Carregando</p></div>
+                <div class="kpi-card"><p class="text-2xl font-bold text-gray-400">...</p><p class="text-sm text-gray-500">Carregando</p></div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-bold mb-4 text-gray-700">Lançar Despesa Geral</h3>
+                <form action="{{ url_for('lancar_despesa_diversa', veiculo_id=veiculo.id) }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                    <div><label class="block text-sm font-medium text-gray-700">Categoria</label><select name="categoria" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"><option value="IPVA">IPVA</option><option value="Seguro">Seguro</option><option value="Multa">Multa</option><option value="Pneus">Pneus</option><option value="Prestação">Prestação (Financiamento)</option><option value="Salário Fixo">Salário Fixo</option><option value="Outros">Outras Despesas Gerais</option></select></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Data</label><input type="date" name="data" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" value="{{ hoje }}"></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Valor (R$)</label><input type="number" step="0.01" name="valor" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" placeholder="Ex: 450.75"></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Descrição</label><input type="text" name="descricao" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Anexo</label><input type="file" name="anexos" multiple class="mt-1 block w-full text-sm text-gray-500"></div>
+                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 shadow">Salvar Despesa</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Variável global com o ID do veículo, vinda do template
+    const VEICULO_ID = {{ veiculo.id }};
+
+    /**
+     * Alterna a visibilidade do formulário de manutenção
+     */
+    function toggleMaintenanceForm() {
+        document.getElementById('add-maintenance-form').classList.toggle('hidden');
+    }
+    
+    /**
+     * Gerencia a troca de abas, mostrando o conteúdo correto
+     */
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+        document.getElementById(`content-${tabName}`).classList.remove('hidden');
+        document.querySelector(`.tab-button[onclick="switchTab('${tabName}')"]`).classList.add('active');
+    }
+
+    /**
+     * Renderiza os 4 cards de KPIs no topo da coluna direita
+     */
+    function renderKPIs(kpis) {
+        const container = document.getElementById('kpi-container');
+        container.innerHTML = `
+            <div class="kpi-card"><p class="text-2xl font-bold text-blue-800">${kpis.total_viagens || 0}</p><p class="text-sm text-blue-600">Viagens</p></div>
+            <div class="kpi-card"><p class="text-2xl font-bold text-indigo-800">${(kpis.total_km || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} km</p><p class="text-sm text-indigo-600">Distância</p></div>
+            <div class="kpi-card"><p class="text-2xl font-bold text-red-800">R$ ${(kpis.custo_geral || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p><p class="text-sm text-red-600">Custo Geral</p></div>
+            <div class="kpi-card"><p class="text-2xl font-bold text-yellow-800">R$ ${(kpis.custo_por_km || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p><p class="text-sm text-yellow-600">Custo/KM</p></div>
+        `;
+    }
+    
+    /**
+     * Função genérica para renderizar uma lista de itens em um container
+     * @param {string} containerId - ID do elemento onde a tabela/lista será inserida
+     * @param {Array} data - Array de objetos a serem renderizados
+     * @param {Object} columns - Objeto com funções para extrair título e subtítulo
+     */
+    function renderList(containerId, data, columns) {
+        const container = document.getElementById(containerId);
+        const loadingMessage = '<p class="text-center text-gray-500 py-4">Carregando...</p>';
+        const noRecordsMessage = '<p class="text-center text-gray-500 py-4">Nenhum registro encontrado.</p>';
+        
+        if (!data) {
+            container.innerHTML = loadingMessage;
+            return;
+        }
+        if (data.length === 0) {
+            container.innerHTML = noRecordsMessage;
+            return;
+        }
+        
+        let html = '<div class="space-y-3">';
+        data.forEach(item => {
+            html += `<div class="bg-gray-50 p-3 border rounded-md hover:bg-gray-100">`;
+            html += `<div class="flex justify-between items-start"><div>`;
+            html += `<p class="font-bold text-gray-800">${columns.title(item)}</p>`;
+            html += `<p class="text-sm text-gray-600">${columns.subtitle(item)}</p>`;
+            html += `<p class="text-xs text-gray-500 mt-1">Data: ${new Date(item.data || item.data_abastecimento).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>`;
+            html += `</div></div>`;
+
+            if (item.anexos && item.anexos.length > 0) {
+                html += `<div class="mt-2 border-t pt-2">`;
+                item.anexos.forEach(url => {
+                    if(url) html += `<a href="${url}" target="_blank" class="text-blue-600 text-sm hover:underline mr-3"><i class="fas fa-paperclip fa-fw"></i> Ver Anexo</a>`;
+                });
+                html += `</div>`;
+            }
+            html += `</div>`;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    // Função principal que executa quando a página é carregada
+    document.addEventListener('DOMContentLoaded', async () => {
+        switchTab('extrato'); // Inicia na aba de extrato por padrão
+        
+        try {
+            // Busca os dados das duas APIs em paralelo para mais velocidade
+            const [detailsRes, extratoRes] = await Promise.all([
+                fetch(`/api/veiculo/${VEICULO_ID}/details`),
+                fetch(`/api/veiculo/${VEICULO_ID}/despesas_consolidadas`)
+            ]);
+
+            const detailsData = await detailsRes.json();
+            const extratoData = await extratoRes.json();
+            
+            // Popula os KPIs e as abas de Manutenção e Abastecimento
+            if (detailsData.success) {
+                renderKPIs(detailsData.kpis);
+                renderList('maintenance-list-container', detailsData.manutencoes, {
+                    title: item => `${item.tipo} - R$ ${item.custo.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                    subtitle: item => item.descricao
+                });
+                renderList('content-abastecimentos', detailsData.abastecimentos, {
+                    title: item => `Abastecimento - R$ ${item.custo_total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                    subtitle: item => `${item.litros.toLocaleString('pt-BR')}L @ R$ ${item.preco_por_litro.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}/L`
+                });
+            }
+
+            // Popula a aba principal de Extrato
+            if (extratoData.success) {
+                renderList('content-extrato', extratoData.extrato, {
+                    title: item => `${item.categoria} - <span class="text-red-600">R$ ${item.valor.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`,
+                    subtitle: item => item.descricao
+                });
+            }
+
+        } catch (error) {
+            console.error("Erro ao carregar dados do dashboard:", error);
+            document.getElementById('kpi-container').innerHTML = '<p class="text-red-500 col-span-2 text-center">Erro ao carregar dados.</p>';
+        }
+    });
+
+</script>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Desempenho por Veículo - TrackGo{% endblock %}
+
+{% block content %}
+<div class="p-4 md:p-6">
+    <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Relatório de Desempenho por Veículo</h1>
+    <div class="bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="p-4 font-medium text-gray-500 uppercase">Veículo</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase text-right">KM Rodados</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase text-right">Consumo Médio</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase text-right">Receita/KM</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase text-right">Custo Real/KM</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase text-right">Lucro/KM</th>
+                        <th class="p-4 font-medium text-gray-500 uppercase text-right">Custo Total</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for v in veiculos_stats|sort(attribute='custo_total', reverse=True) %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-4 font-medium text-gray-800">{{ v.info.placa }} - {{ v.info.modelo }}</td>
+                        <td class="p-4 text-gray-600 text-right">{{ "%.2f"|format(v.km_rodados)|replace('.', ',') }} km</td>
+                        <td class="p-4 text-gray-600 text-right">{{ "%.2f"|format(v.consumo_medio)|replace('.', ',') }} Km/L</td>
+                        <td class="p-4 font-semibold text-blue-600 text-right">R$ {{ "%.2f"|format(v.receita_km)|replace('.', ',') }}</td>
+                        <td class="p-4 font-semibold text-red-600 text-right">R$ {{ "%.2f"|format(v.custo_real_km)|replace('.', ',') }}</td>
+                        <td class="p-4 font-bold {% if v.lucro_km >= 0 %}text-green-600{% else %}text-red-600{% endif %} text-right">R$ {{ "%.2f"|format(v.lucro_km)|replace('.', ',') }}</td>
+                        <td class="p-4 font-bold text-gray-800 text-right">R$ {{ "%.2f"|format(v.custo_total)|replace('.', ',') }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" class="p-4 text-center text-gray-500">Nenhum dado de veículo para exibir no período.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

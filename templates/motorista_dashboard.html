@@ -6,174 +6,364 @@
 <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-    #map { height: 400px; width: 100%; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+    #map { 
+        height: 450px; 
+        width: 100%; 
+        border-radius: 1rem; 
+        box-shadow: 0 10px 25px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.1); 
+    }
+    
+    .glass-effect {
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .floating-card {
+        transform: translateY(0);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .floating-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04);
+    }
+    
+    .pulse-indicator {
+        animation: pulse-glow 2s infinite;
+    }
+    
+    @keyframes pulse-glow {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+    
+    .progress-ring {
+        transition: stroke-dasharray 0.5s ease-in-out;
+    }
+
+    .status-indicator {
+        position: relative;
+    }
+    
+    .status-indicator::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 12px;
+        height: 12px;
+        background: #10b981;
+        border: 2px solid white;
+        border-radius: 50%;
+        animation: pulse-dot 2s infinite;
+    }
+    
+    @keyframes pulse-dot {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+    }
+
     .modal-input {
-        background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 0.375rem;
-        padding: 0.75rem; width: 100%; margin-top: 0.25rem;
+        background-color: #f3f4f6; 
+        border: 1px solid #d1d5db; 
+        border-radius: 0.375rem;
+        padding: 0.75rem; 
+        width: 100%; 
+        margin-top: 0.25rem;
         transition: border-color 0.2s, box-shadow 0.2s;
     }
+    
     .modal-input:focus {
-        outline: 2px solid transparent; outline-offset: 2px;
-        border-color: #2563eb; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+        outline: 2px solid transparent; 
+        outline-offset: 2px;
+        border-color: #2563eb; 
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="bg-slate-800 shadow-md sticky top-0 z-40">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
-        <h1 class="text-xl font-bold text-white">Olá, <span class="text-green-400">{{ current_user.nome }}</span>!</h1>
-        <a href="{{ url_for('logout') }}" class="text-sm text-gray-300 hover:text-white transition flex items-center gap-2"><i class="fas fa-sign-out-alt"></i> Sair</a>
+<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+    <div class="glass-effect shadow-lg sticky top-0 z-40 border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <div class="status-indicator">
+                        <div class="h-12 w-12 bg-gradient-to-r from-green-400 to-green-600 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-white text-lg"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-800">Olá, <span class="text-green-600">{{ current_user.nome }}</span>!</h1>
+                        <p class="text-sm text-slate-500">Status: 
+                            {% if viagem_ativa %}
+                            <span class="text-green-600 font-medium">Em viagem ativa</span>
+                            {% else %}
+                            <span class="text-blue-600 font-medium">Disponível</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="hidden sm:flex items-center space-x-2 text-sm text-slate-600">
+                        <i class="fas fa-clock"></i>
+                        <span id="current-time"></span>
+                    </div>
+                    <a href="{{ url_for('logout') }}" class="text-slate-600 hover:text-red-600 transition-colors flex items-center space-x-2">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span class="hidden sm:inline">Sair</span>
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 
-<main class="bg-gray-100 min-h-screen">
-    <div class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
-        <h2 class="text-3xl font-extrabold text-slate-800 flex items-center gap-3">
-            <i class="fas fa-tachometer-alt text-green-600"></i> Meu Dashboard
-        </h2>
+    <main class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+        <div class="text-center">
+            <h2 class="text-3xl font-extrabold text-slate-800 mb-2">
+                <i class="fas fa-tachometer-alt text-blue-600 mr-3"></i>
+                Meu Dashboard
+            </h2>
+            <p class="text-slate-600">Gerencie sua viagem e acompanhe suas atividades</p>
+        </div>
 
         {% if viagem_ativa %}
-        <div id="active-trip-section" class="relative z-10">
-            <h3 class="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-3"><i class="fas fa-route text-green-600"></i> Viagem em Andamento</h3>
-            
-            <div id="map" data-route-geometry="{{ viagem_ativa.route_geometry }}" class="relative">
-                <button id="recenter-map-btn" class="absolute bottom-4 right-4 z-[1000] bg-white p-3 rounded-full shadow-lg text-blue-600 hover:bg-gray-100 transition">
-                    <i class="fas fa-crosshairs fa-lg"></i>
-                </button>
+        <div id="active-trip-section" class="space-y-6">
+            <div class="floating-card bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="pulse-indicator h-3 w-3 bg-green-400 rounded-full"></div>
+                            <h3 class="text-xl font-bold text-white">Viagem em Andamento</h3>
+                        </div>
+                        <div class="text-white text-sm">
+                            Iniciada às {{ viagem_ativa.data_inicio.strftime('%H:%M') if viagem_ativa.data_inicio }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <div id="map" data-route-geometry="{{ viagem_ativa.route_geometry }}" class="relative">
+                        <button id="recenter-map-btn" class="absolute bottom-4 right-4 z-[1000] bg-white p-3 rounded-full shadow-lg text-blue-600 hover:bg-blue-50 transition-all duration-300 hover:scale-110">
+                            <i class="fas fa-crosshairs fa-lg"></i>
+                        </button>
+                        <div class="absolute top-4 left-4 z-[1000] glass-effect px-3 py-2 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <div class="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+                                <span class="text-sm font-medium text-slate-700">Rastreamento ativo</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="bg-white p-6 rounded-xl shadow-lg mt-6 space-y-4">
-                <div>
-                    <p class="text-sm text-gray-500">Cliente</p>
-                    <p class="text-xl font-semibold text-slate-800">{{ viagem_ativa.cliente }}</p>
-                </div>
-                <div class="space-y-3">
-                    <div>
-                        <p class="text-sm font-bold text-gray-500 flex items-center gap-2"><i class="fas fa-flag-checkered text-green-500"></i> Origem</p>
-                        <p class="font-medium pl-6">{{ viagem_ativa.endereco_saida }}</p>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 floating-card bg-white p-6 rounded-2xl shadow-lg">
+                    <h4 class="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                        <i class="fas fa-route text-blue-600 mr-2"></i>
+                        Detalhes da Viagem
+                    </h4>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                            <div>
+                                <p class="text-sm text-slate-500">Cliente</p>
+                                <p class="text-lg font-semibold text-slate-800">{{ viagem_ativa.cliente }}</p>
+                            </div>
+                            <div class="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-building text-blue-600"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <div class="flex items-start space-x-3">
+                                <div class="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                    <i class="fas fa-flag-checkered text-green-600 text-sm"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-slate-600">Origem</p>
+                                    <p class="text-slate-800">{{ viagem_ativa.endereco_saida }}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start space-x-3">
+                                <div class="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                    <i class="fas fa-map-marker-alt text-blue-600 text-sm"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-slate-600">Destinos</p>
+                                    <ol class="list-decimal list-inside mt-1 space-y-1">
+                                        {% for destino in viagem_ativa.destinos|sort(attribute='ordem') %}
+                                            <li class="text-slate-800">{{ destino.endereco }}</li>
+                                        {% endfor %}
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <p class="text-sm font-bold text-gray-500 flex items-center gap-2"><i class="fas fa-map-marker-alt text-blue-500"></i> Destinos</p>
-                        <ol class="list-decimal list-inside pl-6 mt-1 space-y-1">
-                            {% for destino in viagem_ativa.destinos|sort(attribute='ordem') %}
-                                <li class="font-medium">{{ destino.endereco }}</li>
-                            {% endfor %}
-                        </ol>
-                    </div>
                 </div>
-                <div id="location-display" class="pt-2 text-sm text-gray-600 flex items-center gap-2">
-                    <img src="{{ url_for('static', filename='11188726.gif') }}" alt="Rastreamento" class="h-6">
-                    Iniciando rastreamento...
+
+                <div class="floating-card bg-white p-6 rounded-2xl shadow-lg">
+                    <h4 class="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                        <i class="fas fa-chart-line text-green-600 mr-2"></i>
+                        Status
+                    </h4>
+                    
+                    <div class="space-y-4">
+                        <div id="location-display" class="text-sm text-slate-600 flex items-center space-x-2">
+                            <img src="{{ url_for('static', filename='11188726.gif') }}" alt="Rastreamento" class="h-6">
+                            <span>Iniciando rastreamento...</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-            
-            <h3 class="text-xl font-semibold text-slate-700 mt-8 mb-3">Ações da Viagem</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <button data-open-modal="abastecimentoModal" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md flex items-center justify-center gap-2 text-lg"><i class="fas fa-gas-pump"></i> Abastecimento</button>
-                <button data-open-modal="despesaModal" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 rounded-lg shadow-md flex items-center justify-center gap-2 text-lg"><i class="fas fa-file-invoice-dollar"></i> Despesas</button>
-            </div>
-             <div class="mt-4">
-                <button id="finish-trip-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg shadow-xl flex items-center justify-center gap-3 text-xl">
-                    <i class="fas fa-flag-checkered"></i> Concluir Viagem
+
+            <div class="space-y-4">
+                <h3 class="text-xl font-semibold text-slate-800">Ações da Viagem</h3>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button data-open-modal="abastecimentoModal" class="floating-card bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center space-x-3 transition-all duration-300">
+                        <i class="fas fa-gas-pump text-xl"></i>
+                        <span>Abastecimento</span>
+                    </button>
+                    
+                    <button data-open-modal="despesaModal" class="floating-card bg-slate-600 hover:bg-slate-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center space-x-3 transition-all duration-300">
+                        <i class="fas fa-file-invoice-dollar text-xl"></i>
+                        <span>Despesas</span>
+                    </button>
+                </div>
+
+                <button id="finish-trip-btn" class="w-full floating-card bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 rounded-xl shadow-xl flex items-center justify-center space-x-3 text-lg transition-all duration-300">
+                    <i class="fas fa-flag-checkered text-xl"></i>
+                    <span>Concluir Viagem</span>
                 </button>
             </div>
         </div>
-
         {% else %}
         <div id="pending-trips-section">
-            <h2 class="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-3"><i class="fas fa-clock text-blue-600"></i> Viagens Pendentes</h2>
+            <h2 class="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-3">
+                <i class="fas fa-clock text-blue-600"></i> 
+                Viagens Pendentes
+            </h2>
             <div id="pending-trips-list" class="space-y-4">
                 <p class="text-center text-gray-500 py-8">Buscando viagens...</p>
             </div>
         </div>
         {% endif %}
 
-        <div id="history-section">
-            <h2 class="text-2xl font-bold text-slate-800 mb-4 mt-10 flex items-center gap-3"><i class="fas fa-history text-slate-500"></i> Meu Histórico</h2>
-            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-                <ul class="divide-y divide-gray-200">
+        <div id="history-section" class="floating-card bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div class="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b">
+                <h2 class="text-xl font-bold text-slate-800 flex items-center">
+                    <i class="fas fa-history text-slate-600 mr-3"></i>
+                    Histórico de Viagens
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="space-y-3">
                     {% for v in viagens %}
-                    <li class="p-4 flex justify-between items-center">
-                        <div>
-                            <p class="font-semibold text-slate-800">{{ v.cliente }}</p>
-                            <p class="text-sm text-gray-500">{{ v.data_inicio.strftime('%d/%m/%Y') if v.data_inicio }}</p>
+                    <div class="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                        <div class="flex items-center space-x-4">
+                            <div class="h-10 w-10 {% if v.status == 'concluida' %}bg-green-100{% else %}bg-red-100{% endif %} rounded-full flex items-center justify-center">
+                                {% if v.status == 'concluida' %}
+                                    <i class="fas fa-check text-green-600"></i>
+                                {% else %}
+                                    <i class="fas fa-times text-red-600"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <p class="font-semibold text-slate-800">{{ v.cliente }}</p>
+                                <p class="text-sm text-slate-500">{{ v.data_inicio.strftime('%d/%m/%Y') if v.data_inicio }} • {{ v.cidade_origem }} → {{ v.cidade_destino }}</p>
+                            </div>
                         </div>
                         <span class="px-3 py-1 text-xs font-semibold rounded-full capitalize 
                             {% if v.status == 'concluida' %}bg-green-100 text-green-800
                             {% elif v.status == 'cancelada' %}bg-red-100 text-red-800
-                            {% else %}bg-blue-100 text-blue-700{% endif %}">{{ v.status }}</span>
-                    </li>
+                            {% else %}bg-blue-100 text-blue-700{% endif %}">
+                            {{ v.status }}
+                        </span>
+                    </div>
                     {% else %}
-                    <li class="p-8 text-center text-gray-500">Nenhuma viagem no histórico.</li>
+                    <p class="text-center text-gray-500 py-8">Nenhuma viagem no histórico.</p>
                     {% endfor %}
-                </ul>
+                </div>
+                
+                <div class="text-center mt-6">
+                    <button class="text-blue-600 hover:text-blue-800 font-medium flex items-center space-x-2 mx-auto">
+                        <span>Ver mais viagens</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
-</main>
+    </main>
 
-<div id="odometerModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4">
-    <div class="bg-white p-6 rounded-xl w-full max-w-md shadow-2xl">
-        <h3 id="odometerModalTitle" class="text-xl font-bold mb-4 text-slate-800">Registrar Quilometragem</h3>
-        <form id="odometerForm">
-            <label for="odometer_km" class="block text-sm font-medium text-gray-700">Odômetro Atual (KM)</label>
-            <input id="odometer_km" name="odometer_km" type="number" step="1" required class="modal-input">
-            <div class="flex justify-end gap-3 mt-6">
-                <button type="button" data-close-button class="bg-gray-200 text-gray-800 font-bold px-4 py-2 rounded-md hover:bg-gray-300">Cancelar</button>
-                <button type="submit" class="bg-green-600 text-white font-bold px-4 py-2 rounded-md hover:bg-green-700">Confirmar</button>
-            </div>
-        </form>
-    </div>
-</div>
-<div id="despesaModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4">
-    <div class="bg-white p-6 rounded-xl w-full max-w-lg shadow-2xl">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold text-slate-800">Lançar Despesas da Viagem</h3>
-            <button data-close-button class="text-gray-400 hover:text-gray-700 text-2xl font-bold">&times;</button>
-        </div>
-        <form id="despesaForm" enctype="multipart/form-data">
-            <input type="hidden" name="viagem_id" value="{{ viagem_ativa.id if viagem_ativa }}">
-            <div class="space-y-4">
-                <div><label class="block text-sm font-medium text-gray-700">Pedágios (R$)</label><input type="number" step="0.01" name="pedagios" class="modal-input" placeholder="0,00"></div>
-                <div><label class="block text-sm font-medium text-gray-700">Alimentação (R$)</label><input type="number" step="0.01" name="alimentacao" class="modal-input" placeholder="0,00"></div>
-                <div><label class="block text-sm font-medium text-gray-700">Hospedagem (R$)</label><input type="number" step="0.01" name="hospedagem" class="modal-input" placeholder="0,00"></div>
-                <div><label class="block text-sm font-medium text-gray-700">Outros Gastos (R$)</label><input type="number" step="0.01" name="outros" class="modal-input" placeholder="0,00"></div>
-                <div><label class="block text-sm font-medium text-gray-700">Descrição dos Outros Gastos</label><textarea name="descricao_outros" rows="2" class="modal-input" placeholder="Ex: Manutenção leve, pernoite..."></textarea></div>
-                <div><label class="block text-sm font-medium text-gray-700">Anexar Comprovantes</label><input name="anexos_despesa" type="file" multiple class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"></div>
-            </div>
-            <div class="flex justify-end gap-3 mt-6">
-                <button type="button" data-close-button class="bg-gray-200 text-gray-800 font-bold px-4 py-2 rounded-md hover:bg-gray-300">Cancelar</button>
-                <button type="submit" class="bg-slate-600 text-white font-bold px-4 py-2 rounded-md hover:bg-slate-700 w-36 text-center">Salvar Despesas</button>
-            </div>
-        </form>
-    </div>
-</div>
-<div id="abastecimentoModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4">
-    <div class="bg-white p-6 rounded-xl w-full max-w-lg shadow-2xl">
-         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold text-slate-800">Registrar Abastecimento</h3>
-            <button data-close-button class="text-gray-400 hover:text-gray-700 text-2xl font-bold">&times;</button>
-        </div>
-        <form id="abastecimentoForm" enctype="multipart/form-data">
-            <div class="space-y-4">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div><label class="block text-sm font-medium text-gray-700">Litros</label><input id="fuel-litros" type="number" step="0.01" name="litros" required class="modal-input" placeholder="0.00"></div>
-                    <div><label class="block text-sm font-medium text-gray-700">Preço por Litro (R$)</label><input id="fuel-preco_litro" type="number" step="0.01" name="preco_por_litro" required class="modal-input" placeholder="0.00"></div>
+    <div id="odometerModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white p-6 rounded-xl w-full max-w-md shadow-2xl">
+            <h3 id="odometerModalTitle" class="text-xl font-bold mb-4 text-slate-800">Registrar Quilometragem</h3>
+            <form id="odometerForm">
+                <label for="odometer_km" class="block text-sm font-medium text-gray-700">Odômetro Atual (KM)</label>
+                <input id="odometer_km" name="odometer_km" type="number" step="1" required class="modal-input">
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" data-close-button class="bg-gray-200 text-gray-800 font-bold px-4 py-2 rounded-md hover:bg-gray-300">Cancelar</button>
+                    <button type="submit" class="bg-green-600 text-white font-bold px-4 py-2 rounded-md hover:bg-green-700">Confirmar</button>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div><label class="block text-sm font-medium text-gray-700">Custo Total (R$)</label><input id="fuel-custo_total" type="text" readonly class="modal-input bg-gray-200 cursor-not-allowed" placeholder="Automático"></div>
-                    <div><label class="block text-sm font-medium text-gray-700">Odômetro (KM)</label><input type="number" step="1" id="fuel-odometro" name="odometro" required class="modal-input"></div>
-                </div>
-                <div><label class="block text-sm font-medium text-gray-700">Anexar Comprovante</label><input name="anexo_comprovante" type="file" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"></div>
-            </div>
-            <div class="flex justify-end gap-3 mt-6">
-                <button type="button" data-close-button class="bg-gray-200 text-gray-800 font-bold px-4 py-2 rounded-md hover:bg-gray-300">Cancelar</button>
-                <button type="submit" class="bg-blue-600 text-white font-bold px-4 py-2 rounded-md hover:bg-blue-700 w-32 text-center">Registrar</button>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
-</div>
+
+    <div id="despesaModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white p-6 rounded-xl w-full max-w-lg shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-slate-800">Lançar Despesas da Viagem</h3>
+                <button data-close-button class="text-gray-400 hover:text-gray-700 text-2xl font-bold">&times;</button>
+            </div>
+            <form id="despesaForm" enctype="multipart/form-data">
+                <input type="hidden" name="viagem_id" value="{{ viagem_ativa.id if viagem_ativa }}">
+                <div class="space-y-4">
+                    <div><label class="block text-sm font-medium text-gray-700">Pedágios (R$)</label><input type="number" step="0.01" name="pedagios" class="modal-input" placeholder="0,00"></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Alimentação (R$)</label><input type="number" step="0.01" name="alimentacao" class="modal-input" placeholder="0,00"></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Hospedagem (R$)</label><input type="number" step="0.01" name="hospedagem" class="modal-input" placeholder="0,00"></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Outros Gastos (R$)</label><input type="number" step="0.01" name="outros" class="modal-input" placeholder="0,00"></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Descrição dos Outros Gastos</label><textarea name="descricao_outros" rows="2" class="modal-input" placeholder="Ex: Manutenção leve, pernoite..."></textarea></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Anexar Comprovantes</label><input name="anexos_despesa" type="file" multiple class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"></div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" data-close-button class="bg-gray-200 text-gray-800 font-bold px-4 py-2 rounded-md hover:bg-gray-300">Cancelar</button>
+                    <button type="submit" class="bg-slate-600 text-white font-bold px-4 py-2 rounded-md hover:bg-slate-700 w-36 text-center">Salvar Despesas</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="abastecimentoModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white p-6 rounded-xl w-full max-w-lg shadow-2xl">
+             <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-slate-800">Registrar Abastecimento</h3>
+                <button data-close-button class="text-gray-400 hover:text-gray-700 text-2xl font-bold">&times;</button>
+            </div>
+            <form id="abastecimentoForm" enctype="multipart/form-data">
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div><label class="block text-sm font-medium text-gray-700">Litros</label><input id="fuel-litros" type="number" step="0.01" name="litros" required class="modal-input" placeholder="0.00"></div>
+                        <div><label class="block text-sm font-medium text-gray-700">Preço por Litro (R$)</label><input id="fuel-preco_litro" type="number" step="0.01" name="preco_por_litro" required class="modal-input" placeholder="0.00"></div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div><label class="block text-sm font-medium text-gray-700">Custo Total (R$)</label><input id="fuel-custo_total" type="text" readonly class="modal-input bg-gray-200 cursor-not-allowed" placeholder="Automático"></div>
+                        <div><label class="block text-sm font-medium text-gray-700">Odômetro (KM)</label><input type="number" step="1" id="fuel-odometro" name="odometro" required class="modal-input"></div>
+                    </div>
+                    <div><label class="block text-sm font-medium text-gray-700">Anexar Comprovante</label><input name="anexo_comprovante" type="file" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"></div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" data-close-button class="bg-gray-200 text-gray-800 font-bold px-4 py-2 rounded-md hover:bg-gray-300">Cancelar</button>
+                    <button type="submit" class="bg-blue-600 text-white font-bold px-4 py-2 rounded-md hover:bg-blue-700 w-32 text-center">Registrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
 {% endblock %}
 
 {% block scripts %}
@@ -192,21 +382,45 @@
     let driverMarker = null;
     let autoRecenter = true; // Centralização automática ligada por padrão
 
-    // --- FUNÇÕES UTILITÁRIAS (INTOCADAS) ---
+    // --- FUNÇÕES UTILITÁRIAS ---
     const showToast = (msg, type = 'info') => {
         const colors = {
             success: 'linear-gradient(to right, #16a34a, #6ee7b7)',
             error: 'linear-gradient(to right, #dc2626, #fb7185)',
             info: 'linear-gradient(to right, #2563eb, #60a5fa)'
         };
-        Toastify({ text: msg, duration: 4000, gravity: 'top', position: 'center', style: { background: colors[type] } }).showToast();
+        Toastify({ 
+            text: msg, 
+            duration: 4000, 
+            gravity: 'top', 
+            position: 'center', 
+            style: { background: colors[type] } 
+        }).showToast();
     };
 
-    function openModal(modalId) { document.getElementById(modalId)?.classList.remove('hidden'); }
-    function closeModal(modalId) { document.getElementById(modalId)?.classList.add('hidden'); }
+    function openModal(modalId) { 
+        document.getElementById(modalId)?.classList.remove('hidden'); 
+    }
+    
+    function closeModal(modalId) { 
+        document.getElementById(modalId)?.classList.add('hidden'); 
+    }
     
     // --- LÓGICA PRINCIPAL (DOM LOADED) ---
     document.addEventListener('DOMContentLoaded', () => {
+        // Relógio em tempo real
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const timeEl = document.getElementById('current-time');
+            if(timeEl) timeEl.textContent = timeString;
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+
         if (VIAGEM_ATIVA_ID) {
             initializeActiveTripMap();
             startRealTimeTracking();
@@ -214,24 +428,33 @@
             loadPendingTrips();
         }
         
-        // Listeners para os modais e botões (INTOCADOS)
+        // Listeners para os modais e botões
         document.getElementById('odometerForm')?.addEventListener('submit', handleOdometerSubmit);
         document.getElementById('despesaForm')?.addEventListener('submit', handleExpenseSubmit);
         document.getElementById('abastecimentoForm')?.addEventListener('submit', handleFuelSubmit);
-        document.querySelectorAll('[data-open-modal]').forEach(button => button.addEventListener('click', () => openModalWithData(button.dataset.openModal)));
-        document.getElementById('finish-trip-btn')?.addEventListener('click', () => handleFinishTripClick(VIAGEM_ATIVA_ID));
-        document.querySelectorAll('[data-close-button]').forEach(button => button.addEventListener('click', () => closeModal(button.closest('.fixed').id)));
-        document.querySelectorAll('.fixed.inset-0').forEach(modal => modal.addEventListener('click', e => { if (e.target === modal) closeModal(modal.id); }));
+        document.querySelectorAll('[data-open-modal]').forEach(button => 
+            button.addEventListener('click', () => openModalWithData(button.dataset.openModal))
+        );
+        document.getElementById('finish-trip-btn')?.addEventListener('click', () => 
+            handleFinishTripClick(VIAGEM_ATIVA_ID)
+        );
+        document.querySelectorAll('[data-close-button]').forEach(button => 
+            button.addEventListener('click', () => closeModal(button.closest('.fixed').id))
+        );
+        document.querySelectorAll('.fixed.inset-0').forEach(modal => 
+            modal.addEventListener('click', e => { 
+                if (e.target === modal) closeModal(modal.id); 
+            })
+        );
         document.getElementById('fuel-litros')?.addEventListener('input', updateFuelCost);
         document.getElementById('fuel-preco_litro')?.addEventListener('input', updateFuelCost);
     });
 
-    // --- FUNÇÕES DO MAPA (MODIFICADAS/MELHORADAS) ---
+    // --- FUNÇÕES DO MAPA ---
     function initializeActiveTripMap() {
         const mapElement = document.getElementById('map');
         if (!mapElement) return;
 
-        // Adiciona o listener para o botão que já está no HTML
         document.getElementById('recenter-map-btn').addEventListener('click', () => {
             autoRecenter = !autoRecenter;
             const btn = document.getElementById('recenter-map-btn');
@@ -271,10 +494,11 @@
                          .bindPopup(`<b>${label}:</b><br>${destino.endereco}`);
                     }
                 });
-            } catch (e) { console.error("Erro ao decodificar rota:", e); }
+            } catch (e) { 
+                console.error("Erro ao decodificar rota:", e); 
+            }
         }
         
-        // Atualiza o mapa local do motorista em tempo real (sem API calls)
         navigator.geolocation.watchPosition(position => {
             const { latitude, longitude } = position.coords;
             const latLng = [latitude, longitude];
@@ -293,22 +517,19 @@
         }, { enableHighAccuracy: true });
     }
 
-    // --- RASTREAMENTO E COMUNICAÇÃO COM BACKEND (MODIFICADO/OTIMIZADO) ---
+    // --- RASTREAMENTO E COMUNICAÇÃO COM BACKEND ---
     function startRealTimeTracking() {
         const socket = io();
         const locationDisplay = document.getElementById('location-display');
         
-        // Entra na sala da viagem para receber atualizações de endereço do backend
         socket.emit('join_trip_room', { viagem_id: VIAGEM_ATIVA_ID });
         
-        // Ouve por atualizações de endereço (que o backend envia a cada 10 min)
         socket.on('localizacao_atualizada', data => {
             if (data.viagem_id === VIAGEM_ATIVA_ID && data.endereco) {
                 locationDisplay.innerHTML = `<img src="{{ url_for('static', filename='11188726.gif') }}" alt="Rastreamento" class="h-6"> ${data.endereco}`;
             }
         });
 
-        // Função que envia a posição para o backend
         const sendPosition = () => {
             if (!navigator.geolocation) { return; }
             navigator.geolocation.getCurrentPosition(
@@ -322,12 +543,12 @@
             );
         };
         
-        sendPosition(); // Envia a primeira vez
-        setInterval(sendPosition, 30000); // E depois a cada 30 segundos
+        sendPosition();
+        setInterval(sendPosition, 30000);
         showToast('Rastreamento da viagem iniciado.', 'info');
     }
 
-    // --- FUNÇÕES DE LÓGICA DA APLICAÇÃO (INTOCADAS) ---
+    // --- FUNÇÕES DE LÓGICA DA APLICAÇÃO ---
     async function openModalWithData(modalId) {
         const modal = document.getElementById(modalId);
         if (!modal) return;
@@ -337,27 +558,35 @@
         if (!VIAGEM_ATIVA_ID) return;
         
         if (modalId === 'despesaModal') {
-            const response = await fetch(`/api/viagem/${VIAGEM_ATIVA_ID}/despesas`);
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success) {
-                    form.elements['pedagios'].value = data.pedagios || '';
-                    form.elements['alimentacao'].value = data.alimentacao || '';
-                    form.elements['hospedagem'].value = data.hospedagem || '';
-                    form.elements['outros'].value = data.outros || '';
-                    form.elements['descricao_outros'].value = data.descricao_outros || '';
+            try {
+                const response = await fetch(`/api/viagem/${VIAGEM_ATIVA_ID}/despesas`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        form.elements['pedagios'].value = data.pedagios || '';
+                        form.elements['alimentacao'].value = data.alimentacao || '';
+                        form.elements['hospedagem'].value = data.hospedagem || '';
+                        form.elements['outros'].value = data.outros || '';
+                        form.elements['descricao_outros'].value = data.descricao_outros || '';
+                    }
                 }
+            } catch (e) {
+                console.log('Erro ao carregar despesas:', e);
             }
         } else if (modalId === 'abastecimentoModal') {
-            const response = await fetch(`/api/viagem/${VIAGEM_ATIVA_ID}/abastecimentos`);
-             if (response.ok) {
-                const data = await response.json();
-                if (data.success) {
-                    form.elements['litros'].value = data.litros || '';
-                    form.elements['preco_por_litro'].value = data.preco_por_litro || '';
-                    form.elements['odometro'].value = data.odometro || '';
-                    updateFuelCost();
+            try {
+                const response = await fetch(`/api/viagem/${VIAGEM_ATIVA_ID}/abastecimentos`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        form.elements['litros'].value = data.litros || '';
+                        form.elements['preco_por_litro'].value = data.preco_por_litro || '';
+                        form.elements['odometro'].value = data.odometro || '';
+                        updateFuelCost();
+                    }
                 }
+            } catch (e) {
+                console.log('Erro ao carregar abastecimentos:', e);
             }
         }
     }
@@ -371,7 +600,7 @@
                 list.innerHTML = data.viagens.map(v => {
                     const destinosHtml = v.destinos.map(d => `<li>${d}</li>`).join('') || `<li>${v.endereco_destino || 'N/A'}</li>`;
                     return `
-                    <div class="bg-white p-4 rounded-xl shadow-lg space-y-3">
+                    <div class="bg-white p-4 rounded-xl shadow-lg space-y-3 floating-card">
                         <p class="font-bold text-lg text-slate-800">${v.cliente}</p>
                         <div class="text-sm">
                             <p class="font-semibold">De: <span class="font-normal">${v.endereco_saida}</span></p>
@@ -384,7 +613,9 @@
             } else {
                 list.innerHTML = '<p class="text-center text-gray-500 py-8">Nenhuma viagem pendente.</p>';
             }
-        } catch (e) { list.innerHTML = '<p class="text-center text-red-500 py-8">Erro ao carregar viagens.</p>'; }
+        } catch (e) { 
+            list.innerHTML = '<p class="text-center text-red-500 py-8">Erro ao carregar viagens.</p>'; 
+        }
     }
 
     function handleStartTripClick(tripId) {
@@ -431,7 +662,9 @@
             } else {
                 showToast(data.message || 'Ocorreu um erro desconhecido.', 'error');
             }
-        } catch (e) { showToast('Erro de comunicação. Verifique sua conexão.', 'error'); }
+        } catch (e) { 
+            showToast('Erro de comunicação. Verifique sua conexão.', 'error'); 
+        }
     }
 
     function updateFuelCost(){
@@ -480,5 +713,8 @@
             submitButton.innerHTML = 'Salvar Despesas';
         }
     }
+
+    // Função global para iniciar viagens (chamada pelos botões dinamicamente criados)
+    window.handleStartTripClick = handleStartTripClick;
 </script>
 {% endblock %}

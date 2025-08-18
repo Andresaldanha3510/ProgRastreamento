@@ -1,0 +1,36 @@
+<div class="overflow-x-auto">
+    <table class="w-full text-sm">
+        <thead class="bg-gray-100">
+            <tr>
+                <th class="p-3 text-left font-semibold text-gray-700">Data</th>
+                <th class="p-3 text-left font-semibold text-gray-700">Origem</th>
+                <th class="p-3 text-left font-semibold text-gray-700">Destino</th>
+                <th class="p-3 text-right font-semibold text-gray-700">Receita</th>
+                <th class="p-3 text-right font-semibold text-gray-700">Status</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+            {% for v in viagens %}
+            <tr class="hover:bg-gray-50">
+                <td class="p-3 whitespace-nowrap">{{ v.data_inicio.strftime('%d/%m/%Y') }}</td>
+                <td class="p-3">{{ v.endereco_saida }}</td>
+                <td class="p-3">{{ v.endereco_destino }}</td>
+                <td class="p-3 text-right font-medium">R$ {{ "%.2f"|format(v.valor_recebido or 0)|replace('.', ',') }}</td>
+                <td class="p-3 text-right">
+                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                        {% if v.status == 'concluida' %}bg-green-100 text-green-800
+                        {% elif v.status == 'cancelada' %}bg-red-100 text-red-800
+                        {% elif v.status == 'em_andamento' %}bg-blue-100 text-blue-800
+                        {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                        {{ v.status }}
+                    </span>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="p-8 text-center text-gray-500">Nenhuma viagem encontrada para este cliente no período selecionado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

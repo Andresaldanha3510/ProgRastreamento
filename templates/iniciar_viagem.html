@@ -1,71 +1,202 @@
 {% extends "base.html" %}
 
-{% block title %}Iniciar Nova Viagem - TrackGo{% endblock %}
+{% block title %}Iniciar Nova Viagem - TrackBras{% endblock %}
 
 {% block styles %}
 {{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.css" />
 <style>
-    .form-container { background-color: #e9ecef; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); margin: 0; }
-    .form-input, .form-select, .form-textarea { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; transition: border-color 0.2s, box-shadow 0.2s; }
-    .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: #2e7d32; box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2); }
-    .btn-submit { background-color: #16a34a; color: white; } .btn-submit:hover { background-color: #15803d; }
-    .btn-add { background-color: #2563eb; color: white; } .btn-add:hover { background-color: #1d4ed8; }
-    .btn-delete { background-color: #dc2626; color: white; } .btn-delete:hover { background-color: #b91c1c; }
-    .btn-ocr { background-color: #f59e0b; color: white; } .btn-ocr:hover { background-color: #d97706; }
+    .form-container { 
+        background-color: #f8f9fa; 
+        padding: 2rem; 
+        border-radius: 0.75rem; 
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
+        margin: 0; 
+        border: 1px solid #dee2e6;
+    }
+    .form-input, .form-select, .form-textarea { 
+        width: 100%; 
+        padding: 0.75rem; 
+        border: 1px solid #ced4da; 
+        border-radius: 0.375rem; 
+        transition: border-color 0.2s, box-shadow 0.2s; 
+        font-size: 1rem; 
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { 
+        outline: none; 
+        border-color: #2e7d32; 
+        box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.2); 
+    }
+    .btn-submit { background-color: #16a34a; color: white; } 
+    .btn-submit:hover { background-color: #15803d; }
+    .btn-add { background-color: #2563eb; color: white; } 
+    .btn-add:hover { background-color: #1d4ed8; }
+    .btn-delete { background-color: #dc2626; color: white; } 
+    .btn-delete:hover { background-color: #b91c1c; }
+    .btn-ocr { background-color: #f59e0b; color: white; } 
+    .btn-ocr:hover { background-color: #d97706; }
     .awesomplete > ul { z-index: 1052 !important; }
-    .ocr-loader { border: 4px solid #f3f3f3; border-radius: 50%; border-top: 4px solid #f59e0b; width: 24px; height: 24px; animation: spin 1s linear infinite; display: none; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .ocr-loader { 
+        border: 4px solid #f3f3f3; 
+        border-radius: 50%; 
+        border-top: 4px solid #f59e0b; 
+        width: 24px; 
+        height: 24px; 
+        animation: spin 1s linear infinite; 
+        display: none; 
+    }
+    @keyframes spin { 
+        0% { transform: rotate(0deg); } 
+        100% { transform: rotate(360deg); } 
+    }
     
-    .address-group { display: flex; gap: 0.5rem; width: 100%;}
+    .address-group { display: flex; gap: 0.5rem; width: 100%; }
     .street-input { flex-grow: 1; }
     .number-input { width: 90px; flex-shrink: 0; }
     
-    .destino-item { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .destino-item { 
+        display: flex; 
+        align-items: center; 
+        gap: 0.5rem; 
+        margin-bottom: 0.5rem; 
+    }
     .destino-item > .address-group { flex-grow: 1; }
     .destino-item > .btn-ocr, .destino-item > .btn-delete, .destino-item > .ocr-loader { flex-shrink: 0; }
+
+    .despesa-item { 
+        display: grid; 
+        grid-template-columns: 2fr 1fr auto; 
+        gap: 0.5rem; 
+        align-items: end; 
+        margin-bottom: 0.5rem; 
+        padding: 0.75rem; 
+        border: 1px solid #e5e7eb; 
+        border-radius: 0.5rem; 
+        background-color: #fafafa;
+    }
+    .card-section { 
+        background: white; 
+        border: 1px solid #e5e7eb; 
+        border-radius: 0.5rem; 
+        padding: 1.5rem; 
+        margin-bottom: 1.5rem; 
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .section-title { 
+        font-size: 1.125rem; 
+        font-weight: 600; 
+        color: #374151; 
+        margin-bottom: 1rem; 
+        display: flex; 
+        align-items: center; 
+        gap: 0.5rem;
+    }
+    .summary-card {
+        background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        border: 2px solid #d1d5db;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        margin-top: 1rem;
+    }
+    .profit-positive { color: #059669; }
+    .profit-negative { color: #dc2626; }
+    .cost-item { 
+        display: flex; 
+        justify-content: space-between; 
+        padding: 0.5rem 0; 
+        border-bottom: 1px solid #e5e7eb; 
+    }
+    .toggle-section {
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+    }
+    .toggle-section:hover {
+        background-color: #f9fafb;
+    }
+    .collapsible-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-in-out;
+    }
+    .collapsible-content.open {
+        max-height: 1000px;
+    }
+    .quick-fill-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+    .quick-fill-btn {
+        background: #e5e7eb;
+        border: 1px solid #d1d5db;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .quick-fill-btn:hover {
+        background: #d1d5db;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="form-container">
-    <h1 class="text-3xl font-bold mb-6 text-gray-800 text-center">Iniciar Nova Viagem</h1>
+<div class="form-container" x-data="{ despesasAbertas: true, estimativaAberta: false, temFrete: false, pesoTotal: 0, valorPorTonelada: 0 }">
     
+    <h1 class="text-3xl font-bold mb-4 text-gray-800 text-center">Iniciar Nova Viagem</h1>
+
+    <!-- FORMULÁRIO ÚNICO DE VIAGEM -->
     <form id="viagem-form">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-            <div>
-                <label for="motorista_id" class="block text-gray-700 font-medium mb-2">Motorista</label>
-                <select id="motorista_id" name="motorista_id" required class="form-select">
-                    <option value="">Selecione um motorista</option>
-                    {% for motorista in motoristas %}
-                        <option value="{{ motorista.id }}">{{ motorista.nome }}</option>
-                    {% endfor %}
-                </select>
+        <!-- Seção Básica -->
+        <div class="card-section">
+            <h2 class="section-title">
+                <i class="fas fa-info-circle text-blue-500"></i>
+                Informações Básicas
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <div>
+                    <label for="motorista_id" class="block text-gray-700 font-medium mb-2">Motorista</label>
+                    <select id="motorista_id" name="motorista_id" required class="form-select">
+                        <option value="">Selecione um motorista</option>
+                        {% for motorista in motoristas %}<option value="{{ motorista.id }}">{{ motorista.nome }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="veiculo_id" class="block text-gray-700 font-medium mb-2">Veículo</label>
+                    <select id="veiculo_id" name="veiculo_id" required class="form-select">
+                        <option value="">Selecione um veículo</option>
+                        {% for veiculo in veiculos %}<option value="{{ veiculo.id }}">{{ veiculo.placa }} - {{ veiculo.modelo }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="cliente" class="block text-gray-700 font-medium mb-2">Nome do Cliente</label>
+                    <input type="text" class="form-input awesomplete" id="cliente" name="cliente" required autocomplete="off" placeholder="Digite para buscar...">
+                </div>
+                <div>
+                    <label for="data_inicio" class="block text-gray-700 font-medium mb-2">Data e Hora da Viagem</label>
+                    <input type="datetime-local" class="form-input" id="data_inicio" name="data_inicio" required>
+                </div>
             </div>
-            <div>
-                <label for="veiculo_id" class="block text-gray-700 font-medium mb-2">Veículo</label>
-                <select id="veiculo_id" name="veiculo_id" required class="form-select">
-                    <option value="">Selecione um veículo</option>
-                    {% for veiculo in veiculos %}
-                        <option value="{{ veiculo.id }}">{{ veiculo.placa }} - {{ veiculo.modelo }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="md:col-span-2">
-                <label for="cliente" class="block text-gray-700 font-medium mb-2">Nome do Cliente</label>
-                <input type="text" class="form-input awesomplete" id="cliente" name="cliente" required autocomplete="off" placeholder="Digite para buscar...">
-            </div>
-            
-            <div class="md:col-span-2">
+        </div>
+
+        <!-- Seção Endereços -->
+        <div class="card-section">
+            <h2 class="section-title">
+                <i class="fas fa-map-marked-alt text-green-500"></i>
+                Endereços
+            </h2>
+            <div class="mb-4">
                 <label for="endereco_saida_rua" class="block text-gray-700 font-medium mb-2">Endereço de Saída</label>
                 <div class="address-group">
                     <input type="text" class="form-input street-input" id="endereco_saida_rua" placeholder="Digite a rua, bairro, cidade..." required>
                     <input type="text" class="form-input number-input" id="endereco_saida_numero" placeholder="Nº">
                 </div>
             </div>
-            
-            <div class="md:col-span-2 border-t pt-4 mt-4">
+            <div>
                 <label class="block text-gray-700 font-medium mb-2">Endereços de Destino</label>
                 <div id="destinos-container">
                     <div class="destino-item">
@@ -74,42 +205,205 @@
                             <input type="text" class="form-input number-input" name="numero_destino[]" placeholder="Nº">
                         </div>
                         <input type="file" class="hidden" accept="image/*" onchange="handleOcr(this)">
-                        <button type="button" class="btn-ocr p-2 rounded-md" title="Extrair endereço de imagem" onclick="this.previousElementSibling.click();">
-                            <i class="fas fa-camera"></i>
-                        </button>
+                        <button type="button" class="btn-ocr p-2 rounded-md" title="Extrair endereço de imagem" onclick="this.previousElementSibling.click();"><i class="fas fa-camera"></i></button>
                         <div class="ocr-loader"></div>
                         <button type="button" class="btn-delete p-2 rounded-md" onclick="removerDestino(this)"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
-                <button type="button" class="btn-add px-4 py-2 mt-2 rounded" id="adicionar-destino">Adicionar Outro Destino</button>
-            </div>
-            
-            <div>
-                <label for="data_inicio" class="block text-gray-700 font-medium mb-2">Data e Hora da Viagem</label>
-                <input type="datetime-local" class="form-input" id="data_inicio" name="data_inicio" required>
-            </div>
-            <div>
-                <label for="forma_pagamento" class="block text-gray-700 font-medium mb-2">Forma de Pagamento</label>
-                <select class="form-select" id="forma_pagamento" name="forma_pagamento" required>
-                    <option value="" disabled selected>Selecione...</option>
-                    <option value="dinheiro">Dinheiro</option>
-                    <option value="cartao_credito">Cartão de Crédito</option>
-                    <option value="cartao_debito">Cartão de Débito</option>
-                    <option value="pix">PIX</option>
-                </select>
-            </div>
-            <div>
-                <label for="valor_recebido" class="block text-gray-700 font-medium mb-2">Valor a Cobrar (Receita)</label>
-                <input type="number" step="0.01" class="form-input" id="valor_recebido" name="valor_recebido" placeholder="Ex: 450.00">
-            </div>
-             <div class="md:col-span-2">
-                <label for="observacoes" class="block text-gray-700 font-medium mb-2">Observações</label>
-                <textarea class="form-textarea" id="observacoes" name="observacoes" rows="3" placeholder="Ex: Carga frágil..."></textarea>
+                <button type="button" class="btn-add px-4 py-2 mt-2 rounded" id="adicionar-destino">
+                    <i class="fas fa-plus mr-2"></i>Adicionar Outro Destino
+                </button>
             </div>
         </div>
 
-        <div class="mt-8 flex justify-end gap-4">
-            <button type="submit" id="submit-button" class="btn-submit px-6 py-3 rounded font-semibold">Otimizar Rota e Criar Viagem</button>
+        <!-- Seção Financeira -->
+        <div class="card-section">
+            <h2 class="section-title">
+                <i class="fas fa-dollar-sign text-yellow-500"></i>
+                Informações Financeiras
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <div>
+                    <label for="forma_pagamento" class="block text-gray-700 font-medium mb-2">Forma de Pagamento</label>
+                    <select class="form-select" id="forma_pagamento" name="forma_pagamento" required>
+                        <option value="" disabled selected>Selecione...</option>
+                        <option value="dinheiro">Dinheiro</option>
+                        <option value="cartao_credito">Cartão de Crédito</option>
+                        <option value="cartao_debito">Cartão de Débito</option>
+                        <option value="pix">PIX</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="valor_recebido" class="block text-gray-700 font-medium mb-2">Valor a Cobrar (Receita)</label>
+                    <input type="number" step="0.01" class="form-input" id="valor_recebido" name="valor_recebido" placeholder="Ex: 450.00">
+                </div>
+            </div>
+
+            <!-- Seção Pagamento do Motorista (Frete) -->
+            <div class="mt-6">
+                <div class="flex items-center gap-4 mb-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" x-model="temFrete" class="form-checkbox h-5 w-5 text-green-600" onchange="toggleFreteSection()">
+                        <span class="text-gray-700 font-medium">
+                            <i class="fas fa-truck mr-2 text-blue-500"></i>
+                            Esta viagem é um frete (pagamento por tonelada)
+                        </span>
+                    </label>
+                </div>
+                
+                <div x-show="temFrete" x-transition class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-blue-800 mb-4">
+                        <i class="fas fa-weight-hanging mr-2"></i>
+                        Informações do Frete
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="material" class="block text-gray-700 font-medium mb-2">Material</label>
+                            <input type="text" class="form-input" id="material" name="material" placeholder="Ex: Tora de Pinus, Soja">
+                        </div>
+                        <div>
+                            <label for="peso_toneladas" class="block text-gray-700 font-medium mb-2">Peso Total (Toneladas)</label>
+                            <input type="number" step="0.001" class="form-input" id="peso_toneladas" name="peso_toneladas" placeholder="Ex: 41.880" x-model.number="pesoTotal" @input="calcularPagamentoMotorista()">
+                        </div>
+                        <div>
+                            <label for="valor_por_tonelada" class="block text-gray-700 font-medium mb-2">Valor/Tonelada (R$)</label>
+                            <input type="number" step="0.01" class="form-input" id="valor_por_tonelada" name="valor_por_tonelada" placeholder="Ex: 49.00" x-model.number="valorPorTonelada" @input="calcularPagamentoMotorista()">
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-4 bg-white border border-blue-300 rounded-lg">
+                        <div class="flex justify-between items-center">
+                            <span class="text-lg font-semibold text-gray-700">
+                                <i class="fas fa-calculator mr-2 text-green-500"></i>
+                                Pagamento do Motorista:
+                            </span>
+                            <span class="text-xl font-bold text-blue-600" id="pagamento-motorista-display">
+                                R$ 0,00
+                            </span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">
+                            Este valor será adicionado automaticamente aos custos da viagem
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seção Despesas Dinâmicas -->
+            <div class="mt-6">
+                <div class="toggle-section" @click="despesasAbertas = !despesasAbertas">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3 flex items-center justify-between">
+                        <span><i class="fas fa-receipt mr-2 text-red-500"></i>Despesas Personalizadas</span>
+                        <i class="fas" :class="despesasAbertas ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                    </h3>
+                </div>
+                <div class="collapsible-content" :class="{'open': despesasAbertas}">
+                    <div class="quick-fill-buttons">
+                        <button type="button" class="quick-fill-btn" onclick="adicionarDespesaRapida('Combustível', 'combustivel')">
+                            <i class="fas fa-gas-pump mr-1"></i>Combustível
+                        </button>
+                        <button type="button" class="quick-fill-btn" onclick="adicionarDespesaRapida('Pedágio', 'pedagio')">
+                            <i class="fas fa-road mr-1"></i>Pedágio
+                        </button>
+                        <button type="button" class="quick-fill-btn" onclick="adicionarDespesaRapida('Alimentação', 'alimentacao')">
+                            <i class="fas fa-utensils mr-1"></i>Alimentação
+                        </button>
+                        <button type="button" class="quick-fill-btn" onclick="adicionarDespesaRapida('Manutenção', 'manutencao')">
+                            <i class="fas fa-wrench mr-1"></i>Manutenção
+                        </button>
+                        <button type="button" class="quick-fill-btn" onclick="adicionarDespesaRapida('Estacionamento', 'estacionamento')">
+                            <i class="fas fa-parking mr-1"></i>Estacionamento
+                        </button>
+                    </div>
+                    <div id="despesas-container"></div>
+                    <button type="button" class="btn-add px-4 py-2 mt-2 rounded" id="adicionar-despesa">
+                        <i class="fas fa-plus mr-2"></i>Adicionar Despesa Personalizada
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estimativa Melhorada -->
+        <div id="estimativa-container" class="card-section hidden">
+            <div class="toggle-section" @click="estimativaAberta = !estimativaAberta">
+                <h2 class="section-title">
+                    <i class="fas fa-calculator text-purple-500"></i>
+                    Análise Financeira
+                    <i class="fas ml-auto" :class="estimativaAberta ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </h2>
+            </div>
+            <div class="collapsible-content" :class="{'open': estimativaAberta}">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="font-semibold text-gray-700 mb-3">Custos Automáticos</h3>
+                        <div id="custos-automaticos">
+                            <div class="cost-item">
+                                <span><i class="fas fa-gas-pump text-gray-500 mr-2"></i>Combustível:</span>
+                                <span id="estimativa-combustivel" class="font-medium">R$ 0,00</span>
+                            </div>
+                            <div class="cost-item">
+                                <span><i class="fas fa-user-clock text-gray-500 mr-2"></i>Motorista Base:</span>
+                                <span id="estimativa-motorista" class="font-medium">R$ 0,00</span>
+                            </div>
+                            <div class="cost-item">
+                                <span><i class="fas fa-wrench text-gray-500 mr-2"></i>Desgaste Veículo:</span>
+                                <span id="estimativa-desgaste" class="font-medium">R$ 0,00</span>
+                            </div>
+                            <div class="cost-item" id="pagamento-frete-item" style="display: none;">
+                                <span><i class="fas fa-truck text-blue-500 mr-2"></i>Pagamento Frete:</span>
+                                <span id="estimativa-pagamento-frete" class="font-medium text-blue-600">R$ 0,00</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-700 mb-3">Despesas Personalizadas</h3>
+                        <div id="despesas-estimativa">
+                            <div class="cost-item text-gray-500">
+                                <span><i class="fas fa-info-circle mr-2"></i>Nenhuma despesa adicionada</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="summary-card mt-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                        <div>
+                            <p class="text-sm text-gray-600">Receita Total</p>
+                            <p id="receita-total" class="text-xl font-bold text-blue-600">R$ 0,00</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Custo Total</p>
+                            <p id="custo-total" class="text-xl font-bold text-red-600">R$ 0,00</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Lucro Estimado</p>
+                            <p id="lucro-estimado" class="text-xl font-bold">R$ 0,00</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-center">
+                        <div id="margem-lucro" class="text-lg">
+                            <span class="text-gray-600">Margem: </span>
+                            <span id="percentual-lucro" class="font-bold">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Observações -->
+        <div class="card-section">
+            <h2 class="section-title">
+                <i class="fas fa-sticky-note text-orange-500"></i>
+                Observações
+            </h2>
+            <textarea class="form-textarea" id="observacoes" name="observacoes" rows="3" placeholder="Ex: Carga frágil, horário específico..."></textarea>
+        </div>
+
+        <div class="flex justify-end gap-4">
+            <button type="button" id="estimar-custo-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded font-semibold">
+                <i class="fas fa-calculator mr-2"></i>Calcular Estimativa
+            </button>
+            <button type="submit" id="submit-button" class="btn-submit px-6 py-3 rounded font-semibold">
+                <i class="fas fa-route mr-2"></i>Otimizar Rota e Criar Viagem
+            </button>
         </div>
     </form>
 </div>
@@ -117,196 +411,445 @@
 
 {% block scripts %}
 {{ super() }}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.js" async></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.js"></script>
 <script>
-    let orsApiKey = "{{ ORS_API_KEY }}";
-    let debounceTimer;
+    document.addEventListener('DOMContentLoaded', function() {
+        // Variáveis globais
+        let despesasPersonalizadas = [];
+        let pagamentoFrete = 0;
+        let orsApiKey = "{{ ORS_API_KEY }}";
+        let debounceTimer;
 
-    function vincularAutocompleteORS(inputElement) {
-        if (!inputElement) return;
-
-        if (typeof Awesomplete === 'undefined') {
-            setTimeout(() => vincularAutocompleteORS(inputElement), 200);
-            return;
-        }
-
-        const awesomplete = new Awesomplete(inputElement, {
-            minChars: 3,
-            autoFirst: true,
-            list: []
-        });
-
-        inputElement.addEventListener('input', function() {
-            clearTimeout(debounceTimer);
-            const term = this.value;
-            if (term.length < 3) {
-                awesomplete.list = [];
-                return;
+        // Função para calcular pagamento do motorista (frete)
+        window.calcularPagamentoMotorista = function() {
+            const peso = parseFloat(document.getElementById('peso_toneladas').value) || 0;
+            const valorPorTonelada = parseFloat(document.getElementById('valor_por_tonelada').value) || 0;
+            pagamentoFrete = peso * valorPorTonelada;
+            
+            const displayElement = document.getElementById('pagamento-motorista-display');
+            displayElement.textContent = `R$ ${pagamentoFrete.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            
+            // Atualizar estimativa se estiver visível
+            if (!document.getElementById('estimativa-container').classList.contains('hidden')) {
+                document.getElementById('estimativa-pagamento-frete').textContent = `R$ ${pagamentoFrete.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+                atualizarEstimativa();
             }
-            debounceTimer = setTimeout(() => {
-                const focusLon = -49.273056; const focusLat = -25.428356;
-                const url = `https://api.openrouteservice.org/geocode/autocomplete?api_key=${orsApiKey}&text=${encodeURIComponent(term)}&boundary.country=BRA&focus.point.lon=${focusLon}&focus.point.lat=${focusLat}`;
-                fetch(url).then(response => response.json()).then(data => {
-                    if (data.features) {
-                        awesomplete.list = data.features.map(feature => feature.properties.label);
-                    }
-                }).catch(error => console.error('Erro no autocomplete do ORS:', error));
-            }, 300);
-        });
-    }
-
-    function removerDestino(botao) {
-        const container = document.getElementById('destinos-container');
-        if (container.children.length > 1) {
-            botao.closest('.destino-item').remove();
-        } else {
-            Swal.fire('Atenção!', 'É necessário pelo menos um endereço de destino.', 'warning');
-        }
-    }
-
-    document.getElementById('adicionar-destino').addEventListener('click', function() {
-        const container = document.getElementById('destinos-container');
-        const newDestinoDiv = document.createElement('div');
-        newDestinoDiv.className = 'destino-item';
-        newDestinoDiv.innerHTML = `
-            <div class="address-group">
-                <input type="text" class="form-input street-input" name="rua_destino[]" placeholder="Digite a rua, bairro, cidade..." required>
-                <input type="text" class="form-input number-input" name="numero_destino[]" placeholder="Nº">
-            </div>
-            <input type="file" class="hidden" accept="image/*" onchange="handleOcr(this)">
-            <button type="button" class="btn-ocr p-2 rounded-md" title="Extrair endereço de imagem" onclick="this.previousElementSibling.click();">
-                <i class="fas fa-camera"></i>
-            </button>
-            <div class="ocr-loader"></div>
-            <button type="button" class="btn-delete p-2 rounded-md" onclick="removerDestino(this)"><i class="fas fa-trash"></i></button>`;
-        container.appendChild(newDestinoDiv);
-        vincularAutocompleteORS(newDestinoDiv.querySelector('.street-input'));
-    });
-
-    async function handleOcr(fileInput) {
-        const file = fileInput.files[0];
-        if (!file) return;
-        const itemDiv = fileInput.closest('.destino-item');
-        const streetInput = itemDiv.querySelector('.street-input');
-        const loader = itemDiv.querySelector('.ocr-loader');
-        const ocrButton = itemDiv.querySelector('.btn-ocr');
-        const formData = new FormData();
-        formData.append('image', file);
-        loader.style.display = 'block';
-        ocrButton.disabled = true;
-        try {
-            const response = await fetch('/api/ocr-process', { method: 'POST', body: formData });
-            const result = await response.json();
-            if (result.success) {
-                streetInput.value = result.text;
-                Swal.fire('Sucesso!', 'Endereço extraído. Preencha o número se necessário.', 'success');
-            } else {
-                Swal.fire('Erro no OCR', result.message || 'Não foi possível extrair texto.', 'error');
-            }
-        } catch (error) {
-            Swal.fire('Erro de Rede', 'Não foi possível se comunicar com o servidor.', 'error');
-        } finally {
-            loader.style.display = 'none';
-            ocrButton.disabled = false;
-            fileInput.value = '';
-        }
-    }
-    
-    document.getElementById('viagem-form').addEventListener('submit', async function(event) {
-        event.preventDefault();
-        const submitButton = document.getElementById('submit-button');
-        submitButton.disabled = true;
-        submitButton.innerHTML = '<span class="ocr-loader" style="display:inline-block; border-top-color: white;"></span> Otimizando...';
-
-        const saidaRua = document.getElementById('endereco_saida_rua').value;
-        const saidaNumero = document.getElementById('endereco_saida_numero').value;
-        const enderecoSaidaCompleto = saidaNumero ? `${saidaRua}, ${saidaNumero}` : saidaRua;
-
-        const destinosCompletos = [];
-        document.querySelectorAll('.destino-item').forEach(item => {
-            const rua = item.querySelector('input[name="rua_destino[]"]').value;
-            const numero = item.querySelector('input[name="numero_destino[]"]').value;
-            if (rua) {
-                destinosCompletos.push(numero ? `${rua}, ${numero}` : rua);
-            }
-        });
-
-        const formData = {
-            motorista_id: document.getElementById('motorista_id').value,
-            veiculo_id: document.getElementById('veiculo_id').value,
-            cliente: document.getElementById('cliente').value,
-            endereco_saida: enderecoSaidaCompleto,
-            enderecos_destino: destinosCompletos,
-            data_inicio: document.getElementById('data_inicio').value,
-            forma_pagamento: document.getElementById('forma_pagamento').value,
-            valor_recebido: document.getElementById('valor_recebido').value,
-            observacoes: document.getElementById('observacoes').value,
         };
 
-        try {
-            const response = await fetch('/api/viagem/criar', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
-            });
-            const result = await response.json();
-            if (result.success) {
-                const roteiroHtml = `
-                    <ol class="list-decimal list-inside text-left space-y-2 mt-4">
-                        ${result.roteiro.map((ponto, index) => 
-                            `<li><i class="fas ${index === 0 ? 'fa-flag-checkered text-green-600' : 'fa-map-marker-alt text-blue-600'} mr-2"></i>${ponto}</li>`
-                        ).join('')}
-                    </ol>
-                    <div class="mt-4 text-center font-semibold">
-                        <p>Distância Total: ${result.distancia} km</p>
-                        <p>Duração Estimada: ${result.duracao_minutos} minutos</p>
-                    </div>`;
-                Swal.fire({
-                    title: 'Viagem Criada com Sucesso!',
-                    icon: 'success',
-                    html: roteiroHtml,
-                    confirmButtonText: 'Ótimo!',
-                    footer: '<a href="/consultar_viagens">Ir para a tela de consulta</a>'
-                }).then(() => {
-                    document.getElementById('viagem-form').reset();
-                    document.querySelectorAll('.destino-item').forEach((item, index) => {
-                        if (index > 0) item.remove();
-                    });
-                });
+        // Função para toggle da seção de frete
+        window.toggleFreteSection = function() {
+            const checkbox = document.querySelector('input[type="checkbox"][x-model="temFrete"]');
+            const freteItem = document.getElementById('pagamento-frete-item');
+            
+            if (checkbox.checked) {
+                freteItem.style.display = 'flex';
             } else {
-                Swal.fire('Erro ao Criar Viagem', result.message || 'Ocorreu um erro.', 'error');
+                freteItem.style.display = 'none';
+                pagamentoFrete = 0;
+                document.getElementById('estimativa-pagamento-frete').textContent = 'R$ 0,00';
+                document.getElementById('peso_toneladas').value = '';
+                document.getElementById('valor_por_tonelada').value = '';
+                document.getElementById('material').value = '';
+                atualizarEstimativa();
             }
-        } catch (error) {
-            Swal.fire('Erro de Conexão', 'Não foi possível criar a viagem.', 'error');
-        } finally {
-            submitButton.disabled = false;
-            submitButton.innerHTML = 'Otimizar Rota e Criar Viagem';
-        }
-    });
+        };
+        
+        // Função para adicionar despesa personalizada
+        window.adicionarDespesaPersonalizada = function() {
+            const container = document.getElementById('despesas-container');
+            
+            const despesaDiv = document.createElement('div');
+            despesaDiv.className = 'despesa-item';
+            despesaDiv.innerHTML = `
+                <div>
+                    <input type="text" class="form-input" name="despesa_descricao[]" placeholder="Descrição da despesa..." required>
+                </div>
+                <div>
+                    <input type="number" step="0.01" class="form-input" name="despesa_valor[]" placeholder="0,00" required onchange="atualizarEstimativa()">
+                </div>
+                <div>
+                    <button type="button" class="btn-delete p-2 rounded-md" onclick="removerDespesa(this)">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            
+            container.appendChild(despesaDiv);
+            despesasPersonalizadas.push({descricao: '', valor: 0});
+        };
 
-    function initAwesompleteClientes() {
-        const clienteInput = document.getElementById('cliente');
-        if (typeof Awesomplete === 'undefined') {
-            setTimeout(initAwesompleteClientes, 200);
-            return;
+        // Função para adicionar despesas rápidas
+        window.adicionarDespesaRapida = function(nome, tipo) {
+            const container = document.getElementById('despesas-container');
+            
+            const despesaDiv = document.createElement('div');
+            despesaDiv.className = 'despesa-item';
+            despesaDiv.innerHTML = `
+                <div>
+                    <input type="text" class="form-input" name="despesa_descricao[]" value="${nome}" required>
+                </div>
+                <div>
+                    <input type="number" step="0.01" class="form-input" name="despesa_valor[]" placeholder="0,00" required onchange="atualizarEstimativa()">
+                </div>
+                <div>
+                    <button type="button" class="btn-delete p-2 rounded-md" onclick="removerDespesa(this)">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            
+            container.appendChild(despesaDiv);
+            despesasPersonalizadas.push({descricao: nome, valor: 0, tipo: tipo});
+            
+            // Foco no campo valor
+            setTimeout(() => {
+                despesaDiv.querySelector('input[name="despesa_valor[]"]').focus();
+            }, 100);
+        };
+
+        // Função para remover despesa
+        window.removerDespesa = function(botao) {
+            const despesaItem = botao.closest('.despesa-item');
+            const index = Array.from(despesaItem.parentNode.children).indexOf(despesaItem);
+            despesasPersonalizadas.splice(index, 1);
+            despesaItem.remove();
+            atualizarEstimativa();
+        };
+
+        // Função para atualizar estimativa com despesas personalizadas
+        window.atualizarEstimativa = function() {
+            const receita = parseFloat(document.getElementById('valor_recebido').value) || 0;
+            let despesasTotal = 0;
+            
+            // Somar despesas personalizadas
+            document.querySelectorAll('input[name="despesa_valor[]"]').forEach(input => {
+                despesasTotal += parseFloat(input.value) || 0;
+            });
+            
+            // Custos automáticos (valores dos elementos da estimativa original)
+            const combustivel = parseFloat(document.getElementById('estimativa-combustivel').textContent.replace('R$ ', '').replace(',', '.')) || 0;
+            const motorista = parseFloat(document.getElementById('estimativa-motorista').textContent.replace('R$ ', '').replace(',', '.')) || 0;
+            const desgaste = parseFloat(document.getElementById('estimativa-desgaste').textContent.replace('R$ ', '').replace(',', '.')) || 0;
+            
+            const custosAutomaticos = combustivel + motorista + desgaste + pagamentoFrete;
+            const custoTotal = custosAutomaticos + despesasTotal;
+            const lucro = receita - custoTotal;
+            const margemLucro = receita > 0 ? ((lucro / receita) * 100) : 0;
+            
+            // Atualizar interface
+            document.getElementById('receita-total').textContent = `R$ ${receita.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            document.getElementById('custo-total').textContent = `R$ ${custoTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            
+            const lucroElement = document.getElementById('lucro-estimado');
+            lucroElement.textContent = `R$ ${lucro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            lucroElement.className = `text-xl font-bold ${lucro >= 0 ? 'profit-positive' : 'profit-negative'}`;
+            
+            const percentualElement = document.getElementById('percentual-lucro');
+            percentualElement.textContent = `${margemLucro.toFixed(1)}%`;
+            percentualElement.className = `font-bold ${lucro >= 0 ? 'profit-positive' : 'profit-negative'}`;
+            
+            // Atualizar seção de despesas personalizadas
+            const despesasEstimativa = document.getElementById('despesas-estimativa');
+            if (despesasTotal > 0) {
+                let despesasHtml = '';
+                document.querySelectorAll('.despesa-item').forEach(item => {
+                    const descricao = item.querySelector('input[name="despesa_descricao[]"]').value;
+                    const valor = parseFloat(item.querySelector('input[name="despesa_valor[]"]').value) || 0;
+                    if (descricao && valor > 0) {
+                        despesasHtml += `
+                            <div class="cost-item">
+                                <span><i class="fas fa-receipt text-gray-500 mr-2"></i>${descricao}:</span>
+                                <span class="font-medium">R$ ${valor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                            </div>
+                        `;
+                    }
+                });
+                
+                if (despesasHtml) {
+                    despesasHtml += `
+                        <div class="cost-item font-semibold border-t-2 pt-2">
+                            <span>Total Personalizado:</span>
+                            <span class="text-orange-600">R$ ${despesasTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                        </div>
+                    `;
+                }
+                despesasEstimativa.innerHTML = despesasHtml || '<div class="cost-item text-gray-500"><span><i class="fas fa-info-circle mr-2"></i>Nenhuma despesa válida</span></div>';
+            } else {
+                despesasEstimativa.innerHTML = '<div class="cost-item text-gray-500"><span><i class="fas fa-info-circle mr-2"></i>Nenhuma despesa adicionada</span></div>';
+            }
+        };
+
+        // Função de autocomplete ORS
+        function vincularAutocompleteORS(inputElement) {
+            if (!inputElement || typeof Awesomplete === 'undefined') return;
+            
+            const awesomplete = new Awesomplete(inputElement, {
+                minChars: 3,
+                autoFirst: true,
+                list: []
+            });
+
+            inputElement.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                const term = this.value;
+
+                if (term.length < 3) {
+                    awesomplete.list = [];
+                    return;
+                }
+
+                debounceTimer = setTimeout(() => {
+                    const focusLon = -49.273056; 
+                    const focusLat = -25.428356; 
+                    const url = `https://api.openrouteservice.org/geocode/autocomplete?api_key=${orsApiKey}&text=${encodeURIComponent(term)}&boundary.country=BRA&focus.point.lon=${focusLon}&focus.point.lat=${focusLat}`;
+                    
+                    fetch(url)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.features) {
+                                awesomplete.list = data.features.map(feature => feature.properties.label);
+                            }
+                        })
+                        .catch(error => console.error('Erro no autocomplete do ORS:', error));
+                }, 300);
+            });
         }
-        const awesomplete = new Awesomplete(clienteInput, { minChars: 2, autoFirst: true });
-        clienteInput.addEventListener('input', function() {
-            const term = this.value;
-            if (term.length < 2) return;
-            fetch(`/api/clientes/search?term=${term}`)
-                .then(response => response.json()).then(data => { awesomplete.list = data; })
-                .catch(error => console.error('Erro ao buscar clientes:', error));
+
+        // Função para remover destino
+        window.removerDestino = function(botao) {
+            const container = document.getElementById('destinos-container');
+            if (container.children.length > 1) {
+                botao.closest('.destino-item').remove();
+            } else {
+                Swal.fire('Atenção!', 'É necessário pelo menos um endereço de destino.', 'warning');
+            }
+        }
+
+        // Função para lidar com OCR
+        window.handleOcr = async function(fileInput) {
+            const file = fileInput.files[0]; 
+            if (!file) return;
+            
+            const itemDiv = fileInput.closest('.destino-item');
+            const streetInput = itemDiv.querySelector('.street-input');
+            const loader = itemDiv.querySelector('.ocr-loader');
+            const ocrButton = itemDiv.querySelector('.btn-ocr');
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            loader.style.display = 'block'; 
+            ocrButton.disabled = true;
+            
+            try {
+                const response = await fetch('/api/ocr-process', { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.success) {
+                    streetInput.value = result.text;
+                    Swal.fire('Sucesso!', 'Endereço extraído. Preencha o número se necessário.', 'success');
+                } else {
+                    Swal.fire('Erro no OCR', result.message || 'Não foi possível extrair texto.', 'error');
+                }
+            } catch (error) {
+                Swal.fire('Erro de Rede', 'Não foi possível se comunicar com o servidor.', 'error');
+            } finally {
+                loader.style.display = 'none'; 
+                ocrButton.disabled = false; 
+                fileInput.value = '';
+            }
+        }
+
+        // Função para inicializar autocomplete de clientes
+        function initAwesompleteClientes() {
+            const clienteInput = document.getElementById('cliente');
+            if (typeof Awesomplete === 'undefined') { 
+                setTimeout(initAwesompleteClientes, 200); 
+                return; 
+            }
+            const awesomplete = new Awesomplete(clienteInput, { minChars: 2, autoFirst: true });
+            clienteInput.addEventListener('input', function() {
+                const term = this.value; 
+                if (term.length < 2) return;
+                fetch(`/api/clientes/search?term=${term}`)
+                    .then(r => r.json())
+                    .then(d => { awesomplete.list = d; });
+            });
+        }
+
+        // Event listeners
+        document.getElementById('adicionar-despesa').addEventListener('click', adicionarDespesaPersonalizada);
+        document.getElementById('valor_recebido').addEventListener('input', atualizarEstimativa);
+
+        document.getElementById('adicionar-destino').addEventListener('click', function() {
+            const container = document.getElementById('destinos-container');
+            const newDestinoDiv = document.createElement('div');
+            newDestinoDiv.className = 'destino-item';
+            newDestinoDiv.innerHTML = `
+                <div class="address-group">
+                    <input type="text" class="form-input street-input" name="rua_destino[]" placeholder="Digite a rua, bairro, cidade..." required>
+                    <input type="text" class="form-input number-input" name="numero_destino[]" placeholder="Nº">
+                </div>
+                <input type="file" class="hidden" accept="image/*" onchange="handleOcr(this)">
+                <button type="button" class="btn-ocr p-2 rounded-md" title="Extrair endereço" onclick="this.previousElementSibling.click();"><i class="fas fa-camera"></i></button>
+                <div class="ocr-loader"></div>
+                <button type="button" class="btn-delete p-2 rounded-md" onclick="removerDestino(this)"><i class="fas fa-trash"></i></button>`;
+            container.appendChild(newDestinoDiv);
+            vincularAutocompleteORS(newDestinoDiv.querySelector('.street-input'));
         });
-    }
 
-    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('estimar-custo-btn').addEventListener('click', async function() {
+            const estimativaContainer = document.getElementById('estimativa-container');
+            estimativaContainer.classList.remove('hidden');
+            
+            // Simulação de cálculo de custos automáticos
+            const distancia = 150; // km simulado
+            const combustivelCusto = distancia * 0.80; // R$ por km
+            const motoristaCusto = distancia * 0.50;
+            const desgasteCusto = distancia * 0.30;
+            
+            document.getElementById('estimativa-combustivel').textContent = `R$ ${combustivelCusto.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            document.getElementById('estimativa-motorista').textContent = `R$ ${motoristaCusto.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            document.getElementById('estimativa-desgaste').textContent = `R$ ${desgasteCusto.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            
+            // Atualizar pagamento do frete se estiver ativo
+            if (pagamentoFrete > 0) {
+                document.getElementById('pagamento-frete-item').style.display = 'flex';
+                document.getElementById('estimativa-pagamento-frete').textContent = `R$ ${pagamentoFrete.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            }
+            
+            atualizarEstimativa();
+        });
+
+        // Submit do formulário
+        document.getElementById('viagem-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const submitButton = document.getElementById('submit-button');
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="ocr-loader" style="display:inline-block; border-top-color: white;"></span> Otimizando...';
+            
+            const saidaRua = document.getElementById('endereco_saida_rua').value;
+            const saidaNumero = document.getElementById('endereco_saida_numero').value;
+            const enderecoSaidaCompleto = saidaNumero ? `${saidaRua}, ${saidaNumero}` : saidaRua;
+            const destinosCompletos = Array.from(document.querySelectorAll('.destino-item')).map(item => {
+                const rua = item.querySelector('input[name="rua_destino[]"]').value;
+                const numero = item.querySelector('input[name="numero_destino[]"]').value;
+                return numero ? `${rua}, ${numero}` : rua;
+            }).filter(Boolean);
+
+            // Coletar despesas personalizadas
+            const despesas = [];
+            document.querySelectorAll('.despesa-item').forEach(item => {
+                const descricao = item.querySelector('input[name="despesa_descricao[]"]').value;
+                const valor = parseFloat(item.querySelector('input[name="despesa_valor[]"]').value) || 0;
+                if (descricao && valor > 0) {
+                    despesas.push({descricao, valor});
+                }
+            });
+
+            // Coletar dados do frete se aplicável
+            const dadosFrete = {};
+            const temFreteCheckbox = document.querySelector('input[type="checkbox"][x-model="temFrete"]');
+            if (temFreteCheckbox && temFreteCheckbox.checked) {
+                dadosFrete.material = document.getElementById('material').value;
+                dadosFrete.peso_toneladas = parseFloat(document.getElementById('peso_toneladas').value) || 0;
+                dadosFrete.valor_por_tonelada = parseFloat(document.getElementById('valor_por_tonelada').value) || 0;
+                dadosFrete.pagamento_motorista_frete = pagamentoFrete;
+            }
+
+            const formData = {
+                motorista_id: document.getElementById('motorista_id').value,
+                veiculo_id: document.getElementById('veiculo_id').value,
+                cliente: document.getElementById('cliente').value,
+                endereco_saida: enderecoSaidaCompleto,
+                enderecos_destino: destinosCompletos,
+                data_inicio: document.getElementById('data_inicio').value,
+                forma_pagamento: document.getElementById('forma_pagamento').value,
+                valor_recebido: document.getElementById('valor_recebido').value,
+                observacoes: document.getElementById('observacoes').value,
+                despesas_personalizadas: despesas,
+                dados_frete: dadosFrete
+            };
+
+            try {
+                const response = await fetch('/api/viagem/criar', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify(formData) 
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    const lucroPositivo = parseFloat(result.lucro_estimado) >= 0;
+                    const despesasHtml = despesas.length > 0 ? 
+                        `<div class="mt-2 pt-2 border-t">
+                            <h5 class="font-semibold">Despesas Personalizadas:</h5>
+                            <ul class="text-sm">${despesas.map(d => `<li>• ${d.descricao}: R$ ${d.valor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</li>`).join('')}</ul>
+                        </div>` : '';
+                    
+                    const freteHtml = pagamentoFrete > 0 ? 
+                        `<div class="mt-2 pt-2 border-t">
+                            <h5 class="font-semibold">Informações do Frete:</h5>
+                            <ul class="text-sm">
+                                <li>• Material: ${dadosFrete.material || 'Não informado'}</li>
+                                <li>• Peso: ${dadosFrete.peso_toneladas} toneladas</li>
+                                <li>• Valor/Ton: R$ ${dadosFrete.valor_por_tonelada.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</li>
+                                <li>• <strong>Pagamento Motorista: R$ ${pagamentoFrete.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong></li>
+                            </ul>
+                        </div>` : '';
+                    
+                    const roteiroHtml = `
+                        <div class="mt-4 text-center space-y-2">
+                            <div class="font-semibold">
+                                <p>Distância Total: ${result.distancia} km</p>
+                                <p>Duração Estimada: ${result.duracao_minutos} minutos</p>
+                            </div>
+                            <div class="border-t pt-3 mt-3">
+                                <p class="text-red-600">Custo de Viagem Estimado: <span class="font-bold">R$ ${result.custo_estimado.replace('.', ',')}</span></p>
+                                <p class="${lucroPositivo ? 'text-green-600' : 'text-red-600'}">Lucro de Viagem Estimado: <span class="font-bold">R$ ${result.lucro_estimado.replace('.', ',')}</span></p>
+                                ${despesasHtml}
+                                ${freteHtml}
+                            </div>
+                            <h4 class="font-bold text-left pt-3">Roteiro Otimizado:</h4>
+                            <ol class="list-decimal list-inside text-left space-y-2">${result.roteiro.map((p, i) => `<li><i class="fas ${i === 0 ? 'fa-flag-checkered text-green-600' : 'fa-map-marker-alt text-blue-600'} mr-2"></i>${p}</li>`).join('')}</ol>
+                        </div>`;
+                        
+                    Swal.fire({ 
+                        title: 'Viagem Criada!', 
+                        icon: 'success', 
+                        html: roteiroHtml, 
+                        confirmButtonText: 'Ótimo!', 
+                        footer: '<a href="/consultar_viagens">Ir para a tela de consulta</a>',
+                        width: '600px'
+                    })
+                    .then(() => {
+                        // Reset do formulário
+                        document.getElementById('viagem-form').reset();
+                        document.querySelectorAll('.destino-item').forEach((item, index) => { 
+                            if (index > 0) item.remove(); 
+                        });
+                        document.getElementById('despesas-container').innerHTML = '';
+                        despesasPersonalizadas = [];
+                        pagamentoFrete = 0;
+                        document.getElementById('estimativa-container').classList.add('hidden');
+                        document.getElementById('pagamento-frete-item').style.display = 'none';
+                        document.querySelector('input[type="checkbox"][x-model="temFrete"]').checked = false;
+                    });
+                } else {
+                    Swal.fire('Erro ao Criar Viagem', result.message || 'Ocorreu um erro.', 'error');
+                }
+            } catch (error) {
+                Swal.fire('Erro de Conexão', 'Não foi possível criar a viagem.', 'error');
+            } finally {
+                submitButton.disabled = false; 
+                submitButton.innerHTML = '<i class="fas fa-route mr-2"></i>Otimizar Rota e Criar Viagem';
+            }
+        });
+
+        // Inicialização
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
         document.getElementById('data_inicio').value = now.toISOString().slice(0,16);
         
         initAwesompleteClientes();
-        
         vincularAutocompleteORS(document.getElementById('endereco_saida_rua'));
         document.querySelectorAll('input[name="rua_destino[]"]').forEach(vincularAutocompleteORS);
     });

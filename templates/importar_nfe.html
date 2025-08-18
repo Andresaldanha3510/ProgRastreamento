@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Importar Viagens por NF-e{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+    .form-container { background-color: #f8f9fa; padding: 2rem; border-radius: 0.5rem; }
+    .viagem-card { background-color: white; border: 1px solid #dee2e6; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .btn-process { background-color: #0d6efd; color: white; }
+    .btn-create { background-color: #198754; color: white; }
+    .loader { border: 4px solid #f3f3f3; border-radius: 50%; border-top: 4px solid #0d6efd; width: 24px; height: 24px; animation: spin 1s linear infinite; display: none; margin-left: 10px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800 text-center">Importar Viagens por NF-e</h1>
+
+    <div class="max-w-xl mx-auto mb-8">
+        <label for="nfe_files" class="block text-gray-700 font-medium mb-2">Selecione os arquivos NF-e (.xml)</label>
+        <input type="file" id="nfe_files" multiple accept=".xml" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
+        <div class="flex items-center mt-4">
+            <button id="processar-btn" class="btn-process px-4 py-2 rounded font-semibold">Processar Arquivos</button>
+            <div id="loader" class="loader"></div>
+        </div>
+    </div>
+
+    <hr class="my-8">
+
+    <div id="resultados-container">
+        </div>
+</div>
+
+<template id="viagem-card-template">
+    <div class="viagem-card">
+        <h3 class="text-xl font-bold text-gray-700 mb-2">Cliente: <span data-field="cliente"></span></h3>
+        <p class="text-sm text-gray-500 mb-4">Arquivo: <span data-field="nome_arquivo"></span></p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Endereço de Saída</label>
+                <input type="text" data-field="endereco_saida" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm p-2 bg-gray-100" readonly>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Endereço de Destino</label>
+                <input type="text" data-field="endereco_destino" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm p-2 bg-gray-100" readonly>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Motorista</label>
+                <select data-field="motorista_id" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm p-2">
+                    <option value="">Selecione...</option>
+                    {% for motorista in motoristas %}
+                        <option value="{{ motorista.id }}">{{ motorista.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Veículo</label>
+                <select data-field="veiculo_id" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm p-2">
+                    <option value="">Selecione...</option>
+                    {% for veiculo in veiculos %}
+                        <option value="{{ veiculo.id }}">{{ veiculo.placa }} - {{ veiculo.modelo }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+             <div>
+                <label class="block text-sm font-medium text-gray-700">Data e Hora da Viagem</label>
+                <input type="datetime-local" data-field="data_inicio" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm p-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Valor a Cobrar (Opcional)</label>
+                <input type="number" step="0.01" data-field="valor_recebido" placeholder="Ex: 450.00" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm p-2">
+            </div>
+        </div>
+        <div class="mt-6 flex justify-end">
+            <button class="btn-create px-5 py-2 rounded font-semibold">Otimizar e Criar Viagem</button>
+        </div>
+    </div>
+</template>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.getElementById('processar-btn').addEventListener('click', async () => {
+    const fileInput = document.getElementById('nfe_files');
+    const loader = document.getElementById('loader');
+    const container = document.getElementById('resultados-container');
+
+    if (fileInput.files.length === 0) {
+        Swal.fire('Atenção', 'Por favor, selecione pelo menos um arquivo XML.', 'warning');
+        return;
+    }
+
+    const formData = new FormData();
+    for (const file of fileInput.files) {
+        formData.append('nfe_files', file);
+    }
+
+    loader.style.display = 'block';
+    container.innerHTML = '';
+
+    try {
+        const response = await fetch('/api/viagem/processar_nfe', {
+            method: 'POST',
+            body: formData
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            Swal.fire('Sucesso!', `${result.viagens.length} NF-e(s) processada(s). Por favor, revise e complete os dados abaixo.`, 'success');
+            result.viagens.forEach(renderViagemCard);
+        } else {
+            Swal.fire('Erro', result.message || 'Não foi possível processar os arquivos.', 'error');
+        }
+
+    } catch (error) {
+        Swal.fire('Erro de Rede', 'Não foi possível se comunicar com o servidor.', 'error');
+    } finally {
+        loader.style.display = 'none';
+    }
+});
+
+function renderViagemCard(viagemData) {
+    const template = document.getElementById('viagem-card-template');
+    const card = template.content.cloneNode(true).firstElementChild;
+    const container = document.getElementById('resultados-container');
+
+    card.querySelector('[data-field="cliente"]').textContent = viagemData.cliente;
+    card.querySelector('[data-field="nome_arquivo"]').textContent = viagemData.nome_arquivo;
+    card.querySelector('[data-field="endereco_saida"]').value = viagemData.endereco_saida;
+    card.querySelector('[data-field="endereco_destino"]').value = viagemData.endereco_destino;
+    
+    // Preenche a data atual como padrão
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    card.querySelector('[data-field="data_inicio"]').value = now.toISOString().slice(0,16);
+
+    card.querySelector('.btn-create').addEventListener('click', (e) => criarViagem(e.target, viagemData));
+    
+    container.appendChild(card);
+}
+
+async function criarViagem(button, viagemOriginalData) {
+    const card = button.closest('.viagem-card');
+    
+    const dadosParaApi = {
+        motorista_id: card.querySelector('[data-field="motorista_id"]').value,
+        veiculo_id: card.querySelector('[data-field="veiculo_id"]').value,
+        cliente: viagemOriginalData.cliente,
+        endereco_saida: card.querySelector('[data-field="endereco_saida"]').value,
+        enderecos_destino: [card.querySelector('[data-field="endereco_destino"]').value], // A API espera um array de destinos
+        data_inicio: card.querySelector('[data-field="data_inicio"]').value,
+        valor_recebido: card.querySelector('[data-field="valor_recebido"]').value || '0',
+        forma_pagamento: 'pix', // ou pode adicionar um seletor
+        observacoes: `Viagem importada da NF-e: ${viagemOriginalData.nome_arquivo}`
+    };
+
+    if (!dadosParaApi.motorista_id || !dadosParaApi.veiculo_id || !dadosParaApi.data_inicio) {
+        Swal.fire('Atenção', 'Motorista, veículo e data da viagem são obrigatórios.', 'warning');
+        return;
+    }
+    
+    button.disabled = true;
+    button.innerHTML = '<div class="loader" style="display:inline-block; border-top-color: white;"></div> Criando...';
+
+    try {
+        // REAPROVEITANDO A API EXISTENTE!
+        const response = await fetch('/api/viagem/criar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dadosParaApi),
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            Swal.fire('Viagem Criada!', `A viagem para ${dadosParaApi.cliente} foi criada e otimizada com sucesso.`, 'success');
+            card.remove(); // Remove o card da tela após o sucesso
+        } else {
+            Swal.fire('Erro ao Criar Viagem', result.message || 'Ocorreu um erro.', 'error');
+            button.disabled = false;
+            button.innerHTML = 'Otimizar e Criar Viagem';
+        }
+
+    } catch(error) {
+        Swal.fire('Erro de Conexão', 'Não foi possível criar a viagem.', 'error');
+        button.disabled = false;
+        button.innerHTML = 'Otimizar e Criar Viagem';
+    }
+}
+</script>
+{% endblock %}

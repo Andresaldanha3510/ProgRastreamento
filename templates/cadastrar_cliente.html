@@ -9,15 +9,15 @@
         padding: 2rem;
         border-radius: 0.5rem;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        margin: 0; /* Alinha o container ao lado do menu */
+        margin: 0;
     }
     .form-section-title {
-        font-size: 1.25rem; /* text-xl */
-        font-weight: 600; /* font-semibold */
-        margin-top: 1.5rem;  /* my-6 (top) */
-        margin-bottom: 1rem; /* mb-4 */
-        padding-bottom: 0.5rem; /* pb-2 */
-        border-bottom: 1px solid #e5e7eb; /* border-b */
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e5e7eb;
     }
     .form-section-title:first-of-type {
         margin-top: 0;
@@ -35,7 +35,7 @@
         box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
     }
     .form-input[readonly] {
-        background-color: #f3f4f6; /* bg-gray-100 */
+        background-color: #f3f4f6;
         cursor: not-allowed;
     }
     .btn-submit {
@@ -94,11 +94,11 @@
             </div>
             <div class="md:col-span-3">
                 <label for="logradouro" class="block text-gray-700 font-medium mb-2">Endereço (Logradouro)</label>
-                <input type="text" id="logradouro" name="logradouro" required class="form-input" readonly>
+                <input type="text" id="logradouro" name="logradouro" class="form-input" readonly>
             </div>
             <div class="md:col-span-1">
                 <label for="numero" class="block text-gray-700 font-medium mb-2">Número</label>
-                <input type="text" id="numero" name="numero" required class="form-input">
+                <input type="text" id="numero" name="numero" class="form-input">
             </div>
             <div class="md:col-span-3">
                 <label for="complemento" class="block text-gray-700 font-medium mb-2">Complemento</label>
@@ -106,15 +106,15 @@
             </div>
             <div class="md:col-span-2">
                 <label for="bairro" class="block text-gray-700 font-medium mb-2">Bairro</label>
-                <input type="text" id="bairro" name="bairro" required class="form-input" readonly>
+                <input type="text" id="bairro" name="bairro" class="form-input" readonly>
             </div>
             <div class="md:col-span-1">
                 <label for="cidade" class="block text-gray-700 font-medium mb-2">Cidade</label>
-                <input type="text" id="cidade" name="cidade" required class="form-input" readonly>
+                <input type="text" id="cidade" name="cidade" class="form-input" readonly>
             </div>
             <div class="md:col-span-1">
                 <label for="estado" class="block text-gray-700 font-medium mb-2">Estado (UF)</label>
-                <input type="text" id="estado" name="estado" required class="form-input" readonly>
+                <input type="text" id="estado" name="estado" class="form-input" readonly>
             </div>
         </div>
         
@@ -122,11 +122,11 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
             <div>
                 <label for="email" class="block text-gray-700 font-medium mb-2">E-mail</label>
-                <input type="email" id="email" name="email" required class="form-input" placeholder="principal@email.com">
+                <input type="email" id="email" name="email" class="form-input" placeholder="principal@email.com">
             </div>
             <div>
                 <label for="telefone" class="block text-gray-700 font-medium mb-2">Telefone/WhatsApp</label>
-                <input type="text" id="telefone" name="telefone" required class="form-input" placeholder="DDD + Número">
+                <input type="text" id="telefone" name="telefone" class="form-input" placeholder="DDD + Número" maxlength="11">
             </div>
             <div class="md:col-span-2">
                 <label for="contato_principal" class="block text-gray-700 font-medium mb-2">Contato Principal na Empresa</label>
@@ -135,7 +135,6 @@
             <div class="md:col-span-2">
                 <label for="anexos" class="block text-gray-700 font-medium mb-2">Anexo de Arquivos</label>
                 <input type="file" id="anexos" name="anexos" multiple accept=".pdf,.jpg,.jpeg,.png" class="form-input">
-                <p class="text-sm text-gray-500 mt-1">Contrato Social, Comprovante de Endereço, etc.</p>
             </div>
         </div>
 
@@ -151,7 +150,6 @@
 {{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // --- LÓGICA PARA TIPO DE PESSOA (FÍSICA/JURÍDICA) ---
     const pessoaTipo = document.getElementById('pessoa_tipo');
     const cpfCnpjLabel = document.getElementById('cpf_cnpj_label');
     const cpfCnpjInput = document.getElementById('cpf_cnpj');
@@ -176,9 +174,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     pessoaTipo.addEventListener('change', togglePessoaFields);
-    togglePessoaFields(); // Executa ao carregar a página
+    togglePessoaFields();
 
-    // --- LÓGICA PARA CONSULTA DE CEP (ViaCEP) ---
     const cepInput = document.getElementById('cep');
     const logradouroInput = document.getElementById('logradouro');
     const bairroInput = document.getElementById('bairro');
@@ -228,7 +225,6 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     cepInput.addEventListener('blur', consultarCEP);
 
-    // --- MÁSCARAS DE INPUT (APENAS NÚMEROS) ---
     ['telefone', 'cpf_cnpj', 'cep'].forEach(id => {
         const element = document.getElementById(id);
         if(element) {

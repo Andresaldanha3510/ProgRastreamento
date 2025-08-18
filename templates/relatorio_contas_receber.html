@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Contas a Receber - TrackGo{% endblock %}
+
+{% block content %}
+<div class="p-4 md:p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Relatório de Contas a Receber</h1>
+        <div class="text-right">
+            <p class="text-gray-600">Total a Receber</p>
+            <h3 class="text-2xl font-bold text-green-700">R$ {{ "%.2f"|format(total_a_receber)|replace('.', ',') }}</h3>
+        </div>
+    </div>
+    
+    {% set categorias = [
+        ('vencidas', 'Vencidas', 'bg-red-100 text-red-800'),
+        ('vence_hoje', 'Vencendo Hoje', 'bg-yellow-100 text-yellow-800'),
+        ('vence_7_dias', 'Vencendo nos Próximos 7 Dias', 'bg-blue-100 text-blue-800'),
+        ('vence_30_dias', 'Vencendo nos Próximos 30 Dias', 'bg-indigo-100 text-indigo-800'),
+        ('futuras', 'Vencimentos Futuros (> 30 dias)', 'bg-gray-100 text-gray-800')
+    ] %}
+
+    {% for key, titulo, cores in categorias %}
+        {% if relatorio[key] %}
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-3 {{ cores.split(' ')[1] }}">{{ titulo }}</h2>
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="{{ cores.split(' ')[0] }}">
+                            <tr>
+                                <th class="p-3 font-medium">Cliente</th>
+                                <th class="p-3 font-medium text-center">Nº Cobrança</th>
+                                <th class="p-3 font-medium text-center">Data Emissão</th>
+                                <th class="p-3 font-medium text-center">Data Vencimento</th>
+                                <th class="p-3 font-medium text-right">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for c in relatorio[key] %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-3 font-medium text-gray-800">{{ c.cliente.nome_razao_social }}</td>
+                                <td class="p-3 text-gray-600 text-center">#{{ c.id }}</td>
+                                <td class="p-3 text-gray-600 text-center">{{ c.data_emissao.strftime('%d/%m/%Y') }}</td>
+                                <td class="p-3 font-semibold text-gray-700 text-center">{{ c.data_vencimento.strftime('%d/%m/%Y') }}</td>
+                                <td class="p-3 font-bold text-gray-800 text-right">R$ {{ "%.2f"|format(c.valor_total)|replace('.', ',') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    {% endfor %}
+</div>
+{% endblock %}

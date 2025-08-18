@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Previsão de Custos de Manutenção{% endblock %}
+
+{% block content %}
+<div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">Previsão de Custos e Orçamento</h1>
+        <a href="{{ url_for('oficina') }}" class="text-indigo-600 hover:text-indigo-800 font-medium">
+            &larr; Voltar para a Oficina
+        </a>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Orçamento de Manutenção Previsto (Próximos Meses)</h2>
+        <canvas id="orcamentoChart"></canvas>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md">
+        <h2 class="text-xl font-semibold text-gray-700 p-4 border-b">Próximas Manutenções Programadas</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-white">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="py-4 px-6 text-left">Veículo</th>
+                        <th class="py-4 px-6 text-left">Plano de Manutenção</th>
+                        <th class="py-4 px-6 text-right">Custo Estimado</th>
+                        <th class="py-4 px-6 text-right">KM Restantes</th>
+                        <th class="py-4 px-6 text-center">Data Prevista</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for p in previsoes %}
+                    {% set dias_restantes = (p.data_prevista - today).days %}
+                    <tr class="{% if dias_restantes <= 30 %}bg-red-50{% elif dias_restantes <= 60 %}bg-yellow-50{% endif %}">
+                        <td class="py-4 px-6 font-medium">{{ p.veiculo_modelo }} ({{ p.veiculo_placa }})</td>
+                        <td class="py-4 px-6">{{ p.plano_descricao }}</td>
+                        <td class="py-4 px-6 text-right font-mono">R$ {{ "%.2f"|format(p.custo_estimado)|replace('.', ',') }}</td>
+                        <td class="py-4 px-6 text-right">{{ "%.0f"|format(p.km_restantes) }} km</td>
+                        <td class="py-4 px-6 text-center font-semibold">
+                            {{ p.data_prevista.strftime('%d/%m/%Y') }}
+                            <span class="text-xs text-gray-500">({{ dias_restantes }} dias)</span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="py-8 text-center text-gray-500">Nenhuma manutenção com custo previsto para os próximos períodos.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const orcamentoData = {{ orcamento|tojson }};
+        const ctx = document.getElementById('orcamentoChart').getContext('2d');
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: orcamentoData.labels.map(label => {
+                    const [year, month] = label.split('-');
+                    return new Date(year, month - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+                }),
+                datasets: [{
+                    label: 'Custo Total Previsto (R$)',
+                    data: orcamentoData.data,
+                    backgroundColor: 'rgba(79, 70, 229, 0.8)',
+                    borderColor: 'rgba(79, 70, 229, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value, index, values) {
+                                return 'R$ ' + value.toLocaleString('pt-BR');
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += 'R$ ' + context.parsed.y.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

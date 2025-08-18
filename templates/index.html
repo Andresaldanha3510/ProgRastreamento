@@ -1,353 +1,130 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrackBras - Gerenciamento Inteligente de Frotas</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
-{% block title %}Dashboard - TrackGo{% endblock %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='paginaini.css') }}">
+</head>
+<body>
 
-{% block styles %}
-{{ super() }}
-<style>
-    /* Estilos Gerais (mantidos e otimizados) */
-    #map {
-        height: 450px;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        z-index: 1;
-        background-color: #e0e0e0; /* Cor de fundo enquanto carrega */
-    }
-    /* Estilos dos cards KPI */
-    .kpi-card {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .kpi-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-    }
-    /* Estilos para as seções do dashboard (Pendentes, Em Andamento) */
-    .dashboard-section {
-        background-color: #ffffff; /* Fundo branco para os cards */
-        border-radius: 0.75rem; /* Bordas mais arredondadas */
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Sombra mais sutil */
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        opacity: 0;
-        transform: translateY(20px);
-        animation: slideUp 0.6s ease forwards;
-        animation-delay: calc(0.2s * var(--index));
-    }
-    .dashboard-section-header {
-        padding: 1rem 1.5rem; /* Mais padding no cabeçalho */
-        display: flex;
-        justify-content: flex-start;
-        align-items: center; /* Centraliza verticalmente o conteúdo do header */
-        background-color: #f8fafc; /* Fundo levemente cinza para o header */
-        border-bottom: 1px solid #e2e8f0; /* Linha sutil no rodapé do header */
-    }
-    .header-content {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0.6rem 1.2rem;
-        border-radius: 0.375rem;
-        color: white;
-        font-weight: bold;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.15);
-        background-color: #16a34a; /* Cor original */
-    }
-    /* Cores específicas para os cabeçalhos de status */
-    .pendentes-header .header-content { background-color: #f97316; } /* laranja */
-    .andamento-header .header-content { background-color: #3b82f6; } /* azul */
+<header>
+    <div class="logo-container">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo TrackBras">
+        <h1>TrackBras</h1>
+    </div>
+    <nav>
+        <a href="#sobre">Sobre</a>
+        <a href="#servicos">Serviços</a>
+        <a href="#contato">Contato</a>
+        <a href="{{ url_for('painel') }}">Área do Cliente</a>
+    
+</header>
 
-    .header-icon { width: 36px; height: 36px; }
-    .dashboard-item-content {
-        padding: 1rem;
-        overflow-y: auto;
-        flex-grow: 1;
-        background-color: #ffffff; /* Fundo branco para o conteúdo dos cards */
-    }
-    .dashboard-item {
-        background-color: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 1rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        margin-bottom: 0.75rem;
-        display: flex;
-        flex-direction: column;
-    }
-    .dashboard-item:last-child { margin-bottom: 0; }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    .driver-label {
-        background-color: transparent;
-        border: none;
-        box-shadow: none;
-        font-weight: bold;
-        font-size: 11px;
-        color: #1f2937;
-        text-shadow: 1px 1px 2px #fff, -1px -1px 2px #fff, 1px -1px 2px #fff, -1px 1px 2px #fff;
-    }
-</style>
-{% endblock %}
+<main>
+    <div class="hero">
+        <video autoplay muted loop playsinline id="hero-video">
+            <source src="https://pub-8d882d6bc9d04fa1a0384fc62ef6450c.r2.dev/hero-video.mp4" type="video/mp4">
+            Seu navegador não suporta a tag de vídeo.
+        </video>
 
-{% block content %}
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-    <div class="kpi-card bg-white p-4 rounded-lg shadow-md flex items-center justify-between">
-        <div>
-            <p class="text-sm font-medium text-gray-500">Em Andamento</p>
-            <p class="text-2xl font-bold text-gray-800">{{ viagens_em_andamento }}</p>
-        </div>
-        <div class="p-3 rounded-full bg-blue-100">
-            <i class="fas fa-route fa-lg text-blue-600"></i>
+        <div class="hero-content">
+            <h2>Sistema Inteligente de Gerenciamento de Frotas</h2>
+            <p>Tenha controle total sobre suas operações, otimize rotas, reduza custos e aumente a segurança da sua frota com a nossa plataforma completa.</p>
+            <a href="https://wa.me/5541987842828?text=Olá!%20Gostaria%20de%20saber%20mais%20sobre%20a%20Trackbras." class="btn-cta" target="_blank">
+                <i class="fab fa-whatsapp"></i> Fale com um Consultor
+            </a>
         </div>
     </div>
 
-    <div class="kpi-card bg-white p-4 rounded-lg shadow-md flex items-center justify-between">
-        <div>
-            <p class="text-sm font-medium text-gray-500">Pendentes</p>
-            <p class="text-2xl font-bold text-gray-800">{{ viagens_pendentes }}</p>
-        </div>
-        <div class="p-3 rounded-full bg-orange-100">
-            <i class="fas fa-clock fa-lg text-orange-500"></i>
-        </div>
+    <section id="sobre">
+        <h2 class="section-title">Sobre a TrackBras</h2>
+        <p style="text-align: center; max-width: 800px; margin: 0 auto; line-height: 1.6;">
+            Descubra a revolução no gerenciamento de frotas com a TrackBras!
+Nossa plataforma moderna e super intuitiva coloca o controle total da sua transportadora na palma da sua mão. Acompanhe em tempo real suas frotas, motoristas, manutenções e desempenho, tudo de forma simples e eficiente.
+
+Na TrackBras, transformamos dados em decisões inteligentes que aceleram a produtividade e elevam a lucratividade do seu negócio.
+
+Venha liderar o futuro da logística com a gente!
+        </p>
+    </section>
+
+<section id="demonstracao">
+    <h2 class="section-title" style="color: white;">Saiba um pouco mais sobre a TrackBras</h2>
+    
+    <video controls poster="{{ url_for('static', filename='videos/track.jpg') }}">
+        <source src="https://pub-8d882d6bc9d04fa1a0384fc62ef6450c.r2.dev/track.mp4" type="video/mp4">
+        Seu navegador não suporta a tag de vídeo.
+    </video>
+
+</section>
+
+<section id="servicos">
+    <h2 class="section-title">Nossas Soluções</h2>
+    <div class="servicos-grid">
+        <div class="servico-card"><i class="fas fa-route"></i><h3>Gestão de Viagens</h3><p>Monitore rotas em tempo real e otimize trajetos para economizar tempo e combustível.</p></div>
+        <div class="servico-card"><i class="fas fa-tachometer-alt"></i><h3>Indicadores em tempo real</h3><p>Acompanhe paradas e o comportamento dos motoristas através de um dashboard completo.</p></div>
+        <div class="servico-card"><i class="fas fa-tools"></i><h3>Controle de Manutenção</h3><p>Receba alertas preventivos e agende manutenções para evitar quebras e paradas inesperadas.</p></div>
+        <div class="servico-card"><i class="fas fa-file-alt"></i><h3>Relatórios Inteligentes</h3><p>Exporte relatórios detalhados para análises aprofundadas e tomadas de decisão estratégicas.</p></div>
+        <div class="servico-card"><i class="fas fa-file-invoice-dollar"></i><h3>Controle Financeiro</h3><p>Gerencie clientes devedores em um só lugar</p></div>
+        <div class="servico-card"><i class="fas fa-bell"></i><h3>Alertas de Vencimentos</h3><p>Receba notificações sobre manutenções, vencimento de CNH, seguros e outros documentos importantes para manter sua frota em dia.</p></div>
     </div>
-
-    <div class="kpi-card bg-white p-4 rounded-lg shadow-md flex items-center justify-between">
-        <div>
-            <p class="text-sm font-medium text-gray-500">Veículos Disponíveis</p>
-            <p class="text-2xl font-bold text-gray-800">{{ veiculos_disponiveis }}</p>
+</section>
+    
+    <section id="como-funciona" style="background-color: var(--light-bg); border: none; box-shadow: none;">
+        <h2 class="section-title">Começar a Otimizar é Simples</h2>
+        <div class="processo-grid">
+            <div class="processo-passo"><div class="passo-numero">1</div><h3>Análise e Proposta</h3><p>Nossos especialistas entendem sua operação para oferecer o plano ideal.</p></div>
+            <div class="processo-passo"><div class="passo-numero">2</div><h3>Treinamento e Acesso</h3><p>Você e sua equipe recebem treinamento para usar a plataforma e os aplicativos.</p></div>
+            <div class="processo-passo"><div class="passo-numero">3</div><h3>Suporte Contínuo</h3><p>Nossa equipe está sempre à disposição para ajudar você a extrair o máximo da ferramenta.</p></div>
         </div>
-        <div class="p-3 rounded-full bg-green-100">
-            <i class="fas fa-truck fa-lg text-green-600"></i>
+    </section>
+
+    <section id="numeros">
+        <h2 class="section-title" style="color: white;">Nossos Números em Tempo Real</h2>
+        <div class="numeros-grid">
+            <div class="numero-item"><div id="contador-viagens" class="valor">+0</div><div class="descricao">🛣️ Viagens Monitoradas</div></div>
+            <div class="numero-item"><div id="contador-caminhoes" class="valor">+0</div><div class="descricao">🚛 Caminhões Rastreados</div></div>
+            <div class="numero-item"><div id="contador-transportadoras" class="valor">+0</div><div class="descricao">🧑‍💼 Transportadoras Ativas</div></div>
+            <div class="numero-item"><div id="contador-clientes" class="valor">+0</div><div class="descricao">✅ Clientes Satisfeitos</div></div>
         </div>
-    </div>
-</div>
+    </section>
 
-{% if current_user.role in ['Admin', 'Master'] %}
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-    <div class="kpi-card bg-white p-4 rounded-lg shadow-md flex items-center justify-between">
-        <div>
-            <p class="text-sm font-medium text-gray-500">Receita do Mês</p>
-            <p class="text-xl font-bold text-gray-800">R$ {{ "%.2f"|format(receita_mes)|replace('.', ',') }}</p>
+    <section id="faq">
+        <h2 class="section-title">Perguntas Frequentes</h2>
+        <div class="accordion-container">
+            <div class="accordion-item"><button class="accordion-header">Preciso ter um contrato de fidelidade?<i class="fas fa-plus"></i></button><div class="accordion-content"><p>Nossos planos são flexíveis. Oferecemos opções com e sem contrato de fidelidade para se adaptar melhor à necessidade e ao momento da sua empresa. Planos com fidelidade geralmente possuem condições comerciais mais atrativas. Fale com um consultor para saber mais.</p></div></div>
+            <div class="accordion-item"><button class="accordion-header">Como o sistema me ajuda a economizar combustível?<i class="fas fa-plus"></i></button><div class="accordion-content"><p>A plataforma identifica padrões de condução que gastam mais combustível, como excesso de velocidade, acelerações e frenagens bruscas. Além disso, o controle de rotas ajuda a encontrar os trajetos mais curtos e eficientes, diminuindo a quilometragem e, consequentemente, o consumo.</p></div></div>
+            <div class="accordion-item"><button class="accordion-header">Como o sistema de gerenciamento de frota pode ajudar a poupar dinheiro?<i class="fas fa-plus"></i></button><div class="accordion-content"><p>O sistema ajuda a economizar ao otimizar rotas em tempo real, reduzir o tempo de parada dos veículos, evitar atrasos, controlar a jornada dos motoristas e antecipar manutenções importantes. Tudo isso diminui desperdícios, melhora a produtividade e reduz custos com retrabalho, multas e imprevistos.</p></div></div>
+            <div class="accordion-item"><button class="accordion-header">O sistema me ajuda a controlar os custos das viagens?<i class="fas fa-plus"></i></button><div class="accordion-content"><p>Sim. O TrackBras permite registrar e visualizar todas as despesas de uma viagem — como pedágios, alimentação, hospedagem e outros custos operacionais — além de associar esses dados a relatórios financeiros completos. Com isso, você tem uma visão clara do custo total de cada viagem e pode identificar onde está gastando mais, ajudando na tomada de decisões estratégicas para reduzir despesas.</p></div></div>
         </div>
-        <div class="p-3 rounded-full bg-teal-100"><i class="fas fa-dollar-sign fa-lg text-teal-600"></i></div>
-    </div>
-    <div class="kpi-card bg-white p-4 rounded-lg shadow-md flex items-center justify-between">
-        <div>
-            <p class="text-sm font-medium text-gray-500">Custo do Mês</p>
-            <p class="text-xl font-bold text-gray-800">R$ {{ "%.2f"|format(custo_mes)|replace('.', ',') }}</p>
-        </div>
-        <div class="p-3 rounded-full bg-red-100"><i class="fas fa-file-invoice-dollar fa-lg text-red-500"></i></div>
-    </div>
-    <div class="kpi-card bg-white p-4 rounded-lg shadow-md flex items-center justify-between">
-        <div>
-            <p class="text-sm font-medium text-gray-500">Lucro do Mês</p>
-            <p class="text-xl font-bold {% if lucro_mes >= 0 %}text-green-600{% else %}text-red-600{% endif %}">R$ {{ "%.2f"|format(lucro_mes)|replace('.', ',') }}</p>
-        </div>
-        <div class="p-3 rounded-full bg-indigo-100"><i class="fas fa-chart-line fa-lg text-indigo-600"></i></div>
-    </div>
-</div>
-{% endif %}
+    </section>
 
-<div class="flex justify-center items-center mt-8 mb-4">
-    <img src="{{ url_for('static', filename='rastreamento.png') }}" alt="Ícone de Rastreamento" class="w-8 h-8 mr-3">
-    <h2 class="text-2xl font-bold text-gray-700">Localização em Tempo Real</h2>
-</div>
+    <section id="contato">
+        <h2 class="section-title">Fale Conosco</h2>
+        
+        <form action="https://formspree.io/f/xblkgpkv" method="POST">
+            <input type="text" name="nome" placeholder="Seu nome completo" required />
+            <input type="email" name="email" placeholder="Seu melhor e-mail" required />
+            <textarea name="mensagem" rows="5" placeholder="Como podemos ajudar?" required></textarea>
+            <button type="submit">Enviar Mensagem</button>
+        </form>
+    </section>
+</main>
 
-<div id="map" class="mb-8 print-hide"></div>
+<a href="https://wa.me/5541987842828?text=Olá!%20Vim%20pelo%20site%20e%20gostaria%20de%20mais%20informações." class="floating-whatsapp" target="_blank">
+    <i class="fab fa-whatsapp"></i>
+</a>
 
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <div class="dashboard-section" style="--index: 1;">
-        <div class="dashboard-section-header pendentes-header">
-            <div class="header-content">
-                <img src="{{ url_for('static', filename='pendente.png') }}" alt="Pendente" class="header-icon">
-                <span>Pendentes</span>
-            </div>
-        </div>
-        <div class="dashboard-item-content">
-            {% for viagem in viagens if viagem['status'] == 'pendente' %}
-                <div class="dashboard-item">
-                    <div class="flex items-center mb-2"><i class="fas fa-building text-gray-500 w-5 text-center mr-2"></i><p class="font-semibold text-gray-800">{{ viagem['cliente'] }}</p></div>
-                    <div class="flex items-center text-sm text-gray-600 mb-1"><i class="fas fa-user-tie text-gray-500 w-5 text-center mr-2"></i><p><b>Motorista:</b> {{ viagem['motorista_nome'] }}</p></div>
-                    <div class="flex items-center text-sm text-gray-600 mb-3"><i class="fas fa-truck text-gray-500 w-5 text-center mr-2"></i><p><b>Veículo:</b> {{ viagem['veiculo_placa'] }} - {{ viagem['veiculo_modelo'] }}</p></div>
-                    <div class="border-t pt-3 mt-2">
-                        <div class="flex items-start text-sm text-gray-700 mb-2">
-                            <i class="fas fa-map-marker-alt text-blue-500 w-5 text-center mr-2 mt-1"></i>
-                            <div><strong class="text-gray-500">Origem:</strong><br>{{ viagem['endereco_saida'] }}</div>
-                        </div>
-                        {% for destino in viagem['destinos'] %}
-                        <div class="flex items-start text-sm text-gray-700 {% if not loop.last %}mb-2{% endif %}">
-                            <i class="fas fa-flag-checkered text-green-600 w-5 text-center mr-2 mt-1"></i>
-                            <div>
-                                <strong class="text-gray-500">Destino {{ loop.index }}:</strong><br>
-                                {{ destino.endereco }}
-                            </div>
-                        </div>
-                        {% endfor %}
-                        </div>
-                </div>
-            {% else %}
-                <p class="text-sm text-gray-500 text-center py-4">Nenhuma viagem pendente.</p>
-            {% endfor %}
-        </div>
-    </div>
+<footer>
+    <p>&copy; 2025 TrackBras. Todos os direitos reservados.</p>
+</footer>
 
-    <div class="dashboard-section" style="--index: 2;">
-        <div class="dashboard-section-header andamento-header">
-            <div class="header-content">
-                <img src="{{ url_for('static', filename='andamento.png') }}" alt="Em Andamento" class="header-icon">
-                <span>Em Andamento</span>
-            </div>
-        </div>
-        <div class="dashboard-item-content">
-            {% for viagem in viagens if viagem['status'] == 'em_andamento' %}
-                <div class="dashboard-item">
-                    <div class="flex items-center mb-2"><i class="fas fa-building text-gray-500 w-5 text-center mr-2"></i><p class="font-semibold text-gray-800">{{ viagem['cliente'] }}</p></div>
-                    <div class="flex items-center text-sm text-gray-600 mb-1"><i class="fas fa-user-tie text-gray-500 w-5 text-center mr-2"></i><p><b>Motorista:</b> {{ viagem['motorista_nome'] }}</p></div>
-                    <div class="flex items-center text-sm text-gray-600 mb-3"><i class="fas fa-truck text-gray-500 w-5 text-center mr-2"></i><p><b>Veículo:</b> {{ viagem['veiculo_placa'] }} - {{ viagem['veiculo_modelo'] }}</p></div>
-                    <div class="border-t pt-3 mt-2 space-y-2">
-                        <div class="flex items-start text-sm text-gray-700">
-                            <i class="fas fa-map-marker-alt text-blue-500 w-5 text-center mr-2 mt-1"></i>
-                            <div><strong class="text-gray-500">Origem:</strong><br>{{ viagem['endereco_saida'] }}</div>
-                        </div>
-                        {% for destino in viagem['destinos'] %}
-                        <div class="flex items-start text-sm text-gray-700">
-                            <i class="fas fa-flag-checkered text-green-600 w-5 text-center mr-2 mt-1"></i>
-                            <div>
-                                <strong class="text-gray-500">Destino {{ loop.index }}:</strong><br>
-                                {{ destino.endereco }}
-                            </div>
-                        </div>
-                        {% endfor %}
-                        </div>
-                    <div class="flex items-center mt-3 pt-3 border-t">
-                        <img src="{{ url_for('static', filename='localizacaoanimado.gif') }}" alt="Ícone de Localização" class="w-7 h-7 mr-2">
-                        <div>
-                             <strong class="text-sm text-gray-500">Localização Atual:</strong><br>
-                             <p class="text-sm text-gray-600" id="endereco-atual-{{ viagem['id'] }}">Carregando...</p>
-                        </div>
-                    </div>
-                </div>
-            {% else %}
-                <p class="text-sm text-gray-500 text-center py-4">Nenhuma viagem em andamento.</p>
-            {% endfor %}
-        </div>
-    </div>
-</div>
+<script src="{{ url_for('static', filename='paginaini.js') }}"></script>
 
-<div class="mt-8 print-hide">
-    <button onclick="window.print()" class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition duration-300 flex items-center gap-2">
-        <i class="fas fa-print"></i>
-        Imprimir Relatório
-    </button>
-</div>
-{% endblock %}
-
-{% block scripts %}
-{{ super() }}
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-     crossorigin=""></script>
-
-<script>
-    const truckIconUrl = "{{ url_for('static', filename='localizacaoanimado.gif') }}";
-</script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Inicialização do mapa Leaflet
-    const map = L.map('map').setView([-14.235, -51.925], 4); // Centro do Brasil
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
-
-    const truckIcon = L.icon({
-        iconUrl: truckIconUrl,
-        iconSize:     [40, 40],
-        iconAnchor:   [20, 40],
-        popupAnchor:  [0, -40]
-    });
-
-    const mapMarkers = {};
-    const markerBounds = [];
-
-    function atualizarLocalizacao(viagem) {
-        const enderecoEl = document.getElementById(`endereco-atual-${viagem['id']}`);
-
-        fetch(`/ultima_localizacao/${viagem['id']}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                if (enderecoEl) {
-                    enderecoEl.textContent = `${data.endereco}`;
-                }
-
-                const lat = data.latitude;
-                const lon = data.longitude;
-                const popupContent = `
-                    <b>Cliente:</b> ${viagem['cliente']}<br>
-                    <b>Motorista:</b> ${viagem['motorista_nome']}<br>
-                    <b>Veículo:</b> ${viagem['veiculo_placa']}<br>
-                    <hr class="my-1">
-                    <b>Endereço:</b> ${data.endereco}
-                `;
-
-                if (mapMarkers[viagem['id']]) {
-                    mapMarkers[viagem['id']].setLatLng([lat, lon]);
-                    mapMarkers[viagem['id']].getPopup().setContent(popupContent);
-                } else {
-                    const marker = L.marker([lat, lon], { icon: truckIcon }).addTo(map);
-
-                    marker.bindTooltip(viagem['motorista_nome'], {
-                        permanent: true,
-                        direction: 'bottom',
-                        offset: [0, 10],
-                        className: 'driver-label'
-                    });
-
-                    marker.bindPopup(popupContent);
-                    mapMarkers[viagem['id']] = marker;
-                    markerBounds.push([lat, lon]);
-
-                    // Ajusta o zoom do mapa para incluir todos os marcadores
-                    if (markerBounds.length > 0) {
-                        map.fitBounds(markerBounds, { padding: [50, 50] });
-                    }
-                }
-
-            } else {
-                 if (enderecoEl) {
-                    enderecoEl.textContent = 'Localização indisponível';
-                    enderecoEl.classList.add('text-gray-400');
-                }
-            }
-        })
-        .catch(error => {
-            console.error(`Erro ao buscar localização para viagem ${viagem['id']}:`, error);
-            if (enderecoEl) {
-                enderecoEl.textContent = 'Erro ao carregar';
-                enderecoEl.classList.add('text-red-500');
-            }
-        });
-    }
-
-    const viagensEmAndamentoDetalhes = [
-        {% for viagem in viagens if viagem['status'] == 'em_andamento' %}
-        {
-            id: {{ viagem['id'] }},
-            cliente: "{{ viagem['cliente'] | e }}",
-            motorista_nome: "{{ viagem['motorista_nome'] | e }}",
-            veiculo_placa: "{{ viagem['veiculo_placa'] | e }}"
-        },
-        {% endfor %}
-    ];
-
-    if (viagensEmAndamentoDetalhes.length > 0) {
-        viagensEmAndamentoDetalhes.forEach(viagem => {
-            atualizarLocalizacao(viagem); // Chama imediatamente ao carregar a página
-            // Altera para atualizar a cada 10 minutos (600000 milissegundos)
-            setInterval(() => atualizarLocalizacao(viagem), 600000); 
-        });
-    }
-});
-</script>
-{% endblock %}
+</body>
+</html>
