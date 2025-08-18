@@ -441,15 +441,17 @@ class Veiculo(db.Model):
     manutencoes = db.relationship('Manutencao', back_populates='veiculo', lazy='dynamic', cascade="all, delete-orphan")
     planos_associados = db.relationship('VeiculoPlano', back_populates='veiculo', cascade="all, delete-orphan")
 
+    # MÉTODO CORRIGIDO E COMPLETO
     def to_dict(self):
         return {
             'id': self.id,
             'placa': self.placa,
             'modelo': self.modelo,
             'marca': self.marca,
-            'renavam': self.renavam,
+            'ano': self.ano,  # <-- ADICIONADO
+            'quilometragem': self.km_rodados,  # <-- ADICIONADO (e renomeado para o JS)
             'status': self.status,
-            'km_rodados': self.km_rodados
+            'created_at': self.created_at.isoformat() if self.created_at else None # <-- ADICIONADO para ordenação
         }
 
     def __repr__(self):
@@ -541,7 +543,7 @@ class Usuario(db.Model, UserMixin):
     empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=True)
 
     def set_password(self, password):
-        self.senha_hash = generate_password_hash(password)
+     self.senha_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
     def check_password(self, password):
         return check_password_hash(self.senha_hash, password)
@@ -3220,8 +3222,8 @@ def cadastrar_veiculo():
 @app.route('/consultar_veiculos', methods=['GET'])
 @login_required
 def consultar_veiculos():
-    search_query = request.args.get('search', '').strip()  # Obtém o parâmetro 'search' da query string
-    query = Veiculo.query.filter_by(empresa_id=current_user.empresa_id)  # Filtra por empresa do usuário logado
+    search_query = request.args.get('search', '').strip()
+    query = Veiculo.query.filter_by(empresa_id=current_user.empresa_id)
     
     if search_query:
         search_filter = f"%{search_query}%"
@@ -3233,10 +3235,13 @@ def consultar_veiculos():
             )
         )
     
-    veiculos = query.order_by(Veiculo.placa.asc()).all()
-    return render_template('consultar_veiculos.html', veiculos=veiculos, search_query=search_query, active_page='consultar_veiculos')
 
-# Em app.py
+    veiculos_obj = query.order_by(Veiculo.placa.asc()).all()
+    
+    veiculos_json = [v.to_dict() for v in veiculos_obj]
+
+    # Passo 3: Envia a lista de dicionários (veiculos_json) para o template
+    return render_template('consultar_veiculos.html', veiculos=veiculos_json, search_query=search_query, active_page='consultar_veiculos')
 
 @app.route('/editar_veiculo/<int:veiculo_id>', methods=['GET', 'POST'])
 def editar_veiculo(veiculo_id):
