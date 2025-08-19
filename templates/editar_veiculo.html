@@ -2,37 +2,230 @@
 
 {% block title %}Editar Veículo - {{ veiculo.placa }}{% endblock %}
 
-{% block content %}
-<div class="p-6 bg-gray-200 min-h-screen">
-    <h1 class="text-3xl font-bold text-gray-800 mb-6">Editar Veículo: {{ veiculo.placa }}</h1>
+{% block styles %}
+{# Estilos idênticos ao de cadastro para manter a consistência visual #}
+<style>
+    .form-container { background-color: #e9ecef; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); margin: 0; }
+    .form-container h1 { text-align: center; }
+    .form-section { background: white; padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1.5rem; border-left: 4px solid #1d4ed8; }
+    .section-title { font-size: 1.1rem; font-weight: 600; color: #1d4ed8; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .form-input, .form-select, .form-textarea { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; transition: border-color 0.2s, box-shadow 0.2s; }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2); }
+    .btn-submit { background-color: #16a34a; color: white; padding: 0.75rem 1.5rem; border-radius: 0.375rem; }
+    .btn-submit:hover { background-color: #15803d; }
+    .btn-back { background-color: #6b7280; color: white; padding: 0.75rem 1.5rem; border-radius: 0.375rem; }
+    .btn-back:hover { background-color: #4b5563; }
+    .file-upload-area { border: 2px dashed #d1d5db; border-radius: 0.5rem; padding: 2rem; text-align: center; transition: all 0.3s; cursor: pointer; }
+    .file-upload-area:hover, .file-upload-area.dragover { border-color: #2563eb; background-color: #f0f9ff; }
+    .required-field::after { content: " *"; color: #dc2626; }
+</style>
+{% endblock %}
 
-    <form method="POST" class="bg-white p-6 rounded-lg shadow-md">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <label for="placa" class="block text-sm font-medium text-gray-700">Placa</label>
-                <input type="text" name="placa" id="placa" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 bg-gray-100" value="{{ veiculo.placa }}" readonly>
-            </div>
-            <div>
-                <label for="modelo" class="block text-sm font-medium text-gray-700">Modelo</label>
-                <input type="text" name="modelo" id="modelo" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ veiculo.modelo }}">
-            </div>
-            <div>
-                <label for="marca" class="block text-sm font-medium text-gray-700">Marca</label>
-                <input type="text" name="marca" id="marca" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ veiculo.marca }}">
-            </div>
-            <div>
-                <label for="ano" class="block text-sm font-medium text-gray-700">Ano</label>
-                <input type="number" name="ano" id="ano" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ veiculo.ano }}">
-            </div>
-            <div class="md:col-span-2">
-                <label for="renavam" class="block text-sm font-medium text-gray-700">Renavam</label>
-                <input type="text" name="renavam" id="renavam" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ veiculo.renavam }}">
+{% block content %}
+<div class="form-container">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">Editar Veículo: {{ veiculo.placa }}</h1>
+
+    <form method="POST" action="{{ url_for('editar_veiculo', veiculo_id=veiculo.id) }}" enctype="multipart/form-data" id="vehicleForm">
+        
+        <div class="form-section">
+            <h2 class="section-title"><i class="fas fa-truck"></i>Informações Básicas</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2 required-field">Placa</label>
+                    <input type="text" class="form-input bg-gray-200" value="{{ veiculo.placa }}" readonly>
+                </div>
+                <div>
+                    <label for="categoria" class="block text-gray-700 font-medium mb-2 required-field">Categoria</label>
+                    <select name="categoria" id="categoria" required class="form-select">
+                        <option value="Caminhão" {% if veiculo.categoria == 'Caminhão' %}selected{% endif %}>Caminhão</option>
+                        <option value="Van" {% if veiculo.categoria == 'Van' %}selected{% endif %}>Van</option>
+                        <option value="Utilitário" {% if veiculo.categoria == 'Utilitário' %}selected{% endif %}>Utilitário</option>
+                        <option value="Carreta" {% if veiculo.categoria == 'Carreta' %}selected{% endif %}>Carreta</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="status" class="block text-gray-700 font-medium mb-2 required-field">Status</label>
+                    <select name="status" id="status" required class="form-select">
+                        <option value="Disponível" {% if veiculo.status == 'Disponível' %}selected{% endif %}>Disponível</option>
+                        <option value="Em Rota" {% if veiculo.status == 'Em Rota' %}selected{% endif %}>Em Rota</option>
+                        <option value="Em Manutenção" {% if veiculo.status == 'Em Manutenção' %}selected{% endif %}>Em Manutenção</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="modelo" class="block text-gray-700 font-medium mb-2 required-field">Modelo</label>
+                    <input type="text" name="modelo" id="modelo" required class="form-input" value="{{ veiculo.modelo or '' }}">
+                </div>
+                <div>
+                    <label for="marca" class="block text-gray-700 font-medium mb-2 required-field">Marca</label>
+                    <input type="text" name="marca" id="marca" required class="form-input" value="{{ veiculo.marca or '' }}">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2 required-field">Ano/Modelo</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <select name="ano_fabricacao" id="ano_fabricacao" required class="form-select"></select>
+                        <select name="ano_modelo" id="ano_modelo" required class="form-select"></select>
+                    </div>
+                </div>
+                <div>
+                    <label for="cor" class="block text-gray-700 font-medium mb-2">Cor</label>
+                    <input type="text" name="cor" id="cor" class="form-input" value="{{ veiculo.cor or '' }}">
+                </div>
+                <div>
+                    <label for="combustivel" class="block text-gray-700 font-medium mb-2">Combustível</label>
+                    <select name="combustivel" id="combustivel" class="form-select">
+                        <option value="Diesel" {% if veiculo.combustivel == 'Diesel' %}selected{% endif %}>Diesel</option>
+                        <option value="Gasolina" {% if veiculo.combustivel == 'Gasolina' %}selected{% endif %}>Gasolina</option>
+                        <option value="Flex" {% if veiculo.combustivel == 'Flex' %}selected{% endif %}>Flex</option>
+                    </select>
+                </div>
             </div>
         </div>
-        <div class="mt-8 flex justify-end gap-4">
-            <a href="{{ url_for('consultar_veiculos') }}" class="bg-gray-200 text-gray-800 px-5 py-2 rounded-md hover:bg-gray-300">Cancelar</a>
-            <button type="submit" class="bg-green-600 text-white px-5 py-2 rounded-md hover:bg-green-700">Salvar Alterações</button>
+
+        <div class="form-section">
+            <h2 class="section-title"><i class="fas fa-file-alt"></i>Documentação</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label for="renavam" class="block text-gray-700 font-medium mb-2">RENAVAM</label>
+                    <input type="text" name="renavam" id="renavam" class="form-input" value="{{ veiculo.renavam or '' }}">
+                </div>
+                <div>
+                    <label for="chassi" class="block text-gray-700 font-medium mb-2">Chassi</label>
+                    <input type="text" name="chassi" id="chassi" class="form-input" value="{{ veiculo.chassi or '' }}">
+                </div>
+                <div>
+                    <label for="crlv_numero" class="block text-gray-700 font-medium mb-2">Número CRLV</label>
+                    <input type="text" name="crlv_numero" id="crlv_numero" class="form-input" value="{{ veiculo.crlv_numero or '' }}">
+                </div>
+                <div>
+                    <label for="crlv_vencimento" class="block text-gray-700 font-medium mb-2">Vencimento CRLV</label>
+                    <input type="date" name="crlv_vencimento" id="crlv_vencimento" class="form-input" value="{{ veiculo.crlv_vencimento | dateformat }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2 class="section-title"><i class="fas fa-road"></i>Informações Operacionais</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label for="km_atual" class="block text-gray-700 font-medium mb-2 required-field">Km Atual</label>
+                    <input type="number" name="km_atual" id="km_atual" required class="form-input" value="{{ veiculo.km_atual or '' }}">
+                </div>
+                <div>
+                    <label for="motorista_padrao" class="block text-gray-700 font-medium mb-2">Motorista Padrão</label>
+                    <select name="motorista_padrao_id" id="motorista_padrao" class="form-select">
+                        <option value="">Nenhum</option>
+                        {% for motorista in motoristas %}
+                            <option value="{{ motorista.id }}" {% if veiculo.motorista_padrao_id == motorista.id %}selected{% endif %}>
+                                {{ motorista.nome }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2 class="section-title"><i class="fas fa-paperclip"></i>Observações e Anexos</h2>
+            <div>
+                <label for="observacoes" class="block text-gray-700 font-medium mb-2">Observações</label>
+                <textarea name="observacoes" id="observacoes" class="form-textarea" rows="3">{{ veiculo.observacoes or '' }}</textarea>
+            </div>
+            <div class="mt-4">
+                <h3 class="block text-gray-700 font-medium mb-2">Fotos Atuais</h3>
+                {% if veiculo.fotos_urls %}
+                    <div class="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+                        {% for url in veiculo.fotos_urls.split(',') %}
+                            <div class="relative group">
+                                <img src="{{ url }}" alt="Foto do Veículo" class="w-full h-20 object-cover rounded border">
+                                {# Futuramente, pode adicionar um botão de exclusão aqui #}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-gray-500 text-sm">Nenhuma foto cadastrada.</p>
+                {% endif %}
+            </div>
+            <div class="mt-4">
+                <label class="block text-gray-700 font-medium mb-2">Adicionar Novas Fotos</label>
+                <div class="file-upload-area" id="fileUploadArea">
+                    <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
+                    <p class="text-gray-600 mb-2">Clique ou arraste novas fotos aqui</p>
+                    <input type="file" name="fotos[]" id="fotos" multiple accept="image/*" class="hidden">
+                </div>
+                <div id="previewContainer" class="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2"></div>
+            </div>
+        </div>
+
+        <div class="mt-6 flex items-center justify-end gap-4">
+            <a href="{{ url_for('consultar_veiculos') }}" class="btn-back">Cancelar</a>
+            <button type="submit" class="btn-submit">Salvar Alterações</button>
         </div>
     </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    
+    // Popula os selects de ano
+    const selectAnoFab = document.getElementById('ano_fabricacao');
+    const selectAnoMod = document.getElementById('ano_modelo');
+    
+    if (selectAnoFab && selectAnoMod) {
+        const anoAtual = new Date().getFullYear();
+        
+        // Adiciona a opção "vazia"
+        selectAnoFab.innerHTML = '<option value="">Ano Fab.</option>';
+        selectAnoMod.innerHTML = '<option value="">Ano Mod.</option>';
+        
+        for (let ano = anoAtual; ano >= 1980; ano--) {
+            selectAnoFab.add(new Option(ano, ano));
+        }
+        for (let ano = anoAtual + 1; ano >= 1980; ano--) {
+            selectAnoMod.add(new Option(ano, ano));
+        }
+
+        // *** ADIÇÃO IMPORTANTE: Define o valor salvo após popular ***
+        const savedAnoFab = "{{ veiculo.ano_fabricacao or '' }}";
+        const savedAnoMod = "{{ veiculo.ano_modelo or '' }}";
+        if (savedAnoFab) selectAnoFab.value = savedAnoFab;
+        if (savedAnoMod) selectAnoMod.value = savedAnoMod;
+    }
+
+    // Lógica de upload de fotos (copiada do cadastrar_veiculo.html)
+    const fileUploadArea = document.getElementById('fileUploadArea');
+    const fileInput = document.getElementById('fotos');
+    const previewContainer = document.getElementById('previewContainer');
+
+    if (fileUploadArea && fileInput && previewContainer) {
+        fileUploadArea.addEventListener('click', () => fileInput.click());
+        fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.add('dragover');
+        });
+        fileUploadArea.addEventListener('dragleave', () => fileUploadArea.classList.remove('dragover'));
+        fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
+            handleFiles(Array.from(e.dataTransfer.files));
+        });
+        fileInput.addEventListener('change', (e) => handleFiles(Array.from(e.target.files)));
+
+        function handleFiles(files) {
+            previewContainer.innerHTML = '';
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const previewDiv = document.createElement('div');
+                    previewDiv.innerHTML = `<img src="${e.target.result}" class="w-full h-20 object-cover rounded border">`;
+                    previewContainer.appendChild(previewDiv);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+    }
+});
+</script>
 {% endblock %}

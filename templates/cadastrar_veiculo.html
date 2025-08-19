@@ -17,7 +17,25 @@
         text-align: center;
     }
 
-    .form-input, .form-select {
+    .form-section {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid #2e7d32;
+    }
+
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2e7d32;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-input, .form-select, .form-textarea {
         width: 100%;
         padding: 0.75rem;
         border: 1px solid #d1d5db;
@@ -25,10 +43,15 @@
         transition: border-color 0.2s, box-shadow 0.2s;
     }
 
-    .form-input:focus, .form-select:focus {
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
         outline: none;
         border-color: #2e7d32;
         box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+    }
+
+    .form-textarea {
+        resize: vertical;
+        min-height: 80px;
     }
 
     .btn-submit {
@@ -52,6 +75,53 @@
     .btn-back:hover {
         background-color: #4b5563;
     }
+
+    .file-upload-area {
+        border: 2px dashed #d1d5db;
+        border-radius: 0.5rem;
+        padding: 2rem;
+        text-align: center;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .file-upload-area:hover {
+        border-color: #2e7d32;
+        background-color: #f0f9ff;
+    }
+
+    .file-upload-area.dragover {
+        border-color: #2e7d32;
+        background-color: #ecfdf5;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .status-ativo {
+        background-color: #dcfce7;
+        color: #166534;
+    }
+
+    .status-inativo {
+        background-color: #fef2f2;
+        color: #dc2626;
+    }
+
+    .status-manutencao {
+        background-color: #fef3c7;
+        color: #d97706;
+    }
+
+    .required-field::after {
+        content: " *";
+        color: #dc2626;
+    }
 </style>
 {% endblock %}
 
@@ -59,51 +129,238 @@
 <div class="form-container">
     <h1 class="text-3xl font-bold mb-6 text-gray-800">Cadastrar Novo Veículo</h1>
 
-    <form method="POST" enctype="multipart/form-data">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="mb-4">
-                <label for="placa" class="block text-gray-700 font-medium mb-2">Placa</label>
-                <input type="text" name="placa" id="placa" required class="form-input" pattern="[A-Z0-9]{7}" placeholder="ABC1D23">
+    <form method="POST" enctype="multipart/form-data" id="vehicleForm">
+        
+        <!-- Seção: Informações Básicas -->
+        <div class="form-section">
+            <h2 class="section-title">
+                <i class="fas fa-truck"></i>
+                Informações Básicas
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label for="placa" class="block text-gray-700 font-medium mb-2 required-field">Placa</label>
+                    <input type="text" name="placa" id="placa" required class="form-input" 
+                           pattern="[A-Z]{3}[0-9][A-Z0-9][0-9]{2}" placeholder="ABC1D23" maxlength="7">
+                    <small class="text-gray-500">Formato: ABC1D23 (Mercosul) ou ABC1234</small>
+                </div>
+                <div>
+                    <label for="categoria" class="block text-gray-700 font-medium mb-2 required-field">Categoria do Veículo</label>
+                    <select name="categoria" id="categoria" required class="form-select">
+                        <option value="">Selecione a categoria</option>
+                        <option value="Caminhão">Caminhão</option>
+                        <option value="Van">Van</option>
+                        <option value="Utilitário">Utilitário</option>
+                        <option value="Carreta">Carreta</option>
+                        <option value="Bi-trem">Bi-trem</option>
+                        <option value="Reboque">Reboque</option>
+                        <option value="Semi-reboque">Semi-reboque</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="status" class="block text-gray-700 font-medium mb-2 required-field">Status</label>
+                    <select name="status" id="status" required class="form-select">
+                        <option value="">Selecione o status</option>
+                        <option value="ativo">Ativo</option>
+                        <option value="inativo">Inativo</option>
+                        <option value="manutencao">Em Manutenção</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="modelo" class="block text-gray-700 font-medium mb-2 required-field">Modelo</label>
+                    <input type="text" name="modelo" id="modelo" required class="form-input" placeholder="Ex: Scania P310">
+                </div>
+                <div>
+                    <label for="marca" class="block text-gray-700 font-medium mb-2 required-field">Marca</label>
+                    <input type="text" name="marca" id="marca" required class="form-input" placeholder="Ex: Scania">
+                </div>
+                <div>
+                    <label for="ano_modelo" class="block text-gray-700 font-medium mb-2 required-field">Ano/Modelo</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <select name="ano_fabricacao" id="ano_fabricacao" required class="form-select">
+                            <option value="">Ano Fab.</option>
+                        </select>
+                        <select name="ano_modelo" id="ano_modelo" required class="form-select">
+                            <option value="">Ano Mod.</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label for="cor" class="block text-gray-700 font-medium mb-2">Cor</label>
+                    <input type="text" name="cor" id="cor" class="form-input" placeholder="Ex: Branco">
+                </div>
+                <div>
+                    <label for="combustivel" class="block text-gray-700 font-medium mb-2">Combustível</label>
+                    <select name="combustivel" id="combustivel" class="form-select">
+                        <option value="">Selecione</option>
+                        <option value="Diesel">Diesel</option>
+                        <option value="Gasolina">Gasolina</option>
+                        <option value="Álcool">Álcool</option>
+                        <option value="Flex">Flex</option>
+                        <option value="GNV">GNV</option>
+                        <option value="Elétrico">Elétrico</option>
+                        <option value="Híbrido">Híbrido</option>
+                    </select>
+                </div>
             </div>
-            <div class="mb-4">
-                <label for="categoria" class="block text-gray-700 font-medium mb-2">Categoria do Veículo</label>
-                <input type="text" name="categoria" id="categoria" required class="form-input" placeholder="Ex: Caminhão, Van">
+        </div>
+
+        <!-- Seção: Documentação -->
+        <div class="form-section">
+            <h2 class="section-title">
+                <i class="fas fa-file-alt"></i>
+                Documentação
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label for="renavam" class="block text-gray-700 font-medium mb-2">RENAVAM</label>
+                    <input type="text" name="renavam" id="renavam" class="form-input" placeholder="11 dígitos" maxlength="11">
+                </div>
+                <div>
+                    <label for="chassi" class="block text-gray-700 font-medium mb-2">Chassi</label>
+                    <input type="text" name="chassi" id="chassi" class="form-input" placeholder="17 caracteres" maxlength="17">
+                </div>
+                <div>
+                    <label for="numero_motor" class="block text-gray-700 font-medium mb-2">Número do Motor</label>
+                    <input type="text" name="numero_motor" id="numero_motor" class="form-input">
+                </div>
+                <div>
+                    <label for="crlv_numero" class="block text-gray-700 font-medium mb-2">Número CRLV</label>
+                    <input type="text" name="crlv_numero" id="crlv_numero" class="form-input">
+                </div>
+                <div>
+                    <label for="crlv_vencimento" class="block text-gray-700 font-medium mb-2">Vencimento CRLV</label>
+                    <input type="date" name="crlv_vencimento" id="crlv_vencimento" class="form-input">
+                </div>
+                <div>
+                    <label for="seguro_numero" class="block text-gray-700 font-medium mb-2">Número da Apólice</label>
+                    <input type="text" name="seguro_numero" id="seguro_numero" class="form-input">
+                </div>
+                <div>
+                    <label for="seguro_seguradora" class="block text-gray-700 font-medium mb-2">Seguradora</label>
+                    <input type="text" name="seguro_seguradora" id="seguro_seguradora" class="form-input">
+                </div>
+                <div>
+                    <label for="seguro_vencimento" class="block text-gray-700 font-medium mb-2">Vencimento do Seguro</label>
+                    <input type="date" name="seguro_vencimento" id="seguro_vencimento" class="form-input">
+                </div>
             </div>
-            <div class="mb-4">
-                <label for="modelo" class="block text-gray-700 font-medium mb-2">Modelo</label>
-                <input type="text" name="modelo" id="modelo" required class="form-input" placeholder="Ex: Scania P310">
+        </div>
+
+        <!-- Seção: Especificações Técnicas -->
+        <div class="form-section">
+            <h2 class="section-title">
+                <i class="fas fa-cog"></i>
+                Especificações Técnicas
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label for="capacidade_carga" class="block text-gray-700 font-medium mb-2">Capacidade de Carga (kg)</label>
+                    <input type="number" name="capacidade_carga" id="capacidade_carga" class="form-input" step="0.01">
+                </div>
+                <div>
+                    <label for="peso_bruto" class="block text-gray-700 font-medium mb-2">Peso Bruto Total (kg)</label>
+                    <input type="number" name="peso_bruto" id="peso_bruto" class="form-input" step="0.01">
+                </div>
+                <div>
+                    <label for="eixos" class="block text-gray-700 font-medium mb-2">Número de Eixos</label>
+                    <input type="number" name="eixos" id="eixos" class="form-input" min="2" max="9">
+                </div>
+                <div>
+                    <label for="cilindrada" class="block text-gray-700 font-medium mb-2">Cilindrada</label>
+                    <input type="text" name="cilindrada" id="cilindrada" class="form-input" placeholder="Ex: 2.0">
+                </div>
+                <div>
+                    <label for="potencia" class="block text-gray-700 font-medium mb-2">Potência (cv)</label>
+                    <input type="number" name="potencia" id="potencia" class="form-input">
+                </div>
+                <div>
+                    <label for="tanque_combustivel" class="block text-gray-700 font-medium mb-2">Tanque Comb. (L)</label>
+                    <input type="number" name="tanque_combustivel" id="tanque_combustivel" class="form-input">
+                </div>
+                <div>
+                    <label for="consumo_medio" class="block text-gray-700 font-medium mb-2">Consumo Médio (km/L)</label>
+                    <input type="number" name="consumo_medio" id="consumo_medio" class="form-input" step="0.1">
+                </div>
             </div>
-            <div class="mb-4">
-                <label for="marca" class="block text-gray-700 font-medium mb-2">Marca</label>
-                <input type="text" name="marca" id="marca" class="form-input" placeholder="Ex: Scania">
+        </div>
+
+        <!-- Seção: Informações Operacionais -->
+        <div class="form-section">
+            <h2 class="section-title">
+                <i class="fas fa-road"></i>
+                Informações Operacionais
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label for="valor_aquisicao" class="block text-gray-700 font-medium mb-2 required-field">Valor de Aquisição</label>
+                    <input type="text" name="valor_aquisicao" id="valor_aquisicao" required class="form-input" placeholder="R$ 0,00">
+                </div>
+                <div>
+                    <label for="data_aquisicao" class="block text-gray-700 font-medium mb-2">Data de Aquisição</label>
+                    <input type="date" name="data_aquisicao" id="data_aquisicao" class="form-input">
+                </div>
+                <div>
+                    <label for="km_atual" class="block text-gray-700 font-medium mb-2 required-field">Km Atual</label>
+                    <input type="number" name="km_atual" id="km_atual" required class="form-input" placeholder="Ex: 150000">
+                </div>
+                <div>
+                    <label for="ultima_manutencao" class="block text-gray-700 font-medium mb-2">Última Manutenção</label>
+                    <input type="date" name="ultima_manutencao" id="ultima_manutencao" class="form-input">
+                </div>
+                <div>
+                    <label for="km_ultima_manutencao" class="block text-gray-700 font-medium mb-2">Km da Última Manutenção</label>
+                    <input type="number" name="km_ultima_manutencao" id="km_ultima_manutencao" class="form-input">
+                </div>
+                <div>
+                    <label for="proxima_manutencao" class="block text-gray-700 font-medium mb-2">Próxima Manutenção</label>
+                    <input type="date" name="proxima_manutencao" id="proxima_manutencao" class="form-input">
+                </div>
+                <div>
+                    <label for="motorista_padrao" class="block text-gray-700 font-medium mb-2">Motorista Padrão</label>
+                    <select name="motorista_padrao" id="motorista_padrao" class="form-select">
+                        <option value="">Selecione um motorista</option>
+                        <!-- Options preenchidas via JavaScript/Backend -->
+                    </select>
+                </div>
             </div>
-            <div class="mb-4">
-                <label for="renavam" class="block text-gray-700 font-medium mb-2">Renavam</label>
-                <input type="text" name="renavam" id="renavam" class="form-input" placeholder="11 dígitos">
-            </div>
-            <div class="mb-4">
-                <label for="ano" class="block text-gray-700 font-medium mb-2">Ano do Veículo</label>
-                <select name="ano" id="ano" required class="form-select">
-                    <option value="">Selecione o ano</option>
-                </select>
-            </div>
-            <div class="mb-4">
-                <label for="valor" class="block text-gray-700 font-medium mb-2">Valor do Veículo</label>
-                <input type="text" name="valor" id="valor" required class="form-input" placeholder="R$ 0,00">
-            </div>
-            <div class="mb-4">
-                <label for="km_rodados" class="block text-gray-700 font-medium mb-2">Km Rodados</label>
-                <input type="number" name="km_rodados" id="km_rodados" required class="form-input" placeholder="Ex: 150000">
-            </div>
-            <div class="md:col-span-2 mb-4">
-                <label for="ultima_manutencao" class="block text-gray-700 font-medium mb-2">Última Manutenção</label>
-                <input type="date" name="ultima_manutencao" id="ultima_manutencao" required class="form-input">
+        </div>
+
+        <!-- Seção: Observações e Anexos -->
+        <div class="form-section">
+            <h2 class="section-title">
+                <i class="fas fa-paperclip"></i>
+                Observações e Anexos
+            </h2>
+            <div class="grid grid-cols-1 gap-4">
+                <div>
+                    <label for="observacoes" class="block text-gray-700 font-medium mb-2">Observações</label>
+                    <textarea name="observacoes" id="observacoes" class="form-textarea" rows="3" 
+                              placeholder="Informações adicionais sobre o veículo..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Fotos do Veículo</label>
+                    <div class="file-upload-area" id="fileUploadArea">
+                        <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
+                        <p class="text-gray-600 mb-2">Clique aqui ou arraste as fotos</p>
+                        <p class="text-sm text-gray-500">PNG, JPG até 5MB cada (máximo 5 fotos)</p>
+                        <input type="file" name="fotos[]" id="fotos" multiple accept="image/*" class="hidden">
+                    </div>
+                    <div id="previewContainer" class="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2"></div>
+                </div>
             </div>
         </div>
 
         <div class="mt-6 flex items-center justify-end gap-4">
-            <a href="{{ url_for('painel') }}" class="btn-back">Voltar</a>
-            <button type="submit" class="btn-submit">Cadastrar</button>
+            <a href="{{ url_for('painel') }}" class="btn-back">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Voltar
+            </a>
+            <button type="submit" class="btn-submit">
+                <i class="fas fa-save mr-2"></i>
+                Cadastrar Veículo
+            </button>
         </div>
     </form>
 </div>
@@ -113,22 +370,43 @@
 {{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Popula o select de anos
-    // CORRIGIDO: document.getElementById('ano')
-    const selectAno = document.getElementById('ano');
-    if (selectAno) {
+    
+    // Popula os selects de ano
+    const selectAnoFab = document.getElementById('ano_fabricacao');
+    const selectAnoMod = document.getElementById('ano_modelo');
+    
+    if (selectAnoFab && selectAnoMod) {
         const anoAtual = new Date().getFullYear();
-        for (let ano = anoAtual; ano >= 2000; ano--) {
+        
+        // Popula ano de fabricação
+        for (let ano = anoAtual; ano >= 1980; ano--) {
             const option = document.createElement('option');
             option.value = ano;
             option.text = ano;
-            selectAno.appendChild(option);
+            selectAnoFab.appendChild(option);
         }
+        
+        // Popula ano modelo (geralmente ano+1)
+        for (let ano = anoAtual + 1; ano >= 1980; ano--) {
+            const option = document.createElement('option');
+            option.value = ano;
+            option.text = ano;
+            selectAnoMod.appendChild(option);
+        }
+        
+        // Auto-seleciona ano modelo baseado no ano de fabricação
+        selectAnoFab.addEventListener('change', function() {
+            if (this.value) {
+                const anoModelo = parseInt(this.value) + 1;
+                if (anoModelo <= anoAtual + 1) {
+                    selectAnoMod.value = anoModelo;
+                }
+            }
+        });
     }
 
-    // Formata o campo de valor para moeda brasileira
-    // CORRIGIDO: document.getElementById('valor')
-    const inputValor = document.getElementById('valor');
+    // Formata campos de valor
+    const inputValor = document.getElementById('valor_aquisicao');
     if (inputValor) {
         inputValor.addEventListener('input', function (e) {
             let value = e.target.value.replace(/\D/g, '');
@@ -143,10 +421,155 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        // Ao submeter o formulário, o campo deve conter apenas o número
+        // Converte para número no submit
         inputValor.closest('form').addEventListener('submit', function() {
             let value = inputValor.value.replace(/\D/g, '');
             inputValor.value = (Number(value) / 100).toFixed(2);
+        });
+    }
+
+    // Máscara para placa (Mercosul e antiga)
+    const inputPlaca = document.getElementById('placa');
+    if (inputPlaca) {
+        inputPlaca.addEventListener('input', function(e) {
+            let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            
+            // Formato Mercosul: ABC1D23
+            if (value.length <= 7) {
+                if (value.length > 3) {
+                    value = value.substring(0, 3) + value.substring(3);
+                }
+                e.target.value = value;
+            }
+        });
+    }
+
+    // Máscara para RENAVAM (apenas números)
+    const inputRenavam = document.getElementById('renavam');
+    if (inputRenavam) {
+        inputRenavam.addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/\D/g, '');
+        });
+    }
+
+    // Máscara para chassi (maiúsculo)
+    const inputChassi = document.getElementById('chassi');
+    if (inputChassi) {
+        inputChassi.addEventListener('input', function(e) {
+            e.target.value = e.target.value.toUpperCase();
+        });
+    }
+
+    // Upload de fotos com drag and drop
+    const fileUploadArea = document.getElementById('fileUploadArea');
+    const fileInput = document.getElementById('fotos');
+    const previewContainer = document.getElementById('previewContainer');
+
+    if (fileUploadArea && fileInput && previewContainer) {
+        // Click para selecionar arquivos
+        fileUploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // Drag and drop
+        fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.add('dragover');
+        });
+
+        fileUploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
+        });
+
+        fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+            handleFiles(files);
+        });
+
+        // Mudança no input file
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(Array.from(e.target.files));
+        });
+
+        function handleFiles(files) {
+            // Limita a 5 fotos
+            const limitedFiles = files.slice(0, 5);
+            
+            previewContainer.innerHTML = '';
+            
+            limitedFiles.forEach((file, index) => {
+                if (file.size > 5 * 1024 * 1024) { // 5MB
+                    alert(`Arquivo ${file.name} é muito grande. Máximo 5MB.`);
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const previewDiv = document.createElement('div');
+                    previewDiv.className = 'relative group';
+                    previewDiv.innerHTML = `
+                        <img src="${e.target.result}" alt="Preview ${index + 1}" 
+                             class="w-full h-20 object-cover rounded border">
+                        <button type="button" 
+                                class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                                onclick="this.parentElement.remove()">
+                            ×
+                        </button>
+                    `;
+                    previewContainer.appendChild(previewDiv);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+    }
+
+    // Validação do formulário
+    const form = document.getElementById('vehicleForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Validações customizadas podem ser adicionadas aqui
+            const placa = document.getElementById('placa').value;
+            const placaRegex = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/;
+            
+            if (!placaRegex.test(placa)) {
+                e.preventDefault();
+                alert('Por favor, insira uma placa válida no formato ABC1D23 ou ABC1234');
+                return;
+            }
+
+            // Confirmar se o usuário quer salvar
+            if (!confirm('Deseja cadastrar este veículo?')) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    // Auto-completar campos baseado em outros
+    const inputMarca = document.getElementById('marca');
+    const inputModelo = document.getElementById('modelo');
+    
+    // Sugestões de modelos por marca (pode ser expandido)
+    const modelosPorMarca = {
+        'Scania': ['R440', 'R480', 'P310', 'P360', 'P410', 'G440'],
+        'Volvo': ['FH440', 'FH460', 'FH540', 'FM350', 'VM260'],
+        'Mercedes-Benz': ['Atego', 'Axor', 'Actros', 'Sprinter'],
+        'Iveco': ['Daily', 'Tector', 'Stralis', 'Hi-Way'],
+        'MAN': ['TGX', 'TGS', 'TGL'],
+        'DAF': ['XF', 'CF', 'LF'],
+        'Ford': ['Cargo', 'F-250', 'F-350', 'F-4000'],
+        'Volkswagen': ['Delivery', 'Worker', 'Constellation']
+    };
+
+    if (inputMarca && inputModelo) {
+        inputMarca.addEventListener('input', function() {
+            const marca = this.value.trim();
+            if (modelosPorMarca[marca]) {
+                // Aqui poderia implementar um dropdown de sugestões
+                console.log('Modelos disponíveis:', modelosPorMarca[marca]);
+            }
         });
     }
 });
