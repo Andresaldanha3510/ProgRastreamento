@@ -278,13 +278,16 @@ class ItemFolhaPagamento(db.Model):
     __tablename__ = 'item_folha_pagamento'
     id = db.Column(db.Integer, primary_key=True)
     folha_pagamento_id = db.Column(db.Integer, db.ForeignKey('folha_pagamento.id'), nullable=False)
+    
+    # --- LINHA ADICIONADA AQUI ---
+    viagem_id = db.Column(db.Integer, db.ForeignKey('viagem.id'), nullable=True, index=True)
+    
     tipo = db.Column(db.String(10), nullable=False, index=True) # 'Provento' ou 'Desconto'
     descricao = db.Column(db.String(255), nullable=False)
     valor = db.Column(db.Float, nullable=False)
 
     def __repr__(self):
         return f'<ItemFolhaPagamento {self.id} - {self.tipo}: {self.descricao}>'
-
 
 class Manutencao(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -418,45 +421,80 @@ class ItemRomaneio(db.Model):
 
 class Veiculo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    placa = db.Column(db.String(7), unique=True, nullable=False, index=True)
-    categoria = db.Column(db.String(50), nullable=True)
-    modelo = db.Column(db.String(50), nullable=False)
-    marca = db.Column(db.String(50), nullable=True)
-    renavam = db.Column(db.String(20), nullable=True)
-    ano = db.Column(db.Integer, nullable=True)
-    valor = db.Column(db.Float, nullable=True)
-    km_rodados = db.Column(db.Float, nullable=True, default=0.0)
-    ultima_manutencao = db.Column(db.Date, nullable=True)
-    consumo_medio_km_l = db.Column(db.Float, nullable=True, default=10.0) # Ex: 10.0 km/l
-    
-    # Campo 'disponivel' foi substituído por 'status'
-    status = db.Column(db.String(50), default='Disponível') # Ex: Disponível, Em Rota, Em Manutenção
-    
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    placa = db.Column(db.String(7), unique=True, nullable=False, index=True)
+    modelo = db.Column(db.String(100), nullable=False)
+    categoria = db.Column(db.String(50), nullable=True)
+    status = db.Column(db.String(50), nullable=True, default='Disponível')
+    marca = db.Column(db.String(100), nullable=True)
+    ano_fabricacao = db.Column(db.Integer, nullable=True)
+    ano_modelo = db.Column(db.Integer, nullable=True)
+    cor = db.Column(db.String(50), nullable=True)
+    combustivel = db.Column(db.String(50), nullable=True)
+
+    renavam = db.Column(db.String(11), nullable=True, unique=True)
+    chassi = db.Column(db.String(17), nullable=True, unique=True)
+    numero_motor = db.Column(db.String(50), nullable=True)
+    crlv_numero = db.Column(db.String(50), nullable=True)
+    crlv_vencimento = db.Column(db.Date, nullable=True)
+    seguro_numero = db.Column(db.String(100), nullable=True)
+    seguro_seguradora = db.Column(db.String(100), nullable=True)
+    seguro_vencimento = db.Column(db.Date, nullable=True)
+
+    capacidade_carga_kg = db.Column(db.Float, nullable=True)
+    peso_bruto_total_kg = db.Column(db.Float, nullable=True)
+    eixos = db.Column(db.Integer, nullable=True)
+    cilindrada = db.Column(db.String(20), nullable=True)
+    potencia_cv = db.Column(db.Integer, nullable=True)
+    tanque_combustivel_litros = db.Column(db.Integer, nullable=True)
+    consumo_medio_km_l = db.Column(db.Float, nullable=True)
+
+    km_atual = db.Column(db.Float, nullable=True)
+    valor_aquisicao = db.Column(db.Float, nullable=True)
+    data_aquisicao = db.Column(db.Date, nullable=True)
+    ultima_manutencao = db.Column(db.Date, nullable=True)
+    km_ultima_manutencao = db.Column(db.Float, nullable=True)
+    proxima_manutencao = db.Column(db.Date, nullable=True)
+    motorista_padrao_id = db.Column(db.Integer, db.ForeignKey('motorista.id'), nullable=True)
+
+    observacoes = db.Column(db.Text, nullable=True)
+    fotos_urls = db.Column(db.Text, nullable=True)
 
     viagens = db.relationship('Viagem', backref='veiculo', lazy=True, cascade="all, delete-orphan")
-    
-    # Novos relacionamentos para o sistema de oficina
     manutencoes = db.relationship('Manutencao', back_populates='veiculo', lazy='dynamic', cascade="all, delete-orphan")
     planos_associados = db.relationship('VeiculoPlano', back_populates='veiculo', cascade="all, delete-orphan")
 
-    # MÉTODO CORRIGIDO E COMPLETO
+    @property
+    def km_rodados(self):
+        return self.km_atual
+
+    @property
+    def ano(self):
+        return self.ano_modelo
+        
     def to_dict(self):
+        veiculo_display = f"{self.marca or ''} {self.modelo or ''}"
+        ano_display = self.ano_modelo or self.ano_fabricacao or "N/A"
+        km_display = f"{int(self.km_atual)} km" if self.km_atual is not None else "Não informado"
+        data_cadastro_str = self.created_at.isoformat() if self.created_at else None
+
         return {
             'id': self.id,
             'placa': self.placa,
-            'modelo': self.modelo,
-            'marca': self.marca,
-            'ano': self.ano,  # <-- ADICIONADO
-            'quilometragem': self.km_rodados,  # <-- ADICIONADO (e renomeado para o JS)
-            'status': self.status,
-            'created_at': self.created_at.isoformat() if self.created_at else None # <-- ADICIONADO para ordenação
+            'veiculo': veiculo_display.strip(),
+            'modelo': self.modelo or '',
+            'marca': self.marca or '',
+            'ano': ano_display,
+            'status': self.status or 'Disponível',
+            'created_at': data_cadastro_str,
+            'quilometragem': self.km_atual
         }
-
+    
     def __repr__(self):
-        return f'<Veiculo {self.modelo} {self.placa}>'
-
+        return f'<Veiculo {self.marca} {self.modelo} {self.placa}>'
+    
 class PlanoDeManutencao(db.Model):
     __tablename__ = 'plano_de_manutencao'
     id = db.Column(db.Integer, primary_key=True)
@@ -3146,59 +3184,90 @@ def cadastrar_veiculo():
     if request.method == 'POST':
         try:
             placa = request.form.get('placa', '').strip().upper()
-            modelo = request.form.get('modelo', '').strip()
-            
-            if not placa or not modelo:
-                flash('Placa e modelo são obrigatórios.', 'error')
-                return redirect(url_for('cadastrar_veiculo'))
-
             if not validate_placa(placa):
-                flash('Placa inválida. Deve conter 7 caracteres alfanuméricos.', 'error')
-                return redirect(url_for('cadastrar_veiculo'))
-            
+                flash('Placa inválida. Use o formato ABC1D23 ou ABC1234.', 'error')
+                return render_template('cadastrar_veiculo.html', form_data=request.form)
+
             if Veiculo.query.filter_by(placa=placa, empresa_id=current_user.empresa_id).first():
-                flash('Erro: Um veículo com esta placa já foi cadastrado.', 'error')
-                return redirect(url_for('cadastrar_veiculo'))
+                flash(f'Erro: Um veículo com a placa {placa} já foi cadastrado.', 'error')
+                return render_template('cadastrar_veiculo.html', form_data=request.form)
 
-            # --- CORREÇÃO APLICADA AQUI ---
-            # Conversão e validação dos dados em um único lugar, sem repetição
+            fotos_urls = []
+            files = request.files.getlist('fotos[]')
+            if files and any(f and f.filename for f in files):
+                s3_client = boto3.client(
+                    's3',
+                    endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+                    aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+                    aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
+                    region_name='auto'
+                )
+                bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
+                public_url_base = app.config['CLOUDFLARE_R2_PUBLIC_URL']
+
+                for file in files:
+                    if file and file.filename:
+                        filename = secure_filename(file.filename)
+                        s3_path = f"veiculos/{placa}/fotos/{uuid.uuid4()}-{filename}"
+                        
+                        s3_client.upload_fileobj(
+                            file, bucket_name, s3_path,
+                            ExtraArgs={'ContentType': file.content_type or 'application/octet-stream'}
+                        )
+                        fotos_urls.append(f"{public_url_base}/{s3_path}")
             
-            ano_str = request.form.get('ano')
-            ano = int(ano_str) if ano_str else None
-            if ano and (ano < 1900 or ano > datetime.now().year):
-                flash('Ano do veículo inválido.', 'error')
-                return redirect(url_for('cadastrar_veiculo'))
-
-            valor_str = request.form.get('valor')
-            valor = float(valor_str) if valor_str else None
-
-            km_rodados_str = request.form.get('km_rodados')
-            km_rodados = float(km_rodados_str) if km_rodados_str else 0.0
-
-            marca = request.form.get('marca', '').strip()
-            renavam = re.sub(r'\D', '', request.form.get('renavam', ''))
-
-            ultima_manutencao_str = request.form.get('ultima_manutencao')
-            ultima_manutencao = datetime.strptime(ultima_manutencao_str, '%Y-%m-%d').date() if ultima_manutencao_str else None
+            def to_date(date_string):
+                return datetime.strptime(date_string, '%Y-%m-%d').date() if date_string else None
             
-            if ultima_manutencao and ultima_manutencao > date.today():
-                flash('Data de última manutenção não pode ser no futuro.', 'error')
-                return redirect(url_for('cadastrar_veiculo'))
-            
-            # --- FIM DA CORREÇÃO ---
+            def to_float(num_string):
+                return float(num_string) if num_string else None
+
+            def to_int(num_string):
+                return int(num_string) if num_string else None
 
             novo_veiculo = Veiculo(
+                empresa_id=current_user.empresa_id,
+                
                 placa=placa,
-                categoria=request.form.get('categoria', '').strip(),
-                modelo=modelo,
-                ano=ano,
-                marca=marca,
-                renavam=renavam,
-                valor=valor,
-                km_rodados=km_rodados,
-                ultima_manutencao=ultima_manutencao,
-                status='Disponível',
-                empresa_id=current_user.empresa_id
+                categoria=request.form.get('categoria'),
+                status=request.form.get('status'),
+                modelo=request.form.get('modelo'),
+                marca=request.form.get('marca'),
+                ano_fabricacao=to_int(request.form.get('ano_fabricacao')),
+                ano_modelo=to_int(request.form.get('ano_modelo')),
+                cor=request.form.get('cor').strip() or None,
+                combustivel=request.form.get('combustivel') or None,
+                
+                # --- CORREÇÃO APLICADA AQUI ---
+                renavam=request.form.get('renavam').strip() or None,
+                chassi=request.form.get('chassi').strip() or None,
+                numero_motor=request.form.get('numero_motor').strip() or None,
+                crlv_numero=request.form.get('crlv_numero').strip() or None,
+                # ------------------------------
+
+                crlv_vencimento=to_date(request.form.get('crlv_vencimento')),
+                seguro_numero=request.form.get('seguro_numero').strip() or None,
+                seguro_seguradora=request.form.get('seguro_seguradora').strip() or None,
+                seguro_vencimento=to_date(request.form.get('seguro_vencimento')),
+                
+                capacidade_carga_kg=to_float(request.form.get('capacidade_carga')),
+                peso_bruto_total_kg=to_float(request.form.get('peso_bruto')),
+                eixos=to_int(request.form.get('eixos')),
+                cilindrada=request.form.get('cilindrada').strip() or None,
+                potencia_cv=to_int(request.form.get('potencia')),
+                tanque_combustivel_litros=to_int(request.form.get('tanque_combustivel')),
+                consumo_medio_km_l=to_float(request.form.get('consumo_medio')),
+                
+                valor_aquisicao=to_float(request.form.get('valor_aquisicao')),
+                data_aquisicao=to_date(request.form.get('data_aquisicao')),
+                km_atual=to_float(request.form.get('km_atual')),
+                ultima_manutencao=to_date(request.form.get('ultima_manutencao')),
+                km_ultima_manutencao=to_float(request.form.get('km_ultima_manutencao')),
+                proxima_manutencao=to_date(request.form.get('proxima_manutencao')),
+                motorista_padrao_id=to_int(request.form.get('motorista_padrao')),
+                
+                observacoes=request.form.get('observacoes').strip() or None,
+                fotos_urls=','.join(fotos_urls) if fotos_urls else None
             )
 
             db.session.add(novo_veiculo)
@@ -3206,17 +3275,17 @@ def cadastrar_veiculo():
             flash('Veículo cadastrado com sucesso!', 'success')
             return redirect(url_for('consultar_veiculos'))
 
-        except ValueError:
+        except (ValueError, TypeError) as e:
             db.session.rollback()
+            logger.error(f"Erro de tipo/valor ao cadastrar veículo: {e}", exc_info=True)
             flash('Erro de valor inválido. Verifique se os números e datas estão corretos.', 'error')
         except Exception as e:
             db.session.rollback()
             logger.error(f"Erro ao cadastrar veículo: {e}", exc_info=True)
             flash(f'Ocorreu um erro inesperado ao cadastrar o veículo: {e}', 'error')
         
-        return redirect(url_for('cadastrar_veiculo'))
+        return render_template('cadastrar_veiculo.html', form_data=request.form, active_page='cadastrar_veiculo')
 
-    # Para requisições GET
     return render_template('cadastrar_veiculo.html', active_page='cadastrar_veiculo')
 
 @app.route('/consultar_veiculos', methods=['GET'])
@@ -3244,67 +3313,54 @@ def consultar_veiculos():
     return render_template('consultar_veiculos.html', veiculos=veiculos_json, search_query=search_query, active_page='consultar_veiculos')
 
 @app.route('/editar_veiculo/<int:veiculo_id>', methods=['GET', 'POST'])
+@login_required
 def editar_veiculo(veiculo_id):
     veiculo = Veiculo.query.filter_by(id=veiculo_id, empresa_id=current_user.empresa_id).first_or_404()
+    motoristas = Motorista.query.filter_by(empresa_id=current_user.empresa_id).order_by(Motorista.nome).all()
 
     if request.method == 'POST':
         try:
-            # 1. Obter todos os dados do formulário
-            placa = request.form.get('placa', '').strip().upper()
-            categoria = request.form.get('categoria', '').strip()
-            modelo = request.form.get('modelo', '').strip()
-            ano_str = request.form.get('ano', '').strip()
-            valor_str = request.form.get('valor', '').strip()
-            km_rodados_str = request.form.get('km_rodados', '').strip()
-            ultima_manutencao_str = request.form.get('ultima_manutencao', '').strip()
+            def to_int(val): return int(val) if val and val.strip() else None
+            def to_float(val): return float(val) if val and val.strip() else None
+            def to_date(val): return datetime.strptime(val, '%Y-%m-%d').date() if val and val.strip() else None
 
-            # 2. Validações (essencial para integridade dos dados)
-            if not placa or not modelo:
-                flash('Placa e modelo são obrigatórios.', 'error')
-                return redirect(url_for('consultar_veiculos'))
+            veiculo.categoria = request.form.get('categoria')
+            veiculo.status = request.form.get('status')
+            veiculo.modelo = request.form.get('modelo')
+            veiculo.marca = request.form.get('marca')
+            veiculo.ano_fabricacao = to_int(request.form.get('ano_fabricacao'))
+            veiculo.ano_modelo = to_int(request.form.get('ano_modelo'))
+            veiculo.cor = request.form.get('cor').strip() or None
+            veiculo.combustivel = request.form.get('combustivel') or None
 
-            if not validate_placa(placa):
-                flash('Placa inválida. Deve conter 7 caracteres alfanuméricos.', 'error')
-                return redirect(url_for('consultar_veiculos'))
+            # --- CORREÇÃO APLICADA AQUI ---
+            veiculo.renavam = request.form.get('renavam').strip() or None
+            veiculo.chassi = request.form.get('chassi').strip() or None
+            veiculo.crlv_numero = request.form.get('crlv_numero').strip() or None
+            # ------------------------------
             
-            veiculo_existente = Veiculo.query.filter(Veiculo.placa == placa, Veiculo.id != veiculo_id, Veiculo.empresa_id == current_user.empresa_id).first()
-            if veiculo_existente:
-                flash('Erro: Placa já cadastrada para outro veículo.', 'error')
-                return redirect(url_for('consultar_veiculos'))
-
-            # =================================================================
-            # 3. ATRIBUIR OS NOVOS VALORES AO OBJETO (A PARTE CRÍTICA)
-            # =================================================================
-            veiculo.placa = placa
-            veiculo.categoria = categoria or None
-            veiculo.modelo = modelo
-
-            # Tratar conversão de tipos para campos numéricos e de data
-            veiculo.ano = int(ano_str) if ano_str else None
-            veiculo.valor = float(valor_str) if valor_str else None
-            veiculo.km_rodados = float(km_rodados_str) if km_rodados_str else None
+            veiculo.crlv_vencimento = to_date(request.form.get('crlv_vencimento'))
             
-            if ultima_manutencao_str:
-                veiculo.ultima_manutencao = datetime.strptime(ultima_manutencao_str, '%Y-%m-%d').date()
-            else:
-                veiculo.ultima_manutencao = None
+            veiculo.km_atual = to_float(request.form.get('km_atual'))
+            veiculo.motorista_padrao_id = to_int(request.form.get('motorista_padrao_id'))
+            veiculo.observacoes = request.form.get('observacoes').strip() or None
 
-            # 4. SALVAR (COMMIT) AS ALTERAÇÕES NO BANCO DE DADOS
-            # Agora o commit terá o que salvar.
             db.session.commit()
+            
             flash('Veículo atualizado com sucesso!', 'success')
+            return redirect(url_for('consultar_veiculos'))
 
         except Exception as e:
             db.session.rollback()
             logger.error(f"Erro ao editar o veículo {veiculo_id}: {e}", exc_info=True)
             flash(f'Ocorreu um erro inesperado ao salvar: {str(e)}', 'error')
-        
-        # O redirecionamento acontece após o try/except
-        return redirect(url_for('consultar_veiculos'))
+            return redirect(url_for('editar_veiculo', veiculo_id=veiculo_id))
 
-    # Para requisições GET, a função continua a mesma, renderizando a página de edição
-    return render_template('editar_veiculo.html', veiculo=veiculo, active_page='consultar_veiculos')
-
+    return render_template('editar_veiculo.html', 
+                           veiculo=veiculo, 
+                           motoristas=motoristas, 
+                           active_page='consultar_veiculos')
+                           
 @app.route('/excluir_veiculo/<int:veiculo_id>')
 @login_required
 def excluir_veiculo(veiculo_id):
