@@ -36,6 +36,7 @@ import click
 from pathlib import Path
 from functools import wraps
 
+
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -93,6 +94,8 @@ for k in required_r2:
 
 
 app = Flask(__name__)
+
+
 
 app.config.update(
     MAIL_SERVER='smtp.gmail.com',
@@ -924,18 +927,25 @@ def folha_pagamento_dashboard():
     
     folhas = query.order_by(Motorista.nome).all()
     
+    # Cálculos para o dashboard
+    total_proventos_geral = sum(f.total_proventos for f in folhas)
+    total_descontos_geral = sum(f.total_descontos for f in folhas)
+    total_liquido_geral = sum(f.salario_liquido for f in folhas)
+
     return render_template('folha_pagamento_dashboard.html', 
                            folhas=folhas,
                            mes_filtro=mes_filtro,
                            ano_filtro=ano_filtro,
                            search_query=motorista_filtro,
+                           total_proventos=total_proventos_geral,
+                           total_descontos=total_descontos_geral,
+                           total_liquido=total_liquido_geral,
+                           ano_atual=hoje.year,
                            active_page='folha_pagamento')
 
+
 def calcular_consumo_medio_real(veiculo_id, periodo_dias=90):
-    """
-    Calcula o consumo médio real (km/l) de um veículo com base no histórico
-    de abastecimentos nos últimos 'periodo_dias'.
-    """
+  
     try:
         # 1. Define o período de análise (padrão: últimos 90 dias)
         data_limite = datetime.utcnow() - timedelta(days=periodo_dias)
@@ -1153,25 +1163,28 @@ def gerar_folhas_mes():
                 status='Em Aberto'
             )
             db.session.add(folha)
-            db.session.flush()
+            db.session.flush() # Garante que a folha tenha um ID antes de adicionar itens
             criadas += 1
         elif folha.status != 'Em Aberto':
-            continue
+            continue # Pula folhas já fechadas ou pagas
         else:
             atualizadas += 1
 
+        # --- LÓGICA DE INTEGRAÇÃO DE FRETES ---
+        # 1. Busca todas as viagens concluídas do motorista no mês que são fretes (custo > 0)
         viagens_do_mes = Viagem.query.filter(
             Viagem.motorista_id == motorista.id,
             Viagem.status == 'concluida',
-            Viagem.custo_motorista_variavel > 0,
-            extract('month', Viagem.data_inicio) == mes,
-            extract('year', Viagem.data_inicio) == ano
+            Viagem.custo_motorista_variavel > 0, # Filtra apenas fretes com valor
+            extract('month', Viagem.data_fim) == mes,
+            extract('year', Viagem.data_fim) == ano
         ).all()
 
+        # 2. Para cada viagem, adiciona um provento na folha se ainda não existir
         for viagem in viagens_do_mes:
             item_existente = ItemFolhaPagamento.query.filter_by(
                 folha_pagamento_id=folha.id,
-                viagem_id=viagem.id
+                viagem_id=viagem.id # Checa se o item já foi lançado para essa viagem específica
             ).first()
 
             if not item_existente:
@@ -1180,10 +1193,11 @@ def gerar_folhas_mes():
                     tipo='Provento',
                     descricao=f"Frete: {viagem.cliente} ({viagem.data_inicio.strftime('%d/%m')})",
                     valor=viagem.custo_motorista_variavel,
-                    viagem_id=viagem.id
+                    viagem_id=viagem.id # Linka o item à viagem
                 )
                 db.session.add(novo_provento)
         
+        # 3. Recalcula os totais da folha após adicionar os proventos
         folha.recalcular_totais()
             
     try:
@@ -1416,6 +1430,8 @@ def parse_nfe_xml(xml_file):
     except Exception as e:
         logger.error(f"Erro ao processar XML: {e}", exc_info=True)
         return None
+
+
 
 @app.route('/veiculo/<int:veiculo_id>/lancar_despesa_diversa', methods=['POST'])
 @login_required
@@ -1851,13 +1867,17 @@ def registrar_com_token(token):
         # Flush para garantir que `usuario.id` seja gerado antes de atualizar Motorista
         db.session.flush()
 
-        # --- AQUI: busca o Motorista existente e vincula o usuario_id ---
-        motorista = Motorista.query.filter_by(
-            cpf_cnpj=cpf_cnpj,
-            empresa_id=convite.empresa_id
-        ).first()
-        if motorista:
-            motorista.usuario_id = usuario.id
+        # --- INÍCIO DA CORREÇÃO ---
+        # Esta lógica agora só é executada se o convite for para um 'Motorista'.
+        # Para Admins e outros papéis, ela é corretamente ignorada.
+        if convite.role == 'Motorista':
+            motorista = Motorista.query.filter_by(
+                cpf=cpf_cnpj,  # Corrigido de 'cpf_cnpj' para 'cpf'
+                empresa_id=convite.empresa_id
+            ).first()
+            if motorista:
+                motorista.usuario_id = usuario.id
+        # --- FIM DA CORREÇÃO ---
 
         # Finalmente commit de tudo em bloco único
         db.session.commit()
@@ -4690,69 +4710,125 @@ def previsao_custos_manutencao():
 @app.route('/exportar_relatorio')
 @login_required
 def exportar_relatorio():
+    """
+    Gera e exporta um relatório detalhado de viagens em formato Excel (XLSX),
+    com formatação aprimorada e quebras de custo.
+    """
     try:
-        data_inicio = request.args.get('data_inicio', '')
-        data_fim = request.args.get('data_fim', '')
-        motorista_id_filter = request.args.get('motorista_id', '') # Renomeado
-        status_filter = request.args.get('status', '')
+        # 1. Pega os mesmos filtros da página 'consultar_viagens'
+        args = request.args
+        query = Viagem.query.filter_by(empresa_id=current_user.empresa_id)
 
-        query = Viagem.query
+        if data_inicio_str := args.get('data_inicio'):
+            query = query.filter(Viagem.data_inicio >= datetime.strptime(data_inicio_str, '%Y-%m-%d'))
+        if data_fim_str := args.get('data_fim'):
+            data_fim_obj = datetime.strptime(data_fim_str, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(Viagem.data_inicio < data_fim_obj)
+        if motorista_id := args.get('motorista_id', type=int):
+            query = query.filter(Viagem.motorista_id == motorista_id)
+        if status := args.get('status'):
+            query = query.filter(Viagem.status == status)
+        if search_query := args.get('search'):
+             search_term = f'%{search_query}%'
+             query = query.outerjoin(Motorista, Viagem.motorista_id == Motorista.id).filter(
+                or_(
+                    Viagem.cliente.ilike(search_term),
+                    Motorista.nome.ilike(search_term),
+                    Viagem.veiculo.has(Veiculo.placa.ilike(search_term))
+                )
+            )
 
-        if data_inicio:
-            query = query.filter(Viagem.data_inicio >= datetime.strptime(data_inicio, '%Y-%m-%d'))
-        if data_fim:
-            query = query.filter(Viagem.data_inicio <= datetime.strptime(data_fim, '%Y-%m-%d'))
-        if motorista_id_filter:
-            query = query.filter_by(motorista_id=motorista_id_filter)
-        if status_filter:
-            query = query.filter_by(status=status_filter)
-
-        viagens = query.outerjoin(Motorista).outerjoin(Veiculo).all() # Usar outerjoin para não excluir viagens sem motorista formal
+        # 2. Carrega eficientemente todos os dados relacionados para evitar múltiplas consultas
+        viagens = query.options(
+            db.joinedload(Viagem.motorista_formal),
+            db.joinedload(Viagem.veiculo),
+            db.joinedload(Viagem.custo_viagem),
+            db.joinedload(Viagem.abastecimentos),
+            db.joinedload(Viagem.destinos)
+        ).order_by(Viagem.data_inicio.desc()).all()
 
         output = io.BytesIO()
         workbook = Workbook()
         sheet = workbook.active
-        sheet.title = "Relatório Financeiro"
+        sheet.title = "Relatório Detalhado de Viagens"
 
+        # 3. Define os novos cabeçalhos detalhados
         headers = [
-            "ID", "Data", "Cliente", "Motorista", "Veículo",
-            "Distância (km)", "Receita (R$)", "Custo (R$)", "Lucro (R$)",
-            "Forma Pagamento", "Status"
+            "ID Viagem", "Status", "Data Início", "Hora Início", "Data Fim", "Hora Fim", "Duração (HH:MM:SS)",
+            "Cliente", "Motorista", "Veículo (Placa)", "Veículo (Modelo)",
+            "Endereço Saída", "Destinos Intermediários", "Endereço Destino Final",
+            "Distância Estimada (km)", "Distância Real (km)", "Odômetro Inicial", "Odômetro Final",
+            "Receita (R$)", "Custo Real Total (R$)", "Lucro Real (R$)",
+            "Custo: Combustível (R$)", "Custo: Pedágios (R$)", "Custo: Alimentação (R$)", "Custo: Hospedagem (R$)", "Custo: Outros (R$)",
+            "Forma Pagamento", "Observações"
         ]
         
         for col_num, header in enumerate(headers, 1):
-            sheet.cell(row=1, column=col_num, value=header).font = Font(bold=True)
+            cell = sheet.cell(row=1, column=col_num, value=header)
+            cell.font = Font(bold=True)
+            cell.alignment = Alignment(horizontal='center', vertical='center')
 
+        # 4. Preenche o Excel com os dados detalhados
         for row_num, viagem in enumerate(viagens, 2):
-            receita = viagem.valor_recebido or 0
-            custo = viagem.custo or 0
-            lucro = receita - custo
+            # Extração de custos detalhados
+            custo_combustivel = sum(a.custo_total for a in viagem.abastecimentos)
+            custo_pedagios = viagem.custo_viagem.pedagios if viagem.custo_viagem else 0.0
+            custo_alimentacao = viagem.custo_viagem.alimentacao if viagem.custo_viagem else 0.0
+            custo_hospedagem = viagem.custo_viagem.hospedagem if viagem.custo_viagem else 0.0
+            custo_outros = viagem.custo_viagem.outros if viagem.custo_viagem else 0.0
             
-            motorista_nome = 'N/A'
-            if viagem.motorista_id:
-                motorista_nome = viagem.motorista_formal.nome if viagem.motorista_formal else 'N/A'
-            elif viagem.motorista_cpf_cnpj:
-                usuario_com_cpf = Usuario.query.filter_by(cpf_cnpj=viagem.motorista_cpf_cnpj).first()
-                if usuario_com_cpf:
-                    motorista_nome = f"{usuario_com_cpf.nome} {usuario_com_cpf.sobrenome}"
-                else:
-                    motorista_formal_cpf = Motorista.query.filter_by(cpf_cnpj=viagem.motorista_cpf_cnpj).first()
-                    if motorista_formal_cpf:
-                        motorista_nome = motorista_formal_cpf.nome
-            
-            veiculo_info = f"{viagem.veiculo.placa} - {viagem.veiculo.modelo}" if viagem.veiculo else 'N/A'
+            # Formatação da duração
+            duracao_fmt = "N/A"
+            if viagem.duracao_segundos:
+                duracao_fmt = str(timedelta(seconds=viagem.duracao_segundos))
 
+            # Concatenação dos destinos intermediários
+            destinos_ordenados = sorted(viagem.destinos, key=lambda d: d.ordem)
+            # Exclui o último destino, que já tem sua própria coluna
+            destinos_intermediarios = ", ".join([d.endereco for d in destinos_ordenados[:-1]])
+
+            # Preenchimento das células
             sheet.cell(row=row_num, column=1, value=viagem.id)
-            sheet.cell(row=row_num, column=2, value=viagem.data_inicio.strftime('%d/%m/%Y'))
-            sheet.cell(row=row_num, column=3, value=viagem.cliente)
-            sheet.cell(row=row_num, column=4, value=motorista_nome) # Usar o nome processado
-            sheet.cell(row=row_num, column=5, value=veiculo_info) # Usar info do veículo processada
-            sheet.cell(row=row_num, column=6, value=viagem.distancia_km or 0)
-            sheet.cell(row=row_num, column=7, value=receita)
-            sheet.cell(row=row_num, column=8, value=custo)
-            sheet.cell(row=row_num, column=9, value=lucro)
-            sheet.cell(row=row_num, column=10, value=viagem.forma_pagamento or '')
-            sheet.cell(row=row_num, column=11, value=viagem.status)
+            sheet.cell(row=row_num, column=2, value=viagem.status.replace('_', ' ').title())
+            sheet.cell(row=row_num, column=3, value=viagem.data_inicio.strftime('%d/%m/%Y'))
+            sheet.cell(row=row_num, column=4, value=viagem.data_inicio.strftime('%H:%M:%S'))
+            sheet.cell(row=row_num, column=5, value=viagem.data_fim.strftime('%d/%m/%Y') if viagem.data_fim else 'N/A')
+            sheet.cell(row=row_num, column=6, value=viagem.data_fim.strftime('%H:%M:%S') if viagem.data_fim else 'N/A')
+            sheet.cell(row=row_num, column=7, value=duracao_fmt)
+            sheet.cell(row=row_num, column=8, value=viagem.cliente)
+            sheet.cell(row=row_num, column=9, value=viagem.motorista_formal.nome if viagem.motorista_formal else 'N/A')
+            sheet.cell(row=row_num, column=10, value=viagem.veiculo.placa if viagem.veiculo else 'N/A')
+            sheet.cell(row=row_num, column=11, value=viagem.veiculo.modelo if viagem.veiculo else 'N/A')
+            sheet.cell(row=row_num, column=12, value=viagem.endereco_saida)
+            sheet.cell(row=row_num, column=13, value=destinos_intermediarios)
+            sheet.cell(row=row_num, column=14, value=viagem.endereco_destino)
+            sheet.cell(row=row_num, column=15, value=viagem.distancia_km)
+            sheet.cell(row=row_num, column=16, value=viagem.distancia_percorrida)
+            sheet.cell(row=row_num, column=17, value=viagem.odometro_inicial)
+            sheet.cell(row=row_num, column=18, value=viagem.odometro_final)
+            sheet.cell(row=row_num, column=19, value=viagem.valor_recebido or 0).number_format = 'R$ #,##0.00'
+            sheet.cell(row=row_num, column=20, value=viagem.custo_real_completo).number_format = 'R$ #,##0.00'
+            sheet.cell(row=row_num, column=21, value=viagem.lucro_real).number_format = 'R$ #,##0.00'
+            sheet.cell(row=row_num, column=22, value=custo_combustivel or 0).number_format = 'R$ #,##0.00'
+            sheet.cell(row=row_num, column=23, value=custo_pedagios or 0).number_format = 'R$ #,##0.00'
+            sheet.cell(row=row_num, column=24, value=custo_alimentacao or 0).number_format = 'R$ #,##0.00'
+            sheet.cell(row=row_num, column=25, value=custo_hospedagem or 0).number_format = 'R$ #,##0.00'
+            sheet.cell(row=row_num, column=26, value=custo_outros or 0).number_format = 'R$ #,##0.00'
+            sheet.cell(row=row_num, column=27, value=viagem.forma_pagamento or 'N/A')
+            sheet.cell(row=row_num, column=28, value=viagem.observacoes)
+
+        # 5. Auto-ajuste da largura das colunas para melhor visualização
+        for col in sheet.columns:
+            max_length = 0
+            column = col[0].column_letter # Pega a letra da coluna
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            sheet.column_dimensions[column].width = adjusted_width
 
         workbook.save(output)
         output.seek(0)
@@ -4760,14 +4836,14 @@ def exportar_relatorio():
         return send_file(
             output,
             as_attachment=True,
-            download_name=f"relatorio_financeiro_{datetime.now().strftime('%Y%m%d')}.xlsx",
+            download_name=f"relatorio_detalhado_viagens_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
     except Exception as e:
-        logger.error(f"Erro ao exportar relatório: {str(e)}", exc_info=True)
-        flash('Erro ao gerar relatório em Excel', 'error')
-        return redirect(url_for('relatorios'))
-
+        logger.error(f"Erro ao exportar relatório detalhado: {str(e)}", exc_info=True)
+        flash('Ocorreu um erro inesperado ao gerar o relatório em Excel.', 'error')
+        # Redireciona de volta para a página de consulta, mantendo os filtros
+        return redirect(url_for('consultar_viagens', **request.args))
 @app.route('/get_active_trip')
 @login_required
 def get_active_trip():
@@ -5506,6 +5582,94 @@ def veiculo_dashboard(veiculo_id):
 @app.template_filter('get_usuario')
 def get_usuario(cpf_cnpj):
     return Usuario.query.filter_by(cpf_cnpj=cpf_cnpj).first()
+
+@app.route('/financeiro/folha_pagamento/exportar')
+@login_required
+@master_required
+def exportar_folha_excel():
+    mes = request.args.get('mes', type=int)
+    ano = request.args.get('ano', type=int)
+
+    if not mes or not ano:
+        flash('Mês e Ano são obrigatórios para exportar.', 'error')
+        return redirect(url_for('folha_pagamento_dashboard'))
+
+    folhas = FolhaPagamento.query.filter(
+        FolhaPagamento.empresa_id == current_user.empresa_id,
+        FolhaPagamento.mes_referencia == mes,
+        FolhaPagamento.ano_referencia == ano
+    ).join(Motorista).order_by(Motorista.nome).all()
+
+    if not folhas:
+        flash('Nenhuma folha de pagamento encontrada para este período.', 'warning')
+        return redirect(url_for('folha_pagamento_dashboard', mes=mes, ano=ano))
+
+    output = io.BytesIO()
+    workbook = Workbook()
+    
+    # --- Aba 1: Resumo ---
+    sheet_resumo = workbook.active
+    sheet_resumo.title = "Resumo Folha"
+    headers_resumo = ["Motorista", "Salário Base (R$)", "Total Proventos (R$)", "Total Descontos (R$)", "Salário Líquido (R$)"]
+    sheet_resumo.append(headers_resumo)
+    for cell in sheet_resumo[1]:
+        cell.font = Font(bold=True)
+
+    for folha in folhas:
+        row = [
+            folha.motorista.nome,
+            folha.salario_base_registro,
+            folha.total_proventos,
+            folha.total_descontos,
+            folha.salario_liquido
+        ]
+        sheet_resumo.append(row)
+
+    # --- Aba 2: Detalhado ---
+    sheet_detalhado = workbook.create_sheet("Detalhado")
+    headers_detalhado = ["ID Folha", "Motorista", "Tipo", "Descrição", "Valor (R$)"]
+    sheet_detalhado.append(headers_detalhado)
+    for cell in sheet_detalhado[1]:
+        cell.font = Font(bold=True)
+
+    for folha in folhas:
+        # Adiciona o salário base como um provento
+        sheet_detalhado.append([folha.id, folha.motorista.nome, "Provento", "Salário Base", folha.salario_base_registro])
+        
+        itens_ordenados = sorted(folha.itens.all(), key=lambda item: item.tipo)
+        for item in itens_ordenados:
+            row = [
+                folha.id,
+                folha.motorista.nome,
+                item.tipo,
+                item.descricao,
+                item.valor
+            ]
+            sheet_detalhado.append(row)
+    
+    # Autoajuste de colunas
+    for sheet in workbook.worksheets:
+        for col in sheet.columns:
+            max_length = 0
+            column = col[0].column_letter
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            sheet.column_dimensions[column].width = adjusted_width
+
+    workbook.save(output)
+    output.seek(0)
+    
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=f"folha_pagamento_{mes:02d}_{ano}.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 @app.route('/romaneio/<int:romaneio_id>', methods=['GET'])
 @login_required
