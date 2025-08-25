@@ -7,6 +7,19 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBh_dlLDOc=" crossorigin=""/>
 <style>
     .modal-content.mapa { max-width: 100vw; width: 1400px; }
+    
+    /* NOVO: Estilo para o modal em tela cheia */
+    #mapModal.fullscreen .modal-content.mapa {
+        width: 100vw;
+        height: 100vh;
+        max-width: 100vw;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+    #mapModal.fullscreen {
+        padding: 0;
+    }
+
     .modal-content.despesas { max-width: 700px; }
     #map-container { height: 75vh; width: 100%; border-radius: 0.5rem; }
     .btn-small { padding: .4rem .8rem; font-size: .8rem; line-height: 1.5; }
@@ -168,7 +181,6 @@
 {% block content %}
 <div class="p-4 md:p-6 bg-gray-50 min-h-screen">
     
-    <!-- Header com estatísticas rápidas -->
     <div class="mb-6">
         <div class="flex flex-col md:flex-row md:items-center justify-between mb-4">
             <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Consultar Viagens</h1>
@@ -189,7 +201,6 @@
         </div>
     </div>
 
-    <!-- Filtros melhorados com collapse -->
     <div class="bg-white rounded-xl shadow-sm mb-6 overflow-hidden" x-data="{ filtersExpanded: false }">
         <div class="p-4 border-b border-gray-100">
             <div class="flex items-center justify-between">
@@ -205,7 +216,6 @@
         </div>
         
         <form method="GET" action="{{ url_for('consultar_viagens') }}" class="p-4">
-            <!-- Filtros sempre visíveis -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
                     <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Busca Rápida</label>
@@ -228,7 +238,6 @@
                 </div>
             </div>
 
-            <!-- Filtros expandíveis -->
             <div x-show="filtersExpanded" x-collapse>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 pt-4 border-t border-gray-100">
                     <div>
@@ -287,7 +296,6 @@
         </form>
     </div>
 
-    <!-- Ações rápidas -->
     <div class="quick-actions bg-white rounded-xl shadow-sm p-4 mb-6">
         <div class="flex flex-wrap gap-3 items-center justify-between">
             <div class="flex flex-wrap gap-3">
@@ -306,7 +314,6 @@
         </div>
     </div>
 
-    <!-- Tabela melhorada -->
     <div class="bg-white shadow-lg rounded-xl overflow-hidden">
         <table class="w-full responsive-table">
             <thead class="bg-gradient-to-r from-gray-50 to-gray-100 hidden md:table-header-group">
@@ -428,7 +435,6 @@
                     </td>
                     <td data-label="Ações" class="px-6 py-4 align-top">
                         <div class="flex flex-col gap-2">
-                            <!-- Primeira linha de ações -->
                             <div class="flex gap-1 flex-wrap">
                                 {% if viagem.public_tracking_token %}
                                     {% set tracking_link = url_for('public_tracking_page', token=viagem.public_tracking_token, _external=True) %}
@@ -453,7 +459,6 @@
                                     </button>
                                 {% endif %}
                             </div>
-                            <!-- Segunda linha de ações -->
                             <div class="flex gap-1 flex-wrap">
                                 <a href="{{ url_for('editar_viagem_page', viagem_id=viagem.id) }}" 
                                    class="btn-small text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors" 
@@ -490,7 +495,6 @@
     </div>
 </div>
 
-<!-- Modal do Mapa (melhorado) -->
 <div id="mapModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[2000] hidden" onclick="closeModal('mapModal')">
     <div class="modal-content mapa bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
         <header class="flex justify-between items-center p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-100">
@@ -498,10 +502,14 @@
                 <i class="fas fa-map-marked-alt text-blue-600"></i>
                 Rastreamento da Viagem
             </h2>
-            <button onclick="closeModal('mapModal')" 
-                    class="text-gray-400 hover:text-gray-700 text-2xl font-light transition-colors p-2 hover:bg-gray-100 rounded-lg">
-                &times;
-            </button>
+            <div class="flex items-center space-x-2">
+                <button id="fullscreenBtn" onclick="toggleMapFullscreen()" title="Alternar Tela Cheia" class="text-gray-500 hover:text-gray-700 p-2 rounded-lg text-lg transition-colors">
+                    <i class="fas fa-compress"></i> </button>
+                <button onclick="closeModal('mapModal')" 
+                        class="text-gray-400 hover:text-gray-700 text-2xl font-light transition-colors p-2 hover:bg-gray-100 rounded-lg">
+                    &times;
+                </button>
+            </div>
         </header>
         <div id="map-container" class="w-full flex-1"></div>
         <div class="p-4 bg-gray-50 border-t border-gray-200">
@@ -520,13 +528,15 @@
                         <span>Destino Final</span>
                     </div>
                 </div>
+                 <button onclick="closeModal('mapModal')" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors shadow-sm">
+                    Fechar Mapa
+                </button>
                 <div id="map-status" class="text-gray-500">Carregando...</div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal de Despesas (melhorado) -->
 <div id="despesasModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[2000] hidden" onclick="closeModal('despesasModal')">
     <div class="modal-content despesas bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
         <div id="despesasContent">
@@ -541,7 +551,6 @@
     </div>
 </div>
 
-<!-- Modal de Confirmação de Exclusão -->
 <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[2000] hidden" onclick="closeModal('deleteModal')">
     <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6" onclick="event.stopPropagation()">
         <div class="flex items-center gap-4 mb-4">
@@ -615,6 +624,28 @@
         }
     }
 
+    // NOVA FUNÇÃO para alternar o modo de tela cheia
+    function toggleMapFullscreen() {
+        const modal = document.getElementById('mapModal');
+        const icon = document.getElementById('fullscreenBtn').querySelector('i');
+        
+        modal.classList.toggle('fullscreen');
+        
+        if (modal.classList.contains('fullscreen')) {
+            icon.classList.remove('fa-expand');
+            icon.classList.add('fa-compress');
+        } else {
+            icon.classList.remove('fa-compress');
+            icon.classList.add('fa-expand');
+        }
+
+        // Redesenha o mapa para se ajustar ao novo tamanho do container
+        if (map) {
+            // Um pequeno delay garante que a transição CSS termine antes do redimensionamento do mapa
+            setTimeout(() => map.invalidateSize(), 150);
+        }
+    }
+
     function closeModal(modalId) {
         if (modalId === 'mapModal') {
             if (socket) {
@@ -628,6 +659,16 @@
             }
             driverMarker = null;
             currentTripId = null;
+
+            // MODIFICADO: Garante que o estado de tela cheia seja resetado para a próxima abertura
+            const modal = document.getElementById('mapModal');
+            if (modal.classList.contains('fullscreen')) {
+                // Apenas reverte o estado visualmente, sem a animação
+                modal.classList.remove('fullscreen');
+                const icon = document.getElementById('fullscreenBtn').querySelector('i');
+                icon.classList.remove('fa-expand');
+                icon.classList.add('fa-compress');
+            }
         }
         if (modalId === 'despesasModal') {
             document.getElementById('despesasContent').innerHTML = '';
@@ -646,6 +687,11 @@
         container.innerHTML = '<div class="h-full w-full flex items-center justify-center bg-gray-50"><div class="text-center"><i class="fas fa-spinner fa-spin text-3xl text-gray-400 mb-3"></i><p class="text-gray-500">Carregando mapa...</p></div></div>';
         statusDiv.textContent = 'Carregando...';
         modal.classList.remove('hidden');
+        
+        // MODIFICADO: Ativa a tela cheia por padrão ao abrir
+        if (!modal.classList.contains('fullscreen')) {
+            toggleMapFullscreen();
+        }
 
         try {
             const response = await fetch(`/api/viagem/${viagemId}/map_data`);
@@ -894,26 +940,26 @@
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Excluindo...';
         
         try {
-            const response = await fetch(`{{ url_for('excluir_viagem', viagem_id=0) }}`.replace('0', viagemParaExcluir), {
-                method: 'DELETE'
-            });
+            // A rota de exclusão agora é chamada via Javascript, o ideal é que seja uma API que aceite DELETE
+            // Mas para manter a compatibilidade com o backend atual que espera um GET, usamos fetch com GET
+            const response = await fetch(`{{ url_for('excluir_viagem', viagem_id=0) }}`.replace('0', viagemParaExcluir));
             
-            if (response.ok) {
-                showToast('Viagem excluída com sucesso!', 'success');
-                closeModal('deleteModal');
-                // Remover a linha da tabela com animação
-                const row = document.querySelector(`tr[data-viagem-id="${viagemParaExcluir}"]`);
-                if (row) {
-                    row.style.transition = 'all 0.3s ease';
-                    row.style.opacity = '0';
-                    row.style.transform = 'translateX(-100%)';
-                    setTimeout(() => row.remove(), 300);
-                }
+            // Como a rota de exclusão redireciona, a resposta não será JSON.
+            // Verificamos se o status é OK (200) e se não houve redirecionamento de erro.
+            if (response.ok && response.redirected === false) {
+                 showToast('Viagem excluída com sucesso!', 'success');
+                 location.reload(); // Recarrega a página para refletir a exclusão.
+            } else if (response.redirected) {
+                 // Se foi redirecionado, assumimos que funcionou e recarregamos a página.
+                 showToast('Viagem excluída com sucesso!', 'success');
+                 setTimeout(() => window.location.reload(), 1000);
             } else {
-                throw new Error('Erro ao excluir viagem');
+                 const result = await response.json().catch(() => ({ message: 'Erro desconhecido.' }));
+                 throw new Error(result.message);
             }
         } catch (error) {
             showToast('Erro ao excluir viagem: ' + error.message, 'error');
+            closeModal('deleteModal');
         } finally {
             btn.disabled = false;
             btn.innerHTML = originalText;
@@ -982,18 +1028,22 @@
     }
 
     function exportarViagens() {
-        const params = new URLSearchParams(window.location.search);
-        params.set('export', 'csv');
+        // Usa a URL da página atual e adiciona os parâmetros de filtro existentes
+        const currentUrl = new URL(window.location.href);
+        const params = currentUrl.searchParams;
         
-        const link = document.createElement('a');
-        link.href = `${window.location.pathname}?${params.toString()}`;
-        link.download = `viagens_${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Constrói a URL para a rota de exportação com os mesmos filtros
+        const exportUrl = new URL("{{ url_for('exportar_relatorio') }}", window.location.origin);
+        params.forEach((value, key) => {
+            exportUrl.searchParams.append(key, value);
+        });
+
+        // Inicia o download
+        window.location.href = exportUrl.toString();
         
-        showToast('Exportação iniciada!', 'info');
+        showToast('A exportação será iniciada em breve!', 'info');
     }
+
 
     // Event listeners
     document.addEventListener('DOMContentLoaded', function() {
@@ -1003,7 +1053,7 @@
         });
 
         // Listener para modais
-        document.querySelectorAll('.modal').forEach(modal => {
+        document.querySelectorAll('.fixed[onclick]').forEach(modal => {
             modal.addEventListener('click', function(event) {
                 if (event.target === this) {
                     closeModal(this.id);
@@ -1021,15 +1071,6 @@
             }
         });
 
-        // Auto-refresh para viagens em andamento (opcional)
-        const viagensEmAndamento = document.querySelectorAll('[data-status="em_andamento"]');
-        if (viagensEmAndamento.length > 0) {
-            setTimeout(() => {
-                if (confirm('Existem viagens em andamento. Deseja atualizar a página para ver o status mais recente?')) {
-                    location.reload();
-                }
-            }, 60000); // 1 minuto
-        }
     });
 </script>
 {% endblock %}

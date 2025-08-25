@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Configuração Fiscal - Certificado Digital A1</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 border-end">
+                    <h5>Certificado Atual</h5>
+                    <hr>
+                    {% if certificado %}
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Nome do Arquivo:</strong></label>
+                            <p class="form-control-static">{{ certificado.nome_arquivo }}</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Validade:</strong></label>
+                            <p class="form-control-static">{{ certificado.data_validade.strftime('%d/%m/%Y') }}</p>
+                        </div>
+                        
+                        {% if certificado.data_validade < hoje %}
+                            <div class="alert alert-danger" role="alert">
+                                <strong>Atenção!</strong> Seu certificado digital está vencido.
+                            </div>
+                        {% elif (certificado.data_validade - hoje).days <= 30 %}
+                             <div class="alert alert-warning" role="alert">
+                                <strong>Aviso:</strong> Seu certificado digital vence em {{ (certificado.data_validade - hoje).days }} dia(s).
+                            </div>
+                        {% else %}
+                            <div class="alert alert-success" role="alert">
+                                Certificado válido.
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-info">
+                            Nenhum certificado digital configurado para esta empresa.
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <h5>Salvar ou Atualizar Certificado</h5>
+                    <hr>
+                    <form method="POST" enctype="multipart/form-data" action="{{ url_for('configuracao_fiscal') }}">
+                        <div class="mb-3">
+                            <label for="certificado" class="form-label">Arquivo do Certificado (.pfx)</label>
+                            <input type="file" class="form-control" id="certificado" name="certificado" accept=".pfx" required>
+                            <div class="form-text">Selecione o arquivo do seu certificado digital A1.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="senha_certificado" class="form-label">Senha do Certificado</label>
+                            <input type="password" class="form-control" id="senha_certificado" name="senha_certificado" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="validade_certificado" class="form-label">Data de Vencimento</label>
+                            <input type="date" class="form-control" id="validade_certificado" name="validade_certificado" required>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save me-2"></i>Salvar Certificado
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

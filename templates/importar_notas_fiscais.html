@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;"></div>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Importação de Notas Fiscais (NF-e)</h4>
+                
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn btn-success" id="btn-consultar-sefaz">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true" id="consultar-spinner"></span>
+                        <i class="fas fa-sync-alt me-1"></i> Buscar Novas Notas na SEFAZ
+                    </button>
+
+                    <div class="input-group" style="width: 450px;">
+                        <span class="input-group-text"><i class="fas fa-barcode"></i></span>
+                        <input type="text" class="form-control form-control-lg" id="chave_acesso_input" 
+                               maxlength="44" placeholder="Bipe ou digite a chave de acesso e pressione Enter" autofocus>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <h5 class="card-title">Notas Fiscais Baixadas</h5>
+            <div class="table-responsive">
+                <table class="table table-hover table-sm">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">Emitente</th>
+                            <th scope="col">CNPJ Emitente</th>
+                            <th scope="col">Chave de Acesso</th>
+                            <th scope="col">Data Emissão</th>
+                            <th scope="col">Valor (R$)</th>
+                            <th scope="col">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for nota in notas %}
+                        <tr>
+                            <td>{{ nota.emitente_nome }}</td>
+                            <td>{{ nota.emitente_cnpj }}</td>
+                            <td>{{ nota.chave_acesso }}</td>
+                            <td>{{ nota.data_emissao.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>{{ "%.2f"|format(nota.valor_total)|replace('.', ',') }}</td>
+                            <td>
+                                {% if nota.status == 'PROCESSADA' %}
+                                    <span class="badge bg-success">Processada</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Aguardando</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                Nenhuma nota fiscal baixada ainda. Clique em "Buscar Novas Notas na SEFAZ".
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const btnConsultar = document.getElementById('btn-consultar-sefaz');
+        const spinner = document.getElementById('consultar-spinner');
+        const chaveInput = document.getElementById('chave_acesso_input');
+
+        // Função para mostrar alertas dinâmicos
+        const showAlert = (message, type = 'success') => {
+            const alertContainer = document.getElementById('alert-container');
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = [
+                `<div class="alert alert-${type} alert-dismissible" role="alert">`,
+                `   <div>${message}</div>`,
+                '   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>',
+                '</div>'
+            ].join('');
+            alertContainer.append(wrapper);
+            // Auto-fecha o alerta após 5 segundos
+            setTimeout(() => wrapper.remove(), 5000);
+        };
+
+        // 1. Lógica para buscar notas na SEFAZ
+        btnConsultar.addEventListener('click', function () {
+            spinner.classList.remove('d-none');
+            btnConsultar.disabled = true;
+
+            fetch('{{ url_for("api_consultar_sefaz") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    // Recarrega a página para mostrar as novas notas na tabela
+                    setTimeout(() => location.reload(), 2000); 
+                } else {
+                    showAlert(data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                showAlert('Ocorreu um erro de comunicação com o servidor.', 'danger');
+            })
+            .finally(() => {
+                spinner.classList.add('d-none');
+                btnConsultar.disabled = false;
+            });
+        });
+
+        // 2. Lógica para o "BIP" da Chave de Acesso
+        chaveInput.addEventListener('keypress', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Impede o envio de qualquer formulário
+                const chave = chaveInput.value.trim();
+
+                if (chave.length !== 44) {
+                    showAlert('Chave de acesso inválida. Deve conter 44 dígitos.', 'warning');
+                    return;
+                }
+
+                chaveInput.disabled = true; // Desabilita enquanto processa
+
+                fetch(`{{ url_for('api_lancar_nota', chave_acesso='_CHAVE_') }}`.replace('_CHAVE_', chave))
+                .then(response => {
+                    if (!response.ok) {
+                        // Captura a mensagem de erro da API e a lança para o .catch()
+                        return response.json().then(err => { throw new Error(err.message) });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Armazena os dados da NFe no sessionStorage para a próxima página ler
+                        sessionStorage.setItem('nfeDataParaViagem', JSON.stringify(data.data));
+                        
+                        showAlert('Nota encontrada! Redirecionando para a tela de criação de viagem...', 'info');
+
+                        // Redireciona para a página de iniciar viagem
+                        window.location.href = '{{ url_for("iniciar_viagem_page") }}';
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar nota:', error);
+                    showAlert(error.message || 'Erro ao processar a nota.', 'danger');
+                    chaveInput.disabled = false; // Reabilita em caso de erro
+                    chaveInput.select(); // Seleciona o texto para facilitar a correção
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,92 +1,102 @@
 {% extends "base.html" %}
 
-{% block title %}Folha de Pagamento - TrackBras{% endblock %}
+{% block title %}Folha de Pagamento - {{ "%02d"|format(mes_filtro) }}/{{ ano_filtro }}{% endblock %}
 
 {% block content %}
 <div class="container mx-auto">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Folha de Pagamento</h1>
+    <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Folha de Pagamento</h1>
+            <p class="text-lg text-gray-600">Visão geral para <span class="font-semibold">{{ "%02d"|format(mes_filtro) }}/{{ ano_filtro }}</span></p>
+        </div>
+        <div class="flex items-center gap-4 mt-4 md:mt-0">
+            <form action="{{ url_for('gerar_folhas_mes') }}" method="POST">
+                <input type="hidden" name="mes" value="{{ mes_filtro }}">
+                <input type="hidden" name="ano" value="{{ ano_filtro }}">
+                <button type="submit" class="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                    <i class="fas fa-sync-alt mr-2"></i>Gerar/Atualizar Folhas do Mês
+                </button>
+            </form>
+            <a href="{{ url_for('exportar_folha_excel', mes=mes_filtro, ano=ano_filtro) }}" class="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                <i class="fas fa-file-excel mr-2"></i>Exportar para Excel
+            </a>
+        </div>
     </div>
 
-    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
-        <form method="GET" action="{{ url_for('folha_pagamento_dashboard') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-green-50 p-6 rounded-lg shadow">
+            <h3 class="text-lg font-medium text-green-800">Total Proventos</h3>
+            <p class="text-3xl font-bold text-green-700 mt-2">R$ {{ "%.2f"|format(total_proventos)|replace('.', ',') }}</p>
+        </div>
+        <div class="bg-red-50 p-6 rounded-lg shadow">
+            <h3 class="text-lg font-medium text-red-800">Total Descontos</h3>
+            <p class="text-3xl font-bold text-red-700 mt-2">R$ {{ "%.2f"|format(total_descontos)|replace('.', ',') }}</p>
+        </div>
+        <div class="bg-blue-50 p-6 rounded-lg shadow">
+            <h3 class="text-lg font-medium text-blue-800">Salário Líquido (A Pagar)</h3>
+            <p class="text-3xl font-bold text-blue-700 mt-2">R$ {{ "%.2f"|format(total_liquido)|replace('.', ',') }}</p>
+        </div>
+    </div>
+    
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 items-end">
+            {% set meses = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'} %}
             <div>
                 <label for="mes" class="block text-sm font-medium text-gray-700">Mês</label>
-                <select id="mes" name="mes" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
-                    {% for i in range(1, 13) %}
-                    <option value="{{ i }}" {% if i == mes_filtro %}selected{% endif %}>{{ "%02d"|format(i) }}</option>
+                <select name="mes" id="mes" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    {% for mes_num, mes_nome in meses.items() %}
+                        <option value="{{ mes_num }}" {% if mes_num == mes_filtro %}selected{% endif %}>{{ mes_nome }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div>
                 <label for="ano" class="block text-sm font-medium text-gray-700">Ano</label>
-                <input type="number" id="ano" name="ano" value="{{ ano_filtro }}" class="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
+                <select name="ano" id="ano" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    {% for ano in range(ano_atual, ano_atual - 5, -1) %}
+                        <option value="{{ ano }}" {% if ano == ano_filtro %}selected{% endif %}>{{ ano }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="md:col-span-1">
+                <label for="search" class="block text-sm font-medium text-gray-700">Buscar Motorista</label>
+                <input type="text" name="search" id="search" value="{{ search_query }}" placeholder="Nome do motorista..." class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
             </div>
             <div>
-                <label for="search" class="block text-sm font-medium text-gray-700">Buscar Motorista</label>
-                <input type="text" name="search" id="search" value="{{ search_query }}" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Nome do motorista...">
-            </div>
-            <div class="flex gap-2">
-                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                    <i class="fas fa-filter mr-2"></i> Filtrar
+                <button type="submit" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                    <i class="fas fa-filter mr-2"></i>Filtrar
                 </button>
             </div>
         </form>
-        <div class="mt-4 border-t pt-4">
-             <form method="POST" action="{{ url_for('gerar_folhas_mes') }}">
-                <input type="hidden" name="mes" value="{{ mes_filtro }}">
-                <input type="hidden" name="ano" value="{{ ano_filtro }}">
-                <button type="submit" class="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        onclick="return confirm('Deseja gerar os rascunhos da folha de pagamento para todos os motoristas ativos para {{mes_filtro}}/{{ano_filtro}}? Folhas já existentes não serão alteradas.')">
-                    <i class="fas fa-plus-circle mr-2"></i> Gerar Folhas para o Mês Selecionado
-                </button>
-             </form>
-        </div>
-    </div>
-
-    <div class="bg-white overflow-hidden shadow-md rounded-lg">
-        <table class="min-w-full divide-y divide-gray-200 responsive-table">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motorista</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sal. Bruto</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descontos</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sal. Líquido</th>
-                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                {% if folhas %}
-                    {% for folha in folhas %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-white">
+                <thead class="bg-gray-100">
                     <tr>
-                        <td data-label="Motorista" class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ folha.motorista.nome }}</td>
-                        <td data-label="Sal. Bruto" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">R$ {{ "%.2f"|format(folha.total_proventos) }}</td>
-                        <td data-label="Descontos" class="px-6 py-4 whitespace-nowrap text-sm text-red-500">R$ {{ "%.2f"|format(folha.total_descontos) }}</td>
-                        <td data-label="Sal. Líquido" class="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">R$ {{ "%.2f"|format(folha.salario_liquido) }}</td>
-                        <td data-label="Status" class="px-6 py-4 whitespace-nowrap text-center text-sm">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                {% if folha.status == 'Paga' %} bg-green-100 text-green-800 
-                                {% elif folha.status == 'Fechada' %} bg-yellow-100 text-yellow-800
-                                {% else %} bg-blue-100 text-blue-800 {% endif %}">
-                                {{ folha.status }}
-                            </span>
+                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-600">Motorista</th>
+                        <th class="py-3 px-4 text-right text-sm font-semibold text-gray-600">Salário Líquido</th>
+                        <th class="py-3 px-4 text-center text-sm font-semibold text-gray-600">Status</th>
+                        <th class="py-3 px-4 text-center text-sm font-semibold text-gray-600">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for folha in folhas %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-3 px-4 text-sm font-medium text-gray-800">{{ folha.motorista.nome }}</td>
+                        <td class="py-3 px-4 text-right text-sm font-bold text-blue-700">R$ {{ "%.2f"|format(folha.salario_liquido)|replace('.', ',') }}</td>
+                        <td class="py-3 px-4 text-center">
+                            <span class="px-3 py-1 text-xs font-semibold rounded-full {% if folha.status == 'Paga' %} bg-green-100 text-green-800 {% elif folha.status == 'Fechada' %} bg-yellow-100 text-yellow-800 {% else %} bg-blue-100 text-blue-800 {% endif %}">{{ folha.status }}</span>
                         </td>
-                        <td data-label="Ações" class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium action-buttons">
-                           <a href="{{ url_for('detalhes_folha_pagamento', folha_id=folha.id) }}" class="text-indigo-600 hover:text-indigo-900 mr-4"><i class="fas fa-pencil-alt mr-1"></i>Editar/Ver</a>
-                           {% if folha.status in ['Fechada', 'Paga'] %}
-                           <a href="{{ url_for('gerar_holerite', folha_id=folha.id) }}" target="_blank" class="text-gray-600 hover:text-gray-900"><i class="fas fa-print mr-1"></i>Holerite</a>
-                           {% endif %}
+                        <td class="py-3 px-4 text-center">
+                            <a href="{{ url_for('detalhes_folha_pagamento', folha_id=folha.id) }}" class="text-indigo-600 hover:text-indigo-900 font-medium">Ver Detalhes</a>
                         </td>
                     </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-8 text-gray-500">Nenhuma folha de pagamento encontrada para este período. Tente gerar as folhas do mês ou ajustar os filtros.</td>
+                    </tr>
                     {% endfor %}
-                {% else %}
-                <tr>
-                    <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">Nenhuma folha de pagamento encontrada para os filtros selecionados.</td>
-                </tr>
-                {% endif %}
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}

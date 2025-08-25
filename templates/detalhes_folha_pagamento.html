@@ -2,37 +2,85 @@
 
 {% block title %}Detalhes da Folha - {{ folha.motorista.nome }}{% endblock %}
 
+{% block styles %}
+{{ super() }}
+<style>
+    /* Estilos adicionais para melhorar a clareza da página */
+    .form-input {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        font-size: 0.875rem;
+    }
+    .form-input:focus {
+        outline: none;
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+    }
+    .btn {
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        transition: background-color 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mx-auto" x-data="folhaPagamento()">
-    <div class="flex justify-between items-center mb-4">
+<div class="container mx-auto p-4 md:p-6" x-data="folhaPagamento()">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <div>
             <h1 class="text-3xl font-bold text-gray-800">Folha de Pagamento</h1>
-            <p class="text-lg text-gray-600"><a href="{{ url_for('editar_motorista', motorista_id=folha.motorista.id) }}" class="text-blue-600 hover:underline">{{ folha.motorista.nome }}</a> - {{ "%02d"|format(folha.mes_referencia) }}/{{ folha.ano_referencia }}</p>
+            <p class="text-lg text-gray-600">
+                <a href="{{ url_for('editar_motorista', motorista_id=folha.motorista.id) }}" class="text-blue-600 hover:underline">{{ folha.motorista.nome }}</a> - Referência: <span class="font-semibold">{{ "%02d"|format(folha.mes_referencia) }}/{{ folha.ano_referencia }}</span>
+            </p>
         </div>
-        <span class="px-4 py-2 text-sm leading-5 font-bold rounded-full {% if folha.status == 'Paga' %} bg-green-100 text-green-800 {% elif folha.status == 'Fechada' %} bg-yellow-100 text-yellow-800 {% else %} bg-blue-100 text-blue-800 {% endif %}">{{ folha.status }}</span>
+        <span class="mt-2 md:mt-0 px-4 py-2 text-sm leading-5 font-bold rounded-full 
+            {% if folha.status == 'Paga' %} bg-green-100 text-green-800 
+            {% elif folha.status == 'Fechada' %} bg-yellow-100 text-yellow-800 
+            {% else %} bg-gray-100 text-gray-800 {% endif %}">
+            {{ folha.status }}
+        </span>
     </div>
 
-    <form id="folha-form" method="POST" action="{{ url_for('detalhes_folha_pagamento', folha_id=folha.id) }}">
-        <div class="bg-white p-6 rounded-lg shadow-md mt-8">
+    <form id="folha-form" method="POST" @submit.prevent="submitForm($event)">
+        <div class="bg-white p-6 rounded-lg shadow-lg mb-8">
             <h2 class="text-xl font-semibold text-gray-700 mb-4">Resumo Financeiro</h2>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center border-t border-b py-4">
-                <div><span class="block text-sm font-medium text-gray-500">Salário Base</span><p class="text-lg font-semibold text-gray-700">R$ {{ "%.2f"|format(folha.salario_base_registro)|replace('.', ',') }}</p></div>
-                <div><span class="block text-sm font-medium text-gray-500">Total Proventos</span><p class="text-lg font-semibold text-green-600">R$ {{ "%.2f"|format(folha.total_proventos)|replace('.', ',') }}</p></div>
-                <div><span class="block text-sm font-medium text-gray-500">Total Descontos</span><p class="text-lg font-semibold text-red-600">R$ {{ "%.2f"|format(folha.total_descontos)|replace('.', ',') }}</p></div>
-                <div><span class="block text-sm font-medium text-gray-500">Salário Líquido</span><p class="text-xl font-bold text-blue-700">R$ {{ "%.2f"|format(folha.salario_liquido)|replace('.', ',') }}</p></div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center border-t border-b py-4">
+                <div>
+                    <span class="block text-sm font-medium text-gray-500">Salário Base</span>
+                    <p class="text-lg font-semibold text-gray-700">R$ {{ "%.2f"|format(folha.salario_base_registro)|replace('.', ',') }}</p>
+                </div>
+                <div>
+                    <span class="block text-sm font-medium text-gray-500">Total Proventos</span>
+                    <p class="text-lg font-semibold text-green-600">R$ {{ "%.2f"|format(folha.total_proventos)|replace('.', ',') }}</p>
+                </div>
+                <div>
+                    <span class="block text-sm font-medium text-gray-500">Total Descontos</span>
+                    <p class="text-lg font-semibold text-red-600">R$ {{ "%.2f"|format(folha.total_descontos)|replace('.', ',') }}</p>
+                </div>
+                <div>
+                    <span class="block text-sm font-medium text-gray-500">Salário Líquido</span>
+                    <p class="text-xl font-bold text-blue-700">R$ {{ "%.2f"|format(folha.salario_liquido)|replace('.', ',') }}</p>
+                </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-3">Proventos (Ganhos)</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-3 flex items-center gap-2"><i class="fas fa-plus-circle text-green-500"></i>Proventos (Ganhos)</h2>
                 
                 <h3 class="text-md font-medium text-gray-600 mb-2">Ganhos Variáveis (Fretes do Mês)</h3>
                 <div class="space-y-2 mb-4">
                     {% set fretes = proventos|selectattr('viagem_id')|list %}
                     {% if fretes %}
                         {% for item in fretes %}
-                        <div class="flex items-center justify-between bg-gray-50 p-2 rounded-md">
+                        <div class="flex items-center justify-between bg-gray-50 p-3 rounded-md border border-gray-200">
                             <span class="text-sm text-gray-800">
                                 <a href="{{ url_for('editar_viagem_page', viagem_id=item.viagem_id) }}" title="Ver detalhes da viagem" target="_blank" class="hover:underline">
                                     <i class="fas fa-truck text-gray-400 mr-2"></i>{{ item.descricao }}
@@ -47,43 +95,47 @@
                 </div>
 
                 <h3 class="text-md font-medium text-gray-600 mb-2 mt-6">Outros Proventos (Bônus, etc.)</h3>
-                <div class="space-y-3">
-                    <template x-for="(provento, index) in outrosProventos" :key="index">
-                        <div class="flex items-center gap-2">
-                            <input type="text" :name="'provento_descricao_' + (index + 1)" x-model="provento.descricao" class="form-input text-sm flex-grow" required {% if folha.status != 'Em Aberto' %}readonly{% endif %}>
-                            <input type="number" step="0.01" :name="'provento_valor_' + (index + 1)" x-model.number="provento.valor" class="form-input text-sm w-32 text-right" required {% if folha.status != 'Em Aberto' %}readonly{% endif %}>
-                            {% if folha.status == 'Em Aberto' %}<button type="button" @click="removeOutroProvento(index)" class="h-9 w-9 text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>{% endif %}
-                        </div>
-                    </template>
-                    {% if folha.status == 'Em Aberto' %}<button type="button" @click="addOutroProvento()" class="text-sm text-white bg-green-500 hover:bg-green-600 px-3 py-1 rounded-md shadow-sm mt-2"><i class="fas fa-plus"></i> Adicionar Provento</button>{% endif %}
+                <div id="outros-proventos-container" class="space-y-3">
+                    {% for item in proventos if not item.viagem_id %}
+                    <div class="flex items-center gap-2">
+                        <input type="text" name="provento_descricao_{{ loop.index }}" value="{{ item.descricao }}" class="form-input flex-grow" required {% if folha.status != 'Em Aberto' %}readonly{% endif %}>
+                        <input type="number" step="0.01" name="provento_valor_{{ loop.index }}" value="{{ item.valor }}" class="form-input w-32 text-right" required {% if folha.status != 'Em Aberto' %}readonly{% endif %}>
+                        {% if folha.status == 'Em Aberto' %}<button type="button" onclick="this.parentElement.remove()" class="btn h-9 w-9 text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>{% endif %}
+                    </div>
+                    {% endfor %}
                 </div>
+                {% if folha.status == 'Em Aberto' %}<button type="button" @click="addOutroProvento()" class="btn text-sm text-white bg-green-500 hover:bg-green-600 mt-2"><i class="fas fa-plus"></i> Adicionar Provento</button>{% endif %}
             </div>
 
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-3">Descontos</h2>
-                <div class="space-y-3">
-                    <template x-for="(desconto, index) in descontos" :key="index">
-                         <div class="flex items-center gap-2">
-                            <input type="text" :name="'desconto_descricao_' + (index + 1)" x-model="desconto.descricao" class="form-input text-sm flex-grow" required {% if folha.status != 'Em Aberto' %}readonly{% endif %}>
-                            <input type="number" step="0.01" :name="'desconto_valor_' + (index + 1)" x-model.number="desconto.valor" class="form-input text-sm w-32 text-right" required {% if folha.status != 'Em Aberto' %}readonly{% endif %}>
-                            {% if folha.status == 'Em Aberto' %}<button type="button" @click="removeDesconto(index)" class="h-9 w-9 text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>{% endif %}
-                        </div>
-                    </template>
-                    {% if folha.status == 'Em Aberto' %}<button type="button" @click="addDesconto()" class="text-sm text-white bg-red-500 hover:bg-red-600 px-3 py-1 rounded-md shadow-sm mt-2"><i class="fas fa-plus"></i> Adicionar Desconto</button>{% endif %}
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-3 flex items-center gap-2"><i class="fas fa-minus-circle text-red-500"></i>Descontos</h2>
+                <div id="descontos-container" class="space-y-3">
+                     {% for item in descontos %}
+                    <div class="flex items-center gap-2">
+                        <input type="text" name="desconto_descricao_{{ loop.index }}" value="{{ item.descricao }}" class="form-input flex-grow" required {% if folha.status != 'Em Aberto' %}readonly{% endif %}>
+                        <input type="number" step="0.01" name="desconto_valor_{{ loop.index }}" value="{{ item.valor }}" class="form-input w-32 text-right" required {% if folha.status != 'Em Aberto' %}readonly{% endif %}>
+                        {% if folha.status == 'Em Aberto' %}<button type="button" onclick="this.parentElement.remove()" class="btn h-9 w-9 text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>{% endif %}
+                    </div>
+                    {% endfor %}
                 </div>
+                {% if folha.status == 'Em Aberto' %}<button type="button" @click="addDesconto()" class="btn text-sm text-white bg-red-500 hover:bg-red-600 mt-2"><i class="fas fa-plus"></i> Adicionar Desconto</button>{% endif %}
             </div>
         </div>
         
         <input type="hidden" name="action" x-model="actionToSubmit">
-        <input type="hidden" name="salario_base" value="{{ folha.salario_base_registro }}"> <div class="mt-8 pt-6 border-t flex justify-between items-center gap-4">
-             <a href="{{ url_for('folha_pagamento_dashboard', mes=folha.mes_referencia, ano=folha.ano_referencia) }}" class="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Voltar</a>
-             <div>
+        <input type="hidden" name="salario_base" value="{{ folha.salario_base_registro }}">
+        
+        <div class="mt-8 pt-6 border-t flex flex-col md:flex-row justify-between items-center gap-4">
+             <a href="{{ url_for('folha_pagamento_dashboard', mes=folha.mes_referencia, ano=folha.ano_referencia) }}" class="btn border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">
+                <i class="fas fa-arrow-left"></i>Voltar para o Dashboard
+             </a>
+             <div class="flex flex-wrap gap-3">
                 {% if folha.status in ['Fechada', 'Paga'] %}
-                    <a href="{{ url_for('gerar_holerite', folha_id=folha.id) }}" target="_blank" class="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700"><i class="fas fa-print mr-2"></i>Imprimir Holerite</a>
+                    <a href="{{ url_for('gerar_holerite', folha_id=folha.id) }}" target="_blank" class="btn text-white bg-gray-600 hover:bg-gray-700"><i class="fas fa-print"></i>Imprimir Holerite</a>
                 {% endif %}
                 {% if folha.status == 'Em Aberto' %}
-                    <button type="submit" @click="actionToSubmit = 'salvar'" class="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Salvar Rascunho</button>
-                    <button type="submit" @click="actionToSubmit = 'fechar'" class="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700">Fechar Folha</button>
+                    <button type="submit" @click="actionToSubmit = 'salvar'" class="btn border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"><i class="fas fa-save"></i>Salvar Rascunho</button>
+                    <button type="submit" @click="actionToSubmit = 'fechar'" class="btn text-white bg-yellow-600 hover:bg-yellow-700"><i class="fas fa-lock"></i>Fechar Folha</button>
                 {% endif %}
              </div>
         </div>
@@ -93,19 +145,39 @@
 <script>
     function folhaPagamento() {
         return {
-            // Separa os proventos: os que não são de viagem são editáveis, os de viagem são fixos.
-            outrosProventos: {{ proventos|rejectattr('viagem_id')|list|tojson|safe }},
-            descontos: {{ descontos|tojson|safe }},
             actionToSubmit: 'salvar',
             
-            addOutroProvento() { this.outrosProventos.push({ descricao: '', valor: 0.0 }); },
-            removeOutroProvento(index) { this.outrosProventos.splice(index, 1); },
-            addDesconto() { this.descontos.push({ descricao: '', valor: 0.0 }); },
-            removeDesconto(index) { this.descontos.splice(index, 1); },
+            addOutroProvento() {
+                const container = document.getElementById('outros-proventos-container');
+                const nextIndex = container.children.length + 1; // Simple index
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-2';
+                div.innerHTML = `
+                    <input type="text" name="provento_descricao_${nextIndex}" class="form-input flex-grow" required placeholder="Ex: Bônus de Performance">
+                    <input type="number" step="0.01" name="provento_valor_${nextIndex}" class="form-input w-32 text-right" required placeholder="0,00">
+                    <button type="button" onclick="this.parentElement.remove()" class="btn h-9 w-9 text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                `;
+                container.appendChild(div);
+            },
+            
+            addDesconto() {
+                const container = document.getElementById('descontos-container');
+                const nextIndex = container.children.length + 1;
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-2';
+                div.innerHTML = `
+                    <input type="text" name="desconto_descricao_${nextIndex}" class="form-input flex-grow" required placeholder="Ex: Adiantamento">
+                    <input type="number" step="0.01" name="desconto_valor_${nextIndex}" class="form-input w-32 text-right" required placeholder="0,00">
+                    <button type="button" onclick="this.parentElement.remove()" class="btn h-9 w-9 text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                `;
+                container.appendChild(div);
+            },
             
             submitForm(event) {
                 // Adiciona uma pequena pausa para garantir que o x-model do botão de ação seja atualizado
-                setTimeout(() => { event.target.submit(); }, 50);
+                setTimeout(() => {
+                    document.getElementById('folha-form').submit();
+                }, 50);
             }
         }
     }

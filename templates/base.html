@@ -106,7 +106,9 @@
                                } 
                           })"
                           class="inline-block">
-                         <span>{{ current_user.empresa.nome_fantasia or current_user.empresa.razao_social or 'Empresa não definida' }}</span>
+                        {% if current_user.is_authenticated and current_user.empresa %}
+                            <span>{{ current_user.empresa.nome_fantasia or current_user.empresa.razao_social }}</span>
+                        {% endif %}
                      </div>
                 </div>
             </div>
