@@ -1,11 +1,10 @@
 import eventlet
 eventlet.monkey_patch()
+
 import uuid
 import xml.etree.ElementTree as ET
 import json
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, make_response, send_from_directory
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
 from datetime import datetime, timedelta, date
 import requests
 import logging
@@ -19,23 +18,24 @@ import io
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import or_, and_, func
-from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from flask_mail import Mail, Message
-from flask import jsonify
-from flask import make_response
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import or_, and_, func, extract, UniqueConstraint, LargeBinary
+from flask_login import UserMixin, login_user, logout_user, login_required, current_user
 from num2words import num2words
 from collections import defaultdict
-from flask_socketio import SocketIO, emit, join_room, leave_room
 import pytesseract
 from PIL import Image
 import openrouteservice
-from sqlalchemy import extract
 import click
 from pathlib import Path
 from functools import wraps
+from cryptography.fernet import Fernet
+from werkzeug.security import generate_password_hash, check_password_hash
 
+# 1. Importa as extensões E os modelos do novo arquivo 'extensions.py'
+from extensions import db, migrate, socketio, login_manager, mail, CertificadoDigital, NFeImportada
+
+# Seus decoradores (sem alterações)
+# ... (cole seus 3 decoradores aqui: admin_required, owner_required, master_required) ...
 
 def admin_required(f):
     @wraps(f)
@@ -63,46 +63,31 @@ def master_required(f):
             return redirect(url_for('index'))
         return f(*args, **kwargs)
     return decorated_function
-
-
+    
+# Lógica do .env (sem alterações)
 env_path = Path(__file__).resolve().with_name('.env')
-
-
-if not env_path.exists():
-    raise FileNotFoundError(f'Arquivo .env não encontrado em {env_path}')
-
+if not env_path.exists(): raise FileNotFoundError(f'Arquivo .env não encontrado em {env_path}')
 load_dotenv(dotenv_path=env_path)
 
-# 2. Valida as variáveis críticas logo após carregar
+# ... (seu código de validação do .env continua aqui) ...
 required_r2 = [
-    'CLOUDFLARE_R2_ENDPOINT',
-    'CLOUDFLARE_R2_ACCESS_KEY',
-    'CLOUDFLARE_R2_SECRET_KEY',
-    'CLOUDFLARE_R2_BUCKET',
-    'CLOUDFLARE_R2_PUBLIC_URL',
+    'CLOUDFLARE_R2_ENDPOINT', 'CLOUDFLARE_R2_ACCESS_KEY', 'CLOUDFLARE_R2_SECRET_KEY',
+    'CLOUDFLARE_R2_BUCKET', 'CLOUDFLARE_R2_PUBLIC_URL',
 ]
 missing = [k for k in required_r2 if not os.getenv(k)]
 if missing:
-    raise ValueError(
-        'Variáveis faltando no .env: ' + ', '.join(missing)
-    )
-
+    raise ValueError('Variáveis faltando no .env: ' + ', '.join(missing))
 
 print('R2 config carregada:')
 for k in required_r2:
     print(f'  {k}: {os.getenv(k)}')
 
-
+# Criação e configuração da aplicação
 app = Flask(__name__)
-
-
-
 app.config.update(
-    MAIL_SERVER='smtp.gmail.com',
-    MAIL_PORT=587,
-    MAIL_USE_TLS=True,
-    MAIL_USERNAME='trackgo789@gmail.com',
-    MAIL_PASSWORD='mmoa moxc juli sfbe',
+    # ... (seu bloco de config continua aqui) ...
+    MAIL_SERVER='smtp.gmail.com', MAIL_PORT=587, MAIL_USE_TLS=True,
+    MAIL_USERNAME='trackgo789@gmail.com', MAIL_PASSWORD='mmoa moxc juli sfbe',
     MAIL_DEFAULT_SENDER='trackgo789@gmail.com',
     SQLALCHEMY_DATABASE_URI=os.getenv('DATABASE_URL', 'sqlite:///transport.db'),
     SQLALCHEMY_TRACK_MODIFICATIONS=False,
@@ -113,33 +98,36 @@ app.config.update(
     CLOUDFLARE_R2_BUCKET=os.getenv('CLOUDFLARE_R2_BUCKET'),
     CLOUDFLARE_R2_PUBLIC_URL=os.getenv('CLOUDFLARE_R2_PUBLIC_URL'),
 )
-GEOAPIFY_API_KEY = os.getenv('GEOAPIFY_API_KEY', '7cd423ef184f48f0b770682cbebe11d0') # Usar os.getenv para Geoapify também
+GEOAPIFY_API_KEY = os.getenv('GEOAPIFY_API_KEY', '7cd423ef184f48f0b770682cbebe11d0')
 OPENROUTESERVICE_API_KEY = os.getenv('OPENROUTESERVICE_API_KEY')
-
-mail = Mail(app)
 Maps_API_KEY = os.getenv('Maps_API_KEY')
-GEOAPIFY_API_KEY = os.getenv('GEOAPIFY_API_KEY')
-last_geocode_time = {}
-GEOCODE_INTERVAL_SECONDS = 600 # 10 minutos
 
+# Lógica da chave de criptografia
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY')
+if not ENCRYPTION_KEY: raise ValueError("ENCRYPTION_KEY não definida no .env!")
+cipher_suite = Fernet(ENCRYPTION_KEY.encode())
+app.cipher_suite = cipher_suite # Associa o cipher ao app para uso posterior
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
-socketio = SocketIO(app, async_mode='eventlet')
-
-login_manager = LoginManager()
+# 2. Seção correta de inicialização das extensões
+db.init_app(app)
+migrate.init_app(app, db)
+socketio.init_app(app, async_mode='eventlet')
+mail.init_app(app)
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+# Configurações de logging e variáveis globais
+last_geocode_time = {}
+GEOCODE_INTERVAL_SECONDS = 600
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# 3. Import do sefaz_service após a inicialização
+from sefaz_service import consultar_notas_sefaz
+
 @login_manager.user_loader
 def load_user(user_id):
-    """Carrega o usuário pelo ID."""
-    # Alterado para Session.get() como recomendado pelo SQLAlchemy 2.0
     return db.session.get(Usuario, int(user_id))
-
 
 class Motorista(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -227,6 +215,8 @@ class Motorista(db.Model):
     @property
     def validade_cnh(self):
         return self.cnh_data_vencimento
+    
+
     
 class FolhaPagamento(db.Model):
     __tablename__ = 'folha_pagamento'
@@ -3643,6 +3633,116 @@ def excluir_viagem(viagem_id):
         flash(f'Erro ao excluir viagem: {str(e)}', 'error')
 
     return redirect(url_for('consultar_viagens'))
+
+@app.route('/fiscal/configuracao', methods=['GET', 'POST'])
+@login_required
+@admin_required # Apenas administradores podem configurar
+def configuracao_fiscal():
+    # A query agora usa o modelo 'CertificadoDigital' importado de 'extensions.py'
+    certificado = CertificadoDigital.query.filter_by(empresa_id=current_user.empresa_id).first()
+
+    if request.method == 'POST':
+        arquivo_cert = request.files.get('certificado')
+        senha_cert = request.form.get('senha_certificado')
+        validade_cert_str = request.form.get('validade_certificado')
+
+        if not all([arquivo_cert, senha_cert, validade_cert_str]):
+            flash('Todos os campos são obrigatórios.', 'error')
+            return redirect(url_for('configuracao_fiscal'))
+
+        try:
+            validade_cert = datetime.strptime(validade_cert_str, '%Y-%m-%d').date()
+            
+            # Lógica de upload para o Cloudflare R2
+            s3_client = boto3.client(
+                's3',
+                endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+                aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+                aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
+                region_name='auto'
+            )
+            bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
+            public_url_base = app.config['CLOUDFLARE_R2_PUBLIC_URL']
+            
+            filename = secure_filename(arquivo_cert.filename)
+            s3_path = f"certificados/{current_user.empresa_id}/{uuid.uuid4()}-{filename}"
+            
+            s3_client.upload_fileobj(
+                arquivo_cert, bucket_name, s3_path,
+                ExtraArgs={'ContentType': 'application/x-pkcs12'}
+            )
+            
+            if not certificado:
+                certificado = CertificadoDigital(empresa_id=current_user.empresa_id)
+                db.session.add(certificado)
+            
+            certificado.nome_arquivo = filename
+            certificado.caminho_r2 = s3_path
+            
+            # --- CORREÇÃO APLICADA AQUI ---
+            # Passando o objeto 'cipher_suite' para a função set_senha, como definido no modelo.
+            certificado.set_senha(senha_cert, cipher_suite)
+            
+            certificado.data_validade = validade_cert
+            
+            db.session.commit()
+            flash('Certificado digital salvo com sucesso!', 'success')
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao salvar certificado: {e}', 'error')
+            logger.error(f"Erro ao salvar certificado: {e}", exc_info=True)
+
+        return redirect(url_for('configuracao_fiscal'))
+
+    return render_template('configuracao_fiscal.html', certificado=certificado, hoje=date.today())
+
+@app.route('/fiscal/importar')
+@login_required
+@master_required
+def importar_notas_fiscais():
+    # A query agora usa o modelo 'NFeImportada' importado de 'extensions.py'
+    notas_importadas = NFeImportada.query.filter_by(
+        empresa_id=current_user.empresa_id
+    ).order_by(NFeImportada.data_emissao.desc()).all()
+    
+    return render_template('importar_notas_fiscais.html', notas=notas_importadas)
+
+# API PARA DISPARAR A CONSULTA NA SEFAZ
+@app.route('/api/fiscal/consultar_sefaz', methods=['POST'])
+@login_required
+def api_consultar_sefaz():
+    # Esta rota chama a função do sefaz_service, que foi corrigido para não causar o loop.
+    resultado = consultar_notas_sefaz(current_user.empresa_id)
+    return jsonify(resultado)
+
+
+@app.route('/api/fiscal/lancar_nota/<string:chave_acesso>')
+@login_required
+def api_lancar_nota(chave_acesso):
+    # A query agora usa o modelo 'NFeImportada' importado de 'extensions.py'
+    nota = NFeImportada.query.filter_by(
+        chave_acesso=chave_acesso,
+        empresa_id=current_user.empresa_id
+    ).first()
+
+    if not nota:
+        return jsonify({'success': False, 'message': 'Nota não encontrada na base local. Realize a consulta à SEFAZ primeiro.'}), 404
+
+    if nota.status == 'PROCESSADA':
+        return jsonify({'success': False, 'message': 'Esta nota já foi processada anteriormente.'}), 409
+    
+    # Reutiliza a função de parse de XML que já existia
+    from io import StringIO
+    xml_file = StringIO(nota.xml_content)
+    dados_nfe = parse_nfe_xml(xml_file)
+
+    if not dados_nfe:
+        return jsonify({'success': False, 'message': 'Erro ao processar o XML da NF-e.'}), 500
+
+    # Retorna os dados para o JavaScript preencher a tela de 'iniciar_viagem'
+    return jsonify({'success': True, 'data': dados_nfe})
+
 
 @app.route('/salvar_custo_viagem', methods=['POST'])
 @login_required
