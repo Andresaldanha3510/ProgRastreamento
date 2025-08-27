@@ -1,8 +1,10 @@
 import eventlet
 eventlet.monkey_patch()
 
+
 import uuid
 import xml.etree.ElementTree as ET
+import csv
 import json
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, make_response, send_from_directory
 from datetime import datetime, timedelta, date
@@ -30,6 +32,7 @@ from pathlib import Path
 from functools import wraps
 from cryptography.fernet import Fernet
 from werkzeug.security import generate_password_hash, check_password_hash
+
 
 # 1. Importa as extensões E os modelos do novo arquivo 'extensions.py'
 from extensions import db, migrate, socketio, login_manager, mail, CertificadoDigital, NFeImportada
@@ -553,6 +556,97 @@ class PlanoInsumo(db.Model):
     
     plano = db.relationship('PlanoDeManutencao', back_populates='insumos_associados')
     insumo = db.relationship('Insumo')
+
+
+
+class ConfiguracaoBorracharia(db.Model):
+    """ Tabela para armazenar as configurações e regras de negócio da borracharia. """
+    __tablename__ = 'configuracao_borracharia'
+    id = db.Column(db.Integer, primary_key=True)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False, unique=True)
+    
+    # Regras de negócio configuráveis
+    vida_util_dot_anos = db.Column(db.Integer, default=7)
+    alerta_dot_dias = db.Column(db.Integer, default=90)
+    sulco_minimo_recapagem_mm = db.Column(db.Float, default=3.0)
+    sulco_minimo_descarte_mm = db.Column(db.Float, default=1.6)
+    max_recapagens = db.Column(db.Integer, default=2)
+    km_alerta_recapagem = db.Column(db.Integer, default=5000) # Alerta quando faltar X km
+
+class Pneu(db.Model):
+    __tablename__ = 'pneu'
+    id = db.Column(db.Integer, primary_key=True)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
+    
+    # --- Identificação ---
+    numero_fogo = db.Column(db.String(50), nullable=False, index=True)
+    marca = db.Column(db.String(100), nullable=False)
+    modelo = db.Column(db.String(100), nullable=False)
+    dimensao = db.Column(db.String(50), nullable=False) # Ex: 295/80 R22.5
+    dot = db.Column(db.String(20), nullable=False) 
+
+    # --- Dados de Compra ---
+    data_compra = db.Column(db.Date, nullable=False)
+    valor_compra = db.Column(db.Float, nullable=False)
+    fornecedor = db.Column(db.String(150), nullable=True)
+
+    # --- Status e Localização ---
+    # Status: 'Em Estoque', 'Em Uso', 'Recapando', 'Descartado'
+    status = db.Column(db.String(50), nullable=False, default='Em Estoque', index=True)
+    motivo_descarte = db.Column(db.String(255), nullable=True)
+
+    # Vínculo com o veículo (se estiver em uso)
+    veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculo.id'), nullable=True)
+    posicao = db.Column(db.String(50), nullable=True) # Ex: Eixo 1 - Dianteiro Esquerdo
+    
+    # --- Métricas de Vida Útil ---
+    km_total = db.Column(db.Float, default=0.0)
+    numero_recapagens = db.Column(db.Integer, default=0)
+    
+    veiculo = db.relationship('Veiculo', backref=db.backref('pneus', lazy='dynamic'))
+
+    __table_args__ = (db.UniqueConstraint('numero_fogo', 'empresa_id', name='_numero_fogo_empresa_uc'),)
+
+    @property
+    def data_fabricacao(self):
+        """ Extrai a data de fabricação a partir do DOT. """
+        try:
+            # DOT geralmente termina com a semana e o ano (WWYY)
+            dot_numerico = re.sub(r'\D', '', self.dot)
+            if len(dot_numerico) < 4: return None
+            semana, ano = int(dot_numerico[-4:-2]), int(dot_numerico[-2:])
+            ano_completo = 2000 + ano
+            # Retorna o primeiro dia daquela semana
+            return datetime.strptime(f'{ano_completo}-{semana}-1', "%Y-%W-%w").date()
+        except:
+            return None
+
+    def __repr__(self):
+        return f'<Pneu {self.numero_fogo} - {self.marca} {self.modelo}>'
+
+class HistoricoPneu(db.Model):
+    __tablename__ = 'historico_pneu'
+    id = db.Column(db.Integer, primary_key=True)
+    pneu_id = db.Column(db.Integer, db.ForeignKey('pneu.id'), nullable=False)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
+    
+    data_evento = db.Column(db.DateTime, default=datetime.utcnow)
+    # Evento: 'Compra', 'Instalação', 'Remoção', 'Envio para Recapagem', 'Retorno de Recapagem', 'Medição de Sulco', 'Descarte'
+    evento = db.Column(db.String(50), nullable=False)
+    
+    # Dados contextuais do evento
+    veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculo.id'), nullable=True)
+    km_veiculo = db.Column(db.Float, nullable=True) 
+    km_rodado_no_evento = db.Column(db.Float, nullable=True)
+    posicao = db.Column(db.String(50), nullable=True)
+    custo = db.Column(db.Float, default=0.0) 
+    sulco_mm = db.Column(db.Float, nullable=True) 
+    observacoes = db.Column(db.Text, nullable=True)
+    
+    pneu = db.relationship('Pneu', backref=db.backref('historico', lazy='dynamic', cascade="all, delete-orphan"))
+
+    def __repr__(self):
+        return f'<HistoricoPneu {self.id} - Pneu {self.pneu_id} - {self.evento}>'
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
@@ -4807,6 +4901,470 @@ def previsao_custos_manutencao():
         today=hoje # Passa a data de hoje para o template
     )
 
+def get_config_borracharia(empresa_id):
+    """ Helper para buscar ou criar a configuração da borracharia. """
+    config = ConfiguracaoBorracharia.query.filter_by(empresa_id=empresa_id).first()
+    if not config:
+        config = ConfiguracaoBorracharia(empresa_id=empresa_id)
+        db.session.add(config)
+        db.session.commit()
+    return config
+
+@app.route('/borracharia')
+@login_required
+def borracharia_dashboard():
+    empresa_id = current_user.empresa_id
+    config = get_config_borracharia(empresa_id)
+
+    # --- KPIs ---
+    kpis = {
+        'em_estoque': Pneu.query.filter_by(empresa_id=empresa_id, status='Em Estoque').count(),
+        'em_uso': Pneu.query.filter_by(empresa_id=empresa_id, status='Em Uso').count(),
+        'recapando': Pneu.query.filter_by(empresa_id=empresa_id, status='Recapando').count(),
+        'descartados': Pneu.query.filter_by(empresa_id=empresa_id, status='Descartado').count()
+    }
+
+    # --- Lógica de Alertas ---
+    alertas = []
+    todos_pneus = Pneu.query.filter(Pneu.empresa_id == empresa_id, Pneu.status.in_(['Em Uso', 'Em Estoque'])).all()
+
+    for pneu in todos_pneus:
+        # Alerta de DOT
+        if pneu.data_fabricacao:
+            data_vencimento = pneu.data_fabricacao + timedelta(days=config.vida_util_dot_anos * 365)
+            dias_restantes = (data_vencimento - date.today()).days
+            if dias_restantes <= config.alerta_dot_dias:
+                alertas.append({
+                    'pneu': pneu, 'tipo': 'DOT Próximo do Vencimento',
+                    'mensagem': f"Vence em {dias_restantes} dias ({data_vencimento.strftime('%d/%m/%Y')})",
+                    'gravidade': 'vermelho' if dias_restantes < 0 else 'amarelo'
+                })
+        
+        # Alerta de Sulco Mínimo
+        ultimo_sulco = HistoricoPneu.query.filter(
+            HistoricoPneu.pneu_id == pneu.id,
+            HistoricoPneu.evento.in_(['Medição de Sulco', 'Retorno de Recapagem']),
+            HistoricoPneu.sulco_mm.isnot(None)
+        ).order_by(HistoricoPneu.data_evento.desc()).first()
+        
+        if ultimo_sulco and ultimo_sulco.sulco_mm:
+            if ultimo_sulco.sulco_mm <= config.sulco_minimo_descarte_mm:
+                alertas.append({
+                    'pneu': pneu, 'tipo': 'Sulco Crítico',
+                    'mensagem': f"Atingiu o limite de descarte ({ultimo_sulco.sulco_mm}mm)",
+                    'gravidade': 'vermelho'
+                })
+            elif ultimo_sulco.sulco_mm <= config.sulco_minimo_recapagem_mm:
+                 alertas.append({
+                    'pneu': pneu, 'tipo': 'Recomendado para Recape',
+                    'mensagem': f"Sulco abaixo do recomendado ({ultimo_sulco.sulco_mm}mm)",
+                    'gravidade': 'amarelo'
+                })
+
+    # --- Dados para as Tabelas ---
+    pneus_em_estoque = Pneu.query.filter_by(empresa_id=empresa_id, status='Em Estoque').all()
+    pneus_recapando = Pneu.query.filter_by(empresa_id=empresa_id, status='Recapando').all() # <-- LINHA NOVA
+    veiculos = Veiculo.query.filter_by(empresa_id=empresa_id).order_by(Veiculo.placa).all()
+
+    return render_template('borracharia_dashboard.html', 
+                        kpis=kpis, 
+                        alertas=alertas,
+                        pneus_em_estoque=pneus_em_estoque,
+                        pneus_recapando=pneus_recapando, # <-- LINHA NOVA
+                        veiculos=veiculos,
+                        active_page='borracharia')
+
+@app.route('/pneu/novo', methods=['POST'])
+@login_required
+def pneu_novo():
+    try:
+        pneu = Pneu(
+            empresa_id=current_user.empresa_id,
+            numero_fogo=request.form['numero_fogo'],
+            marca=request.form['marca'],
+            modelo=request.form['modelo'],
+            dimensao=request.form['dimensao'],
+            dot=request.form['dot'],
+            data_compra=datetime.strptime(request.form['data_compra'], '%Y-%m-%d').date(),
+            valor_compra=float(request.form['valor_compra']),
+            fornecedor=request.form['fornecedor'],
+            status='Em Estoque'
+        )
+        db.session.add(pneu)
+        db.session.flush() # Para obter o ID do pneu
+
+        historico = HistoricoPneu(
+            pneu_id=pneu.id,
+            empresa_id=current_user.empresa_id,
+            evento='Compra',
+            custo=pneu.valor_compra,
+            observacoes=f"Comprado de {pneu.fornecedor}"
+        )
+        db.session.add(historico)
+        db.session.commit()
+        flash('Pneu cadastrado com sucesso no estoque!', 'success')
+    except IntegrityError:
+        db.session.rollback()
+        flash(f"Erro: Já existe um pneu com o número de fogo '{request.form['numero_fogo']}'.", 'error')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao cadastrar pneu: {e}', 'error')
+    
+    return redirect(url_for('borracharia_dashboard'))
+
+
+@app.route('/pneu/<int:pneu_id>/historico')
+@login_required
+def pneu_historico(pneu_id):
+    pneu = Pneu.query.filter_by(id=pneu_id, empresa_id=current_user.empresa_id).first_or_404()
+    
+    # Cálculo do CPK (Custo por KM)
+    custos_recapagem = db.session.query(func.sum(HistoricoPneu.custo))\
+        .filter(HistoricoPneu.pneu_id == pneu_id, HistoricoPneu.evento == 'Retorno de Recapagem').scalar() or 0
+    custo_total_vida = pneu.valor_compra + custos_recapagem
+    cpk = (custo_total_vida / pneu.km_total) if pneu.km_total > 0 else 0
+
+    return render_template('pneu_historico.html', pneu=pneu, cpk=cpk, active_page='borracharia')
+
+
+@app.route('/borracharia/configuracoes', methods=['GET', 'POST'])
+@login_required
+def borracharia_configuracoes():
+    config = get_config_borracharia(current_user.empresa_id)
+    if request.method == 'POST':
+        try:
+            config.vida_util_dot_anos = int(request.form['vida_util_dot_anos'])
+            config.alerta_dot_dias = int(request.form['alerta_dot_dias'])
+            config.sulco_minimo_recapagem_mm = float(request.form['sulco_minimo_recapagem_mm'])
+            config.sulco_minimo_descarte_mm = float(request.form['sulco_minimo_descarte_mm'])
+            config.max_recapagens = int(request.form['max_recapagens'])
+            config.km_alerta_recapagem = int(request.form['km_alerta_recapagem'])
+            db.session.commit()
+            flash('Configurações salvas com sucesso!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao salvar configurações: {e}', 'error')
+        return redirect(url_for('borracharia_configuracoes'))
+    
+    return render_template('configuracao_borracharia.html', config=config, active_page='borracharia')
+
+# --- ROTAS DE API PARA OPERAÇÕES ---
+
+@app.route('/api/veiculo/<int:veiculo_id>/pneus')
+@login_required
+def api_get_pneus_veiculo(veiculo_id):
+    veiculo = Veiculo.query.get_or_404(veiculo_id)
+    pneus = Pneu.query.filter_by(veiculo_id=veiculo_id).all()
+    pneus_data = [{'id': p.id, 'numero_fogo': p.numero_fogo, 'posicao': p.posicao} for p in pneus]
+    return jsonify({
+        'success': True, 
+        'pneus': pneus_data, 
+        'km_atual': veiculo.km_atual
+    })
+
+@app.route('/api/pneu/instalar', methods=['POST'])
+@login_required
+def api_instalar_pneu():
+    data = request.json
+    try:
+        pneu = Pneu.query.get(data['pneu_id'])
+        veiculo = Veiculo.query.get(data['veiculo_id'])
+        km_veiculo_instalacao = float(data['km_veiculo'])
+
+        if not pneu or pneu.status != 'Em Estoque':
+            return jsonify({'success': False, 'message': 'Pneu não encontrado ou não está no estoque.'}), 400
+
+        pneu.status = 'Em Uso'
+        pneu.veiculo_id = veiculo.id
+        pneu.posicao = data['posicao']
+        
+        # Atualiza o KM do veículo se o informado for maior
+        if km_veiculo_instalacao > (veiculo.km_atual or 0):
+            veiculo.km_atual = km_veiculo_instalacao
+
+        historico = HistoricoPneu(
+            pneu_id=pneu.id,
+            empresa_id=current_user.empresa_id,
+            evento='Instalação',
+            veiculo_id=veiculo.id,
+            km_veiculo=km_veiculo_instalacao,
+            posicao=pneu.posicao
+        )
+        db.session.add(historico)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Pneu instalado com sucesso!'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/pneu/remover', methods=['POST'])
+@login_required
+def api_remover_pneu():
+    data = request.json
+    try:
+        pneu = Pneu.query.get(data['pneu_id'])
+        km_veiculo_remocao = float(data['km_veiculo'])
+        destino = data['destino'] # 'estoque', 'recapagem', 'descarte'
+
+        if not pneu or pneu.status != 'Em Uso':
+            return jsonify({'success': False, 'message': 'Pneu não encontrado ou não está em uso.'}), 400
+
+        veiculo = pneu.veiculo
+        # Atualiza o KM do veículo se o informado for maior
+        if km_veiculo_remocao > (veiculo.km_atual or 0):
+            veiculo.km_atual = km_veiculo_remocao
+
+        ultima_instalacao = HistoricoPneu.query.filter_by(pneu_id=pneu.id, evento='Instalação')\
+            .order_by(HistoricoPneu.data_evento.desc()).first()
+
+        km_rodados = 0
+        if ultima_instalacao:
+            km_rodados = km_veiculo_remocao - ultima_instalacao.km_veiculo
+
+        pneu.km_total += km_rodados
+        
+        # Lógica de destino
+        if destino == 'estoque':
+            pneu.status = 'Em Estoque'
+        elif destino == 'recapagem':
+            pneu.status = 'Recapando'
+        elif destino == 'descarte':
+            pneu.status = 'Descartado'
+            pneu.motivo_descarte = data.get('motivo_descarte', 'Fim da vida útil.')
+        
+        posicao_antiga = pneu.posicao
+        pneu.veiculo_id = None
+        pneu.posicao = None
+
+        historico = HistoricoPneu(
+            pneu_id=pneu.id,
+            empresa_id=current_user.empresa_id,
+            evento='Remoção',
+            veiculo_id=veiculo.id,
+            km_veiculo=km_veiculo_remocao,
+            km_rodado_no_evento=km_rodados,
+            posicao=posicao_antiga,
+            observacoes=f"Destino: {destino.title()}"
+        )
+        db.session.add(historico)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Pneu removido com sucesso!'})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/pneu/registrar_medicao', methods=['POST'])
+@login_required
+def api_registrar_medicao():
+    data = request.json
+    try:
+        pneu = Pneu.query.get(data['pneu_id'])
+        if not pneu:
+            return jsonify({'success': False, 'message': 'Pneu não encontrado.'}), 404
+
+        historico = HistoricoPneu(
+            pneu_id=pneu.id,
+            empresa_id=current_user.empresa_id,
+            evento='Medição de Sulco',
+            sulco_mm=float(data['sulco_mm']),
+            observacoes=data.get('observacoes', '')
+        )
+        db.session.add(historico)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Medição registrada!'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/pneu/importar_lote', methods=['POST'])
+@login_required
+def pneu_importar_lote():
+    if 'csv_file' not in request.files:
+        flash('Nenhum arquivo enviado.', 'error')
+        return redirect(url_for('borracharia_dashboard'))
+
+    file = request.files['csv_file']
+    if file.filename == '' or not file.filename.endswith('.csv'):
+        flash('Arquivo inválido. Por favor, envie um arquivo .CSV.', 'error')
+        return redirect(url_for('borracharia_dashboard'))
+
+    try:
+        # Usamos o decode('utf-8') para ler o arquivo corretamente
+        stream = io.StringIO(file.stream.read().decode("UTF-8"), newline=None)
+        csv_reader = csv.reader(stream)
+        
+        next(csv_reader, None) # Pula o cabeçalho
+        
+        pneus_criados = 0
+        for i, row in enumerate(csv_reader, 2): # Começa a contar da linha 2
+            if not any(field.strip() for field in row): continue # Pula linhas vazias
+            
+            pneu = Pneu(
+                empresa_id=current_user.empresa_id,
+                numero_fogo=row[0],
+                marca=row[1],
+                modelo=row[2],
+                dimensao=row[3],
+                dot=row[4],
+                data_compra=datetime.strptime(row[5], '%Y-%m-%d').date(),
+                valor_compra=float(row[6]),
+                fornecedor=row[7],
+                status='Em Estoque'
+            )
+            db.session.add(pneu)
+            db.session.flush()
+
+            historico = HistoricoPneu(
+                pneu_id=pneu.id,
+                empresa_id=current_user.empresa_id,
+                evento='Compra',
+                custo=pneu.valor_compra,
+                observacoes=f"Importado em lote. Fornecedor: {pneu.fornecedor}"
+            )
+            db.session.add(historico)
+            pneus_criados += 1
+
+        db.session.commit()
+        flash(f'{pneus_criados} pneus importados com sucesso!', 'success')
+
+    except IntegrityError as e:
+        db.session.rollback()
+        flash(f"Erro de importação: Já existe um pneu com um dos 'Números de Fogo' do arquivo.", 'error')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao processar o arquivo na linha {i}: {e}', 'error')
+        
+    return redirect(url_for('borracharia_dashboard'))
+
+@app.route('/api/pneu/retorno_recapagem', methods=['POST'])
+@login_required
+def api_retorno_recapagem():
+    data = request.json
+    try:
+        pneu = Pneu.query.get(data['pneu_id'])
+        if not pneu or pneu.status != 'Recapando':
+            return jsonify({'success': False, 'message': 'Pneu não encontrado ou não está em recapagem.'}), 400
+
+        # Atualiza o status do pneu
+        pneu.status = 'Em Estoque'
+        pneu.numero_recapagens += 1
+
+        # Cria o registro histórico
+        historico = HistoricoPneu(
+            pneu_id=pneu.id,
+            empresa_id=current_user.empresa_id,
+            evento='Retorno de Recapagem',
+            # ===== LINHA ADICIONADA AQUI =====
+            sulco_mm=float(data['sulco_mm']),
+            # ===================================
+            custo=float(data['custo']),
+            observacoes=f"Recapado por: {data.get('fornecedor', 'N/A')}. Obs: {data.get('observacoes', '')}"
+        )
+        db.session.add(historico)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Retorno de recapagem registrado com sucesso!'})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+@app.route('/api/pneu/enviar_recapagem', methods=['POST'])
+@login_required
+def api_enviar_recapagem():
+    data = request.json
+    try:
+        pneu = Pneu.query.get(data['pneu_id'])
+        if not pneu or pneu.status != 'Em Estoque':
+            return jsonify({'success': False, 'message': 'Ação permitida apenas para pneus em estoque.'}), 400
+
+        pneu.status = 'Recapando'
+        historico = HistoricoPneu(
+            pneu_id=pneu.id,
+            empresa_id=current_user.empresa_id,
+            evento='Envio para Recapagem',
+            observacoes=data.get('observacoes', '')
+        )
+        db.session.add(historico)
+        db.session.commit()
+        flash(f'Pneu {pneu.numero_fogo} enviado para recapagem.', 'success')
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/pneu/descartar', methods=['POST'])
+@login_required
+def api_descartar_pneu():
+    data = request.json
+    try:
+        pneu = Pneu.query.get(data['pneu_id'])
+        if not pneu or pneu.status != 'Em Estoque':
+            return jsonify({'success': False, 'message': 'Ação permitida apenas para pneus em estoque.'}), 400
+        
+        pneu.status = 'Descartado'
+        pneu.motivo_descarte = data.get('motivo_descarte')
+        historico = HistoricoPneu(
+            pneu_id=pneu.id,
+            empresa_id=current_user.empresa_id,
+            evento='Descarte',
+            observacoes=f"Motivo: {pneu.motivo_descarte}"
+        )
+        db.session.add(historico)
+        db.session.commit()
+        flash(f'Pneu {pneu.numero_fogo} foi descartado.', 'success')
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/pneu/exportar_modelo_csv')
+@login_required
+def pneu_exportar_modelo_csv():
+    """
+    Gera um arquivo CSV modelo para a importação de pneus em lote.
+    """
+    try:
+        # Usa um buffer em memória para criar o arquivo sem salvar no servidor
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        # 1. Define o cabeçalho - EXATAMENTE na ordem que a função de importação espera
+        headers = [
+            'numero_fogo', 
+            'marca', 
+            'modelo', 
+            'dimensao', 
+            'dot', 
+            'data_compra', 
+            'valor_compra', 
+            'fornecedor'
+        ]
+        writer.writerow(headers)
+
+        # 2. Adiciona uma linha de exemplo para guiar o usuário
+        example_row = [
+            'FOGO-12345',
+            'Michelin',
+            'X Multi Z',
+            '295/80 R22.5',
+            'DOTXX0X0XX4523',
+            '2025-08-26',
+            '2500.50',
+            'Fornecedor Exemplo LTDA'
+        ]
+        writer.writerow(example_row)
+
+        # 3. Prepara a resposta para o navegador forçar o download
+        output.seek(0)
+        response = make_response(output.getvalue())
+        response.headers["Content-Disposition"] = "attachment; filename=modelo_importacao_pneus.csv"
+        response.headers["Content-type"] = "text/csv"
+        return response
+
+    except Exception as e:
+        flash(f"Ocorreu um erro ao gerar o modelo de CSV: {e}", "error")
+        return redirect(url_for('borracharia_dashboard'))
+
 @app.route('/exportar_relatorio')
 @login_required
 def exportar_relatorio():
@@ -5449,7 +6007,11 @@ def seed_database(force=False):
 
                 # 5. Criar Veículos
                 veiculo1 = Veiculo(
-                    placa="ABC1234", categoria="Caminhão", modelo="Volvo FH", ano=2020,
+                    placa="ABC1234",
+                    categoria="Caminhão",
+                    modelo="Volvo FH",
+                    ano_modelo=2020,  # <-- Altere 'ano' para 'ano_modelo' aqui
+                    ano_fabricacao=2020, # <-- É uma boa prática definir ambos
                     empresa_id=empresa_exemplo.id
                 )
                 db.session.add(veiculo1)
