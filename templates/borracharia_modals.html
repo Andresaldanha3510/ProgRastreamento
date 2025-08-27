@@ -1,0 +1,272 @@
+<div class="modal fade" id="novoPneuModal" tabindex="-1" aria-labelledby="novoPneuModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="novoPneuModalLabel">Cadastrar Novo Pneu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('pneu_novo') }}" method="POST">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="numero_fogo" class="form-label">Nº Fogo/Identificação</label>
+                            <input type="text" class="form-control" id="numero_fogo" name="numero_fogo" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="marca" class="form-label">Marca</label>
+                            <input type="text" class="form-control" id="marca" name="marca" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="modelo" class="form-label">Modelo</label>
+                            <input type="text" class="form-control" id="modelo" name="modelo" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="dimensao" class="form-label">Dimensão</label>
+                            <input type="text" class="form-control" id="dimensao" name="dimensao" placeholder="Ex: 295/80 R22.5" required>
+                        </div>
+                        <div class="col-md-8 mb-3">
+                            <label for="dot" class="form-label">DOT</label>
+                            <input type="text" class="form-control" id="dot" name="dot" placeholder="Código completo, incluindo semana/ano de fabricação no final" required>
+                        </div>
+                    </div>
+                     <hr>
+                     <h5>Dados da Compra</h5>
+                     <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="data_compra" class="form-label">Data da Compra</label>
+                            <input type="date" class="form-control" id="data_compra" name="data_compra" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="valor_compra" class="form-label">Valor (R$)</label>
+                            <input type="number" step="0.01" class="form-control" id="valor_compra" name="valor_compra" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="fornecedor" class="form-label">Fornecedor</label>
+                            <input type="text" class="form-control" id="fornecedor" name="fornecedor">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Pneu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="instalarPneuModal" tabindex="-1" aria-labelledby="instalarPneuModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="instalarPneuModalLabel">Instalar Pneu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formInstalarPneu">
+                <div class="modal-body">
+                    <input type="hidden" id="instalarVeiculoId" name="veiculo_id">
+                    <div class="mb-3">
+                        <label for="instalarPneuId" class="form-label">Pneu (do Estoque)</label>
+                        <select class="form-select" id="instalarPneuId" name="pneu_id" required>
+                            <option selected disabled value="">Selecione o pneu...</option>
+                            {% for pneu in pneus_em_estoque %}
+                            <option value="{{ pneu.id }}">{{ pneu.numero_fogo }} - {{ pneu.marca }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="instalarPosicao" class="form-label">Posição no Veículo</label>
+                        <select class="form-select" id="instalarPosicao" name="posicao" required>
+                            <option selected disabled value="">Selecione a posição...</option>
+                            <optgroup label="Eixo 1 - Dianteiro">
+                                <option>Eixo 1 - Dianteiro Esquerdo</option>
+                                <option>Eixo 1 - Dianteiro Direito</option>
+                            </optgroup>
+                            <optgroup label="Eixo 2 - Tração">
+                                <option>Eixo 2 - Traseiro Esquerdo Externo</option>
+                                <option>Eixo 2 - Traseiro Esquerdo Interno</option>
+                                <option>Eixo 2 - Traseiro Direito Externo</option>
+                                <option>Eixo 2 - Traseiro Direito Interno</option>
+                            </optgroup>
+                             <optgroup label="Eixo 3 - Truck">
+                                <option>Eixo 3 - Traseiro Esquerdo Externo</option>
+                                <option>Eixo 3 - Traseiro Esquerdo Interno</option>
+                                <option>Eixo 3 - Traseiro Direito Externo</option>
+                                <option>Eixo 3 - Traseiro Direito Interno</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="instalarKmVeiculo" class="form-label">KM do Veículo na Instalação</label>
+                        <input type="number" class="form-control" id="instalarKmVeiculo" name="km_veiculo" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Confirmar Instalação</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="removerPneuModal" tabindex="-1" aria-labelledby="removerPneuModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+             <div class="modal-header">
+                <h5 class="modal-title" id="removerPneuModalLabel">Remover Pneu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formRemoverPneu">
+                <div class="modal-body">
+                    <input type="hidden" id="removerVeiculoId" name="veiculo_id">
+                    <div class="mb-3">
+                        <label for="removerPneuId" class="form-label">Pneu Instalado</label>
+                        <select class="form-select" id="removerPneuId" name="pneu_id" required></select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="removerKmVeiculo" class="form-label">KM do Veículo na Remoção</label>
+                        <input type="number" class="form-control" id="removerKmVeiculo" name="km_veiculo" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="removerDestino" class="form-label">Destino do Pneu</label>
+                         <select class="form-select" id="removerDestino" name="destino" required>
+                            <option value="estoque">Enviar para Estoque</option>
+                            <option value="recapagem">Enviar para Recapagem</option>
+                            <option value="descarte">Descartar Pneu</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="motivoDescarteContainer" style="display: none;">
+                        <label for="motivoDescarte" class="form-label">Motivo do Descarte</label>
+                        <textarea class="form-control" id="motivoDescarte" name="motivo_descarte" rows="2"></textarea>
+                    </div>
+                </div>
+                 <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">Confirmar Remoção</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+document.getElementById('removerDestino').addEventListener('change', function() {
+    const motivoContainer = document.getElementById('motivoDescarteContainer');
+    if (this.value === 'descarte') {
+        motivoContainer.style.display = 'block';
+        document.getElementById('motivoDescarte').required = true;
+    } else {
+        motivoContainer.style.display = 'none';
+        document.getElementById('motivoDescarte').required = false;
+    }
+});
+</script>
+
+
+<div class="modal fade" id="medicaoPneuModal" tabindex="-1" aria-labelledby="medicaoPneuModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+             <div class="modal-header">
+                <h5 class="modal-title" id="medicaoPneuModalLabel">Registrar Medição de Sulco</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formMedicaoPneu">
+                <div class="modal-body">
+                    <input type="hidden" id="medicaoPneuId" name="pneu_id">
+                    <div class="mb-3">
+                        <label for="sulco_mm" class="form-label">Profundidade do Sulco (mm)</label>
+                        <input type="number" step="0.1" class="form-control" id="sulco_mm" name="sulco_mm" required>
+                    </div>
+                     <div class="mb-3">
+                        <label for="observacoes" class="form-label">Observações</label>
+                        <textarea class="form-control" id="observacoes" name="observacoes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-info">Salvar Medição</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="importarPneusModal" tabindex="-1" aria-labelledby="importarPneusModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importarPneusModalLabel">Importar Pneus em Lote</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('pneu_importar_lote') }}" method="POST" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">Instruções</h6>
+                        <p>Para importar múltiplos pneus de uma vez, siga os passos:</p>
+                        <ol>
+                            <li><strong>Baixe o modelo CSV.</strong> Ele contém as colunas na ordem correta e um exemplo.</li>
+                            <li>Preencha o arquivo com os dados dos seus pneus.</li>
+                            <li>Salve o arquivo e envie-o abaixo.</li>
+                        </ol>
+                        
+                        {# ===== BOTÃO DE DOWNLOAD ADICIONADO AQUI ===== #}
+                        <a href="{{ url_for('pneu_exportar_modelo_csv') }}" class="btn btn-sm btn-outline-primary w-100">
+                            <i class="fas fa-download me-2"></i>Baixar Modelo de Planilha (.CSV)
+                        </a>
+
+                        <hr>
+                        <p class="mb-0 small text-muted"><strong>Colunas:</strong> <code>numero_fogo, marca, modelo, dimensao, dot, data_compra (AAAA-MM-DD), valor_compra, fornecedor</code></p>
+                    </div>
+                    <div class="mb-3">
+                        <label for="csv_file" class="form-label">Selecione o arquivo .CSV preenchido</label>
+                        <input class="form-control" type="file" id="csv_file" name="csv_file" accept=".csv" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-file-upload me-2"></i>Importar Arquivo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="retornoRecapagemModal" tabindex="-1" aria-labelledby="retornoRecapagemModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="retornoRecapagemModalLabel">Registrar Retorno de Recapagem</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formRetornoRecapagem">
+                <div class="modal-body">
+                    <input type="hidden" id="retornoPneuId" name="pneu_id">
+
+                    <div class="mb-3">
+                        <label for="retornoSulcoMm" class="form-label">Nova Medida do Sulco (mm)</label>
+                        <input type="number" step="0.1" class="form-control" id="retornoSulcoMm" name="sulco_mm" placeholder="Ex: 13.5" required>
+                        <small class="form-text text-muted">Informe a profundidade do sulco do pneu após a recapagem.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="retornoCusto" class="form-label">Custo da Recapagem (R$)</label>
+                        <input type="number" step="0.01" class="form-control" id="retornoCusto" name="custo" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="retornoFornecedor" class="form-label">Recapadora / Fornecedor</label>
+                        <input type="text" class="form-control" id="retornoFornecedor" name="fornecedor">
+                    </div>
+                    <div class="mb-3">
+                        <label for="retornoObservacoes" class="form-label">Observações</label>
+                        <textarea class="form-control" id="retornoObservacoes" name="observacoes" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Confirmar Retorno ao Estoque</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

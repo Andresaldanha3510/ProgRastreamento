@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}TrackBras{% endblock %}</title>
-
+    {# CSS DO BOOTSTRAP (OBRIGATÓRIO) #}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    {# CSS DO FONT AWESOME (PARA OS ÍCONES) #}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="manifest" href="{{ url_for('manifest') }}">
     <meta name="theme-color" content="#2e7d32">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -174,6 +177,7 @@
                     </button>
                     <div x-show="openSection === 'operacoes'" x-collapse class="pl-6 pt-2 space-y-1">
                         <a href="{{ url_for('oficina') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Oficina</a>
+                        <a href="{{ url_for('borracharia_dashboard') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Borracharia</a>
                         <a href="{{ url_for('iniciar_viagem_page') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Criar Viagem</a>
                         <a href="{{ url_for('importar_nfe_page') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Importar Viagem (NF-e)</a>
                         <a href="{{ url_for('consultar_cobrancas') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Financeiro (Clientes)</a>
@@ -263,7 +267,8 @@
                      <div>
                          <h4 class="font-semibold mb-2 text-white">Operações</h4>
                          <ul class="space-y-2">
-                             <li><a href="{{ url_for('oficina') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors"">Oficina</a></li>
+                             <li><a href="{{ url_for('oficina') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Oficina</a></li>
+                             <li><a href="{{ url_for('borracharia_dashboard') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Borracharia</a></li>
                              <li><a href="{{ url_for('iniciar_viagem_page') }}" class="block p-2 rounded hover:bg-white/10 transition">Criar Viagem</a></li>
                              <li><a href="{{ url_for('importar_nfe_page') }}" class="block p-2 rounded hover:bg-white/10 transition">Importar Viagem (NF-e)</a></li>
                              <li><a href="{{ url_for('consultar_cobrancas') }}" class="block p-2 rounded hover:bg-white/10 transition">Financeiro (Clientes)</a></li>
@@ -345,6 +350,7 @@
         }
     </script>
     {% block scripts %}
+
         <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
         
         <script src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
@@ -367,6 +373,9 @@
         </script>
 
     {% endblock %}
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
+        {# JQUERY (SE VOCÊ USA EM ALGUM LUGAR) #}
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </body>
 </html>

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Configurações da Borracharia{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2"><i class="fas fa-cog me-2"></i>Configurações da Borracharia</h1>
+        <a href="{{ url_for('borracharia_dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Voltar ao Dashboard
+        </a>
+    </div>
+
+    <form method="POST">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Regras de Alerta e Vida Útil dos Pneus</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Defina os parâmetros que o sistema usará para gerar alertas e gerenciar o ciclo de vida dos pneus.</p>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            <input type="number" class="form-control" id="vida_util_dot_anos" name="vida_util_dot_anos" value="{{ config.vida_util_dot_anos }}" placeholder="7">
+                            <label for="vida_util_dot_anos">Vida Útil Máxima por DOT (anos)</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            <input type="number" class="form-control" id="alerta_dot_dias" name="alerta_dot_dias" value="{{ config.alerta_dot_dias }}" placeholder="90">
+                            <label for="alerta_dot_dias">Alertar Vencimento do DOT com (dias de antecedência)</label>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            <input type="number" step="0.1" class="form-control" id="sulco_minimo_recapagem_mm" name="sulco_minimo_recapagem_mm" value="{{ config.sulco_minimo_recapagem_mm }}" placeholder="3.0">
+                            <label for="sulco_minimo_recapagem_mm">Sulco Mínimo para Recape (mm)</label>
+                        </div>
+                    </div>
+                     <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            <input type="number" step="0.1" class="form-control" id="sulco_minimo_descarte_mm" name="sulco_minimo_descarte_mm" value="{{ config.sulco_minimo_descarte_mm }}" placeholder="1.6">
+                            <label for="sulco_minimo_descarte_mm">Sulco Mínimo para Descarte (mm)</label>
+                        </div>
+                     </div>
+                </div>
+                 <hr>
+                 <div class="row g-3">
+                     <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            <input type="number" class="form-control" id="max_recapagens" name="max_recapagens" value="{{ config.max_recapagens }}" placeholder="2">
+                            <label for="max_recapagens">Número Máximo de Recapagens</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            <input type="number" step="100" class="form-control" id="km_alerta_recapagem" name="km_alerta_recapagem" value="{{ config.km_alerta_recapagem }}" placeholder="5000">
+                             <label for="km_alerta_recapagem">Alertar para Recape quando Faltar (KM)</label>
+                        </div>
+                    </div>
+                 </div>
+            </div>
+            <div class="card-footer text-end bg-light">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-save me-2"></i>Salvar Configurações
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
