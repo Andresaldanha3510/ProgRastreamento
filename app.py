@@ -1,10 +1,8 @@
 import eventlet
 eventlet.monkey_patch()
 
-
 import uuid
 import xml.etree.ElementTree as ET
-import csv
 import json
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, make_response, send_from_directory
 from datetime import datetime, timedelta, date
@@ -32,7 +30,6 @@ from pathlib import Path
 from functools import wraps
 from cryptography.fernet import Fernet
 from werkzeug.security import generate_password_hash, check_password_hash
-
 
 # 1. Importa as extensões E os modelos do novo arquivo 'extensions.py'
 from extensions import db, migrate, socketio, login_manager, mail, CertificadoDigital, NFeImportada
@@ -100,6 +97,8 @@ app.config.update(
     CLOUDFLARE_R2_SECRET_KEY=os.getenv('CLOUDFLARE_R2_SECRET_KEY'),
     CLOUDFLARE_R2_BUCKET=os.getenv('CLOUDFLARE_R2_BUCKET'),
     CLOUDFLARE_R2_PUBLIC_URL=os.getenv('CLOUDFLARE_R2_PUBLIC_URL'),
+    SEFAZ_AMBIENTE=os.getenv('SEFAZ_AMBIENTE', 'PRODUCAO'),
+    NFE_API_URL=os.getenv('NFE_API_URL'),
 )
 GEOAPIFY_API_KEY = os.getenv('GEOAPIFY_API_KEY', '7cd423ef184f48f0b770682cbebe11d0')
 OPENROUTESERVICE_API_KEY = os.getenv('OPENROUTESERVICE_API_KEY')
@@ -110,6 +109,8 @@ ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY')
 if not ENCRYPTION_KEY: raise ValueError("ENCRYPTION_KEY não definida no .env!")
 cipher_suite = Fernet(ENCRYPTION_KEY.encode())
 app.cipher_suite = cipher_suite # Associa o cipher ao app para uso posterior
+
+
 
 # 2. Seção correta de inicialização das extensões
 db.init_app(app)
@@ -557,97 +558,6 @@ class PlanoInsumo(db.Model):
     plano = db.relationship('PlanoDeManutencao', back_populates='insumos_associados')
     insumo = db.relationship('Insumo')
 
-
-
-class ConfiguracaoBorracharia(db.Model):
-    """ Tabela para armazenar as configurações e regras de negócio da borracharia. """
-    __tablename__ = 'configuracao_borracharia'
-    id = db.Column(db.Integer, primary_key=True)
-    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False, unique=True)
-    
-    # Regras de negócio configuráveis
-    vida_util_dot_anos = db.Column(db.Integer, default=7)
-    alerta_dot_dias = db.Column(db.Integer, default=90)
-    sulco_minimo_recapagem_mm = db.Column(db.Float, default=3.0)
-    sulco_minimo_descarte_mm = db.Column(db.Float, default=1.6)
-    max_recapagens = db.Column(db.Integer, default=2)
-    km_alerta_recapagem = db.Column(db.Integer, default=5000) # Alerta quando faltar X km
-
-class Pneu(db.Model):
-    __tablename__ = 'pneu'
-    id = db.Column(db.Integer, primary_key=True)
-    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
-    
-    # --- Identificação ---
-    numero_fogo = db.Column(db.String(50), nullable=False, index=True)
-    marca = db.Column(db.String(100), nullable=False)
-    modelo = db.Column(db.String(100), nullable=False)
-    dimensao = db.Column(db.String(50), nullable=False) # Ex: 295/80 R22.5
-    dot = db.Column(db.String(20), nullable=False) 
-
-    # --- Dados de Compra ---
-    data_compra = db.Column(db.Date, nullable=False)
-    valor_compra = db.Column(db.Float, nullable=False)
-    fornecedor = db.Column(db.String(150), nullable=True)
-
-    # --- Status e Localização ---
-    # Status: 'Em Estoque', 'Em Uso', 'Recapando', 'Descartado'
-    status = db.Column(db.String(50), nullable=False, default='Em Estoque', index=True)
-    motivo_descarte = db.Column(db.String(255), nullable=True)
-
-    # Vínculo com o veículo (se estiver em uso)
-    veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculo.id'), nullable=True)
-    posicao = db.Column(db.String(50), nullable=True) # Ex: Eixo 1 - Dianteiro Esquerdo
-    
-    # --- Métricas de Vida Útil ---
-    km_total = db.Column(db.Float, default=0.0)
-    numero_recapagens = db.Column(db.Integer, default=0)
-    
-    veiculo = db.relationship('Veiculo', backref=db.backref('pneus', lazy='dynamic'))
-
-    __table_args__ = (db.UniqueConstraint('numero_fogo', 'empresa_id', name='_numero_fogo_empresa_uc'),)
-
-    @property
-    def data_fabricacao(self):
-        """ Extrai a data de fabricação a partir do DOT. """
-        try:
-            # DOT geralmente termina com a semana e o ano (WWYY)
-            dot_numerico = re.sub(r'\D', '', self.dot)
-            if len(dot_numerico) < 4: return None
-            semana, ano = int(dot_numerico[-4:-2]), int(dot_numerico[-2:])
-            ano_completo = 2000 + ano
-            # Retorna o primeiro dia daquela semana
-            return datetime.strptime(f'{ano_completo}-{semana}-1', "%Y-%W-%w").date()
-        except:
-            return None
-
-    def __repr__(self):
-        return f'<Pneu {self.numero_fogo} - {self.marca} {self.modelo}>'
-
-class HistoricoPneu(db.Model):
-    __tablename__ = 'historico_pneu'
-    id = db.Column(db.Integer, primary_key=True)
-    pneu_id = db.Column(db.Integer, db.ForeignKey('pneu.id'), nullable=False)
-    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
-    
-    data_evento = db.Column(db.DateTime, default=datetime.utcnow)
-    # Evento: 'Compra', 'Instalação', 'Remoção', 'Envio para Recapagem', 'Retorno de Recapagem', 'Medição de Sulco', 'Descarte'
-    evento = db.Column(db.String(50), nullable=False)
-    
-    # Dados contextuais do evento
-    veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculo.id'), nullable=True)
-    km_veiculo = db.Column(db.Float, nullable=True) 
-    km_rodado_no_evento = db.Column(db.Float, nullable=True)
-    posicao = db.Column(db.String(50), nullable=True)
-    custo = db.Column(db.Float, default=0.0) 
-    sulco_mm = db.Column(db.Float, nullable=True) 
-    observacoes = db.Column(db.Text, nullable=True)
-    
-    pneu = db.relationship('Pneu', backref=db.backref('historico', lazy='dynamic', cascade="all, delete-orphan"))
-
-    def __repr__(self):
-        return f'<HistoricoPneu {self.id} - Pneu {self.pneu_id} - {self.evento}>'
-
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 
@@ -742,14 +652,99 @@ class Cliente(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     cadastrado_por_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
     
-    # --- ADICIONADO ---
+
     empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
 
     cadastrado_por = db.relationship('Usuario', backref='clientes_cadastrados')
 
     def __repr__(self):
         return f'<Cliente {self.id}: {self.nome_razao_social}>'
+    
 
+class LancamentoFluxoCaixa(db.Model):
+    """Lançamentos manuais no fluxo de caixa (receitas e despesas não vinculadas a NFe)"""
+    __tablename__ = 'lancamento_fluxo_caixa'
+    id = db.Column(db.Integer, primary_key=True)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
+    
+    # Dados básicos do lançamento
+    tipo = db.Column(db.String(10), nullable=False, index=True)  # 'RECEITA' ou 'DESPESA'
+    descricao = db.Column(db.String(255), nullable=False)
+    categoria = db.Column(db.String(100), nullable=True)  # Ex: Combustível, Manutenção, Frete, etc.
+    valor_total = db.Column(db.Float, nullable=False)
+    
+    # Controle de datas
+    data_lancamento = db.Column(db.DateTime, default=datetime.utcnow)
+    data_vencimento = db.Column(db.Date, nullable=False, index=True)
+    data_pagamento = db.Column(db.Date, nullable=True)
+    
+    # Status e controle
+    status_pagamento = db.Column(db.String(20), default='PENDENTE', nullable=False, index=True)
+    # Status: PENDENTE, PAGO, CANCELADO, VENCIDO
+    
+    # Dados opcionais
+    fornecedor_cliente = db.Column(db.String(255), nullable=True)  # Nome do fornecedor/cliente
+    documento_numero = db.Column(db.String(50), nullable=True)  # Número da nota, boleto, etc.
+    observacoes = db.Column(db.Text, nullable=True)
+    
+    # Controle de parcelas
+    parcela_numero = db.Column(db.Integer, default=1)
+    parcela_total = db.Column(db.Integer, default=1)
+    lancamento_pai_id = db.Column(db.Integer, db.ForeignKey('lancamento_fluxo_caixa.id'), nullable=True)
+    
+    # Relacionamentos
+    parcelas = db.relationship('LancamentoFluxoCaixa', remote_side=[id], backref='lancamento_pai')
+    
+    # Anexos de comprovantes
+    anexos_urls = db.Column(db.String(2048), nullable=True)  # URLs separadas por vírgula
+    
+    def __repr__(self):
+        return f'<LancamentoFluxoCaixa {self.id} - {self.tipo}: {self.descricao}>'
+
+    @property
+    def is_vencido(self):
+        """Verifica se o lançamento está vencido"""
+        return (self.data_vencimento < date.today() and 
+                self.status_pagamento == 'PENDENTE')
+    
+class LancamentoNotaFiscal(db.Model):
+    __tablename__ = 'lancamento_nota_fiscal'
+    id = db.Column(db.Integer, primary_key=True)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
+    
+    # --- CORREÇÃO APLICADA AQUI ---
+    # O tipo da coluna agora é String(44) para ser igual ao da tabela NFeImportada.
+    nfe_importada_chave_acesso = db.Column(db.String(44), db.ForeignKey('nfe_importada.chave_acesso'), nullable=False)
+    
+    # Dados extraídos para fácil acesso
+    chave_acesso = db.Column(db.String(44), nullable=False, index=True)
+    emitente_cnpj = db.Column(db.String(14), nullable=False)
+    emitente_nome = db.Column(db.String(255), nullable=False)
+    valor_total = db.Column(db.Float, nullable=False)
+    data_emissao = db.Column(db.DateTime, nullable=False)
+    
+    # Dados financeiros preenchidos pelo usuário
+    data_vencimento = db.Column(db.Date, nullable=False, index=True)
+    
+    # Controle do fluxo de caixa
+    status_pagamento = db.Column(db.String(20), default='A Pagar', nullable=False, index=True) # Ex: A Pagar, Pago
+    data_pagamento = db.Column(db.Date, nullable=True)
+    
+    # Data em que o lançamento foi feito no sistema
+    data_lancamento = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # O relacionamento agora usa a coluna corrigida
+    nfe_original = db.relationship('NFeImportada', foreign_keys=[nfe_importada_chave_acesso])
+
+    def __repr__(self):
+        return f'<LancamentoNotaFiscal {self.id} - {self.emitente_nome} R$ {self.valor_total}>'
+    parcela_numero = db.Column(db.Integer, default=1)
+    parcela_total = db.Column(db.Integer, default=1)
+    lancamento_pai_id = db.Column(db.Integer, db.ForeignKey('lancamento_nota_fiscal.id'))
+    observacoes = db.Column(db.Text)
+    
+
+    
 class Viagem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     motorista_id = db.Column(db.Integer, db.ForeignKey('motorista.id'), nullable=True)
@@ -781,7 +776,10 @@ class Viagem(db.Model):
     peso_toneladas = db.Column(db.Float, nullable=True)
     custo_motorista_variavel = db.Column(db.Float, nullable=True) 
 
-    # PROPRIEDADE INTELIGENTE PARA CALCULAR A DISTÂNCIA REAL
+
+    
+
+  
     @property
     def distancia_percorrida(self):
         if self.odometro_inicial is not None and self.odometro_final is not None:
@@ -894,7 +892,116 @@ def get_distancia_total_periodo(veiculo_id, dias=365):
     except Exception as e:
         logger.error(f"Erro ao calcular distância total para veículo {veiculo_id}: {e}", exc_info=True)
         return 0.0
-    
+@app.route('/api/fiscal/salvar_lancamento', methods=['POST'])
+@login_required
+def api_salvar_lancamento():
+    data = request.get_json()
+    chave_acesso = data.get('chave_acesso')
+    data_vencimento_str = data.get('data_vencimento')
+
+    if not all([chave_acesso, data_vencimento_str]):
+        return jsonify({'success': False, 'message': 'Dados incompletos.'}), 400
+
+    nota = NFeImportada.query.filter_by(chave_acesso=chave_acesso, empresa_id=current_user.empresa_id).first()
+    if not nota:
+        return jsonify({'success': False, 'message': 'Nota fiscal original não encontrada.'}), 404
+    if nota.status == 'PROCESSADA':
+        return jsonify({'success': False, 'message': 'Esta nota já foi processada.'}), 409
+
+    try:
+        data_vencimento = datetime.strptime(data_vencimento_str, '%Y-%m-%d').date()
+
+        # CORREÇÃO: usar nfe_importada_chave_acesso em vez de nfe_importada_id
+        novo_lancamento = LancamentoNotaFiscal(
+            empresa_id=current_user.empresa_id,
+            nfe_importada_chave_acesso=nota.chave_acesso,  # Corrigido aqui
+            chave_acesso=nota.chave_acesso,
+            emitente_cnpj=nota.emitente_cnpj,
+            emitente_nome=nota.emitente_nome,
+            valor_total=nota.valor_total,
+            data_emissao=nota.data_emissao,
+            data_vencimento=data_vencimento,
+            status_pagamento='A Pagar'
+        )
+        db.session.add(novo_lancamento)
+
+        # Atualiza o status da nota original para "Processada"
+        nota.status = 'PROCESSADA'
+        
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Lançamento financeiro criado com sucesso!'})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao salvar lançamento para NFe {chave_acesso}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Erro interno: {e}'}), 500
+
+
+@app.route('/api/fiscal/visualizar_xml/<string:chave_acesso>')
+@login_required
+def api_visualizar_xml(chave_acesso):
+    """
+    Busca e retorna o conteúdo XML de uma NF-e para visualização.
+    """
+    nota = NFeImportada.query.filter_by(
+        chave_acesso=chave_acesso,
+        empresa_id=current_user.empresa_id
+    ).first()
+
+    if not nota:
+        return jsonify({'success': False, 'message': 'Nota fiscal não encontrada.'}), 404
+
+    if not nota.xml_content:
+        return jsonify({'success': False, 'message': 'Conteúdo XML não disponível para esta nota.'}), 404
+
+    try:
+        return jsonify({
+            'success': True, 
+            'xml_content': nota.xml_content,
+            'emitente_nome': nota.emitente_nome,
+            'chave_acesso': nota.chave_acesso
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao visualizar XML da NFe {chave_acesso}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Erro ao processar XML: {e}'}), 500
+
+@app.route('/fiscal/xml/<string:chave_acesso>')
+@login_required
+def visualizar_xml_page(chave_acesso):
+    """
+    Página para visualização formatada do XML da NF-e.
+    """
+    nota = NFeImportada.query.filter_by(
+        chave_acesso=chave_acesso,
+        empresa_id=current_user.empresa_id
+    ).first_or_404()
+
+    if not nota.xml_content:
+        flash('Conteúdo XML não disponível para esta nota.', 'error')
+        return redirect(url_for('importar_notas_fiscais'))
+
+    try:
+        import xml.dom.minidom as minidom
+        
+        # Formatar o XML para exibição
+        try:
+            dom = minidom.parseString(nota.xml_content)
+            xml_formatado = dom.toprettyxml(indent="  ")
+            # Remove linhas vazias extras
+            xml_formatado = '\n'.join([line for line in xml_formatado.split('\n') if line.strip()])
+        except:
+            xml_formatado = nota.xml_content
+
+        return render_template('visualizar_xml.html', 
+                             nota=nota, 
+                             xml_content=xml_formatado)
+
+    except Exception as e:
+        logger.error(f"Erro ao formatar XML da NFe {chave_acesso}: {e}", exc_info=True)
+        flash('Erro ao processar o XML da nota fiscal.', 'error')
+        return redirect(url_for('importar_notas_fiscais'))
 
 def calcular_custo_manutencao_por_km(veiculo_id, dias=365):
     """
@@ -3811,10 +3918,13 @@ def api_consultar_sefaz():
     return jsonify(resultado)
 
 
-@app.route('/api/fiscal/lancar_nota/<string:chave_acesso>')
+@app.route('/api/fiscal/buscar_dados_nota/<string:chave_acesso>')
 @login_required
-def api_lancar_nota(chave_acesso):
-    # A query agora usa o modelo 'NFeImportada' importado de 'extensions.py'
+def api_buscar_dados_nota(chave_acesso):
+    """
+    Esta API apenas BUSCA os dados de uma nota para exibi-los no modal.
+    Ela não salva nem altera nada.
+    """
     nota = NFeImportada.query.filter_by(
         chave_acesso=chave_acesso,
         empresa_id=current_user.empresa_id
@@ -3826,16 +3936,15 @@ def api_lancar_nota(chave_acesso):
     if nota.status == 'PROCESSADA':
         return jsonify({'success': False, 'message': 'Esta nota já foi processada anteriormente.'}), 409
     
-    # Reutiliza a função de parse de XML que já existia
-    from io import StringIO
-    xml_file = StringIO(nota.xml_content)
-    dados_nfe = parse_nfe_xml(xml_file)
-
-    if not dados_nfe:
-        return jsonify({'success': False, 'message': 'Erro ao processar o XML da NF-e.'}), 500
-
-    # Retorna os dados para o JavaScript preencher a tela de 'iniciar_viagem'
-    return jsonify({'success': True, 'data': dados_nfe})
+    # Prepara os dados da nota para serem retornados como JSON
+    dados_da_nota = {
+        "emitente_nome": nota.emitente_nome,
+        "emitente_cnpj": nota.emitente_cnpj,
+        "valor_total": nota.valor_total,
+        "data_emissao": nota.data_emissao.isoformat() # Formato ISO para o JS ler fácil
+    }
+    
+    return jsonify({'success': True, 'nota': dados_da_nota})
 
 
 @app.route('/salvar_custo_viagem', methods=['POST'])
@@ -4901,470 +5010,6 @@ def previsao_custos_manutencao():
         today=hoje # Passa a data de hoje para o template
     )
 
-def get_config_borracharia(empresa_id):
-    """ Helper para buscar ou criar a configuração da borracharia. """
-    config = ConfiguracaoBorracharia.query.filter_by(empresa_id=empresa_id).first()
-    if not config:
-        config = ConfiguracaoBorracharia(empresa_id=empresa_id)
-        db.session.add(config)
-        db.session.commit()
-    return config
-
-@app.route('/borracharia')
-@login_required
-def borracharia_dashboard():
-    empresa_id = current_user.empresa_id
-    config = get_config_borracharia(empresa_id)
-
-    # --- KPIs ---
-    kpis = {
-        'em_estoque': Pneu.query.filter_by(empresa_id=empresa_id, status='Em Estoque').count(),
-        'em_uso': Pneu.query.filter_by(empresa_id=empresa_id, status='Em Uso').count(),
-        'recapando': Pneu.query.filter_by(empresa_id=empresa_id, status='Recapando').count(),
-        'descartados': Pneu.query.filter_by(empresa_id=empresa_id, status='Descartado').count()
-    }
-
-    # --- Lógica de Alertas ---
-    alertas = []
-    todos_pneus = Pneu.query.filter(Pneu.empresa_id == empresa_id, Pneu.status.in_(['Em Uso', 'Em Estoque'])).all()
-
-    for pneu in todos_pneus:
-        # Alerta de DOT
-        if pneu.data_fabricacao:
-            data_vencimento = pneu.data_fabricacao + timedelta(days=config.vida_util_dot_anos * 365)
-            dias_restantes = (data_vencimento - date.today()).days
-            if dias_restantes <= config.alerta_dot_dias:
-                alertas.append({
-                    'pneu': pneu, 'tipo': 'DOT Próximo do Vencimento',
-                    'mensagem': f"Vence em {dias_restantes} dias ({data_vencimento.strftime('%d/%m/%Y')})",
-                    'gravidade': 'vermelho' if dias_restantes < 0 else 'amarelo'
-                })
-        
-        # Alerta de Sulco Mínimo
-        ultimo_sulco = HistoricoPneu.query.filter(
-            HistoricoPneu.pneu_id == pneu.id,
-            HistoricoPneu.evento.in_(['Medição de Sulco', 'Retorno de Recapagem']),
-            HistoricoPneu.sulco_mm.isnot(None)
-        ).order_by(HistoricoPneu.data_evento.desc()).first()
-        
-        if ultimo_sulco and ultimo_sulco.sulco_mm:
-            if ultimo_sulco.sulco_mm <= config.sulco_minimo_descarte_mm:
-                alertas.append({
-                    'pneu': pneu, 'tipo': 'Sulco Crítico',
-                    'mensagem': f"Atingiu o limite de descarte ({ultimo_sulco.sulco_mm}mm)",
-                    'gravidade': 'vermelho'
-                })
-            elif ultimo_sulco.sulco_mm <= config.sulco_minimo_recapagem_mm:
-                 alertas.append({
-                    'pneu': pneu, 'tipo': 'Recomendado para Recape',
-                    'mensagem': f"Sulco abaixo do recomendado ({ultimo_sulco.sulco_mm}mm)",
-                    'gravidade': 'amarelo'
-                })
-
-    # --- Dados para as Tabelas ---
-    pneus_em_estoque = Pneu.query.filter_by(empresa_id=empresa_id, status='Em Estoque').all()
-    pneus_recapando = Pneu.query.filter_by(empresa_id=empresa_id, status='Recapando').all() # <-- LINHA NOVA
-    veiculos = Veiculo.query.filter_by(empresa_id=empresa_id).order_by(Veiculo.placa).all()
-
-    return render_template('borracharia_dashboard.html', 
-                        kpis=kpis, 
-                        alertas=alertas,
-                        pneus_em_estoque=pneus_em_estoque,
-                        pneus_recapando=pneus_recapando, # <-- LINHA NOVA
-                        veiculos=veiculos,
-                        active_page='borracharia')
-
-@app.route('/pneu/novo', methods=['POST'])
-@login_required
-def pneu_novo():
-    try:
-        pneu = Pneu(
-            empresa_id=current_user.empresa_id,
-            numero_fogo=request.form['numero_fogo'],
-            marca=request.form['marca'],
-            modelo=request.form['modelo'],
-            dimensao=request.form['dimensao'],
-            dot=request.form['dot'],
-            data_compra=datetime.strptime(request.form['data_compra'], '%Y-%m-%d').date(),
-            valor_compra=float(request.form['valor_compra']),
-            fornecedor=request.form['fornecedor'],
-            status='Em Estoque'
-        )
-        db.session.add(pneu)
-        db.session.flush() # Para obter o ID do pneu
-
-        historico = HistoricoPneu(
-            pneu_id=pneu.id,
-            empresa_id=current_user.empresa_id,
-            evento='Compra',
-            custo=pneu.valor_compra,
-            observacoes=f"Comprado de {pneu.fornecedor}"
-        )
-        db.session.add(historico)
-        db.session.commit()
-        flash('Pneu cadastrado com sucesso no estoque!', 'success')
-    except IntegrityError:
-        db.session.rollback()
-        flash(f"Erro: Já existe um pneu com o número de fogo '{request.form['numero_fogo']}'.", 'error')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Erro ao cadastrar pneu: {e}', 'error')
-    
-    return redirect(url_for('borracharia_dashboard'))
-
-
-@app.route('/pneu/<int:pneu_id>/historico')
-@login_required
-def pneu_historico(pneu_id):
-    pneu = Pneu.query.filter_by(id=pneu_id, empresa_id=current_user.empresa_id).first_or_404()
-    
-    # Cálculo do CPK (Custo por KM)
-    custos_recapagem = db.session.query(func.sum(HistoricoPneu.custo))\
-        .filter(HistoricoPneu.pneu_id == pneu_id, HistoricoPneu.evento == 'Retorno de Recapagem').scalar() or 0
-    custo_total_vida = pneu.valor_compra + custos_recapagem
-    cpk = (custo_total_vida / pneu.km_total) if pneu.km_total > 0 else 0
-
-    return render_template('pneu_historico.html', pneu=pneu, cpk=cpk, active_page='borracharia')
-
-
-@app.route('/borracharia/configuracoes', methods=['GET', 'POST'])
-@login_required
-def borracharia_configuracoes():
-    config = get_config_borracharia(current_user.empresa_id)
-    if request.method == 'POST':
-        try:
-            config.vida_util_dot_anos = int(request.form['vida_util_dot_anos'])
-            config.alerta_dot_dias = int(request.form['alerta_dot_dias'])
-            config.sulco_minimo_recapagem_mm = float(request.form['sulco_minimo_recapagem_mm'])
-            config.sulco_minimo_descarte_mm = float(request.form['sulco_minimo_descarte_mm'])
-            config.max_recapagens = int(request.form['max_recapagens'])
-            config.km_alerta_recapagem = int(request.form['km_alerta_recapagem'])
-            db.session.commit()
-            flash('Configurações salvas com sucesso!', 'success')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Erro ao salvar configurações: {e}', 'error')
-        return redirect(url_for('borracharia_configuracoes'))
-    
-    return render_template('configuracao_borracharia.html', config=config, active_page='borracharia')
-
-# --- ROTAS DE API PARA OPERAÇÕES ---
-
-@app.route('/api/veiculo/<int:veiculo_id>/pneus')
-@login_required
-def api_get_pneus_veiculo(veiculo_id):
-    veiculo = Veiculo.query.get_or_404(veiculo_id)
-    pneus = Pneu.query.filter_by(veiculo_id=veiculo_id).all()
-    pneus_data = [{'id': p.id, 'numero_fogo': p.numero_fogo, 'posicao': p.posicao} for p in pneus]
-    return jsonify({
-        'success': True, 
-        'pneus': pneus_data, 
-        'km_atual': veiculo.km_atual
-    })
-
-@app.route('/api/pneu/instalar', methods=['POST'])
-@login_required
-def api_instalar_pneu():
-    data = request.json
-    try:
-        pneu = Pneu.query.get(data['pneu_id'])
-        veiculo = Veiculo.query.get(data['veiculo_id'])
-        km_veiculo_instalacao = float(data['km_veiculo'])
-
-        if not pneu or pneu.status != 'Em Estoque':
-            return jsonify({'success': False, 'message': 'Pneu não encontrado ou não está no estoque.'}), 400
-
-        pneu.status = 'Em Uso'
-        pneu.veiculo_id = veiculo.id
-        pneu.posicao = data['posicao']
-        
-        # Atualiza o KM do veículo se o informado for maior
-        if km_veiculo_instalacao > (veiculo.km_atual or 0):
-            veiculo.km_atual = km_veiculo_instalacao
-
-        historico = HistoricoPneu(
-            pneu_id=pneu.id,
-            empresa_id=current_user.empresa_id,
-            evento='Instalação',
-            veiculo_id=veiculo.id,
-            km_veiculo=km_veiculo_instalacao,
-            posicao=pneu.posicao
-        )
-        db.session.add(historico)
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Pneu instalado com sucesso!'})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-@app.route('/api/pneu/remover', methods=['POST'])
-@login_required
-def api_remover_pneu():
-    data = request.json
-    try:
-        pneu = Pneu.query.get(data['pneu_id'])
-        km_veiculo_remocao = float(data['km_veiculo'])
-        destino = data['destino'] # 'estoque', 'recapagem', 'descarte'
-
-        if not pneu or pneu.status != 'Em Uso':
-            return jsonify({'success': False, 'message': 'Pneu não encontrado ou não está em uso.'}), 400
-
-        veiculo = pneu.veiculo
-        # Atualiza o KM do veículo se o informado for maior
-        if km_veiculo_remocao > (veiculo.km_atual or 0):
-            veiculo.km_atual = km_veiculo_remocao
-
-        ultima_instalacao = HistoricoPneu.query.filter_by(pneu_id=pneu.id, evento='Instalação')\
-            .order_by(HistoricoPneu.data_evento.desc()).first()
-
-        km_rodados = 0
-        if ultima_instalacao:
-            km_rodados = km_veiculo_remocao - ultima_instalacao.km_veiculo
-
-        pneu.km_total += km_rodados
-        
-        # Lógica de destino
-        if destino == 'estoque':
-            pneu.status = 'Em Estoque'
-        elif destino == 'recapagem':
-            pneu.status = 'Recapando'
-        elif destino == 'descarte':
-            pneu.status = 'Descartado'
-            pneu.motivo_descarte = data.get('motivo_descarte', 'Fim da vida útil.')
-        
-        posicao_antiga = pneu.posicao
-        pneu.veiculo_id = None
-        pneu.posicao = None
-
-        historico = HistoricoPneu(
-            pneu_id=pneu.id,
-            empresa_id=current_user.empresa_id,
-            evento='Remoção',
-            veiculo_id=veiculo.id,
-            km_veiculo=km_veiculo_remocao,
-            km_rodado_no_evento=km_rodados,
-            posicao=posicao_antiga,
-            observacoes=f"Destino: {destino.title()}"
-        )
-        db.session.add(historico)
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Pneu removido com sucesso!'})
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-@app.route('/api/pneu/registrar_medicao', methods=['POST'])
-@login_required
-def api_registrar_medicao():
-    data = request.json
-    try:
-        pneu = Pneu.query.get(data['pneu_id'])
-        if not pneu:
-            return jsonify({'success': False, 'message': 'Pneu não encontrado.'}), 404
-
-        historico = HistoricoPneu(
-            pneu_id=pneu.id,
-            empresa_id=current_user.empresa_id,
-            evento='Medição de Sulco',
-            sulco_mm=float(data['sulco_mm']),
-            observacoes=data.get('observacoes', '')
-        )
-        db.session.add(historico)
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Medição registrada!'})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-@app.route('/pneu/importar_lote', methods=['POST'])
-@login_required
-def pneu_importar_lote():
-    if 'csv_file' not in request.files:
-        flash('Nenhum arquivo enviado.', 'error')
-        return redirect(url_for('borracharia_dashboard'))
-
-    file = request.files['csv_file']
-    if file.filename == '' or not file.filename.endswith('.csv'):
-        flash('Arquivo inválido. Por favor, envie um arquivo .CSV.', 'error')
-        return redirect(url_for('borracharia_dashboard'))
-
-    try:
-        # Usamos o decode('utf-8') para ler o arquivo corretamente
-        stream = io.StringIO(file.stream.read().decode("UTF-8"), newline=None)
-        csv_reader = csv.reader(stream)
-        
-        next(csv_reader, None) # Pula o cabeçalho
-        
-        pneus_criados = 0
-        for i, row in enumerate(csv_reader, 2): # Começa a contar da linha 2
-            if not any(field.strip() for field in row): continue # Pula linhas vazias
-            
-            pneu = Pneu(
-                empresa_id=current_user.empresa_id,
-                numero_fogo=row[0],
-                marca=row[1],
-                modelo=row[2],
-                dimensao=row[3],
-                dot=row[4],
-                data_compra=datetime.strptime(row[5], '%Y-%m-%d').date(),
-                valor_compra=float(row[6]),
-                fornecedor=row[7],
-                status='Em Estoque'
-            )
-            db.session.add(pneu)
-            db.session.flush()
-
-            historico = HistoricoPneu(
-                pneu_id=pneu.id,
-                empresa_id=current_user.empresa_id,
-                evento='Compra',
-                custo=pneu.valor_compra,
-                observacoes=f"Importado em lote. Fornecedor: {pneu.fornecedor}"
-            )
-            db.session.add(historico)
-            pneus_criados += 1
-
-        db.session.commit()
-        flash(f'{pneus_criados} pneus importados com sucesso!', 'success')
-
-    except IntegrityError as e:
-        db.session.rollback()
-        flash(f"Erro de importação: Já existe um pneu com um dos 'Números de Fogo' do arquivo.", 'error')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Erro ao processar o arquivo na linha {i}: {e}', 'error')
-        
-    return redirect(url_for('borracharia_dashboard'))
-
-@app.route('/api/pneu/retorno_recapagem', methods=['POST'])
-@login_required
-def api_retorno_recapagem():
-    data = request.json
-    try:
-        pneu = Pneu.query.get(data['pneu_id'])
-        if not pneu or pneu.status != 'Recapando':
-            return jsonify({'success': False, 'message': 'Pneu não encontrado ou não está em recapagem.'}), 400
-
-        # Atualiza o status do pneu
-        pneu.status = 'Em Estoque'
-        pneu.numero_recapagens += 1
-
-        # Cria o registro histórico
-        historico = HistoricoPneu(
-            pneu_id=pneu.id,
-            empresa_id=current_user.empresa_id,
-            evento='Retorno de Recapagem',
-            # ===== LINHA ADICIONADA AQUI =====
-            sulco_mm=float(data['sulco_mm']),
-            # ===================================
-            custo=float(data['custo']),
-            observacoes=f"Recapado por: {data.get('fornecedor', 'N/A')}. Obs: {data.get('observacoes', '')}"
-        )
-        db.session.add(historico)
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Retorno de recapagem registrado com sucesso!'})
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
-@app.route('/api/pneu/enviar_recapagem', methods=['POST'])
-@login_required
-def api_enviar_recapagem():
-    data = request.json
-    try:
-        pneu = Pneu.query.get(data['pneu_id'])
-        if not pneu or pneu.status != 'Em Estoque':
-            return jsonify({'success': False, 'message': 'Ação permitida apenas para pneus em estoque.'}), 400
-
-        pneu.status = 'Recapando'
-        historico = HistoricoPneu(
-            pneu_id=pneu.id,
-            empresa_id=current_user.empresa_id,
-            evento='Envio para Recapagem',
-            observacoes=data.get('observacoes', '')
-        )
-        db.session.add(historico)
-        db.session.commit()
-        flash(f'Pneu {pneu.numero_fogo} enviado para recapagem.', 'success')
-        return jsonify({'success': True})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-@app.route('/api/pneu/descartar', methods=['POST'])
-@login_required
-def api_descartar_pneu():
-    data = request.json
-    try:
-        pneu = Pneu.query.get(data['pneu_id'])
-        if not pneu or pneu.status != 'Em Estoque':
-            return jsonify({'success': False, 'message': 'Ação permitida apenas para pneus em estoque.'}), 400
-        
-        pneu.status = 'Descartado'
-        pneu.motivo_descarte = data.get('motivo_descarte')
-        historico = HistoricoPneu(
-            pneu_id=pneu.id,
-            empresa_id=current_user.empresa_id,
-            evento='Descarte',
-            observacoes=f"Motivo: {pneu.motivo_descarte}"
-        )
-        db.session.add(historico)
-        db.session.commit()
-        flash(f'Pneu {pneu.numero_fogo} foi descartado.', 'success')
-        return jsonify({'success': True})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-@app.route('/pneu/exportar_modelo_csv')
-@login_required
-def pneu_exportar_modelo_csv():
-    """
-    Gera um arquivo CSV modelo para a importação de pneus em lote.
-    """
-    try:
-        # Usa um buffer em memória para criar o arquivo sem salvar no servidor
-        output = io.StringIO()
-        writer = csv.writer(output)
-
-        # 1. Define o cabeçalho - EXATAMENTE na ordem que a função de importação espera
-        headers = [
-            'numero_fogo', 
-            'marca', 
-            'modelo', 
-            'dimensao', 
-            'dot', 
-            'data_compra', 
-            'valor_compra', 
-            'fornecedor'
-        ]
-        writer.writerow(headers)
-
-        # 2. Adiciona uma linha de exemplo para guiar o usuário
-        example_row = [
-            'FOGO-12345',
-            'Michelin',
-            'X Multi Z',
-            '295/80 R22.5',
-            'DOTXX0X0XX4523',
-            '2025-08-26',
-            '2500.50',
-            'Fornecedor Exemplo LTDA'
-        ]
-        writer.writerow(example_row)
-
-        # 3. Prepara a resposta para o navegador forçar o download
-        output.seek(0)
-        response = make_response(output.getvalue())
-        response.headers["Content-Disposition"] = "attachment; filename=modelo_importacao_pneus.csv"
-        response.headers["Content-type"] = "text/csv"
-        return response
-
-    except Exception as e:
-        flash(f"Ocorreu um erro ao gerar o modelo de CSV: {e}", "error")
-        return redirect(url_for('borracharia_dashboard'))
-
 @app.route('/exportar_relatorio')
 @login_required
 def exportar_relatorio():
@@ -6007,11 +5652,7 @@ def seed_database(force=False):
 
                 # 5. Criar Veículos
                 veiculo1 = Veiculo(
-                    placa="ABC1234",
-                    categoria="Caminhão",
-                    modelo="Volvo FH",
-                    ano_modelo=2020,  # <-- Altere 'ano' para 'ano_modelo' aqui
-                    ano_fabricacao=2020, # <-- É uma boa prática definir ambos
+                    placa="ABC1234", categoria="Caminhão", modelo="Volvo FH", ano=2020,
                     empresa_id=empresa_exemplo.id
                 )
                 db.session.add(veiculo1)
@@ -6643,6 +6284,330 @@ def secret_password_reset(secret_key):
         return redirect(url_for('secret_password_reset', secret_key=secret_key))
 
     return render_template('reset_password_page.html')
+
+@app.route('/financeiro/fluxo_caixa')
+@login_required
+@master_required
+def fluxo_caixa():
+    """Página principal do fluxo de caixa"""
+    hoje = date.today()
+    
+    # Filtros da URL
+    data_inicio = request.args.get('data_inicio', hoje.strftime('%Y-%m-%d'))
+    data_fim = request.args.get('data_fim', (hoje + timedelta(days=30)).strftime('%Y-%m-%d'))
+    visualizacao = request.args.get('visualizacao', 'periodo')  # 'dia', 'mes', 'periodo'
+    categoria_filtro = request.args.get('categoria', '')
+    status_filtro = request.args.get('status', '')
+    
+    try:
+        data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d').date()
+        data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d').date()
+    except ValueError:
+        data_inicio_obj = hoje
+        data_fim_obj = hoje + timedelta(days=30)
+    
+    # Buscar lançamentos manuais
+    query_manuais = LancamentoFluxoCaixa.query.filter(
+        LancamentoFluxoCaixa.empresa_id == current_user.empresa_id,
+        LancamentoFluxoCaixa.data_vencimento >= data_inicio_obj,
+        LancamentoFluxoCaixa.data_vencimento <= data_fim_obj
+    )
+    
+    # Buscar lançamentos de NFe (contas a pagar)
+    query_nfe = LancamentoNotaFiscal.query.filter(
+        LancamentoNotaFiscal.empresa_id == current_user.empresa_id,
+        LancamentoNotaFiscal.data_vencimento >= data_inicio_obj,
+        LancamentoNotaFiscal.data_vencimento <= data_fim_obj
+    )
+    
+    # Aplicar filtros se especificados
+    if categoria_filtro:
+        query_manuais = query_manuais.filter(LancamentoFluxoCaixa.categoria.ilike(f'%{categoria_filtro}%'))
+    
+    if status_filtro:
+        query_manuais = query_manuais.filter(LancamentoFluxoCaixa.status_pagamento == status_filtro)
+        query_nfe = query_nfe.filter(LancamentoNotaFiscal.status_pagamento == status_filtro)
+    
+    lancamentos_manuais = query_manuais.order_by(LancamentoFluxoCaixa.data_vencimento).all()
+    lancamentos_nfe = query_nfe.order_by(LancamentoNotaFiscal.data_vencimento).all()
+    
+    # Consolidar todos os lançamentos
+    fluxo_consolidado = consolidar_fluxo_caixa(lancamentos_manuais, lancamentos_nfe, data_inicio_obj, data_fim_obj)
+    
+    # Calcular totais e saldos
+    totais = calcular_totais_fluxo(fluxo_consolidado)
+    
+    # Buscar categorias para filtro
+    categorias_manuais = db.session.query(LancamentoFluxoCaixa.categoria).filter(
+        LancamentoFluxoCaixa.empresa_id == current_user.empresa_id,
+        LancamentoFluxoCaixa.categoria.isnot(None)
+    ).distinct().all()
+    
+    categorias = [cat[0] for cat in categorias_manuais if cat[0]] + ['Fornecedores (NFe)']
+    
+    return render_template('fluxo_caixa.html',
+                           fluxo_consolidado=fluxo_consolidado,
+                           totais=totais,
+                           categorias=sorted(set(categorias)),
+                           data_inicio=data_inicio,
+                           data_fim=data_fim,
+                           visualizacao=visualizacao,
+                           categoria_filtro=categoria_filtro,
+                           status_filtro=status_filtro,
+                           hoje=hoje)
+
+def consolidar_fluxo_caixa(lancamentos_manuais, lancamentos_nfe, data_inicio, data_fim):
+    """Consolida todos os lançamentos em uma estrutura unificada"""
+    fluxo = []
+    
+    # Processar lançamentos manuais
+    for lancamento in lancamentos_manuais:
+        # Correção para garantir que parcela_total não seja None
+        parcela_total_manual = lancamento.parcela_total
+        fluxo.append({
+            'id': f"manual_{lancamento.id}",
+            'tipo_origem': 'MANUAL',
+            'tipo_movimento': lancamento.tipo,
+            'data_vencimento': lancamento.data_vencimento,
+            'data_pagamento': lancamento.data_pagamento,
+            'descricao': lancamento.descricao,
+            'categoria': lancamento.categoria or 'Sem categoria',
+            'fornecedor_cliente': lancamento.fornecedor_cliente,
+            'documento': lancamento.documento_numero,
+            'valor': lancamento.valor_total,
+            'status': lancamento.status_pagamento,
+            'parcela': f"{lancamento.parcela_numero}/{parcela_total_manual}" if parcela_total_manual and parcela_total_manual > 1 else None,
+            'observacoes': lancamento.observacoes,
+            'is_vencido': lancamento.is_vencido,
+            'objeto': lancamento
+        })
+    
+    # Processar lançamentos de NFe
+    for lancamento in lancamentos_nfe:
+        # Correção para garantir que parcela_total não seja None
+        parcela_total_nfe = getattr(lancamento, 'parcela_total', 1)
+        fluxo.append({
+            'id': f"nfe_{lancamento.id}",
+            'tipo_origem': 'NFE',
+            'tipo_movimento': 'DESPESA',
+            'data_vencimento': lancamento.data_vencimento,
+            'data_pagamento': lancamento.data_pagamento,
+            'descricao': f"NFe - {lancamento.emitente_nome}",
+            'categoria': 'Fornecedores (NFe)',
+            'fornecedor_cliente': lancamento.emitente_nome,
+            'documento': lancamento.chave_acesso[-8:],
+            'valor': lancamento.valor_total,
+            'status': lancamento.status_pagamento,
+            'parcela': f"{getattr(lancamento, 'parcela_numero', 1)}/{parcela_total_nfe}" if parcela_total_nfe and parcela_total_nfe > 1 else None,
+            'observacoes': getattr(lancamento, 'observacoes', None),
+            'is_vencido': (lancamento.data_vencimento < date.today() if lancamento.data_vencimento else False) and lancamento.status_pagamento == 'A Pagar',
+            'objeto': lancamento
+        })
+    
+    fluxo.sort(key=lambda x: x.get('data_vencimento') or date.max)
+    
+    return fluxo
+
+def calcular_totais_fluxo(fluxo_consolidado):
+    """Calcula totais, saldos e estatísticas do fluxo"""
+    hoje = date.today()
+    
+    total_receitas = 0
+    total_despesas = 0
+    total_receitas_pagas = 0
+    total_despesas_pagas = 0
+    total_vencido_receitas = 0
+    total_vencido_despesas = 0
+    
+    # Totais por status
+    pendente_hoje = 0
+    vencido_total = 0
+    
+    for item in fluxo_consolidado:
+        valor = item['valor']
+        
+        if item['tipo_movimento'] == 'RECEITA':
+            total_receitas += valor
+            if item['status'] in ['PAGO', 'Paga']:
+                total_receitas_pagas += valor
+            elif item['is_vencido']:
+                total_vencido_receitas += valor
+        else:  # DESPESA
+            total_despesas += valor
+            if item['status'] in ['PAGO', 'Paga']:
+                total_despesas_pagas += valor
+            elif item['is_vencido']:
+                total_vencido_despesas += valor
+        
+        # Vencimentos de hoje
+        if item['data_vencimento'] == hoje and item['status'] in ['PENDENTE', 'A Pagar']:
+            if item['tipo_movimento'] == 'RECEITA':
+                pendente_hoje += valor
+            else:
+                pendente_hoje -= valor
+        
+        # Total vencido
+        if item['is_vencido']:
+            if item['tipo_movimento'] == 'RECEITA':
+                vencido_total += valor
+            else:
+                vencido_total -= valor
+    
+    saldo_previsto = total_receitas - total_despesas
+    saldo_realizado = total_receitas_pagas - total_despesas_pagas
+    saldo_pendente = (total_receitas - total_receitas_pagas) - (total_despesas - total_despesas_pagas)
+    
+    return {
+        'total_receitas': total_receitas,
+        'total_despesas': total_despesas,
+        'total_receitas_pagas': total_receitas_pagas,
+        'total_despesas_pagas': total_despesas_pagas,
+        'saldo_previsto': saldo_previsto,
+        'saldo_realizado': saldo_realizado,
+        'saldo_pendente': saldo_pendente,
+        'total_vencido_receitas': total_vencido_receitas,
+        'total_vencido_despesas': total_vencido_despesas,
+        'pendente_hoje': pendente_hoje,
+        'vencido_total': vencido_total
+    }
+
+
+
+@app.route('/financeiro/fluxo_caixa/novo_lancamento', methods=['GET', 'POST'])
+@login_required
+@master_required
+def novo_lancamento_fluxo():
+    """Criar novo lançamento manual no fluxo de caixa"""
+    if request.method == 'POST':
+        try:
+            # Dados básicos
+            tipo = request.form.get('tipo')
+            descricao = request.form.get('descricao')
+            categoria = request.form.get('categoria')
+            valor_total = float(request.form.get('valor_total', 0))
+            data_vencimento = datetime.strptime(request.form.get('data_vencimento'), '%Y-%m-%d').date()
+            
+            # Dados opcionais
+            fornecedor_cliente = request.form.get('fornecedor_cliente')
+            documento_numero = request.form.get('documento_numero')
+            observacoes = request.form.get('observacoes')
+            
+            # Controle de parcelas
+            parcela_total = int(request.form.get('parcela_total', 1))
+            
+            if parcela_total == 1:
+                # Lançamento único
+                novo_lancamento = LancamentoFluxoCaixa(
+                    empresa_id=current_user.empresa_id,
+                    tipo=tipo,
+                    descricao=descricao,
+                    categoria=categoria,
+                    valor_total=valor_total,
+                    data_vencimento=data_vencimento,
+                    fornecedor_cliente=fornecedor_cliente,
+                    documento_numero=documento_numero,
+                    observacoes=observacoes,
+                    parcela_numero=1,
+                    parcela_total=1
+                )
+                db.session.add(novo_lancamento)
+                
+            else:
+                # Criar lançamento pai
+                lancamento_pai = LancamentoFluxoCaixa(
+                    empresa_id=current_user.empresa_id,
+                    tipo=tipo,
+                    descricao=f"{descricao} (Parcelado)",
+                    categoria=categoria,
+                    valor_total=valor_total,
+                    data_vencimento=data_vencimento,
+                    fornecedor_cliente=fornecedor_cliente,
+                    documento_numero=documento_numero,
+                    observacoes=observacoes,
+                    parcela_numero=0,  # Lançamento pai não conta como parcela
+                    parcela_total=parcela_total,
+                    status_pagamento='PARCELADO'  # Status especial para o pai
+                )
+                db.session.add(lancamento_pai)
+                db.session.flush()  # Para obter o ID
+                
+                # Criar parcelas
+                valor_parcela = valor_total / parcela_total
+                for i in range(1, parcela_total + 1):
+                    data_parcela = data_vencimento + timedelta(days=(i-1)*30)  # Mensais por padrão
+                    
+                    parcela = LancamentoFluxoCaixa(
+                        empresa_id=current_user.empresa_id,
+                        tipo=tipo,
+                        descricao=f"{descricao} - Parcela {i}/{parcela_total}",
+                        categoria=categoria,
+                        valor_total=valor_parcela,
+                        data_vencimento=data_parcela,
+                        fornecedor_cliente=fornecedor_cliente,
+                        documento_numero=f"{documento_numero}-{i:02d}" if documento_numero else None,
+                        observacoes=observacoes,
+                        parcela_numero=i,
+                        parcela_total=parcela_total,
+                        lancamento_pai_id=lancamento_pai.id
+                    )
+                    db.session.add(parcela)
+            
+            db.session.commit()
+            flash(f'Lançamento criado com sucesso! {parcela_total} parcela(s) gerada(s).', 'success')
+            return redirect(url_for('fluxo_caixa'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao criar lançamento: {e}', 'error')
+            logger.error(f"Erro ao criar lançamento manual: {e}", exc_info=True)
+            
+    return render_template('novo_lancamento_fluxo.html')
+
+@app.route('/api/fluxo_caixa/marcar_pago', methods=['POST'])
+@login_required
+def api_marcar_pago_fluxo():
+    """API para marcar lançamento como pago"""
+    data = request.get_json()
+    item_id = data.get('item_id')
+    data_pagamento_str = data.get('data_pagamento')
+    
+    if not item_id:
+        return jsonify({'success': False, 'message': 'ID do item é obrigatório'}), 400
+    
+    try:
+        data_pagamento = datetime.strptime(data_pagamento_str, '%Y-%m-%d').date() if data_pagamento_str else date.today()
+        
+        # Identificar se é lançamento manual ou NFe
+        if item_id.startswith('manual_'):
+            lancamento_id = int(item_id.replace('manual_', ''))
+            lancamento = LancamentoFluxoCaixa.query.filter_by(
+                id=lancamento_id, 
+                empresa_id=current_user.empresa_id
+            ).first_or_404()
+            
+            lancamento.status_pagamento = 'PAGO'
+            lancamento.data_pagamento = data_pagamento
+            
+        elif item_id.startswith('nfe_'):
+            lancamento_id = int(item_id.replace('nfe_', ''))
+            lancamento = LancamentoNotaFiscal.query.filter_by(
+                id=lancamento_id, 
+                empresa_id=current_user.empresa_id
+            ).first_or_404()
+            
+            lancamento.status_pagamento = 'Pago'
+            lancamento.data_pagamento = data_pagamento
+            
+        else:
+            return jsonify({'success': False, 'message': 'Formato de ID inválido'}), 400
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Lançamento marcado como pago!'})
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao marcar como pago: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 # Rota para servir o sw.js a partir da raiz do projeto
 @app.route('/sw.js')

@@ -1,4 +1,5 @@
-# sefaz_service.py (VERSÃO CORRIGIDA FINAL)
+# sefaz_service.py (VERSÃO CORRIGIDA - ENCODING E LÓGICA AJUSTADOS)
+# -*- coding: utf-8 -*-
 
 import os
 import tempfile
@@ -8,80 +9,19 @@ import base64
 from datetime import datetime
 from lxml import etree as ET
 import requests
+import re
 from zeep import Client, Settings
 from zeep.transports import Transport
 from zeep.wsse.signature import BinarySignature
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization.pkcs12 import load_key_and_certificates
+from cryptography.x509.oid import NameOID
 from extensions import db, CertificadoDigital, NFeImportada
 from flask import current_app
 import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-def extrair_cnpj_do_certificado(certificate):
-    """Extrai CNPJ do certificado digital"""
-    try:
-        # Busca o CNPJ no subject do certificado
-        for attribute in certificate.subject:
-            if attribute.oid._name == 'serialNumber':
-                # O serialNumber no certificado A1 contém o CNPJ
-                serial = attribute.value
-                # Pode vir no formato "12345678000123" ou "12345678000123:PESSOA JURIDICA"
-                cnpj = serial.split(':')[0] if ':' in serial else serial
-                # Remove caracteres não numéricos
-                cnpj = ''.join(filter(str.isdigit, cnpj))
-                if len(cnpj) == 14:
-                    return cnpj
-        
-        # Busca alternativa no campo CN (Common Name)
-        cn = certificate.subject.rfc4514_string()
-        if 'CN=' in cn:
-            cn_value = cn.split('CN=')[1].split(',')[0]
-            # Extrai números que podem ser CNPJ
-            numeros = ''.join(filter(str.isdigit, cn_value))
-            if len(numeros) == 14:
-                return numeros
-                
-        return None
-    except Exception as e:
-        logger.error("Erro ao extrair CNPJ do certificado: %s", str(e))
-        return None
-
-def validar_cnpj(cnpj):
-    """Valida CNPJ calculando os dígitos verificadores"""
-    # Remove caracteres não numéricos
-    cnpj = ''.join(filter(str.isdigit, cnpj))
-    
-    # Verifica se tem 14 dígitos
-    if len(cnpj) != 14:
-        return False
-    
-    # Verifica se não é uma sequência de números iguais
-    if cnpj == cnpj[0] * 14:
-        return False
-    
-    # Calcula o primeiro dígito verificador
-    soma = 0
-    pesos = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-    for i in range(12):
-        soma += int(cnpj[i]) * pesos[i]
-    
-    resto = soma % 11
-    dv1 = 0 if resto < 2 else 11 - resto
-    
-    # Calcula o segundo dígito verificador
-    soma = 0
-    pesos = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-    for i in range(13):
-        soma += int(cnpj[i]) * pesos[i]
-    
-    resto = soma % 11
-    dv2 = 0 if resto < 2 else 11 - resto
-    
-    # Verifica se os dígitos calculados conferem com os informados
-    return int(cnpj[12]) == dv1 and int(cnpj[13]) == dv2
 
 def _get_certificado_obj_from_r2(certificado_info):
     s3_client = boto3.client(
@@ -102,11 +42,21 @@ def _get_certificado_obj_from_r2(certificado_info):
 
 
 def consultar_notas_sefaz(empresa_id):
+    ambiente = current_app.config.get('SEFAZ_AMBIENTE', 'PRODUCAO').upper()
+    if ambiente == 'HOMOLOGACAO':
+        wsdl_url = 'https://hom1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx?wsdl'
+        tpAmb_valor = '2'
+        logger.info("Executando em AMBIENTE DE HOMOLOGAÇÃO (TESTES)")
+    else:
+        wsdl_url = 'https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx?wsdl'
+        tpAmb_valor = '1'
+        logger.info("Executando em AMBIENTE DE PRODUÇÃO (REAL)")
+
     certificado_info = CertificadoDigital.query.filter_by(empresa_id=empresa_id).first()
     if not certificado_info:
         return {'success': False, 'message': 'Nenhum certificado digital configurado.'}
 
-    uf_para_sefaz = '35' # Código IBGE de um estado autorizador
+    uf_para_sefaz = '35'  # SP
     empresa = certificado_info.empresa
     
     tmp_path, senha_decriptada = _get_certificado_obj_from_r2(certificado_info)
@@ -115,21 +65,30 @@ def consultar_notas_sefaz(empresa_id):
     cert_path = None
     
     try:
-        with open(tmp_path, 'rb') as f: pfx_data = f.read()
+        with open(tmp_path, 'rb') as f: 
+            pfx_data = f.read()
         
         private_key, certificate, _ = load_key_and_certificates(pfx_data, senha_decriptada.encode('utf-8'))
         
         # Extrair CNPJ do certificado
-        cnpj_certificado = extrair_cnpj_do_certificado(certificate)
-        if not cnpj_certificado:
-            return {'success': False, 'message': 'Não foi possível extrair CNPJ do certificado digital.'}
+        cnpj_do_certificado = None
+        serial_number_attrs = certificate.subject.get_attributes_for_oid(NameOID.SERIAL_NUMBER)
+        if serial_number_attrs:
+            cnpj_do_certificado = serial_number_attrs[0].value.split(':')[0]
         
-        # Validar CNPJ do certificado
-        if not validar_cnpj(cnpj_certificado):
-            return {'success': False, 'message': f'CNPJ do certificado inválido: {cnpj_certificado}'}
+        if not cnpj_do_certificado:
+            common_name_attrs = certificate.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
+            if common_name_attrs:
+                match = re.search(r':(\d{14})', common_name_attrs[0].value)
+                if match: 
+                    cnpj_do_certificado = match.group(1)
+
+        if not cnpj_do_certificado:
+            return {'success': False, 'message': 'Não foi possível encontrar o CNPJ no certificado digital.'}
         
-        logger.info("Usando CNPJ do certificado: %s", cnpj_certificado)
+        logger.info(f"CNPJ extraído do certificado: {cnpj_do_certificado}")
         
+        # Preparar certificado para conexão
         private_key_pem = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.TraditionalOpenSSL,
@@ -145,8 +104,6 @@ def consultar_notas_sefaz(empresa_id):
             cert_tmp.write(certificate_pem)
             cert_path = cert_tmp.name
         
-        wsdl_url = 'https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx?wsdl'
-        
         session = requests.Session()
         session.headers.update({'Connection': 'close'})
         session.cert = (cert_path, key_path)
@@ -156,97 +113,229 @@ def consultar_notas_sefaz(empresa_id):
         client = Client(wsdl_url, transport=transport, wsse=BinarySignature(key_path, cert_path, 'sha1'), settings=settings)
         client.wsse = None
         
-        # --- CORREÇÃO APLICADA AQUI ---
-        # Criar o XML exatamente como a SEFAZ espera, sem espaços extras
-        # Garantir que o NSU seja formatado com 15 dígitos
-        nsu_formatado = str(certificado_info.ultimo_nsu).zfill(15)
+        # ===== LÓGICA CORRIGIDA =====
         
-        # Usar CNPJ do certificado (já limpo e validado)
-        xml_request_str = f'<distDFeInt versao="1.01" xmlns="http://www.portalfiscal.inf.br/nfe"><tpAmb>1</tpAmb><cUFAutor>{uf_para_sefaz}</cUFAutor><CNPJ>{cnpj_certificado}</CNPJ><distNSU><ultNSU>{nsu_formatado}</ultNSU></distNSU></distDFeInt>'
+        # Garantir que ultimo_nsu seja válido
+        nsu_atual = int(certificado_info.ultimo_nsu) if certificado_info.ultimo_nsu else 0
+        logger.info(f"NSU atual no banco: {nsu_atual}")
         
-        # Converter string para elemento XML que o Zeep espera
-        xml_element = ET.fromstring(xml_request_str)
-        
-        # Passar o elemento XML dentro do parâmetro nfeDadosMsg com _value_1
-        resposta_bruta = client.service.nfeDistDFeInteresse(nfeDadosMsg={'_value_1': xml_element})
-        
-        # A resposta já vem como elemento XML, não precisa fazer fromstring
-        if isinstance(resposta_bruta, str):
-            root = ET.fromstring(resposta_bruta)
+        # Se NSU for 0, buscar desde o início
+        if nsu_atual == 0:
+            logger.info("NSU zerado, buscando desde o início")
+            nsu_busca = "000000000000000"
         else:
-            root = resposta_bruta  # Já é um elemento XML
-            
+            nsu_busca = str(nsu_atual).zfill(15)
+        
+        # Fazer consulta simples primeiro
+        xml_consulta = f'''<distDFeInt xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.01">
+    <tpAmb>{tpAmb_valor}</tpAmb>
+    <cUFAutor>{uf_para_sefaz}</cUFAutor>
+    <CNPJ>{cnpj_do_certificado}</CNPJ>
+    <distNSU>
+        <ultNSU>{nsu_busca}</ultNSU>
+    </distNSU>
+</distDFeInt>'''
+        
+        distDFeInt = ET.fromstring(xml_consulta)
+        xml_enviado = ET.tostring(distDFeInt, encoding='unicode', pretty_print=True)
+        logger.info(f"XML enviado:\n{xml_enviado}")
+        
+        resposta_bruta = client.service.nfeDistDFeInteresse(nfeDadosMsg=distDFeInt)
+        retDistDFeInt = resposta_bruta
+        
+        # Log da resposta para debug
+        resposta_str = ET.tostring(retDistDFeInt, encoding='unicode', pretty_print=True)
+        logger.info(f"Resposta recebida (primeiros 1000 chars):\n{resposta_str[:1000]}")
+        
         ns = {"nfe": "http://www.portalfiscal.inf.br/nfe"}
         
-        # Procurar retDistDFeInt tanto com namespace quanto sem (resposta pode vir de formas diferentes)
-        retDistDFeInt = root.find('.//nfe:retDistDFeInt', namespaces=ns)
-        if retDistDFeInt is None:
-            # Tentar sem namespace específico
-            retDistDFeInt = root.find('.//retDistDFeInt')
-        if retDistDFeInt is None:
-            # Tentar buscar diretamente se já é o elemento
-            if hasattr(root, 'tag') and 'retDistDFeInt' in root.tag:
-                retDistDFeInt = root
-        
-        # --- FIM DA CORREÇÃO ---
-        
-        if retDistDFeInt is None:
-            # Log da resposta para debug
-            logger.error("Resposta da SEFAZ não contém retDistDFeInt. Resposta completa: %s", 
-                        ET.tostring(root, encoding='unicode') if hasattr(root, 'tag') else str(root))
-            raise Exception("Estrutura da resposta da SEFAZ inesperada.")
+        # Buscar cStat e xMotivo
+        cStat = retDistDFeInt.findtext('.//{http://www.portalfiscal.inf.br/nfe}cStat')
+        if cStat is None:
+            cStat = retDistDFeInt.findtext('cStat')
             
-        # Buscar cStat e xMotivo tanto com namespace quanto sem
-        cStat = retDistDFeInt.findtext('nfe:cStat', namespaces=ns) or retDistDFeInt.findtext('cStat')
-        xMotivo = retDistDFeInt.findtext('nfe:xMotivo', namespaces=ns) or retDistDFeInt.findtext('xMotivo')
+        xMotivo = retDistDFeInt.findtext('.//{http://www.portalfiscal.inf.br/nfe}xMotivo')
+        if xMotivo is None:
+            xMotivo = retDistDFeInt.findtext('xMotivo')
         
-        # Log do status da resposta
-        logger.info("SEFAZ retornou cStat: %s, xMotivo: %s", cStat, xMotivo)
+        if cStat is None or xMotivo is None:
+            logger.error(f"Estrutura da resposta: {resposta_str[:500]}...")
+            raise Exception("Não foi possível extrair cStat ou xMotivo da resposta da SEFAZ.")
         
+        logger.info(f"SEFAZ retornou cStat: {cStat}, xMotivo: {xMotivo}")
+        
+        # Extrair maxNSU para logging
+        maxNSU_element = retDistDFeInt.find('.//{http://www.portalfiscal.inf.br/nfe}maxNSU')
+        if maxNSU_element is not None:
+            maxNSU_disponivel = int(maxNSU_element.text)
+            logger.info(f"maxNSU disponível na SEFAZ: {maxNSU_disponivel}")
+            logger.info(f"Diferença de NSU: {maxNSU_disponivel - nsu_atual}")
+        
+        # --- TRATAMENTO DE ERROS E CÓDIGOS DE RETORNO ---
+        
+        # 589: NSU muito alto - resetar para 0
+        if str(cStat) == '589':
+            logger.warning("NSU enviado era superior ao da base da SEFAZ. Resetando NSU para 0.")
+            certificado_info.ultimo_nsu = '0'
+            db.session.commit()
+            return {'success': False, 'message': f"{xMotivo}. O NSU foi resetado para 0. Tente consultar novamente."}
+        
+        # 656: Consumo indevido (BLOCO CORRIGIDO)
+        if str(cStat) == '656':
+            logger.warning("Consumo indevido detectado. Tentando auto-corrigir o NSU.")
+            
+            # Tenta extrair o ultNSU que a SEFAZ enviou na resposta do erro
+            ultNSU_retornado = retDistDFeInt.findtext('.//{http://www.portalfiscal.inf.br/nfe}ultNSU')
+            if ultNSU_retornado and int(ultNSU_retornado) > nsu_atual:
+                certificado_info.ultimo_nsu = ultNSU_retornado
+                db.session.commit()
+                logger.info(f"NSU auto-corrigido para {ultNSU_retornado} com base na resposta de erro 656.")
+            
+            return {'success': False, 'message': f"{xMotivo}. O sistema tentou se corrigir. Por favor, aguarde 1 hora antes de tentar novamente."}
+        
+        # 137: Nenhum documento localizado (não é erro, apenas não há notas novas)
+        if str(cStat) == '137':
+            logger.info("Nenhum documento novo localizado para o NSU informado")
+            # Ainda assim, atualizar o NSU se retornado
+            ultNSU_retornado = retDistDFeInt.findtext('.//{http://www.portalfiscal.inf.br/nfe}ultNSU')
+            if ultNSU_retornado and int(ultNSU_retornado) > nsu_atual:
+                certificado_info.ultimo_nsu = ultNSU_retornado
+                db.session.commit()
+                logger.info(f"NSU atualizado para {ultNSU_retornado}")
+            return {'success': True, 'message': 'Consulta realizada com sucesso. Nenhuma nota nova encontrada.'}
+        
+        # 138: Documentos localizados (sucesso)
         if str(cStat) != '138':
-            return {'success': False, 'message': f'SEFAZ: {xMotivo} (Código: {cStat})'}
-
-        notas_processadas = 0
-        lote_docs = retDistDFeInt.findall('.//nfe:docZip', namespaces=ns)
-        maior_nsu = certificado_info.ultimo_nsu
+            # Outro código não tratado
+            return {'success': False, 'message': f"Código {cStat}: {xMotivo}"}
         
+        # --- PROCESSAR DOCUMENTOS RETORNADOS ---
+        notas_processadas = 0
+        lote_docs = retDistDFeInt.findall('.//{http://www.portalfiscal.inf.br/nfe}docZip')
+        if not lote_docs:
+            lote_docs = retDistDFeInt.findall('.//docZip')
+        
+        maior_nsu = nsu_atual
+        
+        logger.info(f"Encontrados {len(lote_docs)} documentos para processar")
+
         for doc in lote_docs:
-            nsu_atual = doc.attrib['NSU']
-            if int(nsu_atual) > int(maior_nsu): maior_nsu = nsu_atual
+            nsu_doc = doc.attrib.get('NSU', '0')
+            if int(nsu_doc) > maior_nsu: 
+                maior_nsu = int(nsu_doc)
             
-            xml_gz_b64 = doc.text
-            xml_bytes = gzip.decompress(base64.b64decode(xml_gz_b64))
-            xml_str = xml_bytes.decode('utf-8')
-            root_nfe = ET.fromstring(xml_str)
-            
-            if 'procNFe' in ET.QName(root_nfe.tag).localname:
+            try:
+                xml_gz_b64 = doc.text
+                if not xml_gz_b64:
+                    logger.warning(f"Documento NSU {nsu_doc} sem conteúdo")
+                    continue
+                    
+                xml_bytes = gzip.decompress(base64.b64decode(xml_gz_b64))
+                xml_str = xml_bytes.decode('utf-8')
+                root_nfe = ET.fromstring(xml_str)
+                
+                # Verificar se é uma NFe (procNFe ou nfeProc)
+                if 'procNFe' not in root_nfe.tag and 'nfeProc' not in root_nfe.tag:
+                    logger.info(f"Documento NSU {nsu_doc} não é uma NFe, pulando...")
+                    continue
+                
                 ns_nfe = {'nfe': 'http://www.portalfiscal.inf.br/nfe'}
                 infNFe = root_nfe.find('.//nfe:infNFe', namespaces=ns_nfe)
-                if infNFe is None: continue
-                chave_acesso = infNFe.attrib['Id'].replace('NFe', '')
-                if db.session.get(NFeImportada, chave_acesso): continue
+                if infNFe is None:
+                    logger.warning(f"NFe sem infNFe no NSU {nsu_doc}")
+                    continue
+                    
+                chave_acesso = infNFe.attrib.get('Id', '').replace('NFe', '')
+                if not chave_acesso:
+                    logger.warning(f"NFe sem chave de acesso no NSU {nsu_doc}")
+                    continue
                 
+                # Verificar se já existe no banco
+                if db.session.get(NFeImportada, chave_acesso):
+                    logger.info(f"NFe {chave_acesso} já existe no banco")
+                    continue
+                
+                # Extrair dados essenciais
                 emit_node = infNFe.find('nfe:emit', namespaces=ns_nfe)
                 total_node = infNFe.find('.//nfe:ICMSTot', namespaces=ns_nfe)
+                
+                if emit_node is None or total_node is None:
+                    logger.warning(f"Dados incompletos na NFe {chave_acesso}")
+                    continue
+                
+                # Extrair CNPJ do emitente
+                cnpj_element = emit_node.find('nfe:CNPJ', namespaces=ns_nfe)
+                if cnpj_element is None:
+                    logger.warning(f"NFe {chave_acesso} sem CNPJ do emitente")
+                    continue
+                
+                # Extrair nome do emitente
+                nome_element = emit_node.find('nfe:xNome', namespaces=ns_nfe)
+                if nome_element is None:
+                    logger.warning(f"NFe {chave_acesso} sem nome do emitente")
+                    continue
+                
+                # Extrair valor total
+                valor_element = total_node.find('nfe:vNF', namespaces=ns_nfe)
+                if valor_element is None:
+                    logger.warning(f"NFe {chave_acesso} sem valor total")
+                    continue
+                
+                # Extrair data de emissão
+                dhEmi_element = infNFe.find('nfe:ide/nfe:dhEmi', namespaces=ns_nfe)
+                data_emissao = datetime.utcnow()  # Padrão
+                if dhEmi_element is not None and dhEmi_element.text:
+                    try:
+                        # Remover timezone para simplificar
+                        data_str = dhEmi_element.text.split('T')[0]
+                        data_emissao = datetime.strptime(data_str, '%Y-%m-%d')
+                    except Exception as e:
+                        logger.warning(f"Erro ao parsear data de emissão: {e}")
+                
+                # Criar registro no banco
                 nova_nfe = NFeImportada(
-                    chave_acesso=chave_acesso, empresa_id=empresa_id, nsu=nsu_atual,
-                    emitente_cnpj=emit_node.find('nfe:CNPJ', namespaces=ns_nfe).text,
-                    emitente_nome=emit_node.find('nfe:xNome', namespaces=ns_nfe).text,
-                    data_emissao=datetime.fromisoformat(infNFe.find('nfe:ide/nfe:dhEmi', namespaces=ns_nfe).text),
-                    valor_total=float(total_node.find('nfe:vNF', namespaces=ns_nfe).text),
-                    xml_content=xml_str, status='BAIXADA'
+                    chave_acesso=chave_acesso,
+                    empresa_id=empresa_id,
+                    nsu=nsu_doc,
+                    emitente_cnpj=cnpj_element.text,
+                    emitente_nome=nome_element.text,
+                    data_emissao=data_emissao,
+                    valor_total=float(valor_element.text),
+                    xml_content=xml_str,
+                    status='BAIXADA'
                 )
                 db.session.add(nova_nfe)
                 notas_processadas += 1
+                logger.info(f"NFe processada: {chave_acesso} - {nome_element.text} - R$ {valor_element.text}")
+                    
+            except Exception as e:
+                logger.error(f"Erro ao processar documento NSU {nsu_doc}: {str(e)}", exc_info=True)
+                continue
 
-        certificado_info.ultimo_nsu = maior_nsu
+        # Atualizar NSU mesmo se não processou notas
+        ultNSU_retornado = retDistDFeInt.findtext('.//{http://www.portalfiscal.inf.br/nfe}ultNSU')
+        if ultNSU_retornado:
+            if int(ultNSU_retornado) > maior_nsu:
+                maior_nsu = int(ultNSU_retornado)
+        
+        certificado_info.ultimo_nsu = str(maior_nsu)
         db.session.commit()
-        return {'success': True, 'message': f'{notas_processadas} nova(s) nota(s) baixada(s).'}
+        logger.info(f"NSU atualizado para {maior_nsu}")
+        
+        if notas_processadas > 0:
+            return {'success': True, 'message': f'{notas_processadas} nova(s) nota(s) baixada(s) com sucesso!'}
+        else:
+            return {'success': True, 'message': 'Consulta realizada com sucesso. Nenhuma nota nova encontrada.'}
 
     except Exception as e:
-        logger.error("General error in consultar_notas_sefaz: %s", str(e), exc_info=True)
+        logger.error(f"Erro geral em consultar_notas_sefaz: {str(e)}", exc_info=True)
+        db.session.rollback()
         return {'success': False, 'message': f'Erro: {str(e)}'}
     finally:
-        if tmp_path and os.path.exists(tmp_path): os.remove(tmp_path)
-        if key_path and os.path.exists(key_path): os.remove(key_path)
-        if cert_path and os.path.exists(cert_path): os.remove(cert_path)
+        # Limpar arquivos temporários
+        for path in [tmp_path, key_path, cert_path]:
+            if path and os.path.exists(path):
+                try:
+                    os.remove(path)
+                except:
+                    pass
