@@ -1,0 +1,598 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Lançamento - Fluxo de Caixa - TrackBras{% endblock %}
+
+{% block styles %}
+<style>
+    :root {
+        --primary-green: #2e7d32;
+        --primary-green-dark: #1b5e20;
+        --primary-green-light: #4caf50;
+        --red-600: #dc2626;
+        --gray-50: #f8fafc;
+        --gray-100: #f1f5f9;
+        --gray-200: #e2e8f0;
+        --gray-600: #475569;
+        --gray-700: #334155;
+        --gray-900: #0f172a;
+    }
+
+    .editar-container {
+        background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        border: 1px solid var(--gray-200);
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 2rem;
+        color: var(--primary-green-dark);
+        font-size: 1.5rem;
+        font-weight: 600;
+        text-align: center;
+        justify-content: center;
+    }
+
+    .section-header i {
+        color: var(--primary-green);
+        font-size: 1.75rem;
+    }
+
+    .info-card {
+        background: #f8f9ff;
+        border: 2px solid var(--primary-green-light);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .info-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 600;
+        color: var(--primary-green-dark);
+        margin-bottom: 1rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .info-item {
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid var(--gray-200);
+    }
+
+    .info-label {
+        font-size: 0.75rem;
+        color: var(--gray-600);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.25rem;
+    }
+
+    .info-value {
+        font-weight: 600;
+        color: var(--gray-900);
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        font-size: 0.95rem;
+    }
+
+    .form-label.required::after {
+        content: " *";
+        color: var(--red-600);
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid var(--gray-200);
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s;
+        background: white;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-green);
+        box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+    }
+
+    .form-control:disabled {
+        background: var(--gray-100);
+        color: var(--gray-600);
+        cursor: not-allowed;
+    }
+
+    .tipo-display {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .tipo-display.receita {
+        background: linear-gradient(135deg, var(--primary-green-light) 0%, var(--primary-green) 100%);
+        color: white;
+    }
+
+    .tipo-display.despesa {
+        background: linear-gradient(135deg, var(--red-600) 0%, #ef4444 100%);
+        color: white;
+    }
+
+    .btn-green {
+        background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-dark) 100%);
+        color: white;
+        padding: 14px 28px;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 1.1rem;
+        box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+        width: 100%;
+        justify-content: center;
+    }
+
+    .btn-green:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(46, 125, 50, 0.4);
+    }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, var(--gray-600) 0%, var(--gray-700) 100%);
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+        justify-content: center;
+        width: 100%;
+    }
+
+    .btn-secondary:hover {
+        color: white;
+        text-decoration: none;
+        opacity: 0.9;
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, var(--red-600) 0%, #ef4444 100%);
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        justify-content: center;
+        width: 100%;
+    }
+
+    .btn-danger:hover {
+        opacity: 0.9;
+    }
+
+    .actions-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 2fr;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .loading-spinner {
+        display: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .alert-warning {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    @media (max-width: 768px) {
+        .editar-container {
+            padding: 1.5rem;
+        }
+        
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .actions-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Cabeçalho -->
+    <div class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 shadow-lg">
+        <h1 class="text-2xl font-bold flex items-center gap-3">
+            <i class="fas fa-edit"></i>
+            Editar Lançamento no Fluxo de Caixa
+        </h1>
+        <p class="text-green-100 mt-2">Altere os dados do lançamento conforme necessário</p>
+    </div>
+
+    <!-- Container de Notificações -->
+    <div id="notifications"></div>
+
+    <!-- Formulário de Edição -->
+    <div class="editar-container">
+        <div class="section-header">
+            <i class="fas fa-pencil-alt"></i>
+            Editando Lançamento #{{ lancamento.id }}
+        </div>
+
+        <!-- Informações do Lançamento -->
+        <div class="info-card">
+            <div class="info-header">
+                <i class="fas fa-info-circle"></i>
+                Informações do Lançamento
+            </div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Tipo</div>
+                    <div class="info-value">
+                        <span class="tipo-display {{ lancamento.tipo|lower }}">
+                            <i class="fas fa-arrow-{% if lancamento.tipo == 'RECEITA' %}up{% else %}down{% endif %}"></i>
+                            {{ lancamento.tipo }}
+                        </span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Status Atual</div>
+                    <div class="info-value">{{ lancamento.status_pagamento }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Data Criação</div>
+                    <div class="info-value">{{ lancamento.data_lancamento.strftime('%d/%m/%Y %H:%M') if lancamento.data_lancamento else 'N/A' }}</div>
+                </div>
+                {% if lancamento.parcela_total > 1 %}
+                <div class="info-item">
+                    <div class="info-label">Parcela</div>
+                    <div class="info-value">{{ lancamento.parcela_numero }}/{{ lancamento.parcela_total }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if lancamento.parcela_total > 1 and lancamento.parcela_numero > 0 %}
+        <div class="alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div>
+                <strong>Atenção:</strong> Este lançamento faz parte de um parcelamento. 
+                Alterações aqui afetam apenas esta parcela específica.
+            </div>
+        </div>
+        {% endif %}
+
+        <form id="formEditar" method="POST">
+            <!-- Dados Principais -->
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label required">Descrição</label>
+                    <input type="text" name="descricao" class="form-control" 
+                           value="{{ lancamento.descricao }}" required maxlength="255">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Categoria</label>
+                    <input type="text" name="categoria" class="form-control" 
+                           value="{{ lancamento.categoria or '' }}" maxlength="100" list="categorias">
+                    <datalist id="categorias">
+                        <option value="Combustível">
+                        <option value="Manutenção">
+                        <option value="Pedágios">
+                        <option value="Alimentação">
+                        <option value="Seguro">
+                        <option value="IPVA">
+                        <option value="Fornecedores">
+                        <option value="Frete">
+                        <option value="Serviços">
+                        <option value="Marketing">
+                        <option value="Escritório">
+                        <option value="Impostos">
+                    </datalist>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label required">Valor Total</label>
+                    <input type="number" name="valor_total" class="form-control" 
+                           value="{{ lancamento.valor_total }}" step="0.01" min="0" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Data de Vencimento</label>
+                    <input type="date" name="data_vencimento" class="form-control" 
+                           value="{{ lancamento.data_vencimento.strftime('%Y-%m-%d') }}" required>
+                </div>
+            </div>
+
+            <!-- Dados Opcionais -->
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Fornecedor/Cliente</label>
+                    <input type="text" name="fornecedor_cliente" class="form-control" 
+                           value="{{ lancamento.fornecedor_cliente or '' }}" maxlength="255">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Número do Documento</label>
+                    <input type="text" name="documento_numero" class="form-control" 
+                           value="{{ lancamento.documento_numero or '' }}" maxlength="50">
+                </div>
+            </div>
+
+            <!-- Observações -->
+            <div class="form-group">
+                <label class="form-label">Observações</label>
+                <textarea name="observacoes" class="form-control" rows="3">{{ lancamento.observacoes or '' }}</textarea>
+            </div>
+
+            <!-- Campos desabilitados para referência -->
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Tipo (não editável)</label>
+                    <input type="hidden" name="tipo" value="{{ lancamento.tipo }}">
+                    <input type="text" class="form-control" value="{{ lancamento.tipo }}" disabled>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Status Pagamento</label>
+                    <input type="text" class="form-control" value="{{ lancamento.status_pagamento }}" disabled>
+                    <small class="text-gray-600">
+                        <i class="fas fa-info-circle"></i>
+                        Para alterar o status, use a função "Marcar como Pago" no fluxo de caixa
+                    </small>
+                </div>
+            </div>
+
+            <!-- Ações -->
+            <div class="actions-grid">
+                <a href="{{ url_for('fluxo_caixa') }}" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Voltar
+                </a>
+                
+                <button type="button" class="btn-danger" onclick="confirmarExclusao()">
+                    <i class="fas fa-trash"></i>
+                    Excluir
+                </button>
+                
+                <button type="submit" class="btn-green" id="btnSalvar">
+                    <i class="fas fa-save"></i>
+                    <span class="loading-spinner" id="loadingSalvar"></span>
+                    Salvar Alterações
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Inicialização
+document.addEventListener('DOMContentLoaded', function() {
+    configurarEventos();
+});
+
+function configurarEventos() {
+    document.getElementById('formEditar').addEventListener('submit', handleSubmit);
+}
+
+async function handleSubmit(event) {
+    event.preventDefault();
+    
+    const btn = document.getElementById('btnSalvar');
+    const loading = document.getElementById('loadingSalvar');
+    
+    // Validações básicas
+    if (!validarFormulario()) {
+        return;
+    }
+    
+    btn.disabled = true;
+    loading.style.display = 'inline-block';
+    
+    try {
+        const formData = new FormData(event.target);
+        
+        const response = await fetch(event.target.action || window.location.href, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            mostrarNotificacao('success', 
+                '<i class="fas fa-check-circle"></i> Lançamento atualizado com sucesso!'
+            );
+            
+            setTimeout(() => {
+                window.location.href = '{{ url_for("fluxo_caixa") }}';
+            }, 1500);
+        } else {
+            throw new Error('Erro na resposta do servidor');
+        }
+        
+    } catch (error) {
+        mostrarNotificacao('error', 
+            `<i class="fas fa-times-circle"></i> Erro ao salvar alterações: ${error.message}`
+        );
+    } finally {
+        btn.disabled = false;
+        loading.style.display = 'none';
+    }
+}
+
+function validarFormulario() {
+    const descricao = document.querySelector('[name="descricao"]').value.trim();
+    const valor = parseFloat(document.querySelector('[name="valor_total"]').value);
+    const dataVencimento = document.querySelector('[name="data_vencimento"]').value;
+    
+    if (!descricao) {
+        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Descrição é obrigatória');
+        return false;
+    }
+    
+    if (!valor || valor <= 0) {
+        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Valor deve ser maior que zero');
+        return false;
+    }
+    
+    if (!dataVencimento) {
+        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Data de vencimento é obrigatória');
+        return false;
+    }
+    
+    return true;
+}
+
+async function confirmarExclusao() {
+    const confirmar = confirm('Tem certeza que deseja excluir este lançamento?\n\nEsta ação não pode ser desfeita.');
+    
+    if (!confirmar) return;
+    
+    try {
+        const response = await fetch(`/api/fluxo_caixa/excluir/{{ lancamento.id }}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            mostrarNotificacao('success', 
+                '<i class="fas fa-check-circle"></i> Lançamento excluído com sucesso!'
+            );
+            
+            setTimeout(() => {
+                window.location.href = '{{ url_for("fluxo_caixa") }}';
+            }, 1500);
+        } else {
+            mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> ${result.message}`);
+        }
+        
+    } catch (error) {
+        mostrarNotificacao('error', 
+            `<i class="fas fa-times-circle"></i> Erro ao excluir: ${error.message}`
+        );
+    }
+}
+
+function mostrarNotificacao(tipo, mensagem) {
+    const container = document.getElementById('notifications');
+    const notification = document.createElement('div');
+    
+    const tipoClasses = {
+        'success': 'bg-green-100 text-green-800 border border-green-200',
+        'error': 'bg-red-100 text-red-800 border border-red-200',
+        'info': 'bg-blue-100 text-blue-800 border border-blue-200'
+    };
+    
+    notification.className = `${tipoClasses[tipo]} p-4 rounded-lg shadow-md mb-4 flex items-center gap-3 font-medium`;
+    notification.innerHTML = mensagem;
+    notification.style.animation = 'slideIn 0.3s ease-out';
+    
+    container.appendChild(notification);
+    
+    // Scroll para a notificação
+    notification.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-in forwards';
+        setTimeout(() => {
+            if (container.contains(notification)) {
+                container.removeChild(notification);
+            }
+        }, 300);
+    }, 5000);
+}
+
+// Estilos de animação
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from { transform: translateY(-20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateY(0); opacity: 1; }
+        to { transform: translateY(-20px); opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

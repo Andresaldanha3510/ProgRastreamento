@@ -4,10 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}TrackBras{% endblock %}</title>
-    {# CSS DO BOOTSTRAP (OBRIGATÓRIO) #}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    {# CSS DO FONT AWESOME (PARA OS ÍCONES) #}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <link rel="manifest" href="{{ url_for('manifest') }}">
     <meta name="theme-color" content="#2e7d32">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -177,10 +174,22 @@
                     </button>
                     <div x-show="openSection === 'operacoes'" x-collapse class="pl-6 pt-2 space-y-1">
                         <a href="{{ url_for('oficina') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Oficina</a>
-                        <a href="{{ url_for('borracharia_dashboard') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Borracharia</a>
                         <a href="{{ url_for('iniciar_viagem_page') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Criar Viagem</a>
-                        <a href="{{ url_for('importar_nfe_page') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Importar Viagem (NF-e)</a>
-                        <a href="{{ url_for('consultar_cobrancas') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Financeiro (Clientes)</a>
+                    </div>
+                </div>
+
+                <div>
+                    <button @click="openSection = (openSection === 'financeiro' ? '' : 'financeiro')" class="w-full flex items-center justify-between p-2 rounded-lg hover:bg-white/10 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-dollar-sign w-5 text-center"></i>
+                            <span>Financeiro</span>
+                        </div>
+                        <i class="fas fa-chevron-down transition-transform" :class="{ 'rotate-180': openSection === 'financeiro' }"></i>
+                    </button>
+                    <div x-show="openSection === 'financeiro'" x-collapse class="pl-6 pt-2 space-y-1">
+                        <a href="{{ url_for('fluxo_caixa') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Fluxo de Caixa</a>
+                        <a href="{{ url_for('importar_notas_fiscais') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Importar NFe (SEFAZ)</a>
+                        <a href="{{ url_for('consultar_cobrancas') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Cobranças</a>
                         <a href="{{ url_for('folha_pagamento_dashboard') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors font-semibold">Folha de Pagamento</a>
                     </div>
                 </div>
@@ -267,13 +276,18 @@
                      <div>
                          <h4 class="font-semibold mb-2 text-white">Operações</h4>
                          <ul class="space-y-2">
-                             <li><a href="{{ url_for('oficina') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Oficina</a></li>
-                             <li><a href="{{ url_for('borracharia_dashboard') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Borracharia</a></li>
+                             <li><a href="{{ url_for('oficina') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors"">Oficina</a></li>
                              <li><a href="{{ url_for('iniciar_viagem_page') }}" class="block p-2 rounded hover:bg-white/10 transition">Criar Viagem</a></li>
-                             <li><a href="{{ url_for('importar_nfe_page') }}" class="block p-2 rounded hover:bg-white/10 transition">Importar Viagem (NF-e)</a></li>
-                             <li><a href="{{ url_for('consultar_cobrancas') }}" class="block p-2 rounded hover:bg-white/10 transition">Financeiro (Clientes)</a></li>
-                             <li><a href="{{ url_for('folha_pagamento_dashboard') }}" class="block p-2 rounded hover:bg-white/10 transition font-semibold">Folha de Pagamento</a></li>
                          </ul>
+                     </div>
+                     <div>
+                        <h4 class="font-semibold mb-2 text-white">Financeiro</h4>
+                        <ul class="space-y-2">
+                            <li><a href="{{ url_for('fluxo_caixa') }}" class="block p-2 rounded hover:bg-white/10 transition">Fluxo de Caixa</a></li>
+                            <li><a href="{{ url_for('importar_notas_fiscais') }}" class="block p-2 rounded hover:bg-white/10 transition">Importar NFe (SEFAZ)</a></li>
+                            <li><a href="{{ url_for('consultar_cobrancas') }}" class="block p-2 rounded hover:bg-white/10 transition">Cobranças</a></li>
+                            <li><a href="{{ url_for('folha_pagamento_dashboard') }}" class="block p-2 rounded hover:bg-white/10 transition font-semibold">Folha de Pagamento</a></li>
+                        </ul>
                      </div>
                      <div>
                         <h4 class="font-semibold mb-2 text-white">Relatórios</h4>
@@ -322,14 +336,13 @@
                     { title: 'Consultar Veículos', href: "{{ url_for('consultar_veiculos') }}", tags: ['consulta', 'ver', 'lista'] },
                     { title: 'Consultar Viagens', href: "{{ url_for('consultar_viagens') }}", tags: ['consulta', 'ver', 'lista'] },
                     { title: 'Criar Viagem', href: "{{ url_for('iniciar_viagem_page') }}", tags: ['operações', 'novo', 'iniciar'] },
-                    { title: 'Importar Viagem por NF-e', href: "{{ url_for('importar_nfe_page') }}", tags: ['operações', 'novo', 'nfe', 'xml', 'automático'] },
-                    { title: 'Financeiro (Clientes)', href: "{{ url_for('consultar_cobrancas') }}", tags: ['operações', 'dinheiro', 'cobrança', 'cliente'] },
-                    // ▼▼▼ NOVO LINK NA BUSCA ▼▼▼
-                    { title: 'Folha de Pagamento', href: "{{ url_for('folha_pagamento_dashboard') }}", tags: ['operações', 'financeiro', 'salário', 'motorista', 'pagamento'] },
+                    // ▼▼▼ LINKS FINANCEIROS ATUALIZADOS NA BUSCA ▼▼▼
+                    { title: 'Fluxo de Caixa', href: "{{ url_for('fluxo_caixa') }}", tags: ['financeiro', 'caixa', 'contas', 'pagar', 'receber', 'despesas', 'receitas'] },
+                    { title: 'Importar Notas Fiscais (SEFAZ)', href: "{{ url_for('importar_notas_fiscais') }}", tags: ['financeiro', 'fiscal', 'nfe', 'sefaz', 'xml', 'importar'] },
+                    { title: 'Cobranças', href: "{{ url_for('consultar_cobrancas') }}", tags: ['financeiro', 'dinheiro', 'cobrança', 'cliente', 'receber'] },
+                    { title: 'Folha de Pagamento', href: "{{ url_for('folha_pagamento_dashboard') }}", tags: ['financeiro', 'salário', 'motorista', 'pagamento', 'rh'] },
                     { title: 'Configurações', href: "{{ url_for('configuracoes') }}", tags: ['sistema', 'ajustes'] },
-                    // =================================================================
                     // ▼▼▼ LINKS DE RELATÓRIOS ATUALIZADOS NA BUSCA ▼▼▼
-                    // =================================================================
                     { title: 'Relatório Estratégico', href: "{{ url_for('relatorios') }}", tags: ['relatório', 'ver', 'dashboard', 'estratégia'] },
                     { title: 'DRE Financeiro', href: "{{ url_for('relatorio_financeiro_dre') }}", tags: ['relatório', 'financeiro', 'dre', 'resultado'] },
                     { title: 'Desempenho de Veículos', href: "{{ url_for('relatorio_desempenho_veiculos') }}", tags: ['relatório', 'veículo', 'desempenho', 'custo'] },
@@ -350,7 +363,6 @@
         }
     </script>
     {% block scripts %}
-
         <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
         
         <script src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
@@ -373,9 +385,6 @@
         </script>
 
     {% endblock %}
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-        {# JQUERY (SE VOCÊ USA EM ALGUM LUGAR) #}
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </body>
 </html>

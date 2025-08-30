@@ -1,0 +1,817 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Lançamento - Fluxo de Caixa - TrackBras{% endblock %}
+
+{% block styles %}
+<style>
+    :root {
+        --primary-green: #2e7d32;
+        --primary-green-dark: #1b5e20;
+        --primary-green-light: #4caf50;
+        --red-600: #dc2626;
+        --gray-50: #f8fafc;
+        --gray-100: #f1f5f9;
+        --gray-200: #e2e8f0;
+        --gray-300: #cbd5e1;
+        --gray-600: #475569;
+        --gray-700: #334155;
+        --gray-900: #0f172a;
+    }
+
+    .lancamento-container {
+        background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        border: 1px solid var(--gray-200);
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 2rem;
+        color: var(--primary-green-dark);
+        font-size: 1.5rem;
+        font-weight: 600;
+        text-align: center;
+        justify-content: center;
+    }
+
+    .section-header i {
+        color: var(--primary-green);
+        font-size: 1.75rem;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        font-size: 0.95rem;
+    }
+
+    .form-label.required::after {
+        content: " *";
+        color: var(--red-600);
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid var(--gray-200);
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s;
+        background: white;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-green);
+        box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+    }
+
+    .form-control:invalid {
+        border-color: var(--red-600);
+    }
+
+    .form-select {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid var(--gray-200);
+        border-radius: 8px;
+        background: white;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+
+    .form-select:focus {
+        outline: none;
+        border-color: var(--primary-green);
+    }
+
+    .tipo-selector {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .tipo-option {
+        padding: 1rem;
+        border: 2px solid var(--gray-200);
+        border-radius: 12px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: white;
+        position: relative;
+    }
+
+    .tipo-option:hover {
+        border-color: var(--primary-green);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(46, 125, 50, 0.15);
+    }
+
+    .tipo-option.selected {
+        border-color: var(--primary-green);
+        background: linear-gradient(135deg, var(--primary-green-light) 0%, var(--primary-green) 100%);
+        color: white;
+    }
+
+    .tipo-option input[type="radio"] {
+        display: none;
+    }
+
+    .tipo-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .tipo-option.receita .tipo-icon {
+        color: var(--primary-green);
+    }
+
+    .tipo-option.despesa .tipo-icon {
+        color: var(--red-600);
+    }
+
+    .tipo-option.selected .tipo-icon {
+        color: white;
+    }
+
+    .tipo-label {
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .tipo-description {
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+        opacity: 0.8;
+    }
+
+    .parcelas-section {
+        background: white;
+        border: 2px solid var(--gray-200);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .parcelas-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 1rem;
+        font-weight: 600;
+        color: var(--gray-900);
+    }
+
+    .parcelas-toggle {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 24px;
+    }
+
+    .parcelas-toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .parcelas-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: var(--gray-300);
+        transition: .4s;
+        border-radius: 24px;
+    }
+
+    .parcelas-slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+
+    input:checked + .parcelas-slider {
+        background-color: var(--primary-green);
+    }
+
+    input:checked + .parcelas-slider:before {
+        transform: translateX(26px);
+    }
+
+    .parcelas-config {
+        display: none;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--gray-200);
+    }
+
+    .parcelas-config.show {
+        display: grid;
+    }
+
+    .btn-green {
+        background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-dark) 100%);
+        color: white;
+        padding: 14px 28px;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 1.1rem;
+        box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+        width: 100%;
+        justify-content: center;
+    }
+
+    .btn-green:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(46, 125, 50, 0.4);
+    }
+
+    .btn-green:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
+    }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, var(--gray-600) 0%, var(--gray-700) 100%);
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+        justify-content: center;
+        width: 100%;
+    }
+
+    .btn-secondary:hover {
+        color: white;
+        text-decoration: none;
+        opacity: 0.9;
+    }
+
+    .actions-grid {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .loading-spinner {
+        display: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .help-text {
+        font-size: 0.875rem;
+        color: var(--gray-600);
+        margin-top: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .preview-section {
+        background: #f8f9ff;
+        border: 2px dashed var(--primary-green);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+        display: none;
+    }
+
+    .preview-section.show {
+        display: block;
+    }
+
+    .preview-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 600;
+        color: var(--primary-green-dark);
+        margin-bottom: 1rem;
+    }
+
+    .preview-item {
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .preview-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .preview-parcela {
+        font-size: 0.875rem;
+        color: var(--gray-600);
+    }
+
+    .preview-valor {
+        font-weight: 600;
+        color: var(--primary-green);
+    }
+
+    @media (max-width: 768px) {
+        .lancamento-container {
+            padding: 1.5rem;
+        }
+        
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .tipo-selector {
+            grid-template-columns: 1fr;
+        }
+        
+        .actions-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .parcelas-config {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Cabeçalho -->
+    <div class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 shadow-lg">
+        <h1 class="text-2xl font-bold flex items-center gap-3">
+            <i class="fas fa-plus-circle"></i>
+            Novo Lançamento no Fluxo de Caixa
+        </h1>
+        <p class="text-green-100 mt-2">Adicione uma nova receita ou despesa ao seu fluxo de caixa</p>
+    </div>
+
+    <!-- Container de Notificações -->
+    <div id="notifications"></div>
+
+    <!-- Formulário -->
+    <div class="lancamento-container">
+        <div class="section-header">
+            <i class="fas fa-edit"></i>
+            Dados do Lançamento
+        </div>
+
+        <form id="formLancamento" method="POST">
+            <!-- Seletor de Tipo -->
+            <div class="form-group">
+                <label class="form-label required">Tipo de Movimento</label>
+                <div class="tipo-selector">
+                    <div class="tipo-option receita" onclick="selecionarTipo('RECEITA')">
+                        <input type="radio" name="tipo" value="RECEITA" required>
+                        <i class="fas fa-arrow-up tipo-icon"></i>
+                        <div class="tipo-label">Receita</div>
+                        <div class="tipo-description">Entrada de dinheiro</div>
+                    </div>
+                    <div class="tipo-option despesa" onclick="selecionarTipo('DESPESA')">
+                        <input type="radio" name="tipo" value="DESPESA" required>
+                        <i class="fas fa-arrow-down tipo-icon"></i>
+                        <div class="tipo-label">Despesa</div>
+                        <div class="tipo-description">Saída de dinheiro</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dados Principais -->
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label required">Descrição</label>
+                    <input type="text" name="descricao" class="form-control" 
+                           placeholder="Ex: Pagamento fornecedor XYZ" required maxlength="255">
+                    <div class="help-text">
+                        <i class="fas fa-info-circle"></i>
+                        Descreva brevemente o lançamento
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Categoria</label>
+                    <input type="text" name="categoria" class="form-control" 
+                           placeholder="Ex: Combustível, Manutenção..." maxlength="100" list="categorias">
+                    <datalist id="categorias">
+                        <option value="Combustível">
+                        <option value="Manutenção">
+                        <option value="Pedágios">
+                        <option value="Alimentação">
+                        <option value="Seguro">
+                        <option value="IPVA">
+                        <option value="Fornecedores">
+                        <option value="Frete">
+                        <option value="Serviços">
+                        <option value="Marketing">
+                        <option value="Escritório">
+                        <option value="Impostos">
+                    </datalist>
+                    <div class="help-text">
+                        <i class="fas fa-tag"></i>
+                        Para melhor organização e relatórios
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label required">Valor Total</label>
+                    <input type="number" name="valor_total" class="form-control" 
+                           placeholder="0,00" step="0.01" min="0" required>
+                    <div class="help-text">
+                        <i class="fas fa-dollar-sign"></i>
+                        Valor em reais (R$)
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Data de Vencimento</label>
+                    <input type="date" name="data_vencimento" class="form-control" required>
+                    <div class="help-text">
+                        <i class="fas fa-calendar"></i>
+                        Data prevista para pagamento/recebimento
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dados Opcionais -->
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Fornecedor/Cliente</label>
+                    <input type="text" name="fornecedor_cliente" class="form-control" 
+                           placeholder="Nome do fornecedor ou cliente" maxlength="255">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Número do Documento</label>
+                    <input type="text" name="documento_numero" class="form-control" 
+                           placeholder="NF, Boleto, Contrato..." maxlength="50">
+                </div>
+            </div>
+
+            <!-- Controle de Parcelas -->
+            <div class="parcelas-section">
+                <div class="parcelas-header">
+                    <i class="fas fa-layer-group"></i>
+                    Parcelar Lançamento
+                    <label class="parcelas-toggle">
+                        <input type="checkbox" id="parcelarCheck" onchange="toggleParcelas()">
+                        <span class="parcelas-slider"></span>
+                    </label>
+                </div>
+
+                <div class="parcelas-config" id="parcelasConfig">
+                    <div class="form-group">
+                        <label class="form-label">Número de Parcelas</label>
+                        <input type="number" name="parcela_total" id="parcelaTotal" 
+                               class="form-control" min="2" max="24" value="2" 
+                               onchange="atualizarPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Intervalo (dias)</label>
+                        <select class="form-select" id="intervaloParcelas">
+                            <option value="30">Mensal (30 dias)</option>
+                            <option value="15">Quinzenal (15 dias)</option>
+                            <option value="7">Semanal (7 dias)</option>
+                            <option value="1">Personalizado</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="preview-section" id="previewParcelas">
+                    <div class="preview-header">
+                        <i class="fas fa-eye"></i>
+                        Prévia das Parcelas
+                    </div>
+                    <div id="previewList"></div>
+                </div>
+            </div>
+
+            <!-- Observações -->
+            <div class="form-group">
+                <label class="form-label">Observações</label>
+                <textarea name="observacoes" class="form-control" rows="3" 
+                          placeholder="Informações adicionais sobre este lançamento..."></textarea>
+            </div>
+
+            <!-- Ações -->
+            <div class="actions-grid">
+                <a href="{{ url_for('fluxo_caixa') }}" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Voltar
+                </a>
+                <button type="submit" class="btn-green" id="btnSalvar">
+                    <i class="fas fa-save"></i>
+                    <span class="loading-spinner" id="loadingSalvar"></span>
+                    Criar Lançamento
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Inicialização
+document.addEventListener('DOMContentLoaded', function() {
+    configurarEventos();
+    definirDataPadrao();
+});
+
+function configurarEventos() {
+    document.getElementById('formLancamento').addEventListener('submit', handleSubmit);
+    
+    // Atualizar prévia quando campos importantes mudarem
+    const camposPreview = ['valor_total', 'data_vencimento'];
+    camposPreview.forEach(campo => {
+        const element = document.querySelector(`[name="${campo}"]`);
+        if (element) {
+            element.addEventListener('input', atualizarPreview);
+            element.addEventListener('change', atualizarPreview);
+        }
+    });
+
+    document.getElementById('intervaloParcelas').addEventListener('change', atualizarPreview);
+}
+
+function definirDataPadrao() {
+    const hoje = new Date();
+    const dataVencimento = document.querySelector('[name="data_vencimento"]');
+    if (dataVencimento && !dataVencimento.value) {
+        dataVencimento.value = hoje.toISOString().split('T')[0];
+    }
+}
+
+function selecionarTipo(tipo) {
+    // Remover seleção anterior
+    document.querySelectorAll('.tipo-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    // Adicionar seleção atual
+    const selectedOption = document.querySelector(`.tipo-option.${tipo.toLowerCase()}`);
+    selectedOption.classList.add('selected');
+    
+    // Marcar o radio button
+    const radio = selectedOption.querySelector('input[type="radio"]');
+    radio.checked = true;
+    
+    // Atualizar texto do botão
+    const btnSalvar = document.getElementById('btnSalvar');
+    const icon = tipo === 'RECEITA' ? 'fa-arrow-up' : 'fa-arrow-down';
+    const texto = tipo === 'RECEITA' ? 'Criar Receita' : 'Criar Despesa';
+    
+    btnSalvar.innerHTML = `
+        <i class="fas ${icon}"></i>
+        <span class="loading-spinner" id="loadingSalvar"></span>
+        ${texto}
+    `;
+}
+
+function toggleParcelas() {
+    const check = document.getElementById('parcelarCheck');
+    const config = document.getElementById('parcelasConfig');
+    const preview = document.getElementById('previewParcelas');
+    
+    if (check.checked) {
+        config.classList.add('show');
+        atualizarPreview();
+    } else {
+        config.classList.remove('show');
+        preview.classList.remove('show');
+    }
+}
+
+function atualizarPreview() {
+    const parcelarCheck = document.getElementById('parcelarCheck');
+    if (!parcelarCheck.checked) return;
+    
+    const valorTotal = parseFloat(document.querySelector('[name="valor_total"]').value) || 0;
+    const dataVencimento = document.querySelector('[name="data_vencimento"]').value;
+    const parcelas = parseInt(document.getElementById('parcelaTotal').value) || 2;
+    const intervalo = parseInt(document.getElementById('intervaloParcelas').value) || 30;
+    
+    if (valorTotal <= 0 || !dataVencimento || parcelas < 2) {
+        document.getElementById('previewParcelas').classList.remove('show');
+        return;
+    }
+    
+    const valorParcela = valorTotal / parcelas;
+    const dataBase = new Date(dataVencimento);
+    const previewList = document.getElementById('previewList');
+    
+    previewList.innerHTML = '';
+    
+    for (let i = 1; i <= parcelas; i++) {
+        const dataParcela = new Date(dataBase);
+        dataParcela.setDate(dataParcela.getDate() + ((i - 1) * intervalo));
+        
+        const item = document.createElement('div');
+        item.className = 'preview-item';
+        item.innerHTML = `
+            <div class="preview-parcela">
+                Parcela ${i}/${parcelas} - ${dataParcela.toLocaleDateString('pt-BR')}
+            </div>
+            <div class="preview-valor">
+                R$ ${valorParcela.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+        `;
+        previewList.appendChild(item);
+    }
+    
+    document.getElementById('previewParcelas').classList.add('show');
+}
+
+async function handleSubmit(event) {
+    event.preventDefault();
+    
+    const btn = document.getElementById('btnSalvar');
+    const loading = document.getElementById('loadingSalvar');
+    
+    // Validações básicas
+    if (!validarFormulario()) {
+        return;
+    }
+    
+    btn.disabled = true;
+    loading.style.display = 'inline-block';
+    
+    try {
+        const formData = new FormData(event.target);
+        
+        // Adicionar dados de parcelas se necessário
+        if (document.getElementById('parcelarCheck').checked) {
+            formData.set('parcela_total', document.getElementById('parcelaTotal').value);
+        } else {
+            formData.set('parcela_total', '1');
+        }
+        
+        const response = await fetch(event.target.action || window.location.href, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            mostrarNotificacao('success', 
+                '<i class="fas fa-check-circle"></i> Lançamento criado com sucesso!'
+            );
+            
+            setTimeout(() => {
+                window.location.href = '{{ url_for("fluxo_caixa") }}';
+            }, 1500);
+        } else {
+            throw new Error('Erro na resposta do servidor');
+        }
+        
+    } catch (error) {
+        mostrarNotificacao('error', 
+            `<i class="fas fa-times-circle"></i> Erro ao criar lançamento: ${error.message}`
+        );
+    } finally {
+        btn.disabled = false;
+        loading.style.display = 'none';
+    }
+}
+
+function validarFormulario() {
+    const tipo = document.querySelector('input[name="tipo"]:checked');
+    const descricao = document.querySelector('[name="descricao"]').value.trim();
+    const valor = parseFloat(document.querySelector('[name="valor_total"]').value);
+    const dataVencimento = document.querySelector('[name="data_vencimento"]').value;
+    
+    if (!tipo) {
+        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Selecione o tipo de movimento');
+        return false;
+    }
+    
+    if (!descricao) {
+        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Descrição é obrigatória');
+        return false;
+    }
+    
+    if (!valor || valor <= 0) {
+        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Valor deve ser maior que zero');
+        return false;
+    }
+    
+    if (!dataVencimento) {
+        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Data de vencimento é obrigatória');
+        return false;
+    }
+    
+    // Validar parcelas se estiver habilitado
+    const parcelarCheck = document.getElementById('parcelarCheck');
+    if (parcelarCheck.checked) {
+        const parcelas = parseInt(document.getElementById('parcelaTotal').value);
+        if (!parcelas || parcelas < 2 || parcelas > 24) {
+            mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Número de parcelas deve estar entre 2 e 24');
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+function mostrarNotificacao(tipo, mensagem) {
+    const container = document.getElementById('notifications');
+    const notification = document.createElement('div');
+    
+    const tipoClasses = {
+        'success': 'bg-green-100 text-green-800 border border-green-200',
+        'error': 'bg-red-100 text-red-800 border border-red-200',
+        'info': 'bg-blue-100 text-blue-800 border border-blue-200'
+    };
+    
+    notification.className = `${tipoClasses[tipo]} p-4 rounded-lg shadow-md mb-4 flex items-center gap-3 font-medium`;
+    notification.innerHTML = mensagem;
+    notification.style.animation = 'slideIn 0.3s ease-out';
+    
+    container.appendChild(notification);
+    
+    // Scroll para a notificação
+    notification.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-in forwards';
+        setTimeout(() => {
+            if (container.contains(notification)) {
+                container.removeChild(notification);
+            }
+        }, 300);
+    }, 5000);
+}
+
+// Estilos de animação
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from { transform: translateY(-20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateY(0); opacity: 1; }
+        to { transform: translateY(-20px); opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

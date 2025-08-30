@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}XML da NF-e - {{ nota.emitente_nome }}{% endblock %}
+
+{% block styles %}
+<style>
+    .xml-container {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+
+    .xml-header {
+        background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+
+    .xml-content {
+        background: #ffffff;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 1rem;
+        overflow-x: auto;
+        max-height: 70vh;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+    .xml-actions {
+        margin-bottom: 1rem;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-action {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-primary {
+        background: #007bff;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #0056b3;
+    }
+
+    .btn-success {
+        background: #28a745;
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #1e7e34;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #545b62;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .info-card {
+        background: white;
+        padding: 1rem;
+        border-radius: 4px;
+        border: 1px solid #dee2e6;
+    }
+
+    .info-label {
+        font-weight: bold;
+        color: #495057;
+        font-size: 12px;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .info-value {
+        font-size: 14px;
+        color: #212529;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="xml-header">
+        <h1><i class="fas fa-code"></i> XML da NF-e</h1>
+        <p class="mb-0">{{ nota.emitente_nome }} - Chave: {{ nota.chave_acesso }}</p>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-card">
+            <div class="info-label">Emitente</div>
+            <div class="info-value">{{ nota.emitente_nome }}</div>
+        </div>
+        <div class="info-card">
+            <div class="info-label">CNPJ</div>
+            <div class="info-value">{{ nota.emitente_cnpj[:2] }}.{{ nota.emitente_cnpj[2:5] }}.{{ nota.emitente_cnpj[5:8] }}/{{ nota.emitente_cnpj[8:12] }}-{{ nota.emitente_cnpj[12:14] }}</div>
+        </div>
+        <div class="info-card">
+            <div class="info-label">Valor Total</div>
+            <div class="info-value">R$ {{ "%.2f"|format(nota.valor_total)|replace('.', ',')|replace(',', '.', 1) }}</div>
+        </div>
+        <div class="info-card">
+            <div class="info-label">Data Emissão</div>
+            <div class="info-value">{{ nota.data_emissao.strftime('%d/%m/%Y') }}</div>
+        </div>
+    </div>
+
+    <div class="xml-actions">
+        <button class="btn-action btn-primary" onclick="copiarXML()">
+            <i class="fas fa-copy"></i>
+            Copiar XML
+        </button>
+        <button class="btn-action btn-success" onclick="downloadXML()">
+            <i class="fas fa-download"></i>
+            Baixar XML
+        </button>
+        <a href="{{ url_for('importar_notas_fiscais') }}" class="btn-action btn-secondary">
+            <i class="fas fa-arrow-left"></i>
+            Voltar
+        </a>
+    </div>
+
+    <div class="xml-container">
+        <div class="xml-content" id="xmlContent">{{ xml_content }}</div>
+    </div>
+</div>
+
+<script>
+function copiarXML() {
+    const xmlContent = document.getElementById('xmlContent').textContent;
+    
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(xmlContent).then(() => {
+            mostrarToast('XML copiado para a área de transferência!', 'success');
+        }).catch(() => {
+            copiarTextoFallback(xmlContent);
+        });
+    } else {
+        copiarTextoFallback(xmlContent);
+    }
+}
+
+function copiarTextoFallback(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    
+    try {
+        document.execCommand('copy');
+        mostrarToast('XML copiado para a área de transferência!', 'success');
+    } catch (err) {
+        mostrarToast('Erro ao copiar XML', 'error');
+    }
+    
+    document.body.removeChild(textarea);
+}
+
+function downloadXML() {
+    const xmlContent = document.getElementById('xmlContent').textContent;
+    const chaveAcesso = '{{ nota.chave_acesso }}';
+    
+    const blob = new Blob([xmlContent], { type: 'application/xml' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `NFe_${chaveAcesso}.xml`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    
+    mostrarToast('XML baixado com sucesso!', 'success');
+}
+
+function mostrarToast(mensagem, tipo) {
+    // Cria um toast simples
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 4px;
+        color: white;
+        font-weight: 500;
+        z-index: 9999;
+        transition: all 0.3s ease;
+        ${tipo === 'success' ? 'background: #28a745;' : 'background: #dc3545;'}
+    `;
+    toast.textContent = mensagem;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 3000);
+}
+</script>
+{% endblock %}

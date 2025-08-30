@@ -1,167 +1,1285 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
+{% block title %}Importação NFe SEFAZ - TrackBras{% endblock %}
+
+{% block styles %}
+<style>
+    :root {
+        --primary-green: #2e7d32;
+        --primary-green-dark: #1b5e20;
+        --primary-green-light: #4caf50;
+        --accent-yellow: #ffc107;
+        --gray-50: #f8fafc;
+        --gray-100: #f1f5f9;
+        --gray-200: #e2e8f0;
+        --gray-300: #cbd5e1;
+        --gray-600: #475569;
+        --gray-700: #334155;
+        --gray-900: #0f172a;
+    }
+
+    .nfe-container {
+        background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        border: 1px solid var(--gray-200);
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 1.5rem;
+        color: var(--primary-green-dark);
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .section-header i {
+        color: var(--primary-green);
+        font-size: 1.5rem;
+    }
+
+    .btn-green {
+        background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-dark) 100%);
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+    }
+
+    .btn-green:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(46, 125, 50, 0.4);
+    }
+
+    .btn-green:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
+    }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, var(--gray-600) 0%, var(--gray-700) 100%);
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-warning {
+        background: linear-gradient(135deg, var(--accent-yellow) 0%, #ff9800 100%);
+        color: var(--gray-900);
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .loading-spinner {
+        display: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin: 1.5rem 0;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        text-align: center;
+        border: 1px solid var(--gray-200);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        transition: transform 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--primary-green);
+        display: block;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: var(--gray-600);
+        margin-top: 0.5rem;
+        font-weight: 500;
+    }
+
+    .search-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--gray-200);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .search-controls {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .search-box {
+        position: relative;
+        flex: 1;
+        min-width: 300px;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 12px 16px 12px 48px;
+        border: 2px solid var(--gray-200);
+        border-radius: 25px;
+        font-size: 1rem;
+        transition: all 0.3s;
+        background: white;
+    }
+
+    .search-box input:focus {
+        outline: none;
+        border-color: var(--primary-green);
+        box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--gray-600);
+        font-size: 1.125rem;
+    }
+
+    .form-select {
+        padding: 10px 16px;
+        border: 2px solid var(--gray-200);
+        border-radius: 8px;
+        background: white;
+        font-size: 0.875rem;
+        min-width: 150px;
+    }
+
+    .form-select:focus {
+        outline: none;
+        border-color: var(--primary-green);
+    }
+
+    .progress-bar {
+        background: var(--gray-200);
+        border-radius: 10px;
+        overflow: hidden;
+        height: 8px;
+        margin: 1rem 0;
+        display: none;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+        width: 0%;
+        transition: width 0.3s ease;
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+    }
+
+    .modal-content {
+        background: white;
+        margin: 5% auto;
+        padding: 0;
+        border-radius: 16px;
+        width: 90%;
+        max-width: 600px;
+        box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+        animation: modalSlide 0.3s ease-out;
+        overflow: hidden;
+    }
+
+    @keyframes modalSlide {
+        from { transform: translateY(-50px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, var(--primary-green-dark) 0%, var(--primary-green) 100%);
+        color: white;
+        padding: 1.5rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .close {
+        color: white;
+        font-size: 1.75rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: opacity 0.3s;
+        line-height: 1;
+    }
+
+    .close:hover {
+        opacity: 0.7;
+    }
+
+    .modal-body {
+        padding: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: var(--gray-900);
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid var(--gray-200);
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-green);
+        box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 1.5rem;
+        color: var(--gray-600);
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+        color: var(--gray-300);
+    }
+
+    .empty-state h3 {
+        margin-bottom: 0.75rem;
+        color: var(--gray-700);
+        font-size: 1.25rem;
+    }
+
+    .chave-input {
+        font-family: 'Courier New', monospace;
+        letter-spacing: 1px;
+    }
+
+    .fade-in {
+        animation: fadeIn 0.5s ease-in;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .pulse {
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(46, 125, 50, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0); }
+    }
+
+    /* Estilos para Lista de Notas */
+    .nfe-table-container {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        border: 1px solid var(--gray-200);
+    }
+
+    .nfe-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .nfe-table th {
+        background: linear-gradient(135deg, var(--primary-green-dark) 0%, var(--primary-green) 100%);
+        color: white;
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .nfe-table td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--gray-100);
+        vertical-align: middle;
+        font-size: 0.875rem;
+    }
+
+    .nfe-table tr:hover {
+        background: var(--gray-50);
+    }
+
+    .nfe-table tr.processed {
+        background: linear-gradient(135deg, #f0f9f0 0%, #e8f5e8 100%);
+    }
+
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-block;
+    }
+
+    .status-badge.novo {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: white;
+    }
+
+    .status-badge.processado {
+        background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+        color: white;
+    }
+
+    .btn-table {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        cursor: pointer;
+        margin-right: 4px;
+        margin-bottom: 4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.3s;
+    }
+
+    .btn-table.btn-launch {
+        background: var(--primary-green);
+        color: white;
+    }
+
+    .btn-table.btn-launch:hover {
+        background: var(--primary-green-dark);
+    }
+
+    .btn-table.btn-processed {
+        background: #4caf50;
+        color: white;
+        cursor: not-allowed;
+    }
+
+    .btn-table.btn-view {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .btn-table.btn-view:hover {
+        background: #138496;
+    }
+
+    .chave-display {
+        font-family: 'Courier New', monospace;
+        font-size: 0.75rem;
+        color: var(--gray-600);
+        word-break: break-all;
+    }
+
+    .valor-cell {
+        font-weight: 600;
+        color: var(--primary-green);
+        font-size: 0.875rem;
+    }
+
+    /* Paginação */
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background: var(--gray-50);
+        border-top: 1px solid var(--gray-200);
+    }
+
+    .pagination-info {
+        color: var(--gray-600);
+        font-size: 0.875rem;
+    }
+
+    .pagination-controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .pagination-btn {
+        padding: 8px 12px;
+        border: 1px solid var(--gray-300);
+        background: white;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.875rem;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .pagination-btn:hover:not(.disabled) {
+        background: var(--primary-green);
+        color: white;
+        border-color: var(--primary-green);
+    }
+
+    .pagination-btn.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .pagination-btn.active {
+        background: var(--primary-green);
+        color: white;
+        border-color: var(--primary-green);
+    }
+
+    .per-page-selector {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.875rem;
+        color: var(--gray-600);
+    }
+
+    .per-page-selector select {
+        padding: 4px 8px;
+        border: 1px solid var(--gray-300);
+        border-radius: 4px;
+        font-size: 0.875rem;
+    }
+
+    @media (max-width: 768px) {
+        .search-controls {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .search-box {
+            min-width: auto;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        }
+
+        .nfe-table-container {
+            overflow-x: auto;
+        }
+
+        .pagination-container {
+            flex-direction: column;
+            gap: 1rem;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;"></div>
+<div class="space-y-6">
+    <!-- Cabeçalho da Página -->
+    <div class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 shadow-lg">
+        <h1 class="text-3xl font-bold flex items-center gap-3">
+            <i class="fas fa-file-invoice"></i>
+            Importação de Notas Fiscais SEFAZ
+        </h1>
+        <p class="text-green-100 mt-2">Consulte, importe e gerencie suas notas fiscais eletrônicas</p>
+    </div>
 
-    <div class="card shadow-sm">
-        <div class="card-header">
-            <div class="d-flex justify-content-between align-items-center">
-                <h4 class="mb-0">Importação de Notas Fiscais (NF-e)</h4>
-                
-                <div class="d-flex align-items-center gap-3">
-                    <button class="btn btn-success" id="btn-consultar-sefaz">
-                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true" id="consultar-spinner"></span>
-                        <i class="fas fa-sync-alt me-1"></i> Buscar Novas Notas na SEFAZ
-                    </button>
+    <!-- Container de Notificações -->
+    <div id="notifications"></div>
 
-                    <div class="input-group" style="width: 450px;">
-                        <span class="input-group-text"><i class="fas fa-barcode"></i></span>
-                        <input type="text" class="form-control form-control-lg" id="chave_acesso_input" 
-                               maxlength="44" placeholder="Bipe ou digite a chave de acesso e pressione Enter" autofocus>
-                    </div>
-                </div>
+    <!-- Seção de Consulta SEFAZ -->
+    <div class="nfe-container">
+        <div class="section-header">
+            <i class="fas fa-cloud-download-alt"></i>
+            Consultar SEFAZ
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-number" id="totalNotas">{{ notas|length if notas else 0 }}</span>
+                <span class="stat-label">Notas Importadas</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="notasProcessadas">
+                    {{ notas|selectattr('status', 'equalto', 'PROCESSADA')|list|length if notas else 0 }}
+                </span>
+                <span class="stat-label">Processadas</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="valorTotal">
+                    R$ {{ "%.2f"|format(notas|sum(attribute='valor_total') if notas else 0)|replace('.', ',')|replace(',', '.', 1) }}
+                </span>
+                <span class="stat-label">Valor Total</span>
             </div>
         </div>
-        <div class="card-body">
-            <h5 class="card-title">Notas Fiscais Baixadas</h5>
-            <div class="table-responsive">
-                <table class="table table-hover table-sm">
-                    <thead class="table-light">
-                        <tr>
-                            <th scope="col">Emitente</th>
-                            <th scope="col">CNPJ Emitente</th>
-                            <th scope="col">Chave de Acesso</th>
-                            <th scope="col">Data Emissão</th>
-                            <th scope="col">Valor (R$)</th>
-                            <th scope="col">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for nota in notas %}
-                        <tr>
-                            <td>{{ nota.emitente_nome }}</td>
-                            <td>{{ nota.emitente_cnpj }}</td>
-                            <td>{{ nota.chave_acesso }}</td>
-                            <td>{{ nota.data_emissao.strftime('%d/%m/%Y %H:%M') }}</td>
-                            <td>{{ "%.2f"|format(nota.valor_total)|replace('.', ',') }}</td>
-                            <td>
-                                {% if nota.status == 'PROCESSADA' %}
-                                    <span class="badge bg-success">Processada</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">Aguardando</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="6" class="text-center py-4">
-                                Nenhuma nota fiscal baixada ainda. Clique em "Buscar Novas Notas na SEFAZ".
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+
+        <div class="flex flex-wrap gap-4 items-center">
+            <button class="btn-green" id="btnConsultarSefaz">
+                <i class="fas fa-search"></i>
+                <span class="loading-spinner" id="loadingConsulta"></span>
+                Buscar Novas NFe na SEFAZ
+            </button>
+            
+            <a href="{{ url_for('configuracao_fiscal') }}" class="btn-secondary">
+                <i class="fas fa-cog"></i>
+                Configurar Certificado
+            </a>
+        </div>
+
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+    </div>
+
+    <!-- Seção de Lançamento Rápido -->
+    <div class="nfe-container">
+        <div class="section-header">
+            <i class="fas fa-bolt"></i>
+            Lançamento Rápido
+        </div>
+        
+        <div class="flex gap-4 flex-wrap items-end mb-4">
+            <div class="flex-1 min-w-0">
+                <label class="form-label">Chave de Acesso (44 dígitos)</label>
+                <div class="search-box">
+                    <input type="text" id="chaveAcessoInput" placeholder="Digite ou escaneie a chave de acesso da NFe..." class="chave-input" maxlength="44">
+                    <i class="fas fa-key"></i>
+                </div>
+            </div>
+            
+            <button class="btn-warning" id="btnLancarRapido">
+                <i class="fas fa-rocket"></i>
+                Lançar Nota
+            </button>
+        </div>
+        
+        <div class="text-sm text-gray-600">
+            <i class="fas fa-info-circle"></i>
+            Digite a chave de acesso de 44 dígitos ou use um leitor de código para capturar automaticamente
+        </div>
+    </div>
+
+    <!-- Seção de Busca e Filtros -->
+    <div class="search-section">
+        <div class="section-header">
+            <i class="fas fa-filter"></i>
+            Buscar e Filtrar Notas
+        </div>
+        
+        <div class="search-controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Buscar por CNPJ, nome do emitente..." class="search-input">
+                <i class="fas fa-search"></i>
+            </div>
+            
+            <select id="statusFilter" class="form-select">
+                <option value="">Todos os Status</option>
+                <option value="BAIXADA">Novas</option>
+                <option value="PROCESSADA">Processadas</option>
+            </select>
+
+            <button class="btn-secondary" id="btnLimparFiltros">
+                <i class="fas fa-times"></i>
+                Limpar
+            </button>
+        </div>
+    </div>
+
+    <!-- Lista de NFe -->
+    <div class="nfe-container">
+        <div class="section-header">
+            <i class="fas fa-list"></i>
+            Notas Fiscais Importadas
+            <span id="contadorNotas" class="text-base font-normal text-gray-600"></span>
+        </div>
+
+        <div id="nfeContainer">
+            {% if not notas %}
+                <div class="empty-state" id="emptyState">
+                    <i class="fas fa-file-invoice"></i>
+                    <h3>Nenhuma nota encontrada</h3>
+                    <p>Clique em "Buscar Novas NFe na SEFAZ" para importar suas notas fiscais</p>
+                </div>
+            {% else %}
+                <div class="nfe-table-container" id="nfeTableContainer">
+                    <table class="nfe-table">
+                        <thead>
+                            <tr>
+                                <th>Emitente</th>
+                                <th>CNPJ</th>
+                                <th>Data Emissão</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                                <th>Chave de Acesso</th>
+                            </tr>
+                        </thead>
+                        <tbody id="nfeTableBody">
+                            <!-- As linhas serão inseridas via JavaScript -->
+                        </tbody>
+                    </table>
+                    
+                    <div class="pagination-container">
+                        <div class="pagination-info">
+                            <span id="paginationInfo">Carregando...</span>
+                        </div>
+                        
+                        <div class="pagination-controls">
+                            <button class="pagination-btn" id="btnPrevPage">
+                                <i class="fas fa-chevron-left"></i>
+                                Anterior
+                            </button>
+                            <div id="pageNumbers"></div>
+                            <button class="pagination-btn" id="btnNextPage">
+                                Próxima
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+
+                        <div class="per-page-selector">
+                            <span>Mostrar:</span>
+                            <select id="itemsPerPage">
+                                <option value="25">25</option>
+                                <option value="50" selected>50</option>
+                                <option value="100">100</option>
+                            </select>
+                            <span>por página</span>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Lançamento -->
+<div id="modalLancamento" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">
+                <i class="fas fa-edit"></i>
+                Lançar Nota Fiscal
+            </div>
+            <span class="close" onclick="fecharModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="dadosNota"></div>
+            
+            <div class="form-group">
+                <label class="form-label">Data de Vencimento *</label>
+                <input type="date" id="dataVencimento" class="form-control" required>
+            </div>
+
+            <div class="flex gap-4 justify-end mt-6">
+                <button class="btn-secondary" onclick="fecharModal()">
+                    <i class="fas fa-times"></i>
+                    Cancelar
+                </button>
+                <button class="btn-green" id="btnSalvarLancamento">
+                    <i class="fas fa-save"></i>
+                    <span class="loading-spinner" id="loadingSalvar"></span>
+                    Salvar Lançamento
+                </button>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
-{{ super() }}
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const btnConsultar = document.getElementById('btn-consultar-sefaz');
-        const spinner = document.getElementById('consultar-spinner');
-        const chaveInput = document.getElementById('chave_acesso_input');
+// Variáveis globais
+let notasData = [];
+let notasFiltradas = [];
+let currentPage = 1;
+let itemsPerPage = 50;
 
-        // Função para mostrar alertas dinâmicos
-        const showAlert = (message, type = 'success') => {
-            const alertContainer = document.getElementById('alert-container');
-            const wrapper = document.createElement('div');
-            wrapper.innerHTML = [
-                `<div class="alert alert-${type} alert-dismissible" role="alert">`,
-                `   <div>${message}</div>`,
-                '   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>',
-                '</div>'
-            ].join('');
-            alertContainer.append(wrapper);
-            // Auto-fecha o alerta após 5 segundos
-            setTimeout(() => wrapper.remove(), 5000);
-        };
+// Inicialização
+document.addEventListener('DOMContentLoaded', function() {
+    carregarNotasDoHTML();
+    configurarEventos();
+    configurarFiltros();
+    atualizarEstatisticas();
+    renderizarTabela();
+});
 
-        // 1. Lógica para buscar notas na SEFAZ
-        btnConsultar.addEventListener('click', function () {
-            spinner.classList.remove('d-none');
-            btnConsultar.disabled = true;
+// Carregar notas do HTML renderizado pelo Flask
+function carregarNotasDoHTML() {
+    notasData = [
+        {% for nota in notas %}
+        {
+            "chave_acesso": "{{ nota.chave_acesso }}",
+            "emitente_nome": "{{ nota.emitente_nome }}",
+            "emitente_cnpj": "{{ nota.emitente_cnpj }}",
+            "valor_total": {{ nota.valor_total }},
+            "data_emissao": "{{ nota.data_emissao.isoformat() }}",
+            "nsu": "{{ nota.nsu }}",
+            "status": "{{ nota.status }}"
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+    
+    notasFiltradas = [...notasData];
+    renderizarContador();
+}
 
-            fetch('{{ url_for("api_consultar_sefaz") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showAlert(data.message, 'success');
-                    // Recarrega a página para mostrar as novas notas na tabela
-                    setTimeout(() => location.reload(), 2000); 
-                } else {
-                    showAlert(data.message, 'danger');
-                }
-            })
-            .catch(error => {
-                console.error('Erro:', error);
-                showAlert('Ocorreu um erro de comunicação com o servidor.', 'danger');
-            })
-            .finally(() => {
-                spinner.classList.add('d-none');
-                btnConsultar.disabled = false;
-            });
-        });
+function configurarEventos() {
+    document.getElementById('btnConsultarSefaz').addEventListener('click', consultarSefaz);
+    document.getElementById('btnLancarRapido').addEventListener('click', lancarRapido);
+    document.getElementById('btnSalvarLancamento').addEventListener('click', salvarLancamento);
+    document.getElementById('chaveAcessoInput').addEventListener('input', formatarChaveAcesso);
+    document.getElementById('btnLimparFiltros').addEventListener('click', limparFiltros);
+    document.getElementById('itemsPerPage').addEventListener('change', alterarItensPorPagina);
+    document.getElementById('btnPrevPage').addEventListener('click', paginaAnterior);
+    document.getElementById('btnNextPage').addEventListener('click', proximaPagina);
+}
 
-        // 2. Lógica para o "BIP" da Chave de Acesso
-        chaveInput.addEventListener('keypress', function (event) {
-            if (event.key === 'Enter') {
-                event.preventDefault(); // Impede o envio de qualquer formulário
-                const chave = chaveInput.value.trim();
+function configurarFiltros() {
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
 
-                if (chave.length !== 44) {
-                    showAlert('Chave de acesso inválida. Deve conter 44 dígitos.', 'warning');
-                    return;
-                }
+    searchInput.addEventListener('input', aplicarFiltros);
+    statusFilter.addEventListener('change', aplicarFiltros);
+}
 
-                chaveInput.disabled = true; // Desabilita enquanto processa
+function aplicarFiltros() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
 
-                fetch(`{{ url_for('api_lancar_nota', chave_acesso='_CHAVE_') }}`.replace('_CHAVE_', chave))
-                .then(response => {
-                    if (!response.ok) {
-                        // Captura a mensagem de erro da API e a lança para o .catch()
-                        return response.json().then(err => { throw new Error(err.message) });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        // Armazena os dados da NFe no sessionStorage para a próxima página ler
-                        sessionStorage.setItem('nfeDataParaViagem', JSON.stringify(data.data));
-                        
-                        showAlert('Nota encontrada! Redirecionando para a tela de criação de viagem...', 'info');
+    notasFiltradas = notasData.filter(nota => {
+        const matchSearch = !searchTerm || 
+            nota.emitente_nome.toLowerCase().includes(searchTerm) ||
+            nota.emitente_cnpj.includes(searchTerm) ||
+            nota.chave_acesso.includes(searchTerm);
 
-                        // Redireciona para a página de iniciar viagem
-                        window.location.href = '{{ url_for("iniciar_viagem_page") }}';
-                    }
-                })
-                .catch(error => {
-                    console.error('Erro ao buscar nota:', error);
-                    showAlert(error.message || 'Erro ao processar a nota.', 'danger');
-                    chaveInput.disabled = false; // Reabilita em caso de erro
-                    chaveInput.select(); // Seleciona o texto para facilitar a correção
-                });
+        const matchStatus = !statusFilter || nota.status === statusFilter;
+
+        return matchSearch && matchStatus;
+    });
+
+    currentPage = 1;
+    renderizarTabela();
+    renderizarContador();
+}
+
+function limparFiltros() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('statusFilter').value = '';
+    aplicarFiltros();
+}
+
+function renderizarContador() {
+    const contador = document.getElementById('contadorNotas');
+    const total = notasFiltradas.length;
+    if (total > 0) {
+        contador.textContent = `(${total} ${total === 1 ? 'nota' : 'notas'})`;
+    }
+}
+
+function renderizarTabela() {
+    const tbody = document.getElementById('nfeTableBody');
+    if (!tbody) return;
+
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const notasPagina = notasFiltradas.slice(startIndex, endIndex);
+
+    tbody.innerHTML = '';
+
+    notasPagina.forEach(nota => {
+        const row = document.createElement('tr');
+        row.className = nota.status === 'PROCESSADA' ? 'processed' : '';
+        
+        row.innerHTML = `
+            <td>${nota.emitente_nome}</td>
+            <td>${formatarCNPJ(nota.emitente_cnpj)}</td>
+            <td>${formatarData(nota.data_emissao)}</td>
+            <td class="valor-cell">${formatarMoeda(nota.valor_total)}</td>
+            <td>
+                <span class="status-badge ${nota.status === 'PROCESSADA' ? 'processado' : 'novo'}">
+                    ${nota.status === 'PROCESSADA' ? 'Processada' : 'Nova'}
+                </span>
+            </td>
+            <td>
+                ${nota.status !== 'PROCESSADA' ? `
+                    <button class="btn-table btn-launch" onclick="lancarNota('${nota.chave_acesso}')">
+                        <i class="fas fa-plus"></i>
+                        Lançar
+                    </button>
+                ` : `
+                    <button class="btn-table btn-processed" disabled>
+                        <i class="fas fa-check"></i>
+                        Processada
+                    </button>
+                `}
+                <button class="btn-table btn-view" onclick="visualizarXML('${nota.chave_acesso}')">
+                    <i class="fas fa-eye"></i>
+                    Ver XML
+                </button>
+            </td>
+            <td>
+                <div class="chave-display">${nota.chave_acesso}</div>
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+
+    atualizarPaginacao();
+}
+
+function atualizarPaginacao() {
+    const totalItens = notasFiltradas.length;
+    const totalPaginas = Math.ceil(totalItens / itemsPerPage);
+    
+    // Atualizar informações de paginação
+    const startIndex = (currentPage - 1) * itemsPerPage + 1;
+    const endIndex = Math.min(currentPage * itemsPerPage, totalItens);
+    
+    document.getElementById('paginationInfo').textContent = 
+        `Mostrando ${startIndex} a ${endIndex} de ${totalItens} ${totalItens === 1 ? 'nota' : 'notas'}`;
+
+    // Atualizar botões de navegação
+    const btnPrev = document.getElementById('btnPrevPage');
+    const btnNext = document.getElementById('btnNextPage');
+    
+    btnPrev.classList.toggle('disabled', currentPage === 1);
+    btnNext.classList.toggle('disabled', currentPage === totalPaginas);
+
+    // Atualizar números de página
+    const pageNumbers = document.getElementById('pageNumbers');
+    pageNumbers.innerHTML = '';
+
+    if (totalPaginas <= 7) {
+        // Mostrar todas as páginas se houver 7 ou menos
+        for (let i = 1; i <= totalPaginas; i++) {
+            criarBotaoPagina(i, pageNumbers);
+        }
+    } else {
+        // Lógica para mostrar páginas com reticências
+        criarBotaoPagina(1, pageNumbers);
+        
+        if (currentPage > 4) {
+            pageNumbers.appendChild(criarReticencias());
+        }
+
+        const startPage = Math.max(2, currentPage - 2);
+        const endPage = Math.min(totalPaginas - 1, currentPage + 2);
+
+        for (let i = startPage; i <= endPage; i++) {
+            criarBotaoPagina(i, pageNumbers);
+        }
+
+        if (currentPage < totalPaginas - 3) {
+            pageNumbers.appendChild(criarReticencias());
+        }
+
+        if (totalPaginas > 1) {
+            criarBotaoPagina(totalPaginas, pageNumbers);
+        }
+    }
+}
+
+function criarBotaoPagina(pageNum, container) {
+    const btn = document.createElement('button');
+    btn.className = `pagination-btn ${pageNum === currentPage ? 'active' : ''}`;
+    btn.textContent = pageNum;
+    btn.onclick = () => irParaPagina(pageNum);
+    container.appendChild(btn);
+}
+
+function criarReticencias() {
+    const span = document.createElement('span');
+    span.textContent = '...';
+    span.style.padding = '8px';
+    span.style.color = 'var(--gray-600)';
+    return span;
+}
+
+function irParaPagina(pageNum) {
+    currentPage = pageNum;
+    renderizarTabela();
+}
+
+function paginaAnterior() {
+    if (currentPage > 1) {
+        currentPage--;
+        renderizarTabela();
+    }
+}
+
+function proximaPagina() {
+    const totalPaginas = Math.ceil(notasFiltradas.length / itemsPerPage);
+    if (currentPage < totalPaginas) {
+        currentPage++;
+        renderizarTabela();
+    }
+}
+
+function alterarItensPorPagina() {
+    itemsPerPage = parseInt(document.getElementById('itemsPerPage').value);
+    currentPage = 1;
+    renderizarTabela();
+}
+
+function formatarChaveAcesso(event) {
+    let value = event.target.value.replace(/\D/g, '');
+    event.target.value = value;
+    
+    const btnLancar = document.getElementById('btnLancarRapido');
+    if (value.length === 44) {
+        btnLancar.classList.add('pulse');
+    } else {
+        btnLancar.classList.remove('pulse');
+    }
+}
+
+async function consultarSefaz() {
+    const btn = document.getElementById('btnConsultarSefaz');
+    const loading = document.getElementById('loadingConsulta');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    
+    btn.disabled = true;
+    loading.style.display = 'inline-block';
+    progressBar.style.display = 'block';
+    
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        progress += Math.random() * 30;
+        if (progress > 90) progress = 90;
+        progressFill.style.width = progress + '%';
+    }, 500);
+
+    try {
+        const response = await fetch('/api/fiscal/consultar_sefaz', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
             }
         });
-    });
+
+        const result = await response.json();
+        
+        clearInterval(progressInterval);
+        progressFill.style.width = '100%';
+        
+        setTimeout(() => {
+            progressBar.style.display = 'none';
+            progressFill.style.width = '0%';
+        }, 1000);
+
+        if (result.success) {
+            mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> ${result.message}`);
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> ${result.message}`);
+        }
+    } catch (error) {
+        clearInterval(progressInterval);
+        progressBar.style.display = 'none';
+        mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro de conexão: ${error.message}`);
+    } finally {
+        btn.disabled = false;
+        loading.style.display = 'none';
+    }
+}
+
+async function lancarRapido() {
+    const chaveAcesso = document.getElementById('chaveAcessoInput').value.trim();
+    
+    if (!chaveAcesso) {
+        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Digite a chave de acesso da NFe');
+        return;
+    }
+
+    if (chaveAcesso.length !== 44) {
+        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> A chave de acesso deve ter exatamente 44 dígitos');
+        return;
+    }
+
+    await buscarDadosNota(chaveAcesso);
+}
+
+async function buscarDadosNota(chaveAcesso) {
+    try {
+        const response = await fetch(`/api/fiscal/buscar_dados_nota/${chaveAcesso}`);
+        const result = await response.json();
+
+        if (result.success) {
+            abrirModalLancamento(result.nota, chaveAcesso);
+        } else {
+            mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> ${result.message}`);
+        }
+    } catch (error) {
+        mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro ao buscar nota: ${error.message}`);
+    }
+}
+
+function abrirModalLancamento(dadosNota, chaveAcesso) {
+    const modal = document.getElementById('modalLancamento');
+    const dadosContainer = document.getElementById('dadosNota');
+    
+    dadosContainer.innerHTML = `
+        <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
+            <h4 style="color: #1b5e20; margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-file-invoice"></i>
+                Dados da Nota Fiscal
+            </h4>
+            <div style="display: grid; gap: 12px;">
+                <div class="detail-row">
+                    <span class="detail-label">Emitente:</span>
+                    <span class="detail-value">${dadosNota.emitente_nome}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">CNPJ:</span>
+                    <span class="detail-value">${formatarCNPJ(dadosNota.emitente_cnpj)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Data de Emissão:</span>
+                    <span class="detail-value">${formatarData(dadosNota.data_emissao)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Valor Total:</span>
+                    <span class="detail-value valor-destaque">${formatarMoeda(dadosNota.valor_total)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Chave de Acesso:</span>
+                    <span class="detail-value" style="font-family: monospace; font-size: 12px;">${chaveAcesso}</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const hoje = new Date();
+    const dataVencimento = new Date(hoje.getTime() + (30 * 24 * 60 * 60 * 1000));
+    document.getElementById('dataVencimento').value = dataVencimento.toISOString().split('T')[0];
+
+    modal.dataset.chaveAcesso = chaveAcesso;
+    modal.style.display = 'block';
+    document.getElementById('chaveAcessoInput').value = '';
+}
+
+async function salvarLancamento() {
+    const modal = document.getElementById('modalLancamento');
+    const chaveAcesso = modal.dataset.chaveAcesso;
+    const dataVencimento = document.getElementById('dataVencimento').value;
+    const btn = document.getElementById('btnSalvarLancamento');
+    const loading = document.getElementById('loadingSalvar');
+
+    if (!dataVencimento) {
+        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Data de vencimento é obrigatória');
+        return;
+    }
+
+    btn.disabled = true;
+    loading.style.display = 'inline-block';
+
+    try {
+        const response = await fetch('/api/fiscal/salvar_lancamento', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                chave_acesso: chaveAcesso,
+                data_vencimento: dataVencimento
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> ${result.message}`);
+            fecharModal();
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> ${result.message}`);
+        }
+    } catch (error) {
+        mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro ao salvar: ${error.message}`);
+    } finally {
+        btn.disabled = false;
+        loading.style.display = 'none';
+    }
+}
+
+function fecharModal() {
+    const modal = document.getElementById('modalLancamento');
+    modal.style.display = 'none';
+    document.getElementById('dadosNota').innerHTML = '';
+    document.getElementById('dataVencimento').value = '';
+    delete modal.dataset.chaveAcesso;
+}
+
+async function lancarNota(chaveAcesso) {
+    await buscarDadosNota(chaveAcesso);
+}
+
+// FUNÇÃO CORRIGIDA - Era assim e ficou assim
+function visualizarXML(chaveAcesso) {
+    // Abre o XML em uma nova janela/aba
+    window.open(`/fiscal/xml/${chaveAcesso}`, '_blank');
+}
+
+function atualizarEstatisticas() {
+    // As estatísticas já são renderizadas pelo template Flask
+}
+
+function mostrarNotificacao(tipo, mensagem) {
+    const container = document.getElementById('notifications');
+    const notification = document.createElement('div');
+    
+    const tipoClasses = {
+        'success': 'bg-green-100 text-green-800 border border-green-200',
+        'error': 'bg-red-100 text-red-800 border border-red-200',
+        'info': 'bg-blue-100 text-blue-800 border border-blue-200'
+    };
+    
+    notification.className = `${tipoClasses[tipo]} p-4 rounded-lg shadow-md mb-4 flex items-center gap-3 font-medium`;
+    notification.innerHTML = mensagem;
+    notification.style.animation = 'slideIn 0.3s ease-out';
+    
+    container.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-in forwards';
+        setTimeout(() => {
+            if (container.contains(notification)) {
+                container.removeChild(notification);
+            }
+        }, 300);
+    }, 5000);
+}
+
+// Funções de formatação
+function formatarCNPJ(cnpj) {
+    return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+}
+
+function formatarData(dataString) {
+    const data = new Date(dataString);
+    return data.toLocaleDateString('pt-BR');
+}
+
+function formatarMoeda(valor) {
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(valor);
+}
+
+// Event listeners para modal
+window.onclick = function(event) {
+    const modal = document.getElementById('modalLancamento');
+    if (event.target === modal) {
+        fecharModal();
+    }
+}
+
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        fecharModal();
+    }
+});
+
+// Adicionar estilos de animação
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
 </script>
 {% endblock %}
