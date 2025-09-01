@@ -1,422 +1,1000 @@
 {% extends "base.html" %}
 
-{% block title %}Consultar Motoristas{% endblock %}
+{% block title %}Consultar Motoristas - TrackBras{% endblock %}
 
 {% block styles %}
 <style>
-    /* Animações e efeitos modernos */
-    .fade-in {
-        animation: fadeIn 0.6s ease-out;
+    :root {
+        --primary-green: #2e7d32;
+        --primary-green-dark: #1b5e20;
+        --primary-green-light: #4caf50;
+        --accent-yellow: #ffc107;
+        --gray-50: #f8fafc;
+        --gray-100: #f1f5f9;
+        --gray-200: #e2e8f0;
+        --gray-300: #cbd5e1;
+        --gray-600: #475569;
+        --gray-700: #334155;
+        --gray-900: #0f172a;
+        --red-600: #dc2626;
+        --red-100: #fee2e2;
+        --green-600: #16a34a;
+        --green-100: #dcfce7;
+        --orange-600: #ea580c;
+        --orange-100: #fed7aa;
     }
-    
+
+    .motoristas-container {
+        background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        border: 1px solid var(--gray-200);
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 1.5rem;
+        color: var(--primary-green-dark);
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .section-header i {
+        color: var(--primary-green);
+        font-size: 1.5rem;
+    }
+
+    .btn-green {
+        background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-dark) 100%);
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+        text-decoration: none;
+    }
+
+    .btn-green:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(46, 125, 50, 0.4);
+        color: white;
+        text-decoration: none;
+    }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, var(--gray-600) 0%, var(--gray-700) 100%);
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+    }
+
+    .btn-secondary:hover {
+        color: white;
+        text-decoration: none;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin: 1.5rem 0;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        text-align: center;
+        border: 1px solid var(--gray-200);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        transition: transform 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--primary-green);
+        display: block;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: var(--gray-600);
+        margin-top: 0.5rem;
+        font-weight: 500;
+    }
+
+    .search-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--gray-200);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .search-controls {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: end;
+    }
+
+    .search-box {
+        position: relative;
+        flex: 1;
+        min-width: 300px;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 12px 16px 12px 48px;
+        border: 2px solid var(--gray-200);
+        border-radius: 25px;
+        font-size: 1rem;
+        transition: all 0.3s;
+        background: white;
+    }
+
+    .search-box input:focus {
+        outline: none;
+        border-color: var(--primary-green);
+        box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--gray-600);
+        font-size: 1.125rem;
+    }
+
+    .form-select {
+        padding: 12px 16px;
+        border: 2px solid var(--gray-200);
+        border-radius: 8px;
+        background: white;
+        font-size: 0.875rem;
+        min-width: 150px;
+    }
+
+    .form-select:focus {
+        outline: none;
+        border-color: var(--primary-green);
+    }
+
+    .motoristas-table-container {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        border: 1px solid var(--gray-200);
+    }
+
+    .motoristas-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .motoristas-table th {
+        background: linear-gradient(135deg, var(--primary-green-dark) 0%, var(--primary-green) 100%);
+        color: white;
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .motoristas-table td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--gray-100);
+        vertical-align: middle;
+        font-size: 0.875rem;
+    }
+
+    .motoristas-table tr:hover {
+        background: var(--gray-50);
+    }
+
+    .motorista-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 1.125rem;
+        margin-right: 12px;
+        box-shadow: 0 2px 8px rgba(46, 125, 50, 0.3);
+    }
+
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .status-badge.disponivel {
+        background: linear-gradient(135deg, var(--green-100) 0%, #dcfce7 100%);
+        color: var(--green-600);
+        border: 1px solid var(--green-600);
+    }
+
+    .status-badge.viagem {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        color: #1e40af;
+        border: 1px solid #1e40af;
+    }
+
+    .status-badge.vencido {
+        background: linear-gradient(135deg, var(--red-100) 0%, #fee2e2 100%);
+        color: var(--red-600);
+        border: 1px solid var(--red-600);
+    }
+
+    .status-badge.vencendo {
+        background: linear-gradient(135deg, var(--orange-100) 0%, #fed7aa 100%);
+        color: var(--orange-600);
+        border: 1px solid var(--orange-600);
+    }
+
+    .btn-table {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        cursor: pointer;
+        margin-right: 4px;
+        margin-bottom: 4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.3s;
+        text-decoration: none;
+    }
+
+    .btn-table.btn-view {
+        background: var(--primary-green);
+        color: white;
+    }
+
+    .btn-table.btn-view:hover {
+        background: var(--primary-green-dark);
+        color: white;
+        text-decoration: none;
+    }
+
+    .btn-table.btn-edit {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .btn-table.btn-edit:hover {
+        background: #1d4ed8;
+        color: white;
+        text-decoration: none;
+    }
+
+    .btn-table.btn-delete {
+        background: var(--red-600);
+        color: white;
+    }
+
+    .btn-table.btn-delete:hover {
+        background: #b91c1c;
+        color: white;
+        text-decoration: none;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 1.5rem;
+        color: var(--gray-600);
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+        color: var(--gray-300);
+    }
+
+    .empty-state h3 {
+        margin-bottom: 0.75rem;
+        color: var(--gray-700);
+        font-size: 1.25rem;
+    }
+
+    .fade-in {
+        animation: fadeIn 0.5s ease-in;
+    }
+
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
     }
-    
-    .card-hover {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Alertas de vencimento */
+    .vencimento-alerts {
+        margin-bottom: 1.5rem;
     }
-    
-    .card-hover:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.15);
-    }
-    
-    /* Gradientes modernos */
-    .gradient-header {
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    }
-    
-    /* Status badges animados */
-    .status-badge {
-        position: relative;
-        overflow: hidden;
-        transition: all 0.3s ease;
-    }
-    
-    .status-badge::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-        transition: left 0.5s;
-    }
-    
-    .status-badge:hover::before {
-        left: 100%;
-    }
-    
-    /* Botões modernos */
-    .btn-modern {
-        position: relative;
-        overflow: hidden;
-        transition: all 0.3s ease;
-    }
-    
-    .btn-modern::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-        transition: left 0.5s;
-    }
-    
-    .btn-modern:hover::before {
-        left: 100%;
-    }
-    
-    /* Cards mobile melhorados */
-    @media (max-width: 767px) {
-        .mobile-card {
-            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-            border-left: 4px solid #3b82f6;
-            transition: all 0.3s ease;
-        }
-        
-        .mobile-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-        }
-    }
-    
-    /* Estilos para botões de ação padronizados */
-    .action-buttons {
+
+    .alert {
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 1rem;
         display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
         align-items: center;
-        justify-content: flex-end;
+        gap: 12px;
+        font-weight: 500;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-    
-    .btn-small {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.875rem;
-        line-height: 1;
-        border-radius: 0.5rem;
-        color: white;
+
+    .alert.alert-danger {
+        background: linear-gradient(135deg, var(--red-100) 0%, #fee2e2 100%);
+        color: var(--red-600);
+        border: 1px solid var(--red-600);
+    }
+
+    .alert.alert-warning {
+        background: linear-gradient(135deg, var(--orange-100) 0%, #fed7aa 100%);
+        color: var(--orange-600);
+        border: 1px solid var(--orange-600);
+    }
+
+    .alert i {
+        font-size: 1.25rem;
+    }
+
+    /* Cards mobile melhorados */
+    .mobile-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        border: 1px solid var(--gray-200);
         transition: all 0.3s ease;
-        display: inline-flex;
+    }
+
+    .mobile-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+
+    .mobile-card-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .mobile-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+        display: flex;
         align-items: center;
         justify-content: center;
-        position: relative;
-        overflow: hidden;
+        color: white;
+        font-weight: 700;
+        font-size: 1.25rem;
+        margin-right: 16px;
+        box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
     }
-    
-    /* Loading skeleton */
-    .skeleton {
-        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-        background-size: 200% 100%;
-        animation: loading 1.5s infinite;
-        border-radius: 0.5rem;
+
+    .mobile-card-info {
+        flex: 1;
     }
-    
-    @keyframes loading {
-        0% { background-position: 200% 0; }
-        100% { background-position: -200% 0; }
+
+    .mobile-card-name {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin-bottom: 4px;
     }
-    
-    /* Input com efeitos modernos */
-    .modern-input {
-        transition: all 0.3s ease;
-        border: 2px solid transparent;
-        background: linear-gradient(white, white) padding-box, 
-                    linear-gradient(135deg, #e2e8f0, #cbd5e1) border-box;
+
+    .mobile-card-detail {
+        font-size: 0.875rem;
+        color: var(--gray-600);
     }
-    
-    .modern-input:focus {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        background: white;
+
+    .info-grid {
+        display: grid;
+        gap: 12px;
+        margin-bottom: 1rem;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--gray-100);
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--gray-600);
+    }
+
+    .info-value {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--gray-900);
+    }
+
+    .mobile-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--gray-100);
+    }
+
+    @media (max-width: 768px) {
+        .search-controls {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .search-box {
+            min-width: auto;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        }
+
+        .motoristas-table-container {
+            overflow-x: auto;
+        }
+    }
+
+    /* Animações suaves */
+    .slide-in {
+        animation: slideIn 0.4s ease-out;
+    }
+
+    @keyframes slideIn {
+        from { transform: translateX(-20px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="p-4 md:p-6 bg-gray-50 min-h-screen" x-data="motoristasApp()">
+<div class="space-y-6">
+    <div class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 shadow-lg">
+        <h1 class="text-3xl font-bold flex items-center gap-3">
+            <i class="fas fa-users"></i>
+            Consultar Motoristas
+        </h1>
+        <p class="text-green-100 mt-2">Gerencie e monitore seus motoristas de forma inteligente</p>
+    </div>
+
+    {# CNH #}
+    {% set motoristas_vencidos = motoristas|selectattr('validade_cnh')|selectattr('validade_cnh', 'lt', hoje)|list %}
+    {% set motoristas_vencendo = motoristas|selectattr('validade_cnh')|selectattr('validade_cnh', 'ge', hoje)|selectattr('validade_cnh', 'lt', data_alerta_cnh)|list %}
+    {# MOPP #}
+    {% set motoristas_mopp_vencido = motoristas|selectattr('validade_mopp')|selectattr('validade_mopp', 'lt', hoje)|list %}
+    {% set motoristas_mopp_vencendo = motoristas|selectattr('validade_mopp')|selectattr('validade_mopp', 'ge', hoje)|selectattr('validade_mopp', 'lt', data_alerta_mopp)|list %}
     
-    <!-- Header moderno -->
-    <div class="mb-6 fade-in">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+    {% if motoristas_vencidos or motoristas_vencendo or motoristas_mopp_vencido or motoristas_mopp_vencendo %}
+    <div class="vencimento-alerts fade-in">
+        {# Alertas CNH #}
+        {% if motoristas_vencidos %}
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i>
             <div>
-                <h1 class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    Consultar Motoristas
-                </h1>
-                <p class="text-gray-600 mt-2">Gerencie e monitore seus motoristas de forma inteligente</p>
+                <strong>{{ motoristas_vencidos|length }} motorista(s) com CNH vencida:</strong>
+                {{ motoristas_vencidos|map(attribute='nome')|join(', ') }}
             </div>
+        </div>
+        {% endif %}
+        
+        {% if motoristas_vencendo %}
+        <div class="alert alert-warning">
+            <i class="fas fa-clock"></i>
+            <div>
+                <strong>{{ motoristas_vencendo|length }} motorista(s) com CNH vencendo em 30 dias:</strong>
+                {{ motoristas_vencendo|map(attribute='nome')|join(', ') }}
+            </div>
+        </div>
+        {% endif %}
+
+        {# Alertas MOPP #}
+        {% if motoristas_mopp_vencido %}
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div>
+                <strong>{{ motoristas_mopp_vencido|length }} motorista(s) com MOPP vencido:</strong>
+                {{ motoristas_mopp_vencido|map(attribute='nome')|join(', ') }}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if motoristas_mopp_vencendo %}
+        <div class="alert alert-warning">
+            <i class="fas fa-clock"></i>
+            <div>
+                <strong>{{ motoristas_mopp_vencendo|length }} motorista(s) com MOPP vencendo em 30 dias:</strong>
+                {{ motoristas_mopp_vencendo|map(attribute='nome')|join(', ') }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="motoristas-container fade-in">
+        <div class="section-header">
+            <i class="fas fa-chart-bar"></i>
+            Estatísticas dos Motoristas
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-number">{{ motoristas|length }}</span>
+                <span class="stat-label">Total de Motoristas</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ motoristas|selectattr('status', 'equalto', 'Disponível')|list|length }}</span>
+                <span class="stat-label">Disponíveis</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ motoristas|selectattr('status', 'equalto', 'Em Viagem')|list|length }}</span>
+                <span class="stat-label">Em Viagem</span>
+            </div>
+            <div class="stat-card">
+                {% set motoristas_com_pendencia = (motoristas_vencidos + motoristas_vencendo + motoristas_mopp_vencido + motoristas_mopp_vencendo)|unique(attribute='id')|list %}
+                <span class="stat-number">{{ motoristas_com_pendencia|length }}</span>
+                <span class="stat-label">Docs. Vencendo/Vencidos</span>
+            </div>
+        </div>
+
+        <div class="flex gap-4 items-center">
+            <a href="{{ url_for('cadastrar_motorista') }}" class="btn-green">
+                <i class="fas fa-plus"></i>
+                Cadastrar Motorista
+            </a>
             
-            <!-- Estatísticas no header -->
-            <div class="flex items-center space-x-4 mt-4 md:mt-0">
-                <div class="bg-white rounded-lg px-4 py-2 shadow-sm border">
-                    <span class="text-sm font-medium text-gray-600">Total:</span>
-                    <span class="text-lg font-bold text-blue-600 ml-2" x-text="totalMotoristas">{{ motoristas|length }}</span>
-                </div>
-                <div class="bg-green-50 border border-green-200 rounded-lg px-4 py-2">
-                    <span class="text-sm font-medium text-green-600">Disponíveis:</span>
-                    <span class="text-lg font-bold text-green-700 ml-2" x-text="disponiveisCount">{{ motoristas|selectattr('status', 'equalto', 'Disponível')|list|length }}</span>
-                </div>
-            </div>
+            <button class="btn-secondary" onclick="mostrarEstatisticas()">
+                <i class="fas fa-chart-bar"></i>
+                Estatísticas
+            </button>
         </div>
     </div>
 
-    <!-- Filtros modernos -->
-    <div class="bg-white rounded-xl shadow-sm p-6 mb-6 card-hover fade-in">
-        <form method="GET" x-data="{ isLoading: false }" @submit="isLoading = true">
-            <div class="flex flex-col lg:flex-row gap-4 items-end">
-                <div class="flex-grow">
-                    <label for="search" class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-search mr-2 text-blue-500"></i>Busca Inteligente
-                    </label>
-                    <div class="relative">
-                        <input 
-                            type="text" 
-                            name="search" 
-                            id="search" 
-                            placeholder="Digite nome, CPF ou telefone..." 
-                            value="{{ search_query or '' }}"
-                            class="modern-input w-full pl-12 pr-4 py-3 rounded-xl text-base"
-                            x-model="searchQuery"
-                        >
-                        <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                        <div x-show="isLoading" class="absolute right-4 top-1/2 transform -translate-y-1/2">
-                            <i class="fas fa-spinner fa-spin text-blue-500"></i>
-                        </div>
-                    </div>
+    <div class="search-section fade-in">
+        <div class="section-header">
+            <i class="fas fa-filter"></i>
+            Buscar e Filtrar Motoristas
+        </div>
+        
+        <form method="GET">
+            <div class="search-controls">
+                <div class="search-box">
+                    <input type="text" name="search" placeholder="Buscar por nome, CPF ou telefone..." 
+                           value="{{ search_query or '' }}" class="search-input">
+                    <i class="fas fa-search"></i>
                 </div>
                 
-                <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                    <select name="status" class="px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:bg-white transition-all">
-                        <option value="">Todos os Status</option>
-                        <option value="Disponível" {{ 'selected' if request.args.get('status') == 'Disponível' }}>Disponível</option>
-                        <option value="Em Viagem" {{ 'selected' if request.args.get('status') == 'Em Viagem' }}>Em Viagem</option>
-                    </select>
-                    
-                    <button type="submit" class="btn-modern px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-sm font-medium transition-all">
-                        <i class="fas fa-filter mr-2"></i>Filtrar
-                    </button>
-                    
-                    <a href="{{ url_for('consultar_motoristas') }}" class="btn-modern px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-all inline-flex items-center justify-center" title="Limpar Filtros">
-                        <i class="fas fa-times"></i>
-                    </a>
-                </div>
+                <select name="status" class="form-select">
+                    <option value="">Todos os Status</option>
+                    <option value="Disponível" {{ 'selected' if request.args.get('status') == 'Disponível' }}>Disponível</option>
+                    <option value="Em Viagem" {{ 'selected' if request.args.get('status') == 'Em Viagem' }}>Em Viagem</option>
+                </select>
+
+                <button type="submit" class="btn-green">
+                    <i class="fas fa-search"></i>
+                    Filtrar
+                </button>
+                
+                <a href="{{ url_for('consultar_motoristas') }}" class="btn-secondary">
+                    <i class="fas fa-times"></i>
+                    Limpar
+                </a>
             </div>
         </form>
     </div>
 
-    <!-- Tabela Desktop Moderna -->
-    <div class="hidden md:block bg-white rounded-xl shadow-sm overflow-hidden fade-in">
-        <div class="gradient-header px-6 py-4">
-            <div class="flex items-center justify-between">
-                <h3 class="font-semibold text-white">Lista de Motoristas</h3>
-                <div class="flex items-center space-x-4 text-sm text-white/80">
-                    <span>{{ motoristas|length }} motorista(s) encontrado(s)</span>
-                </div>
-            </div>
+    <div class="motoristas-container fade-in">
+        <div class="section-header">
+            <i class="fas fa-list"></i>
+            Lista de Motoristas
+            {% if motoristas %}
+                <span class="text-base font-normal text-gray-600">({{ motoristas|length }} motorista{{ 's' if motoristas|length != 1 }})</span>
+            {% endif %}
         </div>
-        
-        <div class="overflow-x-auto">
-            <table class="w-full responsive-table">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Motorista</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Telefone</th>
-                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Validade CNH</th>
-                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Ações</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    {% for motorista in motoristas %}
-                    <tr class="hover:bg-blue-50/50 transition-colors duration-200">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center">
-                                <div class="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center text-white font-bold mr-4 shadow-sm">
-                                    <span>{{ motorista.nome[0].upper() }}</span>
-                                </div>
-                                <div>
-                                    <div class="font-semibold text-gray-900">{{ motorista.nome }}</div>
-                                    <div class="text-sm text-gray-500">CPF: {{ motorista.cpf or 'Não informado' }}</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td data-label="Telefone" class="px-6 py-4">
-                            <div class="text-gray-900">{{ motorista.telefone or 'Não informado' }}</div>
-                        </td>
-                        <td data-label="Status" class="px-6 py-4 text-center">
-                            {% if motorista.status == 'Disponível' %}
-                                <span class="status-badge inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                    <i class="fas fa-circle text-green-500 mr-1"></i>Disponível
-                                </span>
-                            {% else %}
-                                <span class="status-badge inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                                    <i class="fas fa-truck text-blue-500 mr-1"></i>Em Viagem
-                                </span>
-                            {% endif %}
-                        </td>
-                        <td data-label="Validade CNH" class="px-6 py-4 text-center">
-                            <div class="text-sm font-medium
-                                {% if motorista.validade_cnh < hoje %}text-red-600
-                                {% elif motorista.validade_cnh < data_alerta_cnh %}text-yellow-600
-                                {% else %}text-gray-700{% endif %}">
-                                {{ motorista.validade_cnh.strftime('%d/%m/%Y') }}
-                            </div>
-                            {% if motorista.validade_cnh < hoje %}
-                                <div class="text-xs text-red-500 font-medium">Vencida</div>
-                            {% elif motorista.validade_cnh < data_alerta_cnh %}
-                                <div class="text-xs text-yellow-600 font-medium">Vencendo</div>
-                            {% endif %}
-                        </td>
-                        <td data-label="Ações" class="px-6 py-4">
-                            <div class="action-buttons justify-center">
-                                <a href="{{ url_for('perfil_motorista', motorista_id=motorista.id) }}" 
-                                   class="btn-small btn-modern bg-blue-600 hover:bg-blue-700 shadow-sm" 
-                                   title="Ver Perfil e KPIs">
-                                    <i class="fas fa-chart-line"></i>
-                                </a>
-                                <a href="{{ url_for('editar_motorista', motorista_id=motorista.id) }}" 
-                                   class="btn-small btn-modern bg-indigo-600 hover:bg-indigo-700 shadow-sm" 
-                                   title="Editar Cadastro">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <a href="{{ url_for('excluir_motorista', motorista_id=motorista.id) }}" 
-                                   onclick="return confirm('Tem certeza que deseja excluir o motorista {{ motorista.nome }}? Esta ação não pode ser desfeita.')" 
-                                   class="btn-small btn-modern bg-red-600 hover:bg-red-700 shadow-sm" 
-                                   title="Excluir Motorista">
-                                    <i class="fas fa-trash"></i>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="5" class="px-6 py-16 text-center">
-                            <div class="w-20 h-20 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-search text-2xl text-gray-400"></i>
-                            </div>
-                            <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhum motorista encontrado</h3>
-                            <p class="text-gray-500">Tente ajustar os filtros ou adicione um novo motorista</p>
-                            <a href="{{ url_for('cadastrar_motorista') }}" class="btn-modern mt-4 inline-flex px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all">
-                                <i class="fas fa-plus mr-2"></i>Cadastrar Motorista
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
 
-    <!-- Cards Mobile -->
-    <div class="md:hidden space-y-4 fade-in">
-        {% for motorista in motoristas %}
-        <div class="mobile-card bg-white rounded-xl shadow-sm p-6">
-            <div class="flex items-start justify-between mb-4">
-                <div class="flex items-center">
-                    <div class="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center text-white font-bold mr-4 shadow-sm">
-                        <span>{{ motorista.nome[0].upper() }}</span>
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-gray-900">{{ motorista.nome }}</h3>
-                        <p class="text-sm text-gray-500">{{ motorista.cpf or 'CPF não informado' }}</p>
-                    </div>
-                </div>
-                {% if motorista.status == 'Disponível' %}
-                    <span class="status-badge px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                        <i class="fas fa-circle text-green-500 mr-1"></i>Disponível
-                    </span>
-                {% else %}
-                    <span class="status-badge px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                        <i class="fas fa-truck text-blue-500 mr-1"></i>Em Viagem
-                    </span>
-                {% endif %}
-            </div>
-            
-            <div class="grid grid-cols-1 gap-3 mb-4">
-                <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span class="text-sm font-medium text-gray-500">Telefone:</span>
-                    <span class="text-sm font-medium text-gray-900">{{ motorista.telefone or 'Não informado' }}</span>
-                </div>
-                <div class="flex justify-between items-center py-2">
-                    <span class="text-sm font-medium text-gray-500">Validade CNH:</span>
-                    <span class="text-sm font-medium
-                        {% if motorista.validade_cnh < hoje %}text-red-600
-                        {% elif motorista.validade_cnh < data_alerta_cnh %}text-yellow-600
-                        {% else %}text-gray-700{% endif %}">
-                        {{ motorista.validade_cnh.strftime('%d/%m/%Y') }}
-                        {% if motorista.validade_cnh < hoje %}
-                            <i class="fas fa-exclamation-triangle text-red-500 ml-1"></i>
-                        {% elif motorista.validade_cnh < data_alerta_cnh %}
-                            <i class="fas fa-clock text-yellow-500 ml-1"></i>
-                        {% endif %}
-                    </span>
+        {% if not motoristas %}
+            <div class="empty-state">
+                <i class="fas fa-users"></i>
+                <h3>Nenhum motorista encontrado</h3>
+                <p>Clique em "Cadastrar Motorista" para adicionar o primeiro motorista</p>
+                <div class="mt-6">
+                    <a href="{{ url_for('cadastrar_motorista') }}" class="btn-green">
+                        <i class="fas fa-plus"></i>
+                        Cadastrar Primeiro Motorista
+                    </a>
                 </div>
             </div>
-            
-            <div class="flex justify-end space-x-2">
-                <a href="{{ url_for('perfil_motorista', motorista_id=motorista.id) }}" 
-                   class="btn-modern px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-xl text-sm font-medium transition-all">
-                    <i class="fas fa-chart-line mr-2"></i>Perfil
-                </a>
-                <a href="{{ url_for('editar_motorista', motorista_id=motorista.id) }}" 
-                   class="btn-modern px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-xl text-sm font-medium transition-all">
-                    <i class="fas fa-edit mr-2"></i>Editar
-                </a>
-            </div>
-        </div>
         {% else %}
-        <div class="text-center py-16 bg-white rounded-xl shadow-sm">
-            <div class="w-20 h-20 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                <i class="fas fa-search text-2xl text-gray-400"></i>
+            <div class="motoristas-table-container hidden md:block">
+                <table class="motoristas-table">
+                    <thead>
+                        <tr>
+                            <th>Motorista</th>
+                            <th>Telefone</th>
+                            <th>Status</th>
+                            <th>CNH</th>
+                            <th>Validade CNH</th>
+                            <th>Validade MOPP</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for motorista in motoristas %}
+                        <tr class="slide-in" style="animation-delay: {{ loop.index0 * 0.1 }}s">
+                            <td>
+                                <div class="flex items-center">
+                                    <div class="motorista-avatar">
+                                        {{ motorista.nome[0].upper() }}
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-900">{{ motorista.nome }}</div>
+                                        <div class="text-sm text-gray-500">CPF: {{ motorista.cpf or 'Não informado' }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="text-gray-900">{{ motorista.telefone or 'Não informado' }}</div>
+                            </td>
+                            <td>
+                                {% if motorista.status == 'Disponível' %}
+                                    <span class="status-badge disponivel">
+                                        <i class="fas fa-circle"></i>
+                                        Disponível
+                                    </span>
+                                {% else %}
+                                    <span class="status-badge viagem">
+                                        <i class="fas fa-truck"></i>
+                                        Em Viagem
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="text-gray-900 font-mono text-sm">{{ motorista.cnh_numero or 'Não informado' }}</div>
+                            </td>
+                            <td>
+                                <div class="flex flex-col items-center">
+                                    <div class="text-sm font-medium text-gray-900">
+                                        {{ motorista.validade_cnh.strftime('%d/%m/%Y') if motorista.validade_cnh }}
+                                    </div>
+                                    {% if motorista.validade_cnh %}
+                                        {% if motorista.validade_cnh < hoje %}
+                                            <span class="status-badge vencido">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                                Vencida
+                                            </span>
+                                        {% elif motorista.validade_cnh < data_alerta_cnh %}
+                                            <span class="status-badge vencendo">
+                                                <i class="fas fa-clock"></i>
+                                                Vencendo
+                                            </span>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="flex flex-col items-center">
+                                    <div class="text-sm font-medium text-gray-900">
+                                        {{ motorista.validade_mopp.strftime('%d/%m/%Y') if motorista.validade_mopp }}
+                                    </div>
+                                    {% if motorista.validade_mopp %}
+                                        {% if motorista.validade_mopp < hoje %}
+                                            <span class="status-badge vencido">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                                Vencido
+                                            </span>
+                                        {% elif motorista.validade_mopp < data_alerta_mopp %}
+                                            <span class="status-badge vencendo">
+                                                <i class="fas fa-clock"></i>
+                                                Vencendo
+                                            </span>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="flex gap-2 justify-center">
+                                    <a href="{{ url_for('perfil_motorista', motorista_id=motorista.id) }}" 
+                                       class="btn-table btn-view" title="Ver Perfil e KPIs">
+                                        <i class="fas fa-chart-line"></i>
+                                    </a>
+                                    <a href="{{ url_for('editar_motorista', motorista_id=motorista.id) }}" 
+                                       class="btn-table btn-edit" title="Editar Cadastro">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('excluir_motorista', motorista_id=motorista.id) }}" 
+                                       onclick="return confirm('Tem certeza que deseja excluir o motorista {{ motorista.nome }}? Esta ação não pode ser desfeita.')" 
+                                       class="btn-table btn-delete" title="Excluir Motorista">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhum motorista encontrado</h3>
-            <p class="text-gray-500 mb-4">Tente ajustar os filtros ou adicione um novo motorista</p>
-            <a href="{{ url_for('cadastrar_motorista') }}" class="btn-modern inline-flex px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all">
-                <i class="fas fa-plus mr-2"></i>Cadastrar Motorista
-            </a>
-        </div>
-        {% endfor %}
+
+            <div class="md:hidden space-y-4">
+                {% for motorista in motoristas %}
+                <div class="mobile-card slide-in" style="animation-delay: {{ loop.index0 * 0.1 }}s">
+                    <div class="mobile-card-header">
+                        <div class="mobile-avatar">
+                            {{ motorista.nome[0].upper() }}
+                        </div>
+                        <div class="mobile-card-info">
+                            <h3 class="mobile-card-name">{{ motorista.nome }}</h3>
+                            <p class="mobile-card-detail">{{ motorista.cpf or 'CPF não informado' }}</p>
+                        </div>
+                        {% if motorista.status == 'Disponível' %}
+                            <span class="status-badge disponivel">
+                                <i class="fas fa-circle"></i>
+                                Disponível
+                            </span>
+                        {% else %}
+                            <span class="status-badge viagem">
+                                <i class="fas fa-truck"></i>
+                                Em Viagem
+                            </span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="info-grid">
+                        <div class="info-row">
+                            <span class="info-label">Telefone:</span>
+                            <span class="info-value">{{ motorista.telefone or 'Não informado' }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">CNH:</span>
+                            <span class="info-value font-mono">{{ motorista.numero_cnh or 'Não informado' }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Validade CNH:</span>
+                            <div class="flex flex-col items-end">
+                                <span class="info-value">
+                                    {{ motorista.validade_cnh.strftime('%d/%m/%Y') if motorista.validade_cnh else 'Não informado' }}
+                                </span>
+                                {% if motorista.validade_cnh %}
+                                    {% if motorista.validade_cnh < hoje %}
+                                        <span class="status-badge vencido mt-1">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            Vencida
+                                        </span>
+                                    {% elif motorista.validade_cnh < data_alerta_cnh %}
+                                        <span class="status-badge vencendo mt-1">
+                                            <i class="fas fa-clock"></i>
+                                            Vencendo
+                                        </span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                         <div class="info-row">
+                            <span class="info-label">Validade MOPP:</span>
+                            <div class="flex flex-col items-end">
+                                <span class="info-value">
+                                    {{ motorista.validade_mopp.strftime('%d/%m/%Y') if motorista.validade_mopp else 'Não informado' }}
+                                </span>
+                                {% if motorista.validade_mopp %}
+                                    {% if motorista.validade_mopp < hoje %}
+                                        <span class="status-badge vencido mt-1">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            Vencido
+                                        </span>
+                                    {% elif motorista.validade_mopp < data_alerta_mopp %}
+                                        <span class="status-badge vencendo mt-1">
+                                            <i class="fas fa-clock"></i>
+                                            Vencendo
+                                        </span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mobile-actions">
+                        <a href="{{ url_for('perfil_motorista', motorista_id=motorista.id) }}" 
+                           class="btn-table btn-view">
+                            <i class="fas fa-chart-line"></i>
+                            Perfil
+                        </a>
+                        <a href="{{ url_for('editar_motorista', motorista_id=motorista.id) }}" 
+                           class="btn-table btn-edit">
+                            <i class="fas fa-edit"></i>
+                            Editar
+                        </a>
+                        <a href="{{ url_for('excluir_motorista', motorista_id=motorista.id) }}" 
+                           onclick="return confirm('Tem certeza que deseja excluir o motorista {{ motorista.nome }}? Esta ação não pode ser desfeita.')" 
+                           class="btn-table btn-delete">
+                            <i class="fas fa-trash"></i>
+                            Excluir
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
     </div>
-
 </div>
-{% endblock %}
 
-{% block scripts %}
-{{ super() }}
 <script>
-function motoristasApp() {
-    return {
-        searchQuery: '{{ search_query or "" }}',
+// Animações e interatividade
+document.addEventListener('DOMContentLoaded', function() {
+    // Animação de entrada para as linhas da tabela
+    const rows = document.querySelectorAll('tbody tr, .mobile-card');
+    rows.forEach((row, index) => {
+        row.style.opacity = '0';
+        row.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            row.style.transition = 'all 0.3s ease';
+            row.style.opacity = '1';
+            row.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+
+    // Auto-submit do formulário de busca com debounce
+    const searchInput = document.querySelector('input[name="search"]');
+    if (searchInput) {
+        let timeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                // Auto-submit após 500ms de inatividade
+                if (this.value.length >= 3 || this.value.length === 0) {
+                    this.form.submit();
+                }
+            }, 500);
+        });
+    }
+
+    // Notificações automáticas para vencimentos
+    {% if motoristas_vencidos %}
+    // Notificação para CNHs vencidas
+    showNotification('error', '{{ motoristas_vencidos|length }} motorista(s) com CNH vencida! Verifique a documentação.');
+    {% endif %}
+
+    {% if motoristas_vencendo %}
+    // Notificação para CNHs vencendo
+    showNotification('warning', '{{ motoristas_vencendo|length }} motorista(s) com CNH vencendo nos próximos 30 dias.');
+    {% endif %}
+});
+
+// Sistema de notificações
+function showNotification(type, message) {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm transform translate-x-full transition-transform duration-300`;
+    
+    if (type === 'error') {
+        notification.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-200');
+    } else if (type === 'warning') {
+        notification.classList.add('bg-orange-100', 'text-orange-800', 'border', 'border-orange-200');
+    } else {
+        notification.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-200');
+    }
+    
+    notification.innerHTML = `
+        <div class="flex items-center gap-3">
+            <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : type === 'warning' ? 'clock' : 'check-circle'}"></i>
+            <span class="font-medium">${message}</span>
+            <button onclick="this.parentElement.parentElement.remove()" class="ml-auto">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Slide in
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Auto remove após 5 segundos
+    setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+            }
+        }, 300);
+    }, 5000);
+}
+
+// Função para mostrar estatísticas detalhadas
+function mostrarEstatisticas() {
+    const total = {{ motoristas|length }};
+    const disponiveis = {{ motoristas|selectattr('status', 'equalto', 'Disponível')|list|length }};
+    const emViagem = {{ motoristas|selectattr('status', 'equalto', 'Em Viagem')|list|length }};
+    const vencidos = {{ motoristas_vencidos|length }};
+    const vencendo = {{ motoristas_vencendo|length }};
+    
+    const stats = `
+        📊 ESTATÍSTICAS DETALHADAS DOS MOTORISTAS
         
-        get totalMotoristas() {
-            return {{ motoristas|length }};
-        },
+        👥 Total de Motoristas: ${total}
+        ✅ Disponíveis: ${disponiveis} (${((disponiveis/total)*100).toFixed(1)}%)
+        🚚 Em Viagem: ${emViagem} (${((emViagem/total)*100).toFixed(1)}%)
         
-        get disponiveisCount() {
-            return {{ motoristas|selectattr('status', 'equalto', 'Disponível')|list|length }};
-        },
+        📋 SITUAÇÃO DA DOCUMENTAÇÃO:
+        ❌ CNH Vencida: ${vencidos} motorista(s)
+        ⚠️ CNH Vencendo (30 dias): ${vencendo} motorista(s)
+        ✅ CNH Regular: ${total - vencidos - vencendo} motorista(s)
         
-        init() {
-            // Animação de entrada para as linhas da tabela
-            this.$nextTick(() => {
-                const rows = document.querySelectorAll('tbody tr');
-                rows.forEach((row, index) => {
-                    row.style.opacity = '0';
-                    row.style.transform = 'translateY(20px)';
-                    setTimeout(() => {
-                        row.style.transition = 'all 0.3s ease';
-                        row.style.opacity = '1';
-                        row.style.transform = 'translateY(0)';
-                    }, index * 100);
-                });
-            });
-        }
+        📈 PRODUTIVIDADE:
+        💪 Taxa de Disponibilidade: ${((disponiveis/total)*100).toFixed(1)}%
+        🎯 Motoristas Regulares: ${(((total - vencidos - vencendo)/total)*100).toFixed(1)}%
+    `;
+    
+    alert(stats);
+}
+
+// Destacar texto de busca
+function highlightSearchText() {
+    const searchQuery = '{{ search_query or "" }}';
+    if (searchQuery.length >= 2) {
+        const elements = document.querySelectorAll('td, .mobile-card-name, .mobile-card-detail');
+        elements.forEach(element => {
+            const text = element.innerHTML;
+            const regex = new RegExp(`(${searchQuery})`, 'gi');
+            element.innerHTML = text.replace(regex, '<mark style="background: #fef08a; padding: 2px 4px; border-radius: 4px;">$1</mark>');
+        });
     }
 }
+
+// Executar destaque após carregamento
+setTimeout(highlightSearchText, 500);
 </script>
 {% endblock %}

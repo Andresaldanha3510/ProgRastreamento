@@ -30,6 +30,10 @@ from pathlib import Path
 from functools import wraps
 from cryptography.fernet import Fernet
 from werkzeug.security import generate_password_hash, check_password_hash
+from cryptography.hazmat.primitives.serialization.pkcs12 import load_key_and_certificates
+from cryptography.x509.oid import NameOID
+import zipfile
+from flask import send_file
 
 # 1. Importa as extensões E os modelos do novo arquivo 'extensions.py'
 from extensions import db, migrate, socketio, login_manager, mail, CertificadoDigital, NFeImportada
@@ -219,6 +223,10 @@ class Motorista(db.Model):
     @property
     def validade_cnh(self):
         return self.cnh_data_vencimento
+    
+    @property
+    def validade_mopp(self):
+        return self.mopp_vencimento
     
 
     
@@ -892,51 +900,180 @@ def get_distancia_total_periodo(veiculo_id, dias=365):
     except Exception as e:
         logger.error(f"Erro ao calcular distância total para veículo {veiculo_id}: {e}", exc_info=True)
         return 0.0
+    
 @app.route('/api/fiscal/salvar_lancamento', methods=['POST'])
 @login_required
 def api_salvar_lancamento():
-    data = request.get_json()
-    chave_acesso = data.get('chave_acesso')
-    data_vencimento_str = data.get('data_vencimento')
-
-    if not all([chave_acesso, data_vencimento_str]):
-        return jsonify({'success': False, 'message': 'Dados incompletos.'}), 400
-
-    nota = NFeImportada.query.filter_by(chave_acesso=chave_acesso, empresa_id=current_user.empresa_id).first()
-    if not nota:
-        return jsonify({'success': False, 'message': 'Nota fiscal original não encontrada.'}), 404
-    if nota.status == 'PROCESSADA':
-        return jsonify({'success': False, 'message': 'Esta nota já foi processada.'}), 409
-
     try:
-        data_vencimento = datetime.strptime(data_vencimento_str, '%Y-%m-%d').date()
+        data = request.get_json()
+        
+        # Log para debug
+        logger.info(f"Dados recebidos para lançamento: {data}")
+        
+        chave_acesso = data.get('chave_acesso')
+        data_vencimento_str = data.get('data_vencimento')
+        tipo_movimento = data.get('tipo_movimento')
+        parcelas = data.get('parcelas', 1)
+        categoria = data.get('categoria', '')
 
-        # CORREÇÃO: usar nfe_importada_chave_acesso em vez de nfe_importada_id
-        novo_lancamento = LancamentoNotaFiscal(
-            empresa_id=current_user.empresa_id,
-            nfe_importada_chave_acesso=nota.chave_acesso,  # Corrigido aqui
-            chave_acesso=nota.chave_acesso,
-            emitente_cnpj=nota.emitente_cnpj,
-            emitente_nome=nota.emitente_nome,
-            valor_total=nota.valor_total,
-            data_emissao=nota.data_emissao,
-            data_vencimento=data_vencimento,
-            status_pagamento='A Pagar'
-        )
-        db.session.add(novo_lancamento)
+        # Validação básica melhorada
+        if not chave_acesso:
+            return jsonify({'success': False, 'message': 'Chave de acesso é obrigatória.'}), 400
+        
+        if not data_vencimento_str:
+            return jsonify({'success': False, 'message': 'Data de vencimento é obrigatória.'}), 400
+            
+        if not tipo_movimento:
+            return jsonify({'success': False, 'message': 'Tipo de movimento é obrigatório.'}), 400
 
-        # Atualiza o status da nota original para "Processada"
+        if tipo_movimento not in ['RECEITA', 'DESPESA']:
+            return jsonify({'success': False, 'message': 'Tipo de movimento inválido. Use RECEITA ou DESPESA.'}), 400
+
+        # Buscar a nota fiscal original
+        nota = NFeImportada.query.filter_by(
+            chave_acesso=chave_acesso, 
+            empresa_id=current_user.empresa_id
+        ).first()
+        
+        if not nota:
+            return jsonify({'success': False, 'message': 'Nota fiscal não encontrada na sua empresa.'}), 404
+        
+        if nota.status == 'PROCESSADA':
+            return jsonify({'success': False, 'message': 'Esta nota já foi processada anteriormente.'}), 409
+
+        # Converter e validar dados
+        try:
+            data_vencimento = datetime.strptime(data_vencimento_str, '%Y-%m-%d').date()
+            parcelas = int(parcelas)
+            
+            if parcelas < 1 or parcelas > 12:
+                return jsonify({'success': False, 'message': 'Número de parcelas deve ser entre 1 e 12.'}), 400
+                
+        except ValueError as ve:
+            return jsonify({'success': False, 'message': f'Dados inválidos: {ve}'}), 400
+
+        # Determinar categoria baseada no tipo se não foi fornecida
+        if not categoria:
+            categoria = 'Vendas/Receitas (NFe)' if tipo_movimento == 'RECEITA' else 'Fornecedores (NFe)'
+
+        # LÓGICA PRINCIPAL: Criar lançamentos no fluxo de caixa
+        if parcelas <= 1:
+            # === Lançamento único ===
+            novo_lancamento_fluxo = LancamentoFluxoCaixa(
+                empresa_id=current_user.empresa_id,
+                tipo=tipo_movimento,
+                descricao=f"NFe {tipo_movimento.title()} - {nota.emitente_nome}",
+                categoria=categoria,
+                valor_total=nota.valor_total,
+                data_vencimento=data_vencimento,
+                fornecedor_cliente=nota.emitente_nome,
+                documento_numero=chave_acesso[-8:],  # Últimos 8 dígitos
+                observacoes=f"NFe importada da SEFAZ - Chave: {chave_acesso}",
+                parcela_numero=1,
+                parcela_total=1
+            )
+            db.session.add(novo_lancamento_fluxo)
+            
+            # Para despesas, manter compatibilidade com sistema antigo
+            if tipo_movimento == 'DESPESA':
+                novo_lancamento_nfe = LancamentoNotaFiscal(
+                    empresa_id=current_user.empresa_id,
+                    nfe_importada_chave_acesso=nota.chave_acesso,
+                    chave_acesso=nota.chave_acesso,
+                    emitente_cnpj=nota.emitente_cnpj,
+                    emitente_nome=nota.emitente_nome,
+                    valor_total=nota.valor_total,
+                    data_emissao=nota.data_emissao,
+                    data_vencimento=data_vencimento,
+                    status_pagamento='A Pagar',
+                    parcela_numero=1,
+                    parcela_total=1
+                )
+                db.session.add(novo_lancamento_nfe)
+                
+        else:
+            # === Lançamento parcelado ===
+            valor_parcela = nota.valor_total / parcelas
+            
+            # Criar lançamento pai para controle (opcional, para relatórios)
+            lancamento_pai = LancamentoFluxoCaixa(
+                empresa_id=current_user.empresa_id,
+                tipo=tipo_movimento,
+                descricao=f"NFe {tipo_movimento.title()} - {nota.emitente_nome} (Parcelado)",
+                categoria=categoria,
+                valor_total=nota.valor_total,
+                data_vencimento=data_vencimento,
+                fornecedor_cliente=nota.emitente_nome,
+                documento_numero=chave_acesso[-8:],
+                observacoes=f"NFe importada da SEFAZ - Chave: {chave_acesso} - Controle de parcelamento em {parcelas}x",
+                parcela_numero=0,  # Pai não conta como parcela ativa
+                parcela_total=parcelas,
+                status_pagamento='PARCELADO'  # Status especial para identificar como pai
+            )
+            db.session.add(lancamento_pai)
+            db.session.flush()  # Para obter o ID do pai
+            
+            # Criar as parcelas efetivas
+            for i in range(1, parcelas + 1):
+                data_parcela = data_vencimento + timedelta(days=(i-1)*30)  # Mensais
+                
+                # Parcela no fluxo de caixa
+                nova_parcela_fluxo = LancamentoFluxoCaixa(
+                    empresa_id=current_user.empresa_id,
+                    tipo=tipo_movimento,
+                    descricao=f"NFe {tipo_movimento.title()} - {nota.emitente_nome} - Parcela {i}/{parcelas}",
+                    categoria=categoria,
+                    valor_total=valor_parcela,
+                    data_vencimento=data_parcela,
+                    fornecedor_cliente=nota.emitente_nome,
+                    documento_numero=f"{chave_acesso[-8:]}-{i:02d}",
+                    observacoes=f"NFe importada da SEFAZ - Chave: {chave_acesso} - Parcela {i} de {parcelas}",
+                    parcela_numero=i,
+                    parcela_total=parcelas,
+                    lancamento_pai_id=lancamento_pai.id
+                )
+                db.session.add(nova_parcela_fluxo)
+                
+                # Para despesas, manter compatibilidade com sistema antigo
+                if tipo_movimento == 'DESPESA':
+                    nova_parcela_nfe = LancamentoNotaFiscal(
+                        empresa_id=current_user.empresa_id,
+                        nfe_importada_chave_acesso=nota.chave_acesso,
+                        chave_acesso=nota.chave_acesso,
+                        emitente_cnpj=nota.emitente_cnpj,
+                        emitente_nome=nota.emitente_nome,
+                        valor_total=valor_parcela,
+                        data_emissao=nota.data_emissao,
+                        data_vencimento=data_parcela,
+                        status_pagamento='A Pagar',
+                        parcela_numero=i,
+                        parcela_total=parcelas,
+                        observacoes=f"Parcela {i} de {parcelas}"
+                    )
+                    db.session.add(nova_parcela_nfe)
+
+        # Atualizar status da nota original
         nota.status = 'PROCESSADA'
         
+        # Commit de todas as operações
         db.session.commit()
         
-        return jsonify({'success': True, 'message': 'Lançamento financeiro criado com sucesso!'})
+        # Mensagem de sucesso personalizada
+        movimento_texto = "receita" if tipo_movimento == 'RECEITA' else "despesa"
+        impacto_texto = "creditada no" if tipo_movimento == 'RECEITA' else "debitada do"
+        
+        logger.info(f"Lançamento criado com sucesso - Tipo: {tipo_movimento}, Parcelas: {parcelas}, Valor: {nota.valor_total}")
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Lançamento de {movimento_texto} criado! {parcelas} parcela(s) {impacto_texto} fluxo de caixa.'
+        })
 
     except Exception as e:
         db.session.rollback()
         logger.error(f"Erro ao salvar lançamento para NFe {chave_acesso}: {e}", exc_info=True)
-        return jsonify({'success': False, 'message': f'Erro interno: {e}'}), 500
-
+        return jsonify({'success': False, 'message': f'Erro interno do servidor: {str(e)}'}), 500
+    
 
 @app.route('/api/fiscal/visualizar_xml/<string:chave_acesso>')
 @login_required
@@ -1938,6 +2075,250 @@ def despesas_form_modal(viagem_id):
     # Renderiza o NOVO template que criamos
     return render_template('despesas_form_modal.html', viagem=viagem, custo=custo)
 
+@app.route('/certificados')
+@login_required
+@admin_required
+def configuracao_fiscal():
+    """Página de configuração de certificados"""
+    certificados = CertificadoDigital.query.filter_by(empresa_id=current_user.empresa_id)\
+        .order_by(CertificadoDigital.principal.desc(), CertificadoDigital.id.asc()).all()
+    
+    hoje = date.today()
+    return render_template('configuracao_fiscal.html', 
+                         certificados=certificados, 
+                         hoje=hoje)
+
+
+@app.route('/certificados/upload', methods=['POST'])
+@login_required
+@admin_required
+def upload_certificado():
+    """Upload de novo certificado"""
+    try:
+        # Validar dados do formulário
+        if 'certificado' not in request.files:
+            flash('Nenhum arquivo selecionado.', 'error')
+            return redirect(url_for('configuracao_fiscal'))
+        
+        file = request.files['certificado']
+        senha = request.form.get('senha_certificado')
+        validade_str = request.form.get('validade_certificado')
+        
+        if not file or file.filename == '':
+            flash('Nenhum arquivo selecionado.', 'error')
+            return redirect(url_for('configuracao_fiscal'))
+        
+        if not senha:
+            flash('Senha do certificado é obrigatória.', 'error')
+            return redirect(url_for('configuracao_fiscal'))
+        
+        if not validade_str:
+            flash('Data de validade é obrigatória.', 'error')
+            return redirect(url_for('configuracao_fiscal'))
+        
+        # Validar extensão do arquivo
+        if not file.filename.lower().endswith('.pfx'):
+            flash('Apenas arquivos .pfx são aceitos.', 'error')
+            return redirect(url_for('configuracao_fiscal'))
+        
+        # Converter data de validade
+        try:
+            data_validade = datetime.strptime(validade_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Data de validade inválida.', 'error')
+            return redirect(url_for('configuracao_fiscal'))
+        
+        # Validar se data não está no passado
+        if data_validade <= date.today():
+            flash('Data de validade deve ser futura.', 'error')
+            return redirect(url_for('configuracao_fiscal'))
+        
+        # Validar certificado e senha
+        file_content = file.read()
+        try:
+            private_key, certificate, _ = load_key_and_certificates(
+                file_content, senha.encode('utf-8')
+            )
+        except Exception as e:
+            flash('Erro ao validar certificado. Verifique o arquivo e a senha.', 'error')
+            return redirect(url_for('configuracao_fiscal'))
+        
+        # Extrair CNPJ do certificado para validação
+        cnpj_certificado = None
+        try:
+            serial_number_attrs = certificate.subject.get_attributes_for_oid(NameOID.SERIAL_NUMBER)
+            if serial_number_attrs:
+                cnpj_certificado = serial_number_attrs[0].value.split(':')[0]
+            
+            if not cnpj_certificado:
+                common_name_attrs = certificate.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
+                if common_name_attrs:
+                    match = re.search(r':(\d{14})', common_name_attrs[0].value)
+                    if match:
+                        cnpj_certificado = match.group(1)
+        except:
+            pass
+        
+        if not cnpj_certificado:
+            flash('Não foi possível extrair o CNPJ do certificado.', 'error')
+            return redirect(url_for('configuracao_fiscal'))
+        
+        # Upload para R2
+        s3_client = boto3.client(
+            's3',
+            endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+            aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+            aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
+            region_name='auto'
+        )
+        
+        bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
+        file_key = f"certificados/{current_user.empresa_id}/{uuid.uuid4()}.pfx"
+        
+        s3_client.put_object(
+            Bucket=bucket_name,
+            Key=file_key,
+            Body=file_content,
+            ContentType='application/x-pkcs12'
+        )
+        
+        # Verificar se é o primeiro certificado da empresa
+        certificados_existentes = CertificadoDigital.query.filter_by(
+            empresa_id=current_user.empresa_id
+        ).count()
+        
+        # Se é o primeiro certificado, torna-se principal automaticamente
+        is_principal = certificados_existentes == 0
+        
+        # Criar registro no banco
+        novo_certificado = CertificadoDigital(
+            empresa_id=current_user.empresa_id,
+            nome_arquivo=file.filename,
+            caminho_r2=file_key,
+            data_validade=data_validade,
+            principal=is_principal
+        )
+        novo_certificado.set_senha(senha, app.cipher_suite)
+        
+        db.session.add(novo_certificado)
+        db.session.commit()
+        
+        if is_principal:
+            flash('Certificado enviado e definido como principal com sucesso!', 'success')
+        else:
+            flash('Certificado enviado com sucesso! Use "Tornar Principal" para ativá-lo.', 'success')
+        
+        return redirect(url_for('configuracao_fiscal'))
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Erro no upload do certificado: {str(e)}")
+        flash('Erro interno. Tente novamente.', 'error')
+        return redirect(url_for('configuracao_fiscal'))
+
+
+@app.route('/certificados/definir-principal/<int:certificado_id>', methods=['POST'])
+@login_required
+@admin_required
+def definir_certificado_principal(certificado_id):
+    """Define um certificado como principal"""
+    try:
+        # Verificar se o certificado pertence à empresa do usuário
+        certificado = CertificadoDigital.query.filter_by(
+            id=certificado_id,
+            empresa_id=current_user.empresa_id
+        ).first()
+        
+        if not certificado:
+            flash('Certificado não encontrado.', 'error')
+            return redirect(url_for('configuracao_fiscal'))
+        
+        # Verificar se não está vencido
+        if certificado.data_validade <= date.today():
+            flash('Não é possível tornar principal um certificado vencido.', 'error')
+            return redirect(url_for('configuracao_fiscal'))
+        
+        # Usar método seguro para definir principal
+        sucesso = CertificadoDigital.definir_como_principal(certificado_id, current_user.empresa_id)
+        
+        if sucesso:
+            db.session.commit()
+            flash(f'Certificado "{certificado.nome_arquivo}" definido como principal!', 'success')
+        else:
+            flash('Erro ao definir certificado como principal.', 'error')
+        
+        return redirect(url_for('configuracao_fiscal'))
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Erro ao definir certificado principal: {str(e)}")
+        flash('Erro interno. Tente novamente.', 'error')
+        return redirect(url_for('configuracao_fiscal'))
+
+
+@app.route('/certificados/excluir/<int:certificado_id>', methods=['POST'])
+@login_required
+@admin_required
+def excluir_certificado(certificado_id):
+    """Exclui um certificado (apenas se não for principal)"""
+    try:
+        certificado = CertificadoDigital.query.filter_by(
+            id=certificado_id,
+            empresa_id=current_user.empresa_id
+        ).first()
+        
+        if not certificado:
+            return jsonify({'success': False, 'message': 'Certificado não encontrado.'})
+        
+        # CORREÇÃO: Não permitir excluir o certificado principal
+        if certificado.principal:
+            return jsonify({
+                'success': False, 
+                'message': 'Não é possível excluir o certificado principal. Defina outro como principal primeiro.'
+            })
+        
+        # Remover arquivo do R2
+        try:
+            s3_client = boto3.client(
+                's3',
+                endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+                aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+                aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
+                region_name='auto'
+            )
+            bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
+            s3_client.delete_object(Bucket=bucket_name, Key=certificado.caminho_r2)
+        except Exception as e:
+            app.logger.warning(f"Erro ao remover arquivo do R2: {str(e)}")
+        
+        # Remover do banco
+        db.session.delete(certificado)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Certificado excluído com sucesso!'})
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Erro ao excluir certificado: {str(e)}")
+        return jsonify({'success': False, 'message': 'Erro interno. Tente novamente.'})
+    
+@app.route('/certificados/status')
+@login_required
+@admin_required
+def status_certificados():
+    """API para obter status dos certificados"""
+    try:
+        from sefaz_service import get_status_consulta_sefaz
+        status = get_status_consulta_sefaz(current_user.empresa_id)
+        return jsonify(status)
+    except Exception as e:
+        app.logger.error(f"Erro ao obter status certificados: {str(e)}")
+        return jsonify({
+            'pode_consultar': False,
+            'motivo_bloqueio': 'Erro interno ao verificar status',
+            'certificados_status': []
+        })
+
 @app.route('/registrar_abastecimento', methods=['POST'])
 @login_required
 def registrar_abastecimento():
@@ -2764,32 +3145,32 @@ def consultar_motoristas():
 
     motoristas_list = query.order_by(Motorista.nome.asc()).all()
 
-    # Adiciona o status e corrige a data da CNH para cada objeto motorista
     for motorista in motoristas_list:
-        # Define o status de viagem do motorista
         viagem_ativa = Viagem.query.filter(
             Viagem.motorista_id == motorista.id,
             Viagem.status == 'em_andamento'
         ).first()
         motorista.status = 'Em Viagem' if viagem_ativa else 'Disponível'
 
-        # --- INÍCIO DA CORREÇÃO ---
-        # Se a data de vencimento da CNH não estiver definida (for None),
-        # o template irá gerar um TypeError ao tentar comparar None < date.
-        # Para evitar isso, atribuímos temporariamente uma data máxima ao campo.
-        # Esta alteração não é persistida no banco de dados.
+        # Prevenção de erro se a data de vencimento for nula
         if motorista.cnh_data_vencimento is None:
             motorista.cnh_data_vencimento = date.max
-        # --- FIM DA CORREÇÃO ---
 
+    # --- INÍCIO DA CORREÇÃO ---
     # Prepara os dados de data para o template
+    hoje = date.today()
+    data_alerta_cnh = hoje + timedelta(days=30)
+    data_alerta_mopp = hoje + timedelta(days=30) # <-- NOVA LINHA ADICIONADA
+
     contexto = {
         'motoristas': motoristas_list,
         'search_query': search_query,
         'active_page': 'consultar_motoristas',
-        'hoje': date.today(),
-        'data_alerta_cnh': date.today() + timedelta(days=30) # Define o período de alerta para 30 dias
+        'hoje': hoje,
+        'data_alerta_cnh': data_alerta_cnh,
+        'data_alerta_mopp': data_alerta_mopp # <-- VARIÁVEL ADICIONADA AO CONTEXTO
     }
+    # --- FIM DA CORREÇÃO ---
     
     return render_template('consultar_motoristas.html', **contexto)
 
@@ -3835,81 +4216,695 @@ def excluir_viagem(viagem_id):
 
     return redirect(url_for('consultar_viagens'))
 
-@app.route('/fiscal/configuracao', methods=['GET', 'POST'])
-@login_required
-@admin_required # Apenas administradores podem configurar
-def configuracao_fiscal():
-    # A query agora usa o modelo 'CertificadoDigital' importado de 'extensions.py'
-    certificado = CertificadoDigital.query.filter_by(empresa_id=current_user.empresa_id).first()
 
-    if request.method == 'POST':
-        arquivo_cert = request.files.get('certificado')
-        senha_cert = request.form.get('senha_certificado')
-        validade_cert_str = request.form.get('validade_certificado')
 
-        if not all([arquivo_cert, senha_cert, validade_cert_str]):
-            flash('Todos os campos são obrigatórios.', 'error')
-            return redirect(url_for('configuracao_fiscal'))
-
-        try:
-            validade_cert = datetime.strptime(validade_cert_str, '%Y-%m-%d').date()
-            
-            # Lógica de upload para o Cloudflare R2
-            s3_client = boto3.client(
-                's3',
-                endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
-                aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
-                aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
-                region_name='auto'
-            )
-            bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
-            public_url_base = app.config['CLOUDFLARE_R2_PUBLIC_URL']
-            
-            filename = secure_filename(arquivo_cert.filename)
-            s3_path = f"certificados/{current_user.empresa_id}/{uuid.uuid4()}-{filename}"
-            
-            s3_client.upload_fileobj(
-                arquivo_cert, bucket_name, s3_path,
-                ExtraArgs={'ContentType': 'application/x-pkcs12'}
-            )
-            
-            if not certificado:
-                certificado = CertificadoDigital(empresa_id=current_user.empresa_id)
-                db.session.add(certificado)
-            
-            certificado.nome_arquivo = filename
-            certificado.caminho_r2 = s3_path
-            
-            # --- CORREÇÃO APLICADA AQUI ---
-            # Passando o objeto 'cipher_suite' para a função set_senha, como definido no modelo.
-            certificado.set_senha(senha_cert, cipher_suite)
-            
-            certificado.data_validade = validade_cert
-            
-            db.session.commit()
-            flash('Certificado digital salvo com sucesso!', 'success')
-            
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Erro ao salvar certificado: {e}', 'error')
-            logger.error(f"Erro ao salvar certificado: {e}", exc_info=True)
-
-        return redirect(url_for('configuracao_fiscal'))
-
-    return render_template('configuracao_fiscal.html', certificado=certificado, hoje=date.today())
-
-@app.route('/fiscal/importar')
+@app.route('/fiscal/importar', methods=['GET', 'POST'])
 @login_required
 @master_required
 def importar_notas_fiscais():
-    # A query agora usa o modelo 'NFeImportada' importado de 'extensions.py'
-    notas_importadas = NFeImportada.query.filter_by(
-        empresa_id=current_user.empresa_id
-    ).order_by(NFeImportada.data_emissao.desc()).all()
+    """Página e ação de importação de notas fiscais"""
+    if request.method == 'GET':
+        # Obter status dos certificados para exibir na página
+        from sefaz_service import get_status_consulta_sefaz
+        status = get_status_consulta_sefaz(current_user.empresa_id)
+        
+        # Buscar notas importadas (usando múltiplos certificados)
+        notas_importadas = NFeImportada.query.filter_by(
+            empresa_id=current_user.empresa_id
+        ).order_by(NFeImportada.data_emissao.desc()).all()
+        
+        return render_template('importar_notas_fiscais.html', 
+                             notas=notas_importadas,
+                             status_certificados=status)
     
-    return render_template('importar_notas_fiscais.html', notas=notas_importadas)
+    elif request.method == 'POST':
+        try:
+            from sefaz_service import consultar_notas_sefaz
+            
+            # Verificar se pode consultar
+            from sefaz_service import get_status_consulta_sefaz
+            status = get_status_consulta_sefaz(current_user.empresa_id)
+            
+            if not status['pode_consultar']:
+                flash(status['motivo_bloqueio'], 'error')
+                return redirect(url_for('importar_notas_fiscais'))
+            
+            # Realizar consulta
+            resultado = consultar_notas_sefaz(current_user.empresa_id)
+            
+            if resultado['success']:
+                if resultado.get('notas_processadas', 0) > 0:
+                    flash(resultado['message'], 'success')
+                else:
+                    flash(resultado['message'], 'info')
+            else:
+                flash(resultado['message'], 'error')
+            
+            return redirect(url_for('importar_notas_fiscais'))
+            
+        except Exception as e:
+            app.logger.error(f"Erro na importação: {str(e)}")
+            flash('Erro interno durante a consulta à SEFAZ.', 'error')
+            return redirect(url_for('importar_notas_fiscais'))
+        
+@app.route('/financeiro/fluxo_caixa/editar/<int:lancamento_id>', methods=['GET', 'POST'])
+@login_required
+@master_required
+def editar_lancamento_fluxo(lancamento_id):
+    """Editar lançamento manual no fluxo de caixa"""
+    lancamento = LancamentoFluxoCaixa.query.filter_by(
+        id=lancamento_id, 
+        empresa_id=current_user.empresa_id
+    ).first_or_404()
+    
+    if request.method == 'POST':
+        try:
+            # Verificar se pode ser editado
+            if lancamento.status_pagamento == 'PAGO':
+                flash('Não é possível editar lançamentos já pagos.', 'error')
+                return redirect(url_for('fluxo_caixa'))
+            
+            # Atualizar dados
+            lancamento.tipo = request.form.get('tipo')
+            lancamento.descricao = request.form.get('descricao')
+            lancamento.categoria = request.form.get('categoria')
+            lancamento.valor_total = float(request.form.get('valor_total', 0))
+            lancamento.data_vencimento = datetime.strptime(request.form.get('data_vencimento'), '%Y-%m-%d').date()
+            lancamento.fornecedor_cliente = request.form.get('fornecedor_cliente')
+            lancamento.documento_numero = request.form.get('documento_numero')
+            lancamento.observacoes = request.form.get('observacoes')
+            
+            db.session.commit()
+            flash('Lançamento atualizado com sucesso!', 'success')
+            return redirect(url_for('fluxo_caixa'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar lançamento: {e}', 'error')
+            logger.error(f"Erro ao editar lançamento {lancamento_id}: {e}", exc_info=True)
+    
+    return render_template('editar_lancamento_fluxo.html', lancamento=lancamento)
 
-# API PARA DISPARAR A CONSULTA NA SEFAZ
+@app.route('/api/fluxo_caixa/excluir', methods=['POST'])
+@login_required
+@master_required
+def api_excluir_lancamento_fluxo():
+    """API para excluir lançamento do fluxo de caixa"""
+    data = request.get_json()
+    item_id = data.get('item_id')
+    
+    if not item_id:
+        return jsonify({'success': False, 'message': 'ID do item é obrigatório'}), 400
+    
+    try:
+        # Identificar se é lançamento manual ou NFe
+        if item_id.startswith('manual_'):
+            lancamento_id = int(item_id.replace('manual_', ''))
+            lancamento = LancamentoFluxoCaixa.query.filter_by(
+                id=lancamento_id, 
+                empresa_id=current_user.empresa_id
+            ).first_or_404()
+            
+            # Verificar se pode ser excluído
+            if lancamento.status_pagamento == 'PAGO':
+                return jsonify({'success': False, 'message': 'Não é possível excluir lançamentos já pagos'}), 400
+            
+            # Se é um lançamento parcelado, excluir todas as parcelas filhas
+            if lancamento.parcela_numero == 0 and lancamento.status_pagamento == 'PARCELADO':
+                LancamentoFluxoCaixa.query.filter_by(lancamento_pai_id=lancamento.id).delete()
+            
+            db.session.delete(lancamento)
+            tipo_texto = "receita" if lancamento.tipo == 'RECEITA' else "despesa"
+            
+        elif item_id.startswith('nfe_'):
+            lancamento_id = int(item_id.replace('nfe_', ''))
+            lancamento = LancamentoNotaFiscal.query.filter_by(
+                id=lancamento_id, 
+                empresa_id=current_user.empresa_id
+            ).first_or_404()
+            
+            # Verificar se pode ser excluído
+            if lancamento.status_pagamento == 'Pago':
+                return jsonify({'success': False, 'message': 'Não é possível excluir lançamentos de NFe já pagos'}), 400
+            
+            # Marcar a NFe original como não processada para permitir reprocessamento
+            if lancamento.nfe_original:
+                lancamento.nfe_original.status = 'IMPORTADA'
+            
+            db.session.delete(lancamento)
+            tipo_texto = "conta a pagar (NFe)"
+            
+        else:
+            return jsonify({'success': False, 'message': 'Formato de ID inválido'}), 400
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': f'Lançamento de {tipo_texto} excluído com sucesso!'})
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao excluir lançamento: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/fluxo_caixa/buscar_dados/<string:item_id>')
+@login_required
+@master_required
+def api_buscar_dados_lancamento(item_id):
+    """Buscar dados de um lançamento para edição"""
+    try:
+        if item_id.startswith('manual_'):
+            lancamento_id = int(item_id.replace('manual_', ''))
+            lancamento = LancamentoFluxoCaixa.query.filter_by(
+                id=lancamento_id, 
+                empresa_id=current_user.empresa_id
+            ).first_or_404()
+            
+            dados = {
+                'id': lancamento.id,
+                'tipo': lancamento.tipo,
+                'descricao': lancamento.descricao,
+                'categoria': lancamento.categoria,
+                'valor_total': lancamento.valor_total,
+                'data_vencimento': lancamento.data_vencimento.strftime('%Y-%m-%d'),
+                'fornecedor_cliente': lancamento.fornecedor_cliente,
+                'documento_numero': lancamento.documento_numero,
+                'observacoes': lancamento.observacoes,
+                'status': lancamento.status_pagamento,
+                'pode_editar': lancamento.status_pagamento != 'PAGO'
+            }
+            
+        elif item_id.startswith('nfe_'):
+            # NFe não pode ser editada, apenas seus dados de pagamento
+            return jsonify({'success': False, 'message': 'Lançamentos de NFe não podem ser editados. Use a tela de importação fiscal para reprocessar.'}), 400
+            
+        else:
+            return jsonify({'success': False, 'message': 'Formato de ID inválido'}), 400
+        
+        return jsonify({'success': True, 'dados': dados})
+        
+    except Exception as e:
+        logger.error(f"Erro ao buscar dados do lançamento: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/fluxo_caixa/estornar_pagamento', methods=['POST'])
+@login_required
+@master_required
+def api_estornar_pagamento():
+    """API para estornar um pagamento já realizado"""
+    data = request.get_json()
+    item_id = data.get('item_id')
+    motivo = data.get('motivo', '')
+    
+    if not item_id:
+        return jsonify({'success': False, 'message': 'ID do item é obrigatório'}), 400
+    
+    try:
+        if item_id.startswith('manual_'):
+            lancamento_id = int(item_id.replace('manual_', ''))
+            lancamento = LancamentoFluxoCaixa.query.filter_by(
+                id=lancamento_id, 
+                empresa_id=current_user.empresa_id
+            ).first_or_404()
+            
+            if lancamento.status_pagamento != 'PAGO':
+                return jsonify({'success': False, 'message': 'Este lançamento não está marcado como pago'}), 400
+            
+            lancamento.status_pagamento = 'PENDENTE'
+            lancamento.data_pagamento = None
+            if motivo:
+                lancamento.observacoes = f"{lancamento.observacoes or ''}\n[ESTORNO] {motivo}"
+            
+        elif item_id.startswith('nfe_'):
+            lancamento_id = int(item_id.replace('nfe_', ''))
+            lancamento = LancamentoNotaFiscal.query.filter_by(
+                id=lancamento_id, 
+                empresa_id=current_user.empresa_id
+            ).first_or_404()
+            
+            if lancamento.status_pagamento != 'Pago':
+                return jsonify({'success': False, 'message': 'Este lançamento não está marcado como pago'}), 400
+            
+            lancamento.status_pagamento = 'A Pagar'
+            lancamento.data_pagamento = None
+            if motivo:
+                lancamento.observacoes = f"{lancamento.observacoes or ''}\n[ESTORNO] {motivo}"
+            
+        else:
+            return jsonify({'success': False, 'message': 'Formato de ID inválido'}), 400
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Pagamento estornado com sucesso!'})
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao estornar pagamento: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+    
+@app.route('/api/fluxo_caixa/salvar_edicao', methods=['POST'])
+@login_required
+@master_required
+def api_salvar_edicao_lancamento():
+    """API para salvar edições via modal"""
+    data = request.get_json()
+    lancamento_id = data.get('lancamento_id')
+    
+    if not lancamento_id:
+        return jsonify({'success': False, 'message': 'ID do lançamento é obrigatório'}), 400
+    
+    try:
+        lancamento = LancamentoFluxoCaixa.query.filter_by(
+            id=lancamento_id, 
+            empresa_id=current_user.empresa_id
+        ).first_or_404()
+        
+        # Verificar se pode ser editado
+        if lancamento.status_pagamento == 'PAGO':
+            return jsonify({'success': False, 'message': 'Não é possível editar lançamentos já pagos'}), 400
+        
+        # Atualizar dados
+        lancamento.tipo = data.get('tipo')
+        lancamento.descricao = data.get('descricao')
+        lancamento.categoria = data.get('categoria')
+        lancamento.valor_total = float(data.get('valor_total', 0))
+        lancamento.data_vencimento = datetime.strptime(data.get('data_vencimento'), '%Y-%m-%d').date()
+        lancamento.fornecedor_cliente = data.get('fornecedor_cliente')
+        lancamento.documento_numero = data.get('documento_numero')
+        lancamento.observacoes = data.get('observacoes')
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Lançamento atualizado com sucesso!'})
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao salvar edição via API: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/fluxo_caixa/duplicar', methods=['POST'])
+@login_required
+@master_required
+def api_duplicar_lancamento():
+    """API para duplicar um lançamento existente"""
+    data = request.get_json()
+    item_id = data.get('item_id')
+    
+    if not item_id or not item_id.startswith('manual_'):
+        return jsonify({'success': False, 'message': 'Apenas lançamentos manuais podem ser duplicados'}), 400
+    
+    try:
+        lancamento_id = int(item_id.replace('manual_', ''))
+        lancamento_original = LancamentoFluxoCaixa.query.filter_by(
+            id=lancamento_id, 
+            empresa_id=current_user.empresa_id
+        ).first_or_404()
+        
+        # Criar nova cópia
+        nova_data_vencimento = data.get('nova_data_vencimento')
+        if nova_data_vencimento:
+            data_vencimento = datetime.strptime(nova_data_vencimento, '%Y-%m-%d').date()
+        else:
+            # Se não especificar, duplica para próximo mês
+            data_vencimento = lancamento_original.data_vencimento + timedelta(days=30)
+        
+        novo_lancamento = LancamentoFluxoCaixa(
+            empresa_id=current_user.empresa_id,
+            tipo=lancamento_original.tipo,
+            descricao=f"{lancamento_original.descricao} (Cópia)",
+            categoria=lancamento_original.categoria,
+            valor_total=lancamento_original.valor_total,
+            data_vencimento=data_vencimento,
+            fornecedor_cliente=lancamento_original.fornecedor_cliente,
+            documento_numero=None,  # Não duplicar número do documento
+            observacoes=f"Duplicado do lançamento #{lancamento_original.id}",
+            parcela_numero=1,
+            parcela_total=1
+        )
+        
+        db.session.add(novo_lancamento)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Lançamento duplicado com sucesso!',
+            'novo_id': novo_lancamento.id
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao duplicar lançamento: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/fluxo_caixa/alterar_categoria_massa', methods=['POST'])
+@login_required
+@master_required
+def api_alterar_categoria_massa():
+    """API para alterar categoria de múltiplos lançamentos de uma vez"""
+    data = request.get_json()
+    item_ids = data.get('item_ids', [])
+    nova_categoria = data.get('nova_categoria', '').strip()
+    
+    if not item_ids:
+        return jsonify({'success': False, 'message': 'Nenhum lançamento selecionado'}), 400
+    
+    if not nova_categoria:
+        return jsonify({'success': False, 'message': 'Nova categoria é obrigatória'}), 400
+    
+    try:
+        atualizados = 0
+        
+        for item_id in item_ids:
+            if item_id.startswith('manual_'):
+                lancamento_id = int(item_id.replace('manual_', ''))
+                lancamento = LancamentoFluxoCaixa.query.filter_by(
+                    id=lancamento_id, 
+                    empresa_id=current_user.empresa_id
+                ).first()
+                
+                if lancamento and lancamento.status_pagamento != 'PAGO':
+                    lancamento.categoria = nova_categoria
+                    atualizados += 1
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'{atualizados} lançamento(s) atualizado(s) com a nova categoria'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro na alteração em massa: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/fluxo_caixa/dashboard_resumo')
+@login_required 
+@master_required
+def api_dashboard_resumo():
+    """API para dados resumidos do dashboard financeiro"""
+    try:
+        hoje = date.today()
+        inicio_mes = hoje.replace(day=1)
+        fim_mes = (inicio_mes + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        
+        # Totais do mês atual
+        query_mes = LancamentoFluxoCaixa.query.filter(
+            LancamentoFluxoCaixa.empresa_id == current_user.empresa_id,
+            LancamentoFluxoCaixa.data_vencimento >= inicio_mes,
+            LancamentoFluxoCaixa.data_vencimento <= fim_mes
+        )
+        
+        receitas_mes = query_mes.filter(LancamentoFluxoCaixa.tipo == 'RECEITA').all()
+        despesas_mes = query_mes.filter(LancamentoFluxoCaixa.tipo == 'DESPESA').all()
+        
+        total_receitas_mes = sum(l.valor_total for l in receitas_mes)
+        total_despesas_mes = sum(l.valor_total for l in despesas_mes)
+        
+        # Pendências importantes
+        vencidos_hoje = query_mes.filter(
+            LancamentoFluxoCaixa.data_vencimento == hoje,
+            LancamentoFluxoCaixa.status_pagamento.in_(['PENDENTE', 'A Pagar'])
+        ).count()
+        
+        vencidos_total = query_mes.filter(
+            LancamentoFluxoCaixa.data_vencimento < hoje,
+            LancamentoFluxoCaixa.status_pagamento.in_(['PENDENTE', 'A Pagar'])
+        ).count()
+        
+        # Próximos 7 dias
+        proximos_7_dias = query_mes.filter(
+            LancamentoFluxoCaixa.data_vencimento >= hoje,
+            LancamentoFluxoCaixa.data_vencimento <= hoje + timedelta(days=7),
+            LancamentoFluxoCaixa.status_pagamento.in_(['PENDENTE', 'A Pagar'])
+        ).count()
+        
+        return jsonify({
+            'success': True,
+            'resumo': {
+                'receitas_mes': total_receitas_mes,
+                'despesas_mes': total_despesas_mes,
+                'saldo_mes': total_receitas_mes - total_despesas_mes,
+                'vencidos_hoje': vencidos_hoje,
+                'vencidos_total': vencidos_total,
+                'proximos_7_dias': proximos_7_dias
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro ao gerar resumo do dashboard: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/financeiro/fluxo_caixa/relatorio_analitico')
+@login_required
+@master_required
+def relatorio_analitico_fluxo():
+    """Relatório analítico detalhado do fluxo de caixa"""
+    try:
+        # Filtros
+        data_inicio = request.args.get('data_inicio', '')
+        data_fim = request.args.get('data_fim', '')
+        
+        if not data_inicio or not data_fim:
+            hoje = date.today()
+            data_inicio = hoje.replace(day=1).strftime('%Y-%m-%d')
+            data_fim = hoje.strftime('%Y-%m-%d')
+        
+        data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d').date()
+        data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d').date()
+        
+        # Buscar todos os lançamentos do período
+        lancamentos_manuais = LancamentoFluxoCaixa.query.filter(
+            LancamentoFluxoCaixa.empresa_id == current_user.empresa_id,
+            LancamentoFluxoCaixa.data_vencimento >= data_inicio_obj,
+            LancamentoFluxoCaixa.data_vencimento <= data_fim_obj
+        ).all()
+        
+        lancamentos_nfe = LancamentoNotaFiscal.query.filter(
+            LancamentoNotaFiscal.empresa_id == current_user.empresa_id,
+            LancamentoNotaFiscal.data_vencimento >= data_inicio_obj,
+            LancamentoNotaFiscal.data_vencimento <= data_fim_obj
+        ).all()
+        
+        # Análises por categoria
+        analise_categorias = {}
+        analise_fornecedores = defaultdict(lambda: {'receitas': 0, 'despesas': 0, 'saldo': 0})
+        analise_mensal = defaultdict(lambda: {'receitas': 0, 'despesas': 0, 'saldo': 0})
+        
+        # Processar lançamentos manuais
+        for lanc in lancamentos_manuais:
+            categoria = lanc.categoria or 'Sem categoria'
+            if categoria not in analise_categorias:
+                analise_categorias[categoria] = {'receitas': 0, 'despesas': 0, 'total': 0}
+            
+            if lanc.tipo == 'RECEITA':
+                analise_categorias[categoria]['receitas'] += lanc.valor_total
+                if lanc.fornecedor_cliente:
+                    analise_fornecedores[lanc.fornecedor_cliente]['receitas'] += lanc.valor_total
+            else:
+                analise_categorias[categoria]['despesas'] += lanc.valor_total
+                if lanc.fornecedor_cliente:
+                    analise_fornecedores[lanc.fornecedor_cliente]['despesas'] += lanc.valor_total
+            
+            analise_categorias[categoria]['total'] = analise_categorias[categoria]['receitas'] - analise_categorias[categoria]['despesas']
+            
+            # Análise mensal
+            mes_ano = lanc.data_vencimento.strftime('%Y-%m')
+            if lanc.tipo == 'RECEITA':
+                analise_mensal[mes_ano]['receitas'] += lanc.valor_total
+            else:
+                analise_mensal[mes_ano]['despesas'] += lanc.valor_total
+            analise_mensal[mes_ano]['saldo'] = analise_mensal[mes_ano]['receitas'] - analise_mensal[mes_ano]['despesas']
+        
+        # Processar lançamentos NFe
+        for lanc in lancamentos_nfe:
+            categoria = 'Fornecedores (NFe)'
+            if categoria not in analise_categorias:
+                analise_categorias[categoria] = {'receitas': 0, 'despesas': 0, 'total': 0}
+            
+            analise_categorias[categoria]['despesas'] += lanc.valor_total
+            analise_categorias[categoria]['total'] = analise_categorias[categoria]['receitas'] - analise_categorias[categoria]['despesas']
+            
+            if lanc.emitente_nome:
+                analise_fornecedores[lanc.emitente_nome]['despesas'] += lanc.valor_total
+            
+            # Análise mensal
+            mes_ano = lanc.data_vencimento.strftime('%Y-%m')
+            analise_mensal[mes_ano]['despesas'] += lanc.valor_total
+            analise_mensal[mes_ano]['saldo'] = analise_mensal[mes_ano]['receitas'] - analise_mensal[mes_ano]['despesas']
+        
+        # Calcular saldos dos fornecedores
+        for fornecedor in analise_fornecedores:
+            analise_fornecedores[fornecedor]['saldo'] = (
+                analise_fornecedores[fornecedor]['receitas'] - 
+                analise_fornecedores[fornecedor]['despesas']
+            )
+        
+        return render_template('relatorio_analitico_fluxo.html',
+                             analise_categorias=analise_categorias,
+                             analise_fornecedores=dict(analise_fornecedores),
+                             analise_mensal=dict(analise_mensal),
+                             data_inicio=data_inicio,
+                             data_fim=data_fim,
+                             periodo_str=f"{data_inicio_obj.strftime('%d/%m/%Y')} a {data_fim_obj.strftime('%d/%m/%Y')}")
+        
+    except Exception as e:
+        logger.error(f"Erro ao gerar relatório analítico: {e}", exc_info=True)
+        flash('Erro ao gerar relatório analítico.', 'error')
+        return redirect(url_for('fluxo_caixa'))
+
+@app.route('/api/fluxo_caixa/exportar_excel')
+@login_required
+@master_required
+def api_exportar_fluxo_excel():
+    """Exportar fluxo de caixa para Excel com filtros aplicados"""
+    try:
+        # Aplicar os mesmos filtros da tela principal
+        hoje = date.today()
+        data_inicio = request.args.get('data_inicio', hoje.strftime('%Y-%m-%d'))
+        data_fim = request.args.get('data_fim', (hoje + timedelta(days=30)).strftime('%Y-%m-%d'))
+        categoria_filtro = request.args.get('categoria', '')
+        status_filtro = request.args.get('status', '')
+        
+        data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d').date()
+        data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d').date()
+        
+        # Buscar dados
+        query_manuais = LancamentoFluxoCaixa.query.filter(
+            LancamentoFluxoCaixa.empresa_id == current_user.empresa_id,
+            LancamentoFluxoCaixa.data_vencimento >= data_inicio_obj,
+            LancamentoFluxoCaixa.data_vencimento <= data_fim_obj
+        )
+        
+        query_nfe = LancamentoNotaFiscal.query.filter(
+            LancamentoNotaFiscal.empresa_id == current_user.empresa_id,
+            LancamentoNotaFiscal.data_vencimento >= data_inicio_obj,
+            LancamentoNotaFiscal.data_vencimento <= data_fim_obj
+        )
+        
+        if categoria_filtro:
+            query_manuais = query_manuais.filter(LancamentoFluxoCaixa.categoria.ilike(f'%{categoria_filtro}%'))
+        
+        if status_filtro:
+            query_manuais = query_manuais.filter(LancamentoFluxoCaixa.status_pagamento == status_filtro)
+            query_nfe = query_nfe.filter(LancamentoNotaFiscal.status_pagamento == status_filtro)
+        
+        lancamentos_manuais = query_manuais.order_by(LancamentoFluxoCaixa.data_vencimento).all()
+        lancamentos_nfe = query_nfe.order_by(LancamentoNotaFiscal.data_vencimento).all()
+        
+        # Criar Excel
+        output = io.BytesIO()
+        workbook = Workbook()
+        
+        # Aba principal - Fluxo Consolidado
+        sheet = workbook.active
+        sheet.title = "Fluxo de Caixa"
+        
+        headers = [
+            "Data Vencimento", "Tipo Movimento", "Origem", "Descrição", 
+            "Categoria", "Fornecedor/Cliente", "Documento", "Valor", 
+            "Status", "Data Pagamento", "Observações"
+        ]
+        sheet.append(headers)
+        
+        # Consolidar e adicionar dados
+        fluxo_consolidado = consolidar_fluxo_caixa(lancamentos_manuais, lancamentos_nfe, data_inicio_obj, data_fim_obj)
+        
+        for item in fluxo_consolidado:
+            row = [
+                item['data_vencimento'].strftime('%d/%m/%Y'),
+                item['tipo_movimento'],
+                item['tipo_origem'],
+                item['descricao'],
+                item['categoria'],
+                item['fornecedor_cliente'] or '',
+                item['documento'] or '',
+                item['valor'],
+                item['status'],
+                item['data_pagamento'].strftime('%d/%m/%Y') if item['data_pagamento'] else '',
+                item['observacoes'] or ''
+            ]
+            sheet.append(row)
+        
+        # Aba de resumo por categoria
+        sheet_resumo = workbook.create_sheet("Resumo por Categoria")
+        sheet_resumo.append(["Categoria", "Total Receitas", "Total Despesas", "Saldo"])
+        
+        resumo_categorias = defaultdict(lambda: {'receitas': 0, 'despesas': 0})
+        
+        for item in fluxo_consolidado:
+            categoria = item['categoria']
+            if item['tipo_movimento'] == 'RECEITA':
+                resumo_categorias[categoria]['receitas'] += item['valor']
+            else:
+                resumo_categorias[categoria]['despesas'] += item['valor']
+        
+        for categoria, valores in resumo_categorias.items():
+            saldo = valores['receitas'] - valores['despesas']
+            sheet_resumo.append([categoria, valores['receitas'], valores['despesas'], saldo])
+        
+        # Salvar arquivo
+        workbook.save(output)
+        output.seek(0)
+        
+        nome_arquivo = f"fluxo_caixa_{data_inicio_obj.strftime('%Y%m%d')}_{data_fim_obj.strftime('%Y%m%d')}.xlsx"
+        
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=nome_arquivo,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        
+    except Exception as e:
+        logger.error(f"Erro ao exportar fluxo para Excel: {e}", exc_info=True)
+        flash('Erro ao exportar relatório.', 'error')
+        return redirect(url_for('fluxo_caixa'))
+
+@app.route('/api/fluxo_caixa/reprocessar_nfe/<string:chave_acesso>', methods=['POST'])
+@login_required
+@master_required
+def api_reprocessar_nfe(chave_acesso):
+    """API para reprocessar uma NFe (excluir lançamentos antigos e permitir nova configuração)"""
+    try:
+        # Buscar todos os lançamentos relacionados a esta NFe
+        lancamentos_nfe = LancamentoNotaFiscal.query.filter(
+            LancamentoNotaFiscal.chave_acesso == chave_acesso,
+            LancamentoNotaFiscal.empresa_id == current_user.empresa_id
+        ).all()
+        
+        if not lancamentos_nfe:
+            return jsonify({'success': False, 'message': 'Nenhum lançamento encontrado para esta NFe'}), 404
+        
+        # Verificar se algum já foi pago
+        pagos = [l for l in lancamentos_nfe if l.status_pagamento == 'Pago']
+        if pagos:
+            return jsonify({
+                'success': False, 
+                'message': f'Não é possível reprocessar: {len(pagos)} parcela(s) já foi(ram) paga(s)'
+            }), 400
+        
+        # Excluir todos os lançamentos
+        for lancamento in lancamentos_nfe:
+            db.session.delete(lancamento)
+        
+        # Marcar a NFe original como não processada
+        nfe_original = NFeImportada.query.filter_by(
+            chave_acesso=chave_acesso,
+            empresa_id=current_user.empresa_id
+        ).first()
+        
+        if nfe_original:
+            nfe_original.status = 'IMPORTADA'
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'NFe marcada para reprocessamento. Acesse a tela de importação fiscal para configurar novamente.'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao reprocessar NFe {chave_acesso}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+    
 @app.route('/api/fiscal/consultar_sefaz', methods=['POST'])
 @login_required
 def api_consultar_sefaz():
@@ -3917,13 +4912,57 @@ def api_consultar_sefaz():
     resultado = consultar_notas_sefaz(current_user.empresa_id)
     return jsonify(resultado)
 
+@app.cli.command("associar-notas-antigas")
+def associar_notas_antigas_command():
+    """
+    Busca por NFeImportada que não têm um certificado_id associado e as vincula
+    ao certificado principal de sua respectiva empresa.
+    """
+    print("Iniciando associação de notas fiscais antigas...")
+    
+    try:
+        # Encontra todas as empresas que possuem certificados
+        empresas = Empresa.query.join(CertificadoDigital).distinct().all()
+        
+        total_atualizado = 0
+        for empresa in empresas:
+            print(f"Processando empresa: {empresa.razao_social} (ID: {empresa.id})")
+            
+            # Encontra o certificado principal desta empresa
+            certificado_principal = CertificadoDigital.query.filter_by(empresa_id=empresa.id, principal=True).first()
+            
+            if not certificado_principal:
+                print(f"  -> Aviso: Nenhuma certificado principal encontrado para esta empresa. Pulando.")
+                continue
+            
+            print(f"  -> Certificado principal encontrado: ID {certificado_principal.id}")
+            
+            # Atualiza todas as notas "órfãs" (com certificado_id nulo) desta empresa
+            # para que apontem para o certificado principal.
+            notas_atualizadas = NFeImportada.query.filter_by(
+                empresa_id=empresa.id,
+                certificado_id=None
+            ).update({'certificado_id': certificado_principal.id})
+            
+            if notas_atualizadas > 0:
+                print(f"  -> {notas_atualizadas} nota(s) antiga(s) foram associadas com sucesso!")
+                total_atualizado += notas_atualizadas
+        
+        db.session.commit()
+        print(f"\nConcluído! Um total de {total_atualizado} notas foram atualizadas.")
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"\nOcorreu um erro: {e}")
+
+
 
 @app.route('/api/fiscal/buscar_dados_nota/<string:chave_acesso>')
 @login_required
 def api_buscar_dados_nota(chave_acesso):
     """
-    Esta API apenas BUSCA os dados de uma nota para exibi-los no modal.
-    Ela não salva nem altera nada.
+    Esta API busca os dados de uma nota para exibi-los no modal de lançamento.
+    Agora inclui informações do certificado de origem.
     """
     nota = NFeImportada.query.filter_by(
         chave_acesso=chave_acesso,
@@ -3936,16 +4975,25 @@ def api_buscar_dados_nota(chave_acesso):
     if nota.status == 'PROCESSADA':
         return jsonify({'success': False, 'message': 'Esta nota já foi processada anteriormente.'}), 409
     
+    # Buscar informações do certificado - CORRIGIDO para usar Session.get()
+    certificado = None
+    if nota.certificado_id:
+        certificado = db.session.get(CertificadoDigital, nota.certificado_id)
+    
     # Prepara os dados da nota para serem retornados como JSON
     dados_da_nota = {
         "emitente_nome": nota.emitente_nome,
         "emitente_cnpj": nota.emitente_cnpj,
         "valor_total": nota.valor_total,
-        "data_emissao": nota.data_emissao.isoformat() # Formato ISO para o JS ler fácil
+        "data_emissao": nota.data_emissao.isoformat(),
+        "certificado_origem": {
+            "id": certificado.id if certificado else None,
+            "nome": certificado.nome_arquivo if certificado else "Certificado não identificado",
+            "principal": certificado.principal if certificado else False
+        }
     }
     
     return jsonify({'success': True, 'nota': dados_da_nota})
-
 
 @app.route('/salvar_custo_viagem', methods=['POST'])
 @login_required
@@ -4602,7 +5650,7 @@ def iniciar_manutencao_oficina():
     if status == 'Em Andamento':
         veiculo.status = 'Em Manutenção'
     
-    veiculo.km_rodados = max(veiculo.km_rodados or 0, hodometro)
+    veiculo.km_atual = max(veiculo.km_atual or 0, hodometro)
 
     db.session.add(nova_manutencao)
     db.session.commit()
@@ -4625,7 +5673,7 @@ def finalizar_manutencao_oficina():
     manutencao.custo_total = request.form.get('custo_total', type=float)
     
     veiculo.status = 'Disponível'
-    veiculo.km_rodados = max(veiculo.km_rodados or 0, manutencao.odometro)
+    veiculo.km_atual = max(veiculo.km_atual or 0, manutencao.odometro)
 
     if manutencao.tipo_manutencao == 'Preventiva' and manutencao.veiculo_plano_associado:
         assoc = manutencao.veiculo_plano_associado
@@ -4953,6 +6001,86 @@ def api_deletar_insumo(insumo_id):
         db.session.rollback()
         logger.error(f"Erro ao deletar insumo {insumo_id}: {e}", exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500
+    
+@app.route('/api/fiscal/exportar_documentos', methods=['POST'])
+@login_required
+@master_required # Garante que apenas usuários com permissão possam exportar
+def api_exportar_documentos_fiscais():
+    """
+    Exporta um relatório em Excel e os arquivos XML correspondentes em um arquivo .zip.
+    Recebe uma lista de chaves de acesso para identificar quais notas exportar.
+    """
+    try:
+        data = request.get_json()
+        chaves_acesso = data.get('chaves_acesso', [])
+
+        if not chaves_acesso:
+            return jsonify({'success': False, 'message': 'Nenhuma nota fiscal foi selecionada para exportação.'}), 400
+
+        # 1. Buscar as notas fiscais no banco de dados
+        notas_para_exportar = NFeImportada.query.filter(
+            NFeImportada.empresa_id == current_user.empresa_id,
+            NFeImportada.chave_acesso.in_(chaves_acesso)
+        ).all()
+
+        if not notas_para_exportar:
+            return jsonify({'success': False, 'message': 'Nenhuma das notas selecionadas foi encontrada.'}), 404
+
+        # 2. Preparar o arquivo .zip em memória
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            
+            # 3. Criar a planilha Excel
+            workbook = Workbook()
+            sheet = workbook.active
+            sheet.title = "Relatório de Notas Fiscais"
+            
+            # Cabeçalhos do Excel
+            headers = ["Chave de Acesso", "Emitente", "CNPJ", "Data Emissão", "Valor Total", "Status", "Nome Arquivo XML"]
+            sheet.append(headers)
+            for cell in sheet[1]:
+                cell.font = Font(bold=True)
+            
+            # 4. Iterar sobre as notas, preenchendo o Excel e adicionando XML ao zip
+            for nota in notas_para_exportar:
+                xml_filename = f"NFe_{nota.chave_acesso}.xml"
+                
+                # Adicionar linha ao Excel
+                sheet.append([
+                    nota.chave_acesso,
+                    nota.emitente_nome,
+                    nota.emitente_cnpj,
+                    nota.data_emissao.strftime('%d/%m/%Y'),
+                    nota.valor_total,
+                    nota.status,
+                    xml_filename
+                ])
+
+                # Adicionar o arquivo XML ao zip, dentro de uma pasta
+                if nota.xml_content:
+                    zip_file.writestr(f"XMLs/{xml_filename}", nota.xml_content)
+
+            # 5. Salvar o Excel em memória e adicioná-lo ao zip
+            excel_buffer = io.BytesIO()
+            workbook.save(excel_buffer)
+            excel_buffer.seek(0)
+            zip_file.writestr("Relatorio_Notas_Fiscais.xlsx", excel_buffer.read())
+
+        zip_buffer.seek(0)
+        
+        # 6. Enviar o arquivo .zip como resposta
+        filename = f"Exportacao_Contabil_{datetime.now().strftime('%Y-%m-%d')}.zip"
+        return send_file(
+            zip_buffer,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=filename
+        )
+
+    except Exception as e:
+        logger.error(f"Erro ao exportar documentos fiscais: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Ocorreu um erro interno: {str(e)}'}), 500
+
 
 @app.route('/oficina/previsao')
 @login_required

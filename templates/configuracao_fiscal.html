@@ -1,72 +1,465 @@
 {% extends 'base.html' %}
 
+{% block title %}Certificados Digitais - SEFAZ{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">Configuração Fiscal - Certificado Digital A1</h4>
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                    <i class="fas fa-certificate text-[#2e7d32] mr-3"></i>
+                    Certificados Digitais
+                </h1>
+                <p class="text-gray-600">Gerencie seus certificados para consulta automática à SEFAZ</p>
+            </div>
+            <div class="flex gap-3">
+                <a href="{{ url_for('importar_notas_fiscais') }}" 
+                   class="inline-flex items-center px-4 py-2 bg-[#2e7d32] text-white font-medium rounded-lg hover:bg-[#1b5e20] transition-colors">
+                    <i class="fas fa-download mr-2"></i>
+                    Consultar SEFAZ
+                </a>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6 border-end">
-                    <h5>Certificado Atual</h5>
-                    <hr>
-                    {% if certificado %}
-                        <div class="mb-3">
-                            <label class="form-label"><strong>Nome do Arquivo:</strong></label>
-                            <p class="form-control-static">{{ certificado.nome_arquivo }}</p>
+    </div>
+
+    <!-- Alerts -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="mb-6 space-y-3">
+                {% for category, message in messages %}
+                    <div class="p-4 rounded-lg border-l-4 
+                        {{ 'bg-red-50 border-red-500 text-red-700' if category == 'error' else '' }}
+                        {{ 'bg-green-50 border-green-500 text-green-700' if category == 'success' else '' }}
+                        {{ 'bg-blue-50 border-blue-500 text-blue-700' if category == 'info' else '' }}">
+                        <div class="flex items-center">
+                            <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' if category == 'success' else 'info-circle' }} mr-2"></i>
+                            {{ message }}
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label"><strong>Validade:</strong></label>
-                            <p class="form-control-static">{{ certificado.data_validade.strftime('%d/%m/%Y') }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Lista de Certificados -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-semibold text-gray-900">
+                            <i class="fas fa-shield-alt text-[#2e7d32] mr-2"></i>
+                            Meus Certificados
+                        </h2>
+                        <span class="px-3 py-1 bg-[#2e7d32] text-white text-sm font-medium rounded-full">
+                            {{ certificados|length }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    {% if certificados %}
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                            <div class="flex items-center">
+                                <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                                <p class="text-sm text-blue-700">
+                                    Apenas o certificado marcado como "Principal" será utilizado para consultas automáticas
+                                </p>
+                            </div>
                         </div>
                         
-                        {% if certificado.data_validade < hoje %}
-                            <div class="alert alert-danger" role="alert">
-                                <strong>Atenção!</strong> Seu certificado digital está vencido.
-                            </div>
-                        {% elif (certificado.data_validade - hoje).days <= 30 %}
-                             <div class="alert alert-warning" role="alert">
-                                <strong>Aviso:</strong> Seu certificado digital vence em {{ (certificado.data_validade - hoje).days }} dia(s).
-                            </div>
-                        {% else %}
-                            <div class="alert alert-success" role="alert">
-                                Certificado válido.
-                            </div>
-                        {% endif %}
+                        <div class="space-y-4">
+                            {% for cert in certificados %}
+                                {% set is_expired = cert.data_validade < hoje %}
+                                {% set is_expiring_soon = (cert.data_validade - hoje).days <= 30 and not is_expired %}
+                                {% set days_left = (cert.data_validade - hoje).days %}
+                                
+                                <div class="border rounded-lg p-5 hover:shadow-md transition-shadow
+                                    {{ 'border-green-300 bg-green-50' if cert.principal else '' }}
+                                    {{ 'border-red-300 bg-red-50' if is_expired else '' }}
+                                    {{ 'border-yellow-300 bg-yellow-50' if is_expiring_soon and not cert.principal else '' }}">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex items-start space-x-4">
+                                            <div class="flex-shrink-0">
+                                                <i class="fas fa-certificate text-3xl
+                                                    {{ 'text-green-600' if cert.principal else 'text-gray-400' }}
+                                                    {{ 'text-red-600' if is_expired else '' }}
+                                                    {{ 'text-yellow-600' if is_expiring_soon and not cert.principal else '' }}">
+                                                </i>
+                                            </div>
+                                            <div>
+                                                <h3 class="text-lg font-semibold text-gray-900 mb-1">
+                                                    {{ cert.nome_arquivo }}
+                                                </h3>
+                                                <p class="text-sm text-gray-600 mb-3">
+                                                    <i class="fas fa-calendar mr-1"></i>
+                                                    Válido até {{ cert.data_validade.strftime('%d/%m/%Y') }}
+                                                    {% if not is_expired %}
+                                                        <span class="text-gray-500">({{ days_left }} dias)</span>
+                                                    {% endif %}
+                                                </p>
+                                                
+                                                <div class="flex flex-wrap gap-2">
+                                                    {% if cert.principal %}
+                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                            <i class="fas fa-star mr-1"></i>
+                                                            Principal
+                                                        </span>
+                                                    {% endif %}
+                                                    
+                                                    {% if is_expired %}
+                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                            <i class="fas fa-times-circle mr-1"></i>
+                                                            Vencido
+                                                        </span>
+                                                    {% elif is_expiring_soon %}
+                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                                                            Expira em {{ days_left }} dias
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                            <i class="fas fa-check-circle mr-1"></i>
+                                                            Ativo
+                                                        </span>
+                                                    {% endif %}
+                                                    
+                                                    {% if not cert.principal %}
+                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                            Inativo
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="flex flex-col gap-2">
+                                            {% if not cert.principal and not is_expired %}
+                                                <form action="{{ url_for('definir_certificado_principal', certificado_id=cert.id) }}" 
+                                                      method="POST" class="inline">
+                                                    <button type="submit" 
+                                                            onclick="return confirm('Deseja tornar este certificado o principal?')"
+                                                            class="px-3 py-1.5 bg-[#2e7d32] text-white text-sm font-medium rounded hover:bg-[#1b5e20] transition-colors">
+                                                        <i class="fas fa-star mr-1"></i>
+                                                        Tornar Principal
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                            
+                                            {% if not cert.principal %}
+                                                <button onclick="excluirCertificado({{ cert.id }}, '{{ cert.nome_arquivo }}')"
+                                                        class="px-3 py-1.5 border border-red-300 text-red-700 text-sm font-medium rounded hover:bg-red-50 transition-colors">
+                                                    <i class="fas fa-trash mr-1"></i>
+                                                    Excluir
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
                     {% else %}
-                        <div class="alert alert-info">
-                            Nenhum certificado digital configurado para esta empresa.
+                        <div class="text-center py-12">
+                            <i class="fas fa-certificate text-6xl text-gray-300 mb-4"></i>
+                            <h3 class="text-xl font-medium text-gray-900 mb-2">Nenhum certificado configurado</h3>
+                            <p class="text-gray-600">
+                                Configure seu primeiro certificado digital para começar a consultar a SEFAZ
+                            </p>
                         </div>
                     {% endif %}
                 </div>
+            </div>
+        </div>
 
-                <div class="col-md-6">
-                    <h5>Salvar ou Atualizar Certificado</h5>
-                    <hr>
-                    <form method="POST" enctype="multipart/form-data" action="{{ url_for('configuracao_fiscal') }}">
-                        <div class="mb-3">
-                            <label for="certificado" class="form-label">Arquivo do Certificado (.pfx)</label>
-                            <input type="file" class="form-control" id="certificado" name="certificado" accept=".pfx" required>
-                            <div class="form-text">Selecione o arquivo do seu certificado digital A1.</div>
+        <!-- Formulário de Upload -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-900">
+                        <i class="fas fa-plus-circle text-[#2e7d32] mr-2"></i>
+                        Novo Certificado
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <form method="POST" enctype="multipart/form-data" action="{{ url_for('upload_certificado') }}" id="uploadForm">
+                        <!-- Upload Area -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Arquivo do Certificado
+                            </label>
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#2e7d32] transition-colors cursor-pointer" 
+                                 id="uploadArea" onclick="document.getElementById('certificado').click()">
+                                <div id="uploadPlaceholder">
+                                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
+                                    <p class="text-gray-600 font-medium">Clique ou arraste o arquivo .pfx</p>
+                                    <p class="text-sm text-gray-500">Apenas arquivos .pfx são aceitos</p>
+                                </div>
+                                <div id="fileInfo" class="hidden">
+                                    <i class="fas fa-file-certificate text-4xl text-[#2e7d32] mb-3"></i>
+                                    <p id="fileName" class="text-gray-900 font-medium"></p>
+                                    <p id="fileSize" class="text-sm text-gray-500"></p>
+                                </div>
+                            </div>
+                            <input type="file" id="certificado" name="certificado" accept=".pfx" required class="hidden" onchange="handleFileSelect(this)">
                         </div>
-                        <div class="mb-3">
-                            <label for="senha_certificado" class="form-label">Senha do Certificado</label>
-                            <input type="password" class="form-control" id="senha_certificado" name="senha_certificado" required>
+
+                        <!-- Senha -->
+                        <div class="mb-6">
+                            <label for="senha_certificado" class="block text-sm font-medium text-gray-700 mb-2">
+                                Senha do Certificado
+                            </label>
+                            <div class="relative">
+                                <input type="password" id="senha_certificado" name="senha_certificado" required
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2e7d32] focus:border-transparent"
+                                       placeholder="Digite a senha do certificado">
+                                <button type="button" onclick="togglePassword('senha_certificado')"
+                                        class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-eye" id="senha_certificado_icon"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="validade_certificado" class="form-label">Data de Vencimento</label>
-                            <input type="date" class="form-control" id="validade_certificado" name="validade_certificado" required>
+
+                        <!-- Data de Validade -->
+                        <div class="mb-6">
+                            <label for="validade_certificado" class="block text-sm font-medium text-gray-700 mb-2">
+                                Data de Validade
+                            </label>
+                            <input type="date" id="validade_certificado" name="validade_certificado" required 
+                                   min="{{ hoje }}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2e7d32] focus:border-transparent">
                         </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-save me-2"></i>Salvar Certificado
-                            </button>
+
+                        <!-- Botão Submit -->
+                        <button type="submit" id="submitBtn" disabled
+                                class="w-full py-3 px-4 bg-[#2e7d32] text-white font-medium rounded-lg hover:bg-[#1b5e20] focus:outline-none focus:ring-2 focus:ring-[#2e7d32] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                            <i class="fas fa-upload mr-2"></i>
+                            <span id="btnText">Enviar Certificado</span>
+                            <span id="spinner" class="fas fa-spinner fa-spin ml-2 hidden"></span>
+                        </button>
+
+                        <!-- Informações de Segurança -->
+                        <div class="mt-4 p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-start">
+                                <i class="fas fa-shield-alt text-[#2e7d32] mr-2 mt-0.5"></i>
+                                <div>
+                                    <p class="text-sm text-gray-700 font-medium">Segurança Garantida</p>
+                                    <p class="text-xs text-gray-600 mt-1">
+                                        Certificado e senha são criptografados antes do armazenamento
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </form>
+                </div>
+            </div>
+
+            <!-- Card de Informações -->
+            <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900">
+                        <i class="fas fa-info-circle text-[#2e7d32] mr-2"></i>
+                        Informações
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <ul class="space-y-3 text-sm">
+                        <li class="flex items-center">
+                            <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                            <span>Certificados A1 (.pfx) suportados</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-lock text-green-500 mr-3"></i>
+                            <span>Criptografia de dados sensíveis</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-sync-alt text-green-500 mr-3"></i>
+                            <span>Consultas automáticas à SEFAZ</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-bell text-yellow-500 mr-3"></i>
+                            <span>Alertas de vencimento</span>
+                        </li>
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Modal de Confirmação -->
+<div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full">
+        <div class="p-6">
+            <div class="flex items-center mb-4">
+                <i class="fas fa-exclamation-triangle text-yellow-500 text-2xl mr-3"></i>
+                <h3 class="text-lg font-medium text-gray-900">Confirmar Exclusão</h3>
+            </div>
+            <p class="text-gray-600 mb-4">
+                Deseja realmente excluir o certificado <strong id="certName" class="text-gray-900"></strong>?
+            </p>
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-6">
+                <p class="text-sm text-yellow-700">Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeDeleteModal()" 
+                        class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancelar
+                </button>
+                <button id="confirmDelete"
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                    <i class="fas fa-trash mr-2"></i>
+                    Excluir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentCertId = null;
+
+// Toggle senha
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(inputId + '_icon');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+
+// Handle file select
+function handleFileSelect(input) {
+    const uploadArea = document.getElementById('uploadArea');
+    const placeholder = document.getElementById('uploadPlaceholder');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        if (!file.name.toLowerCase().endsWith('.pfx')) {
+            alert('Por favor, selecione apenas arquivos .pfx');
+            input.value = '';
+            return;
+        }
+        
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+        
+        uploadArea.classList.add('border-[#2e7d32]', 'bg-green-50');
+        placeholder.classList.add('hidden');
+        fileInfo.classList.remove('hidden');
+        
+        validateForm();
+    }
+}
+
+// Format file size
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Validate form
+function validateForm() {
+    const certificado = document.getElementById('certificado').value;
+    const senha = document.getElementById('senha_certificado').value;
+    const validade = document.getElementById('validade_certificado').value;
+    const submitBtn = document.getElementById('submitBtn');
+    
+    const isValid = certificado && senha && validade;
+    submitBtn.disabled = !isValid;
+}
+
+// Excluir certificado
+function excluirCertificado(certId, certName) {
+    currentCertId = certId;
+    document.getElementById('certName').textContent = certName;
+    document.getElementById('deleteModal').classList.remove('hidden');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Validação em tempo real
+    document.getElementById('senha_certificado').addEventListener('input', validateForm);
+    document.getElementById('validade_certificado').addEventListener('change', validateForm);
+    
+    // Drag and drop
+    const uploadArea = document.getElementById('uploadArea');
+    
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('border-[#2e7d32]', 'bg-green-50');
+    });
+    
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        this.classList.remove('border-[#2e7d32]', 'bg-green-50');
+    });
+    
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('border-[#2e7d32]', 'bg-green-50');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            document.getElementById('certificado').files = files;
+            handleFileSelect(document.getElementById('certificado'));
+        }
+    });
+    
+    // Confirmação de exclusão
+    document.getElementById('confirmDelete').addEventListener('click', function() {
+        if (currentCertId) {
+            fetch(`/certificados/excluir/${currentCertId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert('Erro ao excluir certificado: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Ocorreu um erro de comunicação com o servidor.');
+            });
+            
+            closeDeleteModal();
+        }
+    });
+    
+    // Loading no submit
+    document.getElementById('uploadForm').addEventListener('submit', function() {
+        const submitBtn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        const spinner = document.getElementById('spinner');
+        
+        submitBtn.disabled = true;
+        btnText.textContent = 'Enviando...';
+        spinner.classList.remove('hidden');
+    });
+});
+</script>
 {% endblock %}

@@ -16,6 +16,10 @@
         --gray-600: #475569;
         --gray-700: #334155;
         --gray-900: #0f172a;
+        --red-600: #dc2626;
+        --red-100: #fee2e2;
+        --green-600: #16a34a;
+        --green-100: #dcfce7;
     }
 
     .nfe-container {
@@ -235,14 +239,16 @@
 
     .modal-content {
         background: white;
-        margin: 5% auto;
+        margin: 3% auto;
         padding: 0;
         border-radius: 16px;
         width: 90%;
-        max-width: 600px;
+        max-width: 700px;
         box-shadow: 0 25px 50px rgba(0,0,0,0.25);
         animation: modalSlide 0.3s ease-out;
         overflow: hidden;
+        max-height: 90vh;
+        overflow-y: auto;
     }
 
     @keyframes modalSlide {
@@ -308,6 +314,109 @@
         outline: none;
         border-color: var(--primary-green);
         box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+    }
+
+    /* Estilos para Tipo de Movimento */
+    .tipo-movimento-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .radio-option {
+        position: relative;
+    }
+
+    .radio-option input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .radio-label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1.5rem 1rem;
+        border: 2px solid var(--gray-200);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: white;
+        text-align: center;
+    }
+
+    .radio-label:hover {
+        border-color: var(--primary-green);
+        background: var(--gray-50);
+    }
+
+    .radio-label i {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .radio-label span {
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .radio-label small {
+        font-size: 0.75rem;
+        color: var(--gray-600);
+        line-height: 1.2;
+    }
+
+    .radio-label.receita i {
+        color: var(--green-600);
+    }
+
+    .radio-label.despesa i {
+        color: var(--red-600);
+    }
+
+    .radio-option input[type="radio"]:checked + .radio-label {
+        border-color: var(--primary-green);
+        background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+        color: white;
+    }
+
+    .radio-option input[type="radio"]:checked + .radio-label i {
+        color: white;
+    }
+
+    .radio-option input[type="radio"]:checked + .radio-label small {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Alerta de Impacto */
+    .impacto-alert {
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 500;
+        display: none;
+    }
+
+    .impacto-alert.receita {
+        background: var(--green-100);
+        color: var(--green-600);
+        border: 1px solid var(--green-600);
+    }
+
+    .impacto-alert.despesa {
+        background: var(--red-100);
+        color: var(--red-600);
+        border: 1px solid var(--red-600);
+    }
+
+    .impacto-alert i {
+        font-size: 1.25rem;
     }
 
     .empty-state {
@@ -552,13 +661,16 @@
             flex-direction: column;
             gap: 1rem;
         }
+
+        .tipo-movimento-container {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="space-y-6">
-    <!-- Cabeçalho da Página -->
     <div class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 shadow-lg">
         <h1 class="text-3xl font-bold flex items-center gap-3">
             <i class="fas fa-file-invoice"></i>
@@ -567,10 +679,8 @@
         <p class="text-green-100 mt-2">Consulte, importe e gerencie suas notas fiscais eletrônicas</p>
     </div>
 
-    <!-- Container de Notificações -->
     <div id="notifications"></div>
 
-    <!-- Seção de Consulta SEFAZ -->
     <div class="nfe-container">
         <div class="section-header">
             <i class="fas fa-cloud-download-alt"></i>
@@ -614,7 +724,6 @@
         </div>
     </div>
 
-    <!-- Seção de Lançamento Rápido -->
     <div class="nfe-container">
         <div class="section-header">
             <i class="fas fa-bolt"></i>
@@ -642,7 +751,6 @@
         </div>
     </div>
 
-    <!-- Seção de Busca e Filtros -->
     <div class="search-section">
         <div class="section-header">
             <i class="fas fa-filter"></i>
@@ -651,7 +759,7 @@
         
         <div class="search-controls">
             <div class="search-box">
-                <input type="text" id="searchInput" placeholder="Buscar por CNPJ, nome do emitente..." class="search-input">
+                <input type="text" id="searchInput" placeholder="Buscar por CNPJ, nome, chave..." class="search-input">
                 <i class="fas fa-search"></i>
             </div>
             
@@ -661,14 +769,47 @@
                 <option value="PROCESSADA">Processadas</option>
             </select>
 
+            <div class="flex items-center gap-2">
+                <label for="startDateFilter" class="text-sm font-medium text-gray-600">De:</label>
+                <input type="date" id="startDateFilter" class="form-select" style="padding: 8px;">
+            </div>
+            <div class="flex items-center gap-2">
+                <label for="endDateFilter" class="text-sm font-medium text-gray-600">Até:</label>
+                <input type="date" id="endDateFilter" class="form-select" style="padding: 8px;">
+            </div>
+
             <button class="btn-secondary" id="btnLimparFiltros">
                 <i class="fas fa-times"></i>
-                Limpar
+                Limpar Filtros
             </button>
         </div>
     </div>
 
-    <!-- Lista de NFe -->
+    <div class="nfe-container">
+        <div class="section-header">
+            <i class="fas fa-file-export"></i>
+            Exportar para Contabilidade
+        </div>
+        <div class="flex flex-wrap gap-4 items-center">
+            <div>
+                <label for="tipoExportacao" class="form-label">Tipo de Exportação</label>
+                <select id="tipoExportacao" class="form-select">
+                    <option value="todas">Exportar seleção atual</option>
+                    <option value="processadas">Exportar apenas Processadas da seleção atual</option>
+                </select>
+            </div>
+            <button class="btn-green" id="btnExportarDocumentos">
+                <i class="fas fa-download"></i>
+                <span class="loading-spinner" id="loadingExportar"></span>
+                Exportar Documentos (.zip)
+            </button>
+        </div>
+        <p class="text-sm text-gray-600 mt-3">
+            <i class="fas fa-info-circle"></i>
+            Será gerado um arquivo .zip contendo um relatório em Excel e uma pasta com os arquivos XML.
+        </p>
+    </div>
+
     <div class="nfe-container">
         <div class="section-header">
             <i class="fas fa-list"></i>
@@ -698,8 +839,7 @@
                             </tr>
                         </thead>
                         <tbody id="nfeTableBody">
-                            <!-- As linhas serão inseridas via JavaScript -->
-                        </tbody>
+                            </tbody>
                     </table>
                     
                     <div class="pagination-container">
@@ -735,13 +875,12 @@
     </div>
 </div>
 
-<!-- Modal de Lançamento -->
 <div id="modalLancamento" class="modal">
     <div class="modal-content">
         <div class="modal-header">
             <div class="modal-title">
                 <i class="fas fa-edit"></i>
-                Lançar Nota Fiscal
+                Lançar Nota Fiscal no Fluxo de Caixa
             </div>
             <span class="close" onclick="fecharModal()">&times;</span>
         </div>
@@ -749,8 +888,83 @@
             <div id="dadosNota"></div>
             
             <div class="form-group">
+                <label class="form-label">Tipo de Movimento *</label>
+                <div class="tipo-movimento-container">
+                    <div class="radio-option">
+                        <input type="radio" id="tipoReceita" name="tipo_movimento" value="RECEITA">
+                        <label for="tipoReceita" class="radio-label receita">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>Receita</span>
+                            <small>NFe de venda/serviço prestado por você</small>
+                        </label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="tipoDespesa" name="tipo_movimento" value="DESPESA" checked>
+                        <label for="tipoDespesa" class="radio-label despesa">
+                            <i class="fas fa-arrow-down"></i>
+                            <span>Despesa</span>
+                            <small>NFe de compra/fornecedor recebida</small>
+                        </label>
+                    </div>
+                </div>
+                
+                <div id="impactoAlert" class="impacto-alert despesa">
+                    <i class="fas fa-info-circle"></i>
+                    <span id="impactoTexto">Este lançamento será registrado como DESPESA no seu fluxo de caixa</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Categoria</label>
+                <select id="categoriaLancamento" class="form-control">
+                    <option value="">Selecionar automaticamente</option>
+                    <optgroup label="Receitas" id="categoriasReceita" style="display: none;">
+                        <option value="Vendas/Receitas (NFe)">Vendas/Receitas (NFe)</option>
+                        <option value="Prestação de Serviços">Prestação de Serviços</option>
+                        <option value="Frete Recebido">Frete Recebido</option>
+                        <option value="Outras Receitas">Outras Receitas</option>
+                    </optgroup>
+                    <optgroup label="Despesas" id="categoriasDespesa">
+                        <option value="Fornecedores (NFe)">Fornecedores (NFe)</option>
+                        <option value="Combustível">Combustível</option>
+                        <option value="Manutenção">Manutenção</option>
+                        <option value="Peças e Acessórios">Peças e Acessórios</option>
+                        <option value="Seguros">Seguros</option>
+                        <option value="Impostos e Taxas">Impostos e Taxas</option>
+                        <option value="Outras Despesas">Outras Despesas</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Parcelamento</label>
+                <select id="parcelasLancamento" class="form-control">
+                    <option value="1">À vista (1x)</option>
+                    <option value="2">2x (mensais)</option>
+                    <option value="3">3x (mensais)</option>
+                    <option value="4">4x (mensais)</option>
+                    <option value="5">5x (mensais)</option>
+                    <option value="6">6x (mensais)</option>
+                    <option value="12">12x (mensais)</option>
+                </select>
+                <small class="text-gray-600 mt-1">
+                    <i class="fas fa-info-circle"></i>
+                    Para parcelamento, as parcelas serão criadas com vencimento mensal
+                </small>
+            </div>
+
+            <div class="form-group">
                 <label class="form-label">Data de Vencimento *</label>
                 <input type="date" id="dataVencimento" class="form-control" required>
+            </div>
+
+            <div id="resumoLancamento" class="mt-4 p-4 bg-gray-50 rounded-lg border">
+                <h4 class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <i class="fas fa-clipboard-check"></i>
+                    Resumo do Lançamento
+                </h4>
+                <div id="resumoConteudo">
+                    </div>
             </div>
 
             <div class="flex gap-4 justify-end mt-6">
@@ -761,7 +975,7 @@
                 <button class="btn-green" id="btnSalvarLancamento">
                     <i class="fas fa-save"></i>
                     <span class="loading-spinner" id="loadingSalvar"></span>
-                    Salvar Lançamento
+                    Confirmar Lançamento
                 </button>
             </div>
         </div>
@@ -813,19 +1027,30 @@ function configurarEventos() {
     document.getElementById('itemsPerPage').addEventListener('change', alterarItensPorPagina);
     document.getElementById('btnPrevPage').addEventListener('click', paginaAnterior);
     document.getElementById('btnNextPage').addEventListener('click', proximaPagina);
+    
+    // Evento para o novo botão de exportação
+    document.getElementById('btnExportarDocumentos').addEventListener('click', exportarDocumentos);
+    
+    // Novos eventos para o modal atualizado
+    document.getElementById('tipoReceita').addEventListener('change', atualizarTipoMovimento);
+    document.getElementById('tipoDespesa').addEventListener('change', atualizarTipoMovimento);
+    document.getElementById('categoriaLancamento').addEventListener('change', atualizarResumo);
+    document.getElementById('parcelasLancamento').addEventListener('change', atualizarResumo);
+    document.getElementById('dataVencimento').addEventListener('change', atualizarResumo);
 }
 
 function configurarFiltros() {
-    const searchInput = document.getElementById('searchInput');
-    const statusFilter = document.getElementById('statusFilter');
-
-    searchInput.addEventListener('input', aplicarFiltros);
-    statusFilter.addEventListener('change', aplicarFiltros);
+    document.getElementById('searchInput').addEventListener('input', aplicarFiltros);
+    document.getElementById('statusFilter').addEventListener('change', aplicarFiltros);
+    document.getElementById('startDateFilter').addEventListener('change', aplicarFiltros);
+    document.getElementById('endDateFilter').addEventListener('change', aplicarFiltros);
 }
 
 function aplicarFiltros() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     const statusFilter = document.getElementById('statusFilter').value;
+    const startDate = document.getElementById('startDateFilter').value;
+    const endDate = document.getElementById('endDateFilter').value;
 
     notasFiltradas = notasData.filter(nota => {
         const matchSearch = !searchTerm || 
@@ -835,7 +1060,11 @@ function aplicarFiltros() {
 
         const matchStatus = !statusFilter || nota.status === statusFilter;
 
-        return matchSearch && matchStatus;
+        const notaDate = nota.data_emissao.split('T')[0];
+        const matchStartDate = !startDate || notaDate >= startDate;
+        const matchEndDate = !endDate || notaDate <= endDate;
+
+        return matchSearch && matchStatus && matchStartDate && matchEndDate;
     });
 
     currentPage = 1;
@@ -846,6 +1075,8 @@ function aplicarFiltros() {
 function limparFiltros() {
     document.getElementById('searchInput').value = '';
     document.getElementById('statusFilter').value = '';
+    document.getElementById('startDateFilter').value = '';
+    document.getElementById('endDateFilter').value = '';
     aplicarFiltros();
 }
 
@@ -854,6 +1085,8 @@ function renderizarContador() {
     const total = notasFiltradas.length;
     if (total > 0) {
         contador.textContent = `(${total} ${total === 1 ? 'nota' : 'notas'})`;
+    } else {
+        contador.textContent = '(0 notas)';
     }
 }
 
@@ -866,6 +1099,22 @@ function renderizarTabela() {
     const notasPagina = notasFiltradas.slice(startIndex, endIndex);
 
     tbody.innerHTML = '';
+    
+    const emptyState = document.getElementById('emptyState');
+    const tableContainer = document.getElementById('nfeTableContainer');
+    
+    if (notasFiltradas.length === 0) {
+        if(tableContainer) tableContainer.style.display = 'none';
+        if(emptyState) {
+            emptyState.style.display = 'block';
+            emptyState.querySelector('h3').textContent = 'Nenhuma nota encontrada para os filtros aplicados';
+            emptyState.querySelector('p').textContent = 'Tente ajustar sua busca ou limpar os filtros.';
+        }
+        return;
+    }
+    
+    if(tableContainer) tableContainer.style.display = 'block';
+    if(emptyState) emptyState.style.display = 'none';
 
     notasPagina.forEach(nota => {
         const row = document.createElement('tr');
@@ -925,7 +1174,7 @@ function atualizarPaginacao() {
     const btnNext = document.getElementById('btnNextPage');
     
     btnPrev.classList.toggle('disabled', currentPage === 1);
-    btnNext.classList.toggle('disabled', currentPage === totalPaginas);
+    btnNext.classList.toggle('disabled', currentPage >= totalPaginas);
 
     // Atualizar números de página
     const pageNumbers = document.getElementById('pageNumbers');
@@ -944,8 +1193,18 @@ function atualizarPaginacao() {
             pageNumbers.appendChild(criarReticencias());
         }
 
-        const startPage = Math.max(2, currentPage - 2);
-        const endPage = Math.min(totalPaginas - 1, currentPage + 2);
+        let startPage = Math.max(2, currentPage - 1);
+        let endPage = Math.min(totalPaginas - 1, currentPage + 1);
+
+        if (currentPage <= 3) {
+            startPage = 2;
+            endPage = 4;
+        }
+
+        if (currentPage >= totalPaginas - 2) {
+            startPage = totalPaginas - 3;
+            endPage = totalPaginas - 1;
+        }
 
         for (let i = startPage; i <= endPage; i++) {
             criarBotaoPagina(i, pageNumbers);
@@ -960,6 +1219,7 @@ function atualizarPaginacao() {
         }
     }
 }
+
 
 function criarBotaoPagina(pageNum, container) {
     const btn = document.createElement('button');
@@ -1013,6 +1273,107 @@ function formatarChaveAcesso(event) {
     } else {
         btnLancar.classList.remove('pulse');
     }
+}
+
+function atualizarTipoMovimento() {
+    const tipoSelecionado = document.querySelector('input[name="tipo_movimento"]:checked').value;
+    const alert = document.getElementById('impactoAlert');
+    const alertTexto = document.getElementById('impactoTexto');
+    const categoriasReceita = document.getElementById('categoriasReceita');
+    const categoriasDespesa = document.getElementById('categoriasDespesa');
+    const categoriaSelect = document.getElementById('categoriaLancamento');
+    
+    // Atualizar alerta visual
+    alert.className = `impacto-alert ${tipoSelecionado.toLowerCase()}`;
+    alert.style.display = 'flex';
+    
+    if (tipoSelecionado === 'RECEITA') {
+        alertTexto.innerHTML = '<strong>RECEITA:</strong> Este valor será CREDITADO no seu fluxo de caixa (entrada de dinheiro)';
+        categoriasReceita.style.display = 'block';
+        categoriasDespesa.style.display = 'none';
+    } else {
+        alertTexto.innerHTML = '<strong>DESPESA:</strong> Este valor será DEBITADO do seu fluxo de caixa (saída de dinheiro)';
+        categoriasReceita.style.display = 'none';
+        categoriasDespesa.style.display = 'block';
+    }
+    
+    // Resetar categoria selecionada
+    categoriaSelect.value = '';
+    atualizarResumo();
+}
+
+function atualizarResumo() {
+    const tipoMovimento = document.querySelector('input[name="tipo_movimento"]:checked')?.value;
+    const categoria = document.getElementById('categoriaLancamento').value;
+    const parcelas = document.getElementById('parcelasLancamento').value;
+    const dataVencimento = document.getElementById('dataVencimento').value;
+    const resumoContainer = document.getElementById('resumoConteudo');
+    
+    if (!tipoMovimento) return;
+    
+    // Obter dados da nota atual do modal
+    const modal = document.getElementById('modalLancamento');
+    const chaveAcesso = modal.dataset.chaveAcesso;
+    const dadosNota = modal.dataset.dadosNota ? JSON.parse(modal.dataset.dadosNota) : null;
+    
+    if (!dadosNota) return;
+    
+    const valor = parseFloat(dadosNota.valor_total);
+    const valorParcela = valor / parseInt(parcelas);
+    
+    let categoriaFinal = categoria;
+    if (!categoria) {
+        categoriaFinal = tipoMovimento === 'RECEITA' ? 'Vendas/Receitas (NFe)' : 'Fornecedores (NFe)';
+    }
+    
+    let resumoHTML = `
+        <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+                <span class="font-medium text-gray-600">Tipo:</span>
+                <span class="ml-2 font-semibold ${tipoMovimento === 'RECEITA' ? 'text-green-600' : 'text-red-600'}">
+                    ${tipoMovimento === 'RECEITA' ? '💰 RECEITA' : '💸 DESPESA'}
+                </span>
+            </div>
+            <div>
+                <span class="font-medium text-gray-600">Categoria:</span>
+                <span class="ml-2">${categoriaFinal}</span>
+            </div>
+            <div>
+                <span class="font-medium text-gray-600">Parcelas:</span>
+                <span class="ml-2">${parcelas}x</span>
+            </div>
+            <div>
+                <span class="font-medium text-gray-600">Valor por parcela:</span>
+                <span class="ml-2 font-semibold">${formatarMoeda(valorParcela)}</span>
+            </div>
+        </div>
+    `;
+    
+    if (parseInt(parcelas) > 1 && dataVencimento) {
+        resumoHTML += `
+            <div class="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
+                <h5 class="text-xs font-semibold text-blue-700 mb-2">Cronograma de Vencimentos:</h5>
+                <div class="grid gap-1 text-xs">
+        `;
+        
+        for (let i = 1; i <= parseInt(parcelas); i++) {
+            const dataBase = new Date(dataVencimento);
+            const dataParcela = new Date(dataBase.getTime() + ((i-1) * 30 * 24 * 60 * 60 * 1000));
+            resumoHTML += `
+                <div class="flex justify-between">
+                    <span>Parcela ${i}/${parcelas}:</span>
+                    <span class="font-medium">${dataParcela.toLocaleDateString('pt-BR')} - ${formatarMoeda(valorParcela)}</span>
+                </div>
+            `;
+        }
+        
+        resumoHTML += `
+                </div>
+            </div>
+        `;
+    }
+    
+    resumoContainer.innerHTML = resumoHTML;
 }
 
 async function consultarSefaz() {
@@ -1134,11 +1495,24 @@ function abrirModalLancamento(dadosNota, chaveAcesso) {
         </div>
     `;
 
+    // Definir data de vencimento padrão (30 dias)
     const hoje = new Date();
     const dataVencimento = new Date(hoje.getTime() + (30 * 24 * 60 * 60 * 1000));
     document.getElementById('dataVencimento').value = dataVencimento.toISOString().split('T')[0];
 
+    // Resetar formulário para despesa por padrão
+    document.getElementById('tipoDespesa').checked = true;
+    document.getElementById('categoriaLancamento').value = '';
+    document.getElementById('parcelasLancamento').value = '1';
+    
+    // Armazenar dados no modal
     modal.dataset.chaveAcesso = chaveAcesso;
+    modal.dataset.dadosNota = JSON.stringify(dadosNota);
+    
+    // Atualizar interface
+    atualizarTipoMovimento();
+    atualizarResumo();
+    
     modal.style.display = 'block';
     document.getElementById('chaveAcessoInput').value = '';
 }
@@ -1146,6 +1520,9 @@ function abrirModalLancamento(dadosNota, chaveAcesso) {
 async function salvarLancamento() {
     const modal = document.getElementById('modalLancamento');
     const chaveAcesso = modal.dataset.chaveAcesso;
+    const tipoMovimento = document.querySelector('input[name="tipo_movimento"]:checked')?.value;
+    const categoria = document.getElementById('categoriaLancamento').value;
+    const parcelas = parseInt(document.getElementById('parcelasLancamento').value);
     const dataVencimento = document.getElementById('dataVencimento').value;
     const btn = document.getElementById('btnSalvarLancamento');
     const loading = document.getElementById('loadingSalvar');
@@ -1155,25 +1532,36 @@ async function salvarLancamento() {
         return;
     }
 
+    if (!tipoMovimento) {
+        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Selecione o tipo de movimento');
+        return;
+    }
+
     btn.disabled = true;
     loading.style.display = 'inline-block';
 
     try {
+        const payload = {
+            chave_acesso: chaveAcesso,
+            data_vencimento: dataVencimento,
+            tipo_movimento: tipoMovimento,
+            parcelas: parcelas,
+            categoria: categoria || (tipoMovimento === 'RECEITA' ? 'Vendas/Receitas (NFe)' : 'Fornecedores (NFe)')
+        };
+
         const response = await fetch('/api/fiscal/salvar_lancamento', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                chave_acesso: chaveAcesso,
-                data_vencimento: dataVencimento
-            })
+            body: JSON.stringify(payload)
         });
 
         const result = await response.json();
 
         if (result.success) {
-            mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> ${result.message}`);
+            const tipoTexto = tipoMovimento === 'RECEITA' ? 'receita' : 'despesa';
+            mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> Lançamento de ${tipoTexto} criado com sucesso! ${parcelas} parcela(s) gerada(s).`);
             fecharModal();
             setTimeout(() => {
                 window.location.reload();
@@ -1194,14 +1582,19 @@ function fecharModal() {
     modal.style.display = 'none';
     document.getElementById('dadosNota').innerHTML = '';
     document.getElementById('dataVencimento').value = '';
+    document.getElementById('categoriaLancamento').value = '';
+    document.getElementById('parcelasLancamento').value = '1';
+    document.getElementById('tipoDespesa').checked = true;
+    document.getElementById('impactoAlert').style.display = 'none';
+    document.getElementById('resumoConteudo').innerHTML = '';
     delete modal.dataset.chaveAcesso;
+    delete modal.dataset.dadosNota;
 }
 
 async function lancarNota(chaveAcesso) {
     await buscarDadosNota(chaveAcesso);
 }
 
-// FUNÇÃO CORRIGIDA - Era assim e ficou assim
 function visualizarXML(chaveAcesso) {
     // Abre o XML em uma nova janela/aba
     window.open(`/fiscal/xml/${chaveAcesso}`, '_blank');
@@ -1237,14 +1630,91 @@ function mostrarNotificacao(tipo, mensagem) {
     }, 5000);
 }
 
+async function exportarDocumentos() {
+    const btn = document.getElementById('btnExportarDocumentos');
+    const loading = document.getElementById('loadingExportar');
+    const tipoExportacao = document.getElementById('tipoExportacao').value;
+
+    let notasParaExportar = [];
+    if (tipoExportacao === 'processadas') {
+        // Filtra apenas as notas com status 'PROCESSADA' da lista já filtrada na tela
+        notasParaExportar = notasFiltradas.filter(nota => nota.status === 'PROCESSADA');
+    } else {
+        // Usa todas as notas atualmente filtradas na tela
+        notasParaExportar = [...notasFiltradas];
+    }
+
+    if (notasParaExportar.length === 0) {
+        mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Nenhuma nota para exportar com os critérios selecionados.');
+        return;
+    }
+
+    // Pega apenas as chaves de acesso
+    const chavesAcesso = notasParaExportar.map(nota => nota.chave_acesso);
+
+    btn.disabled = true;
+    loading.style.display = 'inline-block';
+
+    try {
+        const response = await fetch('/api/fiscal/exportar_documentos', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ chaves_acesso: chavesAcesso })
+        });
+
+        if (response.ok) {
+            // Lida com o download do arquivo .zip
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = downloadUrl;
+            
+            // Extrai o nome do arquivo do header da resposta
+            const disposition = response.headers.get('Content-Disposition');
+            let filename = 'Exportacao_Contabil.zip';
+            if (disposition && disposition.indexOf('attachment') !== -1) {
+                const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                const matches = filenameRegex.exec(disposition);
+                if (matches != null && matches[1]) {
+                    filename = matches[1].replace(/['"]/g, '');
+                }
+            }
+            a.download = filename;
+            
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(downloadUrl);
+            a.remove();
+            
+            mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> Exportação de ${chavesAcesso.length} documento(s) concluída!`);
+        } else {
+            // Se houver um erro, a API retorna JSON
+            const result = await response.json();
+            mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> Erro na exportação: ${result.message}`);
+        }
+
+    } catch (error) {
+        mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro de conexão ao exportar: ${error.message}`);
+    } finally {
+        btn.disabled = false;
+        loading.style.display = 'none';
+    }
+}
+
 // Funções de formatação
 function formatarCNPJ(cnpj) {
+    if (!cnpj) return '';
     return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
 }
 
 function formatarData(dataString) {
     const data = new Date(dataString);
-    return data.toLocaleDateString('pt-BR');
+    // Adiciona o fuso horário para corrigir a data
+    const dataCorrigida = new Date(data.valueOf() + data.getTimezoneOffset() * 60000);
+    return dataCorrigida.toLocaleDateString('pt-BR');
 }
 
 function formatarMoeda(valor) {
@@ -1278,6 +1748,35 @@ style.textContent = `
     @keyframes slideOut {
         from { transform: translateX(0); opacity: 1; }
         to { transform: translateX(100%); opacity: 0; }
+    }
+    
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+    
+    .detail-label {
+        font-weight: 600;
+        color: var(--gray-700);
+        font-size: 0.875rem;
+    }
+    
+    .detail-value {
+        color: var(--gray-900);
+        font-size: 0.875rem;
+    }
+    
+    .valor-destaque {
+        font-weight: 700;
+        color: var(--primary-green);
+        font-size: 1rem;
     }
 `;
 document.head.appendChild(style);

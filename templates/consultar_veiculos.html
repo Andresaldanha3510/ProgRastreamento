@@ -203,6 +203,27 @@
         0% { background-position: 200% 0; }
         100% { background-position: -200% 0; }
     }
+
+    /* Estilo para botão de exportação com loading */
+    .export-loading {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .export-loading::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        transition: left 0.5s ease;
+    }
+    
+    .export-loading.loading::after {
+        left: 100%;
+    }
 </style>
 {% endblock %}
 
@@ -242,10 +263,12 @@
                     Novo Veículo
                 </a>
                 
-                <button @click="exportData()" 
-                        class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-6 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                    <i class="fas fa-download"></i>
-                    Exportar
+                <button @click="exportToExcel()" 
+                        :disabled="exporting"
+                        :class="exporting ? 'export-loading loading cursor-not-allowed' : ''"
+                        class="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 disabled:from-emerald-400 disabled:to-emerald-500 text-white font-semibold py-3 px-6 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    <i class="fas" :class="exporting ? 'fa-spinner fa-spin' : 'fa-file-excel'"></i>
+                    <span x-text="exporting ? 'Exportando...' : 'Exportar Excel'"></span>
                 </button>
             </div>
         </div>
@@ -549,10 +572,14 @@
     </div>
 </div>
 
+<!-- Adicionar a biblioteca SheetJS via CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
 <script>
 function vehicleManager() {
     return {
         loading: true,
+        exporting: false,
         vehicles: [],
         filteredVehicles: [],
         searchTerm: '',
@@ -677,33 +704,136 @@ function vehicleManager() {
             return urls[action] || '#';
         },
         
-        exportData() {
-            // Preparar dados para exportação
-            const exportData = this.filteredVehicles.map(vehicle => ({
-                'Placa': vehicle.placa,
-                'Modelo': vehicle.modelo,
-                'Marca': vehicle.marca || 'Não informada',
-                'Ano': vehicle.ano || 'N/A',
-                'Status': vehicle.status,
-                'Quilometragem': vehicle.quilometragem || 0,
-                'Data de Cadastro': vehicle.created_at ? new Date(vehicle.created_at).toLocaleDateString('pt-BR') : 'N/A'
-            }));
+        async exportToExcel() {
+            if (this.filteredVehicles.length === 0) {
+                alert('Não há dados para exportar.');
+                return;
+            }
+
+            this.exporting = true;
+
+            try {
+                // Preparar dados para exportação
+                const exportData = this.filteredVehicles.map(vehicle => ({
+                    'Placa': vehicle.placa || '',
+                    'Modelo': vehicle.modelo || '',
+                    'Marca': vehicle.marca || 'Não informada',
+                    'Ano': vehicle.ano || 'N/A',
+                    'Status': vehicle.status || '',
+                    'Quilometragem': vehicle.quilometragem || 0,
+                    'Data de Cadastro': vehicle.created_at ? 
+                        new Date(vehicle.created_at).toLocaleDateString('pt-BR') : 'N/A'
+                }));
+
+                // Criar nova planilha
+                const worksheet = XLSX.utils.json_to_sheet(exportData);
+                const workbook = XLSX.utils.book_new();
+                
+                // Adicionar a planilha ao workbook
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Veículos");
+                
+                // Configurar larguras das colunas
+                const columnWidths = [
+                    { wch: 12 }, // Placa
+                    { wch: 20 }, // Modelo
+                    { wch: 15 }, // Marca
+                    { wch: 8 },  // Ano
+                    { wch: 15 }, // Status
+                    { wch: 15 }, // Quilometragem
+                    { wch: 18 }  // Data de Cadastro
+                ];
+                worksheet['!cols'] = columnWidths;
+                
+                // Aplicar estilos aos cabeçalhos
+                const range = XLSX.utils.decode_range(worksheet['!ref']);
+                for (let col = range.s.c; col <= range.e.c; col++) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+                    if (!worksheet[cellAddress]) continue;
+                    worksheet[cellAddress].s = {
+                        font: { bold: true, color: { rgb: "FFFFFF" } },
+                        fill: { fgColor: { rgb: "4F46E5" } },
+                        alignment: { horizontal: "center" }
+                    };
+                }
+                
+                // Aplicar formatação de número para quilometragem
+                for (let row = 1; row <= range.e.r; row++) {
+                    const kmCellAddress = XLSX.utils.encode_cell({ r: row, c: 5 }); // Coluna Quilometragem
+                    if (worksheet[kmCellAddress] && typeof worksheet[kmCellAddress].v === 'number') {
+                        worksheet[kmCellAddress].z = '#,##0" km"';
+                    }
+                }
+
+                // Gerar nome do arquivo com timestamp
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                const filename = `veiculos_${timestamp}.xlsx`;
+                
+                // Fazer o download
+                XLSX.writeFile(workbook, filename, {
+                    bookType: 'xlsx',
+                    type: 'binary'
+                });
+
+                // Mostrar toast de sucesso
+                this.showToast(`Arquivo Excel exportado com sucesso!<br><small>Total: ${this.filteredVehicles.length} veículos</small>`, 'success');
+
+            } catch (error) {
+                console.error('Erro ao exportar Excel:', error);
+                this.showToast('Erro ao exportar arquivo Excel. Tente novamente.', 'error');
+            } finally {
+                this.exporting = false;
+            }
+        },
+
+        showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg text-white font-medium transform transition-all duration-300 translate-x-full max-w-sm`;
             
-            // Converter para CSV
-            const headers = Object.keys(exportData[0]);
-            const csvContent = [
-                headers.join(','),
-                ...exportData.map(row => headers.map(header => 
-                    `"${String(row[header]).replace(/"/g, '""')}"`
-                ).join(','))
-            ].join('\n');
+            const colors = {
+                'success': 'bg-emerald-500',
+                'error': 'bg-red-500',
+                'warning': 'bg-yellow-500',
+                'info': 'bg-blue-500'
+            };
             
-            // Download do arquivo
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `veiculos_${new Date().toISOString().split('T')[0]}.csv`;
-            link.click();
+            const icons = {
+                'success': 'fa-check-circle',
+                'error': 'fa-exclamation-circle', 
+                'warning': 'fa-exclamation-triangle',
+                'info': 'fa-info-circle'
+            };
+            
+            toast.classList.add(colors[type] || colors.info);
+            
+            toast.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <i class="fas ${icons[type] || icons.info} flex-shrink-0 mt-0.5"></i>
+                    <div class="flex-1">
+                        <div>${message}</div>
+                    </div>
+                    <button onclick="this.closest('.fixed').remove()" 
+                            class="text-white/80 hover:text-white ml-2 flex-shrink-0">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            // Animar entrada
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full');
+            }, 100);
+            
+            // Remover automaticamente após 5 segundos
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => {
+                    if (toast.parentElement) {
+                        toast.remove();
+                    }
+                }, 300);
+            }, 5000);
         }
     };
 }
@@ -713,53 +843,6 @@ function vehicleManager() {
 {% block scripts %}
 {{ super() }}
 <script>
-    // Notificações toast personalizadas
-    function showToast(message, type = 'success') {
-        const toast = document.createElement('div');
-        toast.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg text-white font-medium transform transition-all duration-300 translate-x-full`;
-        
-        switch(type) {
-            case 'success':
-                toast.classList.add('bg-green-500');
-                break;
-            case 'error':
-                toast.classList.add('bg-red-500');
-                break;
-            case 'warning':
-                toast.classList.add('bg-yellow-500');
-                break;
-            default:
-                toast.classList.add('bg-blue-500');
-        }
-        
-        toast.innerHTML = `
-            <div class="flex items-center gap-3">
-                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
-                <span>${message}</span>
-                <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white/80 hover:text-white">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `;
-        
-        document.body.appendChild(toast);
-        
-        // Animar entrada
-        setTimeout(() => {
-            toast.classList.remove('translate-x-full');
-        }, 100);
-        
-        // Remover automaticamente após 5 segundos
-        setTimeout(() => {
-            toast.classList.add('translate-x-full');
-            setTimeout(() => {
-                if (toast.parentElement) {
-                    toast.remove();
-                }
-            }, 300);
-        }, 5000);
-    }
-    
     // Interceptar exclusões para mostrar feedback
     document.addEventListener('click', function(e) {
         if (e.target.closest('a[href*="excluir_veiculo"]')) {
@@ -799,5 +882,57 @@ function vehicleManager() {
             showToast('Erro ao realizar operação. Tente novamente.', 'error');
         }
     });
+
+    // Função global para toast (fallback)
+    function showToast(message, type = 'success') {
+        // Usar a instância do Alpine.js se disponível
+        if (window.Alpine && window.Alpine.store) {
+            // Se você tiver um store global, use-o
+            return;
+        }
+        
+        // Fallback para criar toast manualmente
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg text-white font-medium transform transition-all duration-300 translate-x-full`;
+        
+        switch(type) {
+            case 'success':
+                toast.classList.add('bg-green-500');
+                break;
+            case 'error':
+                toast.classList.add('bg-red-500');
+                break;
+            case 'warning':
+                toast.classList.add('bg-yellow-500');
+                break;
+            default:
+                toast.classList.add('bg-blue-500');
+        }
+        
+        toast.innerHTML = `
+            <div class="flex items-center gap-3">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                <span>${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white/80 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.classList.remove('translate-x-full');
+        }, 100);
+        
+        setTimeout(() => {
+            toast.classList.add('translate-x-full');
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 300);
+        }, 5000);
+    }
 </script>
 {% endblock %}

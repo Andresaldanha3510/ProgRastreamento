@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-
 {% block title %}Fluxo de Caixa - TrackBras{% endblock %}
 
 {% block styles %}
@@ -23,7 +22,6 @@
         --gray-700: #334155;
         --gray-900: #0f172a;
     }
-
     .fluxo-container {
         background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
         border-radius: 16px;
@@ -32,7 +30,6 @@
         border: 1px solid var(--gray-200);
         margin-bottom: 2rem;
     }
-
     .section-header {
         display: flex;
         align-items: center;
@@ -42,18 +39,15 @@
         font-size: 1.25rem;
         font-weight: 600;
     }
-
     .section-title {
         display: flex;
         align-items: center;
         gap: 12px;
     }
-
     .section-title i {
         color: var(--primary-green);
         font-size: 1.5rem;
     }
-
     .btn-green {
         background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-dark) 100%);
         color: white;
@@ -69,14 +63,12 @@
         text-decoration: none;
         box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
     }
-
     .btn-green:hover {
         transform: translateY(-2px);
         box-shadow: 0 8px 25px rgba(46, 125, 50, 0.4);
         color: white;
         text-decoration: none;
     }
-
     .btn-secondary {
         background: linear-gradient(135deg, var(--gray-600) 0%, var(--gray-700) 100%);
         color: white;
@@ -91,13 +83,11 @@
         gap: 6px;
         text-decoration: none;
     }
-
     .btn-secondary:hover {
         color: white;
         text-decoration: none;
         opacity: 0.9;
     }
-
     /* KPIs Dashboard */
     .kpis-grid {
         display: grid;
@@ -105,7 +95,6 @@
         gap: 1.5rem;
         margin-bottom: 2rem;
     }
-
     .kpi-card {
         background: white;
         padding: 1.5rem;
@@ -117,11 +106,9 @@
         position: relative;
         overflow: hidden;
     }
-
     .kpi-card:hover {
         transform: translateY(-2px);
     }
-
     .kpi-card.receitas::before {
         content: '';
         position: absolute;
@@ -131,7 +118,6 @@
         height: 4px;
         background: linear-gradient(135deg, var(--green-600) 0%, var(--primary-green-light) 100%);
     }
-
     .kpi-card.despesas::before {
         content: '';
         position: absolute;
@@ -141,7 +127,6 @@
         height: 4px;
         background: linear-gradient(135deg, var(--red-600) 0%, #ef4444 100%);
     }
-
     .kpi-card.saldo::before {
         content: '';
         position: absolute;
@@ -151,7 +136,6 @@
         height: 4px;
         background: linear-gradient(135deg, var(--blue-600) 0%, #3b82f6 100%);
     }
-
     .kpi-card.vencido::before {
         content: '';
         position: absolute;
@@ -161,63 +145,50 @@
         height: 4px;
         background: linear-gradient(135deg, #f59e0b 0%, var(--accent-yellow) 100%);
     }
-
     .kpi-icon {
         font-size: 2rem;
         margin-bottom: 0.5rem;
     }
-
     .kpi-card.receitas .kpi-icon {
         color: var(--green-600);
     }
-
     .kpi-card.despesas .kpi-icon {
         color: var(--red-600);
     }
-
     .kpi-card.saldo .kpi-icon {
         color: var(--blue-600);
     }
-
     .kpi-card.vencido .kpi-icon {
         color: #f59e0b;
     }
-
     .kpi-value {
         font-size: 1.75rem;
         font-weight: 700;
         display: block;
         margin-bottom: 0.25rem;
     }
-
     .kpi-card.receitas .kpi-value {
         color: var(--green-600);
     }
-
     .kpi-card.despesas .kpi-value {
         color: var(--red-600);
     }
-
     .kpi-card.saldo .kpi-value {
         color: var(--blue-600);
     }
-
     .kpi-card.vencido .kpi-value {
         color: #f59e0b;
     }
-
     .kpi-label {
         font-size: 0.875rem;
         color: var(--gray-600);
         font-weight: 500;
     }
-
     .kpi-subtitle {
         font-size: 0.75rem;
         color: var(--gray-500);
         margin-top: 0.25rem;
     }
-
     /* Filtros */
     .filtros-section {
         background: white;
@@ -227,18 +198,15 @@
         border: 1px solid var(--gray-200);
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
-
     .filtros-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 1rem;
         margin-bottom: 1rem;
     }
-
     .form-group {
         margin-bottom: 0;
     }
-
     .form-label {
         display: block;
         margin-bottom: 0.5rem;
@@ -246,7 +214,6 @@
         color: var(--gray-900);
         font-size: 0.875rem;
     }
-
     .form-control {
         width: 100%;
         padding: 10px 14px;
@@ -255,13 +222,11 @@
         font-size: 0.875rem;
         transition: all 0.3s;
     }
-
     .form-control:focus {
         outline: none;
         border-color: var(--primary-green);
         box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
     }
-
     .form-select {
         width: 100%;
         padding: 10px 14px;
@@ -271,12 +236,10 @@
         font-size: 0.875rem;
         cursor: pointer;
     }
-
     .form-select:focus {
         outline: none;
         border-color: var(--primary-green);
     }
-
     .filtros-actions {
         display: flex;
         gap: 1rem;
@@ -284,7 +247,6 @@
         justify-content: flex-end;
         align-items: center;
     }
-
     /* Tabela do Fluxo */
     .fluxo-table-container {
         background: white;
@@ -293,12 +255,10 @@
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         border: 1px solid var(--gray-200);
     }
-
     .fluxo-table {
         width: 100%;
         border-collapse: collapse;
     }
-
     .fluxo-table th {
         background: linear-gradient(135deg, var(--primary-green-dark) 0%, var(--primary-green) 100%);
         color: white;
@@ -309,36 +269,29 @@
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
-
     .fluxo-table td {
         padding: 1rem;
         border-bottom: 1px solid var(--gray-100);
         vertical-align: middle;
         font-size: 0.875rem;
     }
-
     .fluxo-table tr:hover {
         background: var(--gray-50);
     }
-
     /* Status específicos */
     .fluxo-table tr.vencido {
         background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
     }
-
     .fluxo-table tr.vencido:hover {
         background: linear-gradient(135deg, #fde68a 0%, #fcd34d 100%);
     }
-
     .fluxo-table tr.pago {
         background: linear-gradient(135deg, var(--green-100) 0%, #bbf7d0 100%);
     }
-
     .fluxo-table tr.hoje {
         background: linear-gradient(135deg, var(--blue-100) 0%, #bfdbfe 100%);
         border-left: 4px solid var(--blue-600);
     }
-
     /* Badges de status */
     .status-badge {
         padding: 4px 12px;
@@ -349,27 +302,22 @@
         letter-spacing: 0.5px;
         display: inline-block;
     }
-
     .status-badge.pendente {
         background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
         color: white;
     }
-
     .status-badge.vencido {
         background: linear-gradient(135deg, #f59e0b 0%, var(--accent-yellow) 100%);
         color: white;
     }
-
     .status-badge.pago {
         background: linear-gradient(135deg, var(--green-600) 0%, var(--primary-green-light) 100%);
         color: white;
     }
-
     .status-badge.a-pagar {
         background: linear-gradient(135deg, #ef4444 0%, var(--red-600) 100%);
         color: white;
     }
-
     /* Tipos de movimento */
     .tipo-badge {
         padding: 4px 8px;
@@ -380,33 +328,27 @@
         align-items: center;
         gap: 4px;
     }
-
     .tipo-badge.receita {
         background: var(--green-100);
         color: var(--green-600);
     }
-
     .tipo-badge.despesa {
         background: var(--red-100);
         color: var(--red-600);
     }
-
     /* Valores monetários */
     .valor-receita {
         color: var(--green-600);
         font-weight: 600;
     }
-
     .valor-despesa {
         color: var(--red-600);
         font-weight: 600;
     }
-
     .valor-neutral {
         color: var(--gray-900);
         font-weight: 600;
     }
-
     /* Origem dos dados */
     .origem-badge {
         padding: 2px 6px;
@@ -416,17 +358,14 @@
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
-
     .origem-badge.nfe {
         background: #e0f2fe;
         color: #0277bd;
     }
-
     .origem-badge.manual {
         background: #f3e5f5;
         color: #7b1fa2;
     }
-
     /* Botões de ação */
     .btn-table {
         padding: 4px 8px;
@@ -442,34 +381,69 @@
         gap: 4px;
         transition: all 0.3s;
     }
-
     .btn-table.btn-pagar {
         background: var(--primary-green);
         color: white;
     }
-
     .btn-table.btn-pagar:hover {
         background: var(--primary-green-dark);
     }
-
     .btn-table.btn-view {
         background: #17a2b8;
         color: white;
     }
-
     .btn-table.btn-view:hover {
         background: #138496;
     }
-
     .btn-table.btn-edit {
         background: #ffc107;
         color: #212529;
     }
-
     .btn-table.btn-edit:hover {
         background: #e0a800;
     }
-
+    .btn-table.btn-delete {
+        background: #dc3545;
+        color: white;
+    }
+    .btn-table.btn-delete:hover {
+        background: #c82333;
+    }
+    .btn-table.btn-estornar {
+        background: #6c757d;
+        color: white;
+    }
+    .btn-table.btn-estornar:hover {
+        background: #5a6268;
+    }
+    /* Ações em Massa */
+    #barraAcoesMassa {
+        position: fixed;
+        bottom: -100px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, var(--gray-900) 0%, var(--gray-700) 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        z-index: 999;
+        transition: bottom 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    #barraAcoesMassa.visible {
+        bottom: 20px;
+    }
+    #contadorSelecionados {
+        font-weight: 600;
+    }
+    .btn-massa {
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: white;
+    }
     /* Modal */
     .modal {
         display: none;
@@ -482,7 +456,6 @@
         background: rgba(0, 0, 0, 0.7);
         backdrop-filter: blur(5px);
     }
-
     .modal-content {
         background: white;
         margin: 5% auto;
@@ -494,12 +467,13 @@
         animation: modalSlide 0.3s ease-out;
         overflow: hidden;
     }
-
+    .modal-content.large {
+        max-width: 700px;
+    }
     @keyframes modalSlide {
         from { transform: translateY(-50px); opacity: 0; }
         to { transform: translateY(0); opacity: 1; }
     }
-
     .modal-header {
         background: linear-gradient(135deg, var(--primary-green-dark) 0%, var(--primary-green) 100%);
         color: white;
@@ -508,7 +482,6 @@
         justify-content: space-between;
         align-items: center;
     }
-
     .modal-title {
         font-size: 1.25rem;
         font-weight: 600;
@@ -516,7 +489,6 @@
         align-items: center;
         gap: 10px;
     }
-
     .close {
         color: white;
         font-size: 1.75rem;
@@ -525,69 +497,61 @@
         transition: opacity 0.3s;
         line-height: 1;
     }
-
     .close:hover {
         opacity: 0.7;
     }
-
     .modal-body {
         padding: 2rem;
     }
-
+    .modal-footer {
+        padding: 1rem 2rem;
+        background-color: var(--gray-50);
+        text-align: right;
+    }
     /* Empty state */
     .empty-state {
         text-align: center;
         padding: 4rem 1.5rem;
         color: var(--gray-600);
     }
-
     .empty-state i {
         font-size: 4rem;
         margin-bottom: 1.5rem;
         color: var(--gray-300);
     }
-
     .empty-state h3 {
         margin-bottom: 0.75rem;
         color: var(--gray-700);
         font-size: 1.25rem;
     }
-
     /* Responsividade */
     @media (max-width: 768px) {
         .kpis-grid {
             grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
         }
-        
         .filtros-grid {
             grid-template-columns: 1fr;
         }
-        
         .filtros-actions {
             justify-content: stretch;
         }
-
         .fluxo-table-container {
             overflow-x: auto;
         }
-
         .fluxo-table th,
         .fluxo-table td {
             padding: 0.5rem;
             font-size: 0.75rem;
         }
     }
-
     /* Animações */
     .fade-in {
         animation: fadeIn 0.5s ease-in;
     }
-
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
     }
-
     .loading-spinner {
         display: none;
         width: 16px;
@@ -597,7 +561,6 @@
         border-top-color: white;
         animation: spin 1s linear infinite;
     }
-
     @keyframes spin {
         to { transform: rotate(360deg); }
     }
@@ -606,7 +569,6 @@
 
 {% block content %}
 <div class="space-y-6">
-    <!-- Cabeçalho da Página -->
     <div class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 shadow-lg">
         <h1 class="text-3xl font-bold flex items-center gap-3">
             <i class="fas fa-chart-line"></i>
@@ -615,49 +577,35 @@
         <p class="text-green-100 mt-2">Controle completo das suas receitas e despesas</p>
     </div>
 
-    <!-- Container de Notificações -->
     <div id="notifications"></div>
 
-    <!-- KPIs Dashboard -->
     <div class="kpis-grid">
         <div class="kpi-card receitas">
-            <div class="kpi-icon">
-                <i class="fas fa-arrow-up"></i>
-            </div>
-            <span class="kpi-value">{{ "%.2f"|format(totais.total_receitas)|replace('.', ',')|replace(',', '.', 1) }}</span>
+            <div class="kpi-icon"><i class="fas fa-arrow-up"></i></div>
+            <span class="kpi-value">R$ {{ "%.2f"|format(totais.total_receitas)|replace('.', ',')|replace(',', '.', 1) }}</span>
             <div class="kpi-label">Total Receitas</div>
             <div class="kpi-subtitle">R$ {{ "%.2f"|format(totais.total_receitas_pagas)|replace('.', ',')|replace(',', '.', 1) }} realizadas</div>
         </div>
-
         <div class="kpi-card despesas">
-            <div class="kpi-icon">
-                <i class="fas fa-arrow-down"></i>
-            </div>
-            <span class="kpi-value">{{ "%.2f"|format(totais.total_despesas)|replace('.', ',')|replace(',', '.', 1) }}</span>
+            <div class="kpi-icon"><i class="fas fa-arrow-down"></i></div>
+            <span class="kpi-value">R$ {{ "%.2f"|format(totais.total_despesas)|replace('.', ',')|replace(',', '.', 1) }}</span>
             <div class="kpi-label">Total Despesas</div>
             <div class="kpi-subtitle">R$ {{ "%.2f"|format(totais.total_despesas_pagas)|replace('.', ',')|replace(',', '.', 1) }} pagas</div>
         </div>
-
         <div class="kpi-card saldo">
-            <div class="kpi-icon">
-                <i class="fas fa-balance-scale"></i>
-            </div>
-            <span class="kpi-value">{{ "%.2f"|format(totais.saldo_previsto)|replace('.', ',')|replace(',', '.', 1) }}</span>
+            <div class="kpi-icon"><i class="fas fa-balance-scale"></i></div>
+            <span class="kpi-value">R$ {{ "%.2f"|format(totais.saldo_previsto)|replace('.', ',')|replace(',', '.', 1) }}</span>
             <div class="kpi-label">Saldo Previsto</div>
             <div class="kpi-subtitle">R$ {{ "%.2f"|format(totais.saldo_realizado)|replace('.', ',')|replace(',', '.', 1) }} realizado</div>
         </div>
-
         <div class="kpi-card vencido">
-            <div class="kpi-icon">
-                <i class="fas fa-exclamation-triangle"></i>
-            </div>
-            <span class="kpi-value">{{ "%.2f"|format(totais.vencido_total)|replace('.', ',')|replace(',', '.', 1) }}</span>
+            <div class="kpi-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <span class="kpi-value">R$ {{ "%.2f"|format(totais.vencido_total)|replace('.', ',')|replace(',', '.', 1) }}</span>
             <div class="kpi-label">Valores Vencidos</div>
             <div class="kpi-subtitle">Requer atenção</div>
         </div>
     </div>
 
-    <!-- Filtros -->
     <div class="filtros-section">
         <div class="section-header">
             <div class="section-title">
@@ -669,19 +617,16 @@
                 Novo Lançamento
             </a>
         </div>
-
         <form method="GET" id="filtrosForm">
             <div class="filtros-grid">
                 <div class="form-group">
                     <label class="form-label">Data Início</label>
                     <input type="date" name="data_inicio" class="form-control" value="{{ data_inicio }}">
                 </div>
-
                 <div class="form-group">
                     <label class="form-label">Data Fim</label>
                     <input type="date" name="data_fim" class="form-control" value="{{ data_fim }}">
                 </div>
-
                 <div class="form-group">
                     <label class="form-label">Categoria</label>
                     <select name="categoria" class="form-select">
@@ -693,33 +638,31 @@
                         {% endfor %}
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label class="form-label">Status</label>
                     <select name="status" class="form-select">
                         <option value="">Todos os Status</option>
                         <option value="PENDENTE" {% if status_filtro == 'PENDENTE' %}selected{% endif %}>Pendentes</option>
                         <option value="A Pagar" {% if status_filtro == 'A Pagar' %}selected{% endif %}>A Pagar</option>
-                        <option value="PAGO" {% if status_filtro == 'PAGO' %}selected{% endif %}>Pagos</option>
+                        <option value="PAGO" {% if status_filtro == 'PAGO' %}selected{% endif %}>Pagos (Manual)</option>
                         <option value="Pago" {% if status_filtro == 'Pago' %}selected{% endif %}>Pagos (NFe)</option>
                     </select>
                 </div>
             </div>
-
             <div class="filtros-actions">
+                <a href="{{ url_for('api_exportar_fluxo_excel', **request.args) }}" class="btn-secondary">
+                    <i class="fas fa-file-excel"></i> Exportar
+                </a>
                 <button type="button" class="btn-secondary" onclick="limparFiltros()">
-                    <i class="fas fa-times"></i>
-                    Limpar Filtros
+                    <i class="fas fa-times"></i> Limpar Filtros
                 </button>
                 <button type="submit" class="btn-green">
-                    <i class="fas fa-search"></i>
-                    Filtrar
+                    <i class="fas fa-search"></i> Filtrar
                 </button>
             </div>
         </form>
     </div>
 
-    <!-- Fluxo de Caixa -->
     <div class="fluxo-container">
         <div class="section-header">
             <div class="section-title">
@@ -728,7 +671,6 @@
                 <span class="text-base font-normal text-gray-600">({{ fluxo_consolidado|length }} lançamento(s))</span>
             </div>
         </div>
-
         {% if not fluxo_consolidado %}
             <div class="empty-state">
                 <i class="fas fa-calendar-times"></i>
@@ -736,8 +678,7 @@
                 <p>Não há lançamentos para o período ou filtros selecionados</p>
                 <div class="mt-4">
                     <a href="{{ url_for('novo_lancamento_fluxo') }}" class="btn-green">
-                        <i class="fas fa-plus"></i>
-                        Fazer Primeiro Lançamento
+                        <i class="fas fa-plus"></i> Fazer Primeiro Lançamento
                     </a>
                 </div>
             </div>
@@ -746,6 +687,9 @@
                 <table class="fluxo-table">
                     <thead>
                         <tr>
+                            <th style="width: 50px; text-align: center;">
+                                <input type="checkbox" id="selecionarTodosHeader" onchange="toggleSelecionarTodos(this.checked)">
+                            </th>
                             <th>Data Venc.</th>
                             <th>Tipo</th>
                             <th>Descrição</th>
@@ -759,107 +703,82 @@
                     <tbody>
                         {% for item in fluxo_consolidado %}
                         <tr class="{% if item.is_vencido %}vencido{% elif item.status in ['PAGO', 'Pago'] %}pago{% elif item.data_vencimento == hoje %}hoje{% endif %}">
+                            <td style="width: 50px; text-align: center;">
+                                {% if item.tipo_origem == 'MANUAL' and item.status not in ['PAGO', 'Pago'] %}
+                                    <input type="checkbox" class="item-checkbox" value="{{ item.id }}" onchange="atualizarSelecao()">
+                                {% endif %}
+                            </td>
                             <td>
-                                <div class="font-semibold">
-                                    {{ item.data_vencimento.strftime('%d/%m/%Y') }}
-                                </div>
+                                <div class="font-semibold">{{ item.data_vencimento.strftime('%d/%m/%Y') }}</div>
                                 {% if item.data_vencimento == hoje %}
                                     <div class="text-xs text-blue-600 font-medium">HOJE</div>
                                 {% elif item.is_vencido %}
                                     <div class="text-xs text-red-600 font-medium">
-                                     {% if item.data_vencimento %}
-                                      VENCIDO ({{ (hoje - item.data_vencimento).days }} dias)
-                                     {% else %}
-                                     VENCIDO (Data inválida)
-                                     {% endif %}
+                                        VENCIDO ({{ (hoje - item.data_vencimento).days }} dias)
                                     </div>
                                 {% endif %}
                             </td>
                             <td>
-                                <div class="tipo-badge {{ item.tipo_movimento|lower }}">
+                                <div class="tipo-badge {{ 'receita' if item.tipo_movimento == 'RECEITA' else 'despesa' }}">
                                     {% if item.tipo_movimento == 'RECEITA' %}
-                                        <i class="fas fa-arrow-up"></i>
-                                        Receita
+                                        <i class="fas fa-arrow-up"></i> Receita
                                     {% else %}
-                                        <i class="fas fa-arrow-down"></i>
-                                        Despesa
+                                        <i class="fas fa-arrow-down"></i> Despesa
                                     {% endif %}
                                 </div>
-                                <div class="origem-badge {{ item.tipo_origem|lower }} mt-1">
-                                    {{ item.tipo_origem }}
-                                </div>
+                                <div class="origem-badge {{ 'nfe' if item.tipo_origem == 'NFE' else 'manual' }} mt-1">{{ item.tipo_origem }}</div>
                             </td>
                             <td>
                                 <div class="font-medium">{{ item.descricao }}</div>
-                                {% if item.parcela %}
-                                    <div class="text-xs text-gray-600">
-                                        <i class="fas fa-layer-group"></i>
-                                        Parcela {{ item.parcela }}
-                                    </div>
-                                {% endif %}
-                                {% if item.documento %}
-                                    <div class="text-xs text-gray-600">
-                                        Doc: {{ item.documento }}
-                                    </div>
-                                {% endif %}
+                                {% if item.parcela %}<div class="text-xs text-gray-600"><i class="fas fa-layer-group"></i> Parcela {{ item.parcela }}</div>{% endif %}
+                                {% if item.documento %}<div class="text-xs text-gray-600">Doc: {{ item.documento }}</div>{% endif %}
                             </td>
                             <td>{{ item.fornecedor_cliente or '-' }}</td>
+                            <td><span class="text-sm bg-gray-100 px-2 py-1 rounded">{{ item.categoria }}</span></td>
                             <td>
-                                <span class="text-sm bg-gray-100 px-2 py-1 rounded">
-                                    {{ item.categoria }}
-                                </span>
-                            </td>
-                            <td>
-                                <div class="font-semibold text-lg 
-                                    {% if item.tipo_movimento == 'RECEITA' %}valor-receita{% else %}valor-despesa{% endif %}">
-                                    {% if item.tipo_movimento == 'RECEITA' %}+{% else %}-{% endif %}
-                                    R$ {{ "%.2f"|format(item.valor)|replace('.', ',')|replace(',', '.', 1) }}
+                                <div class="font-semibold text-lg {{ 'valor-receita' if item.tipo_movimento == 'RECEITA' else 'valor-despesa' }}">
+                                    {% if item.tipo_movimento == 'RECEITA' %}+{% else %}-{% endif %} R$ {{ "%.2f"|format(item.valor)|replace('.', ',')|replace(',', '.', 1) }}
                                 </div>
-                                {% if item.data_pagamento %}
-                                    <div class="text-xs text-gray-600">
-                                        Pago em {{ item.data_pagamento.strftime('%d/%m/%Y') }}
-                                    </div>
-                                {% endif %}
+                                {% if item.data_pagamento %}<div class="text-xs text-gray-600">Pago em {{ item.data_pagamento.strftime('%d/%m/%Y') }}</div>{% endif %}
                             </td>
                             <td>
-                                {% if item.status in ['PAGO', 'Pago'] %}
-                                    <span class="status-badge pago">
-                                        <i class="fas fa-check"></i>
-                                        Pago
-                                    </span>
-                                {% elif item.is_vencido %}
-                                    <span class="status-badge vencido">
-                                        <i class="fas fa-exclamation-triangle"></i>
-                                        Vencido
-                                    </span>
+                                {% if item.is_vencido %}
+                                    <span class="status-badge vencido">Vencido</span>
+                                {% elif item.status in ['PAGO', 'Pago'] %}
+                                    <span class="status-badge pago">Pago</span>
+                                {% elif item.status == 'A Pagar' %}
+                                     <span class="status-badge a-pagar">A Pagar</span>
                                 {% else %}
-                                    <span class="status-badge {% if item.status == 'A Pagar' %}a-pagar{% else %}pendente{% endif %}">
-                                        <i class="fas fa-clock"></i>
-                                        {{ item.status }}
-                                    </span>
+                                    <span class="status-badge pendente">{{ item.status }}</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if item.status not in ['PAGO', 'Pago'] %}
-                                    <button class="btn-table btn-pagar" 
-                                            onclick="marcarComoPago('{{ item.id }}', '{{ item.descricao }}')">
-                                        <i class="fas fa-check"></i>
-                                        Pagar
+                                    <button class="btn-table btn-pagar" data-item-id="{{ item.id }}" data-item-valor="{{ item.valor }}">
+                                        <i class="fas fa-check"></i> Pagar
                                     </button>
-                                {% endif %}
-                                
-                                {% if item.tipo_origem == 'NFE' %}
-                                    <button class="btn-table btn-view" 
-                                            onclick="visualizarNFe('{{ item.objeto.chave_acesso }}')">
-                                        <i class="fas fa-eye"></i>
-                                        Ver NFe
+                                    {% if item.tipo_origem == 'MANUAL' %}
+                                    <button class="btn-table btn-edit" data-item-id="{{ item.id }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    {% endif %}
+                                    <button class="btn-table btn-delete" data-item-id="{{ item.id }}">
+                                        <i class="fas fa-trash"></i>
                                     </button>
                                 {% else %}
-                                    <button class="btn-table btn-edit" 
-                                            onclick="editarLancamento('{{ item.id }}')">
-                                        <i class="fas fa-edit"></i>
-                                        Editar
+                                    <button class="btn-table btn-estornar" data-item-id="{{ item.id }}">
+                                        <i class="fas fa-undo"></i> Estornar
                                     </button>
+                                {% endif %}
+                                {% if item.tipo_origem == 'NFE' and item.objeto.chave_acesso %}
+                                    <a href="{{ url_for('visualizar_xml_page', chave_acesso=item.objeto.chave_acesso) }}" class="btn-table btn-view" target="_blank">
+                                        <i class="fas fa-file-code"></i> XML
+                                    </a>
+                                {% endif %}
+                                {% if item.tipo_origem == 'MANUAL' %}
+                                <button class="btn-table btn-duplicar" data-item-id="{{ item.id }}" style="background: #007bff; color: white;">
+                                    <i class="fas fa-copy"></i>
+                                </button>
                                 {% endif %}
                             </td>
                         </tr>
@@ -871,240 +790,430 @@
     </div>
 </div>
 
-<!-- Modal de Pagamento -->
-<div id="modalPagamento" class="modal">
+<div id="barraAcoesMassa">
+    <span id="contadorSelecionados">0 itens selecionados</span>
+    <button class="btn-table btn-massa" id="btnAlterarCategoriaMassa"><i class="fas fa-tags"></i> Alterar Categoria</button>
+    <button class="btn-table btn-massa" id="btnMarcarPagoMassa"><i class="fas fa-check-double"></i> Marcar como Pago</button>
+    <button class="btn-table btn-massa" id="btnExcluirMassa"><i class="fas fa-trash-alt"></i> Excluir</button>
+</div>
+
+<div id="pagamentoModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <div class="modal-title">
-                <i class="fas fa-dollar-sign"></i>
-                Confirmar Pagamento
-            </div>
-            <span class="close" onclick="fecharModal()">&times;</span>
+            <h2 class="modal-title"><i class="fas fa-dollar-sign"></i>Confirmar Pagamento</h2>
+            <span class="close" onclick="closeModal('pagamentoModal')">&times;</span>
         </div>
-        <div class="modal-body">
-            <div id="dadosPagamento"></div>
-            
-            <div class="form-group">
-                <label class="form-label">Data do Pagamento *</label>
-                <input type="date" id="dataPagamento" class="form-control" required>
+        <form id="pagamentoForm">
+            <div class="modal-body">
+                <p>Você está prestes a marcar o lançamento como <strong>pago</strong>.</p>
+                <p class="text-lg font-bold my-2" id="valorPagamentoModal"></p>
+                <input type="hidden" id="itemId" name="itemId">
+                <div class="form-group mt-4">
+                    <label class="form-label" for="data_pagamento_modal">Data do Pagamento</label>
+                    <input type="date" id="data_pagamento_modal" name="data_pagamento" class="form-control" required>
+                </div>
             </div>
-
-            <div class="flex gap-4 justify-end mt-6">
-                <button class="btn-secondary" onclick="fecharModal()">
-                    <i class="fas fa-times"></i>
-                    Cancelar
-                </button>
-                <button class="btn-green" id="btnConfirmarPagamento">
-                    <i class="fas fa-check"></i>
-                    <span class="loading-spinner" id="loadingPagamento"></span>
-                    Confirmar Pagamento
-                </button>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('pagamentoModal')">Cancelar</button>
+                <button type="submit" class="btn-green">Confirmar Pagamento</button>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 
-<script>
-// Variáveis globais
-let itemParaPagamento = null;
-
-// Inicialização
-document.addEventListener('DOMContentLoaded', function() {
-    configurarEventos();
-    atualizarDatasPadrao();
-});
-
-function configurarEventos() {
-    document.getElementById('btnConfirmarPagamento').addEventListener('click', confirmarPagamento);
-    
-    // Auto-submit do formulário quando mudarem as datas
-    const dataInicio = document.querySelector('input[name="data_inicio"]');
-    const dataFim = document.querySelector('input[name="data_fim"]');
-    
-    if (dataInicio) {
-        dataInicio.addEventListener('change', function() {
-            // Aguarda um pouco para o usuário terminar de ajustar as datas
-            clearTimeout(this.timeoutId);
-            this.timeoutId = setTimeout(() => {
-                document.getElementById('filtrosForm').submit();
-            }, 1000);
-        });
-    }
-    
-    if (dataFim) {
-        dataFim.addEventListener('change', function() {
-            clearTimeout(this.timeoutId);
-            this.timeoutId = setTimeout(() => {
-                document.getElementById('filtrosForm').submit();
-            }, 1000);
-        });
-    }
-}
-
-function atualizarDatasPadrao() {
-    // Define a data de pagamento como hoje por padrão
-    const hoje = new Date().toISOString().split('T')[0];
-    document.getElementById('dataPagamento').value = hoje;
-}
-
-function marcarComoPago(itemId, descricao) {
-    const modal = document.getElementById('modalPagamento');
-    const dadosContainer = document.getElementById('dadosPagamento');
-    
-    dadosContainer.innerHTML = `
-        <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
-            <h4 style="color: #1b5e20; margin-bottom: 0.5rem;">
-                <i class="fas fa-dollar-sign"></i>
-                Confirmar Pagamento
-            </h4>
-            <p style="color: #666; margin: 0;">
-                <strong>Lançamento:</strong> ${descricao}
-            </p>
+<div id="edicaoModal" class="modal">
+    <div class="modal-content large">
+        <div class="modal-header">
+            <h2 class="modal-title"><i class="fas fa-edit"></i>Editar Lançamento</h2>
+            <span class="close" onclick="closeModal('edicaoModal')">&times;</span>
         </div>
-    `;
+        <form id="edicaoForm">
+            <div class="modal-body">
+                 <input type="hidden" id="lancamentoId" name="lancamento_id">
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-group">
+                        <label class="form-label" for="edit-tipo">Tipo</label>
+                        <select id="edit-tipo" name="tipo" class="form-select" required>
+                            <option value="RECEITA">Receita</option>
+                            <option value="DESPESA">Despesa</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-valor_total">Valor (R$)</label>
+                        <input type="number" step="0.01" id="edit-valor_total" name="valor_total" class="form-control" required>
+                    </div>
+                     <div class="form-group col-span-2">
+                        <label class="form-label" for="edit-descricao">Descrição</label>
+                        <input type="text" id="edit-descricao" name="descricao" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-categoria">Categoria</label>
+                        <input type="text" id="edit-categoria" name="categoria" class="form-control">
+                    </div>
+                     <div class="form-group">
+                        <label class="form-label" for="edit-data_vencimento">Data Vencimento</label>
+                        <input type="date" id="edit-data_vencimento" name="data_vencimento" class="form-control" required>
+                    </div>
+                     <div class="form-group">
+                        <label class="form-label" for="edit-fornecedor_cliente">Fornecedor/Cliente</label>
+                        <input type="text" id="edit-fornecedor_cliente" name="fornecedor_cliente" class="form-control">
+                    </div>
+                     <div class="form-group">
+                        <label class="form-label" for="edit-documento_numero">Nº Documento</label>
+                        <input type="text" id="edit-documento_numero" name="documento_numero" class="form-control">
+                    </div>
+                      <div class="form-group col-span-2">
+                        <label class="form-label" for="edit-observacoes">Observações</label>
+                        <textarea id="edit-observacoes" name="observacoes" class="form-control" rows="2"></textarea>
+                    </div>
+                 </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('edicaoModal')">Cancelar</button>
+                <button type="submit" class="btn-green">Salvar Alterações</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-    itemParaPagamento = itemId;
-    modal.style.display = 'block';
-}
+<div id="confirmarExclusaoModal" class="modal">
+    <div class="modal-content">
+         <div class="modal-header" style="background: linear-gradient(135deg, #c82333 0%, #dc3545 100%);">
+            <h2 class="modal-title"><i class="fas fa-exclamation-triangle"></i>Confirmar Exclusão</h2>
+            <span class="close" onclick="closeModal('confirmarExclusaoModal')">&times;</span>
+        </div>
+        <form id="exclusaoForm">
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.</p>
+                <input type="hidden" id="itemIdParaExcluir" name="item_id">
+            </div>
+             <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('confirmarExclusaoModal')">Cancelar</button>
+                <button type="submit" class="btn-danger" style="background: #dc3545; color: white;">Excluir</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-async function confirmarPagamento() {
-    if (!itemParaPagamento) return;
-    
-    const dataPagamento = document.getElementById('dataPagamento').value;
-    const btn = document.getElementById('btnConfirmarPagamento');
-    const loading = document.getElementById('loadingPagamento');
+<div id="estornarPagamentoModal" class="modal">
+    <div class="modal-content">
+         <div class="modal-header" style="background: linear-gradient(135deg, #5a6268 0%, #6c757d 100%);">
+            <h2 class="modal-title"><i class="fas fa-undo"></i>Estornar Pagamento</h2>
+            <span class="close" onclick="closeModal('estornarPagamentoModal')">&times;</span>
+        </div>
+        <form id="estornoForm">
+            <div class="modal-body">
+                <p>Você está prestes a estornar este pagamento, marcando-o novamente como pendente. Deseja continuar?</p>
+                <input type="hidden" id="itemIdParaEstornar" name="item_id">
+                 <div class="form-group mt-4">
+                    <label class="form-label" for="motivo_estorno">Motivo (Opcional)</label>
+                    <input type="text" id="motivo_estorno" name="motivo" class="form-control" placeholder="Ex: Pagamento duplicado">
+                </div>
+            </div>
+             <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('estornarPagamentoModal')">Cancelar</button>
+                <button type="submit" class="btn-warning" style="background:#6c757d; color:white;">Confirmar Estorno</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-    if (!dataPagamento) {
-        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Data de pagamento é obrigatória');
-        return;
-    }
+<div id="duplicarLancamentoModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header" style="background: linear-gradient(135deg, #0069d9 0%, #007bff 100%);">
+            <h2 class="modal-title"><i class="fas fa-copy"></i>Duplicar Lançamento</h2>
+            <span class="close" onclick="closeModal('duplicarLancamentoModal')">&times;</span>
+        </div>
+        <form id="duplicarForm">
+            <div class="modal-body">
+                <p>Uma cópia deste lançamento será criada. Informe a nova data de vencimento.</p>
+                <input type="hidden" id="itemIdParaDuplicar" name="item_id">
+                <div class="form-group mt-4">
+                    <label class="form-label" for="nova_data_vencimento_duplicar">Nova Data de Vencimento</label>
+                    <input type="date" id="nova_data_vencimento_duplicar" name="nova_data_vencimento" class="form-control" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('duplicarLancamentoModal')">Cancelar</button>
+                <button type="submit" class="btn-primary" style="background:#007bff; color:white;">Duplicar</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-    btn.disabled = true;
-    loading.style.display = 'inline-block';
+<div id="alterarCategoriaMassaModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title"><i class="fas fa-tags"></i>Alterar Categoria em Massa</h2>
+            <span class="close" onclick="closeModal('alterarCategoriaMassaModal')">&times;</span>
+        </div>
+        <form id="alterarCategoriaMassaForm">
+            <div class="modal-body">
+                <p>Selecione a nova categoria para os <strong id="contadorModalCategoria"></strong> itens selecionados.</p>
+                <div class="form-group mt-4">
+                    <label class="form-label" for="nova_categoria_massa">Nova Categoria</label>
+                    <select id="nova_categoria_massa" name="nova_categoria" class="form-select" required>
+                        {% for categoria in categorias %}
+                            <option value="{{ categoria }}">{{ categoria }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('alterarCategoriaMassaModal')">Cancelar</button>
+                <button type="submit" class="btn-green">Aplicar</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-    try {
-        const response = await fetch('/api/fluxo_caixa/marcar_pago', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                item_id: itemParaPagamento,
-                data_pagamento: dataPagamento
-            })
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Lógica de Modais
+        const modals = document.querySelectorAll('.modal');
+        
+        window.openModal = function(id) {
+            document.getElementById(id).style.display = 'block';
+        }
+        
+        window.closeModal = function(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            modals.forEach(modal => {
+                if (event.target == modal) {
+                    modal.style.display = "none";
+                }
+            });
+        }
+
+        // --- MANIPULADORES DE EVENTOS PARA BOTÕES DE AÇÃO ---
+        document.querySelectorAll('.btn-pagar').forEach(button => {
+            button.addEventListener('click', function() {
+                const itemId = this.dataset.itemId;
+                const itemValor = parseFloat(this.dataset.itemValor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                document.getElementById('itemId').value = itemId;
+                document.getElementById('valorPagamentoModal').textContent = `Valor: ${itemValor}`;
+                document.getElementById('data_pagamento_modal').valueAsDate = new Date();
+                openModal('pagamentoModal');
+            });
         });
 
-        const result = await response.json();
+        document.querySelectorAll('.btn-edit').forEach(button => {
+            button.addEventListener('click', function() {
+                const itemId = this.dataset.itemId;
+                fetch(`/api/fluxo_caixa/buscar_dados/${itemId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const form = document.getElementById('edicaoForm');
+                            form.lancamentoId.value = data.dados.id;
+                            form.tipo.value = data.dados.tipo;
+                            form.valor_total.value = data.dados.valor_total;
+                            form.descricao.value = data.dados.descricao;
+                            form.categoria.value = data.dados.categoria;
+                            form.data_vencimento.value = data.dados.data_vencimento;
+                            form.fornecedor_cliente.value = data.dados.fornecedor_cliente;
+                            form.documento_numero.value = data.dados.documento_numero;
+                            form.observacoes.value = data.dados.observacoes;
+                            openModal('edicaoModal');
+                        } else {
+                            showNotification(data.message, 'error');
+                        }
+                    });
+            });
+        });
 
-        if (result.success) {
-            mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> ${result.message}`);
-            fecharModal();
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
-        } else {
-            mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> ${result.message}`);
+        document.querySelectorAll('.btn-delete').forEach(button => {
+            button.addEventListener('click', function() {
+                const itemId = this.dataset.itemId;
+                document.getElementById('itemIdParaExcluir').value = itemId;
+                openModal('confirmarExclusaoModal');
+            });
+        });
+
+        document.querySelectorAll('.btn-estornar').forEach(button => {
+            button.addEventListener('click', function() {
+                document.getElementById('itemIdParaEstornar').value = this.dataset.itemId;
+                document.getElementById('motivo_estorno').value = '';
+                openModal('estornarPagamentoModal');
+            });
+        });
+
+        document.querySelectorAll('.btn-duplicar').forEach(button => {
+            button.addEventListener('click', function() {
+                document.getElementById('itemIdParaDuplicar').value = this.dataset.itemId;
+                const today = new Date();
+                const nextMonth = new Date(today.setMonth(today.getMonth() + 1));
+                document.getElementById('nova_data_vencimento_duplicar').valueAsDate = nextMonth;
+                openModal('duplicarLancamentoModal');
+            });
+        });
+        
+        // --- LÓGICA DE SUBMISSÃO DOS FORMS DOS MODAIS (VIA FETCH API) ---
+        
+        document.getElementById('pagamentoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const data = {
+                item_id: formData.get('itemId'),
+                data_pagamento: formData.get('data_pagamento')
+            };
+            fetch('/api/fluxo_caixa/marcar_pago', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(handleResponse)
+            .catch(handleError);
+        });
+
+        document.getElementById('edicaoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+            fetch('/api/fluxo_caixa/salvar_edicao', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(handleResponse)
+            .catch(handleError);
+        });
+
+        document.getElementById('exclusaoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const data = { item_id: document.getElementById('itemIdParaExcluir').value };
+            fetch('/api/fluxo_caixa/excluir', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(handleResponse)
+            .catch(handleError);
+        });
+
+        document.getElementById('estornoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const data = { 
+                item_id: document.getElementById('itemIdParaEstornar').value,
+                motivo: document.getElementById('motivo_estorno').value
+            };
+            fetch('/api/fluxo_caixa/estornar_pagamento', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(handleResponse)
+            .catch(handleError);
+        });
+        
+        document.getElementById('duplicarForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const data = { 
+                item_id: document.getElementById('itemIdParaDuplicar').value,
+                nova_data_vencimento: document.getElementById('nova_data_vencimento_duplicar').value
+            };
+            fetch('/api/fluxo_caixa/duplicar', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(handleResponse)
+            .catch(handleError);
+        });
+
+         // --- LÓGICA DE AÇÕES EM MASSA ---
+
+        document.getElementById('btnAlterarCategoriaMassa').addEventListener('click', function() {
+            const selecionados = getSelectedItems();
+            if (selecionados.length === 0) return;
+            document.getElementById('contadorModalCategoria').textContent = selecionados.length;
+            openModal('alterarCategoriaMassaModal');
+        });
+        
+        document.getElementById('alterarCategoriaMassaForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const data = {
+                item_ids: getSelectedItems(),
+                nova_categoria: document.getElementById('nova_categoria_massa').value
+            };
+            fetch('/api/fluxo_caixa/alterar_categoria_massa', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(handleResponse)
+            .catch(handleError);
+        });
+        
+        // Funções auxiliares
+        function handleResponse(response) {
+            return response.json().then(data => {
+                showNotification(data.message, data.success ? 'success' : 'error');
+                if (data.success) {
+                    setTimeout(() => window.location.reload(), 1500);
+                }
+            });
         }
-    } catch (error) {
-        mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro de conexão: ${error.message}`);
-    } finally {
-        btn.disabled = false;
-        loading.style.display = 'none';
-    }
-}
-
-function fecharModal() {
-    const modal = document.getElementById('modalPagamento');
-    modal.style.display = 'none';
-    itemParaPagamento = null;
-    document.getElementById('dadosPagamento').innerHTML = '';
-}
-
-function visualizarNFe(chaveAcesso) {
-    window.open(`/fiscal/xml/${chaveAcesso}`, '_blank');
-}
-
-function editarLancamento(itemId) {
-    // Implementar edição de lançamento manual
-    const lancamentoId = itemId.replace('manual_', '');
-    window.location.href = `/financeiro/fluxo_caixa/editar/${lancamentoId}`;
-}
-
-function limparFiltros() {
-    const form = document.getElementById('filtrosForm');
-    const inputs = form.querySelectorAll('input, select');
-    
-    inputs.forEach(input => {
-        if (input.type === 'date') {
-            // Manter as datas padrão
-            const hoje = new Date();
-            const dataFim = new Date(hoje.getTime() + (30 * 24 * 60 * 60 * 1000));
-            
-            if (input.name === 'data_inicio') {
-                input.value = hoje.toISOString().split('T')[0];
-            } else if (input.name === 'data_fim') {
-                input.value = dataFim.toISOString().split('T')[0];
-            }
-        } else {
-            input.value = '';
+        function handleError(error) {
+            showNotification('Erro de rede ou servidor. Tente novamente.', 'error');
+            console.error('Fetch Error:', error);
         }
     });
-    
-    form.submit();
-}
 
-function mostrarNotificacao(tipo, mensagem) {
-    const container = document.getElementById('notifications');
-    const notification = document.createElement('div');
-    
-    const tipoClasses = {
-        'success': 'bg-green-100 text-green-800 border border-green-200',
-        'error': 'bg-red-100 text-red-800 border border-red-200',
-        'info': 'bg-blue-100 text-blue-800 border border-blue-200'
-    };
-    
-    notification.className = `${tipoClasses[tipo]} p-4 rounded-lg shadow-md mb-4 flex items-center gap-3 font-medium`;
-    notification.innerHTML = mensagem;
-    notification.style.animation = 'slideIn 0.3s ease-out';
-    
-    container.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease-in forwards';
-        setTimeout(() => {
-            if (container.contains(notification)) {
-                container.removeChild(notification);
-            }
-        }, 300);
-    }, 5000);
-}
+    function showNotification(message, type = 'success') {
+        const container = document.getElementById('notifications');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+        alert.role = 'alert';
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        container.appendChild(alert);
+        setTimeout(() => alert.remove(), 5000);
+    }
 
-// Event listeners para modal
-window.onclick = function(event) {
-    const modal = document.getElementById('modalPagamento');
-    if (event.target === modal) {
-        fecharModal();
+    function limparFiltros() {
+        const form = document.getElementById('filtrosForm');
+        form.data_inicio.value = '';
+        form.data_fim.value = '';
+        form.categoria.value = '';
+        form.status.value = '';
+        form.submit();
     }
-}
+    
+    // --- Funções para seleção em massa ---
+    function toggleSelecionarTodos(checked) {
+        document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+            checkbox.checked = checked;
+        });
+        atualizarSelecao();
+    }
+    
+    function atualizarSelecao() {
+        const selecionados = document.querySelectorAll('.item-checkbox:checked').length;
+        const barra = document.getElementById('barraAcoesMassa');
+        const contador = document.getElementById('contadorSelecionados');
 
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        fecharModal();
+        if (selecionados > 0) {
+            contador.textContent = `${selecionados} item(s) selecionado(s)`;
+            barra.classList.add('visible');
+        } else {
+            barra.classList.remove('visible');
+        }
+        // Desmarca o header se algum item for desmarcado individualmente
+        document.getElementById('selecionarTodosHeader').checked = selecionados === document.querySelectorAll('.item-checkbox').length && selecionados > 0;
     }
-});
+    
+    function getSelectedItems() {
+        return Array.from(document.querySelectorAll('.item-checkbox:checked')).map(cb => cb.value);
+    }
 
-// Adicionar estilos de animação
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    @keyframes slideOut {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(100%); opacity: 0; }
-    }
-`;
-document.head.appendChild(style);
 </script>
 {% endblock %}

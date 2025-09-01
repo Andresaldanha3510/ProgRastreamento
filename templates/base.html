@@ -175,6 +175,7 @@
                     <div x-show="openSection === 'operacoes'" x-collapse class="pl-6 pt-2 space-y-1">
                         <a href="{{ url_for('oficina') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Oficina</a>
                         <a href="{{ url_for('iniciar_viagem_page') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Criar Viagem</a>
+                        <a href="{{ url_for('importar_nfe_page') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Importar Viagem (NF-e)</a>
                     </div>
                 </div>
 
@@ -278,6 +279,7 @@
                          <ul class="space-y-2">
                              <li><a href="{{ url_for('oficina') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors"">Oficina</a></li>
                              <li><a href="{{ url_for('iniciar_viagem_page') }}" class="block p-2 rounded hover:bg-white/10 transition">Criar Viagem</a></li>
+                             <li><a href="{{ url_for('importar_nfe_page') }}" class="block p-2 rounded hover:bg-white/10 transition">Importar Viagem (NF-e)</a></li>
                          </ul>
                      </div>
                      <div>
@@ -336,13 +338,13 @@
                     { title: 'Consultar Veículos', href: "{{ url_for('consultar_veiculos') }}", tags: ['consulta', 'ver', 'lista'] },
                     { title: 'Consultar Viagens', href: "{{ url_for('consultar_viagens') }}", tags: ['consulta', 'ver', 'lista'] },
                     { title: 'Criar Viagem', href: "{{ url_for('iniciar_viagem_page') }}", tags: ['operações', 'novo', 'iniciar'] },
-                    // ▼▼▼ LINKS FINANCEIROS ATUALIZADOS NA BUSCA ▼▼▼
+                    // ▼▼▼ LINK ADICIONADO À BUSCA ▼▼▼
+                    { title: 'Importar Viagem (NF-e)', href: "{{ url_for('importar_nfe_page') }}", tags: ['operações', 'viagem', 'nfe', 'xml'] },
                     { title: 'Fluxo de Caixa', href: "{{ url_for('fluxo_caixa') }}", tags: ['financeiro', 'caixa', 'contas', 'pagar', 'receber', 'despesas', 'receitas'] },
                     { title: 'Importar Notas Fiscais (SEFAZ)', href: "{{ url_for('importar_notas_fiscais') }}", tags: ['financeiro', 'fiscal', 'nfe', 'sefaz', 'xml', 'importar'] },
                     { title: 'Cobranças', href: "{{ url_for('consultar_cobrancas') }}", tags: ['financeiro', 'dinheiro', 'cobrança', 'cliente', 'receber'] },
                     { title: 'Folha de Pagamento', href: "{{ url_for('folha_pagamento_dashboard') }}", tags: ['financeiro', 'salário', 'motorista', 'pagamento', 'rh'] },
                     { title: 'Configurações', href: "{{ url_for('configuracoes') }}", tags: ['sistema', 'ajustes'] },
-                    // ▼▼▼ LINKS DE RELATÓRIOS ATUALIZADOS NA BUSCA ▼▼▼
                     { title: 'Relatório Estratégico', href: "{{ url_for('relatorios') }}", tags: ['relatório', 'ver', 'dashboard', 'estratégia'] },
                     { title: 'DRE Financeiro', href: "{{ url_for('relatorio_financeiro_dre') }}", tags: ['relatório', 'financeiro', 'dre', 'resultado'] },
                     { title: 'Desempenho de Veículos', href: "{{ url_for('relatorio_desempenho_veiculos') }}", tags: ['relatório', 'veículo', 'desempenho', 'custo'] },

@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Lançamento - TrackBras{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Cabeçalho -->
+    <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg p-6 shadow-lg mb-6">
+        <h1 class="text-3xl font-bold flex items-center gap-3">
+            <i class="fas fa-edit"></i>
+            Editar Lançamento
+        </h1>
+        <p class="text-blue-100 mt-2">Atualize os dados do lançamento no fluxo de caixa</p>
+    </div>
+
+    <!-- Formulário de Edição -->
+    <div class="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
+        <form method="POST" id="formEditarLancamento">
+            <!-- Tipo e Categoria -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="form-group">
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">
+                        Tipo de Movimento *
+                    </label>
+                    <select name="tipo" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none" required>
+                        <option value="RECEITA" {% if lancamento.tipo == 'RECEITA' %}selected{% endif %}>Receita</option>
+                        <option value="DESPESA" {% if lancamento.tipo == 'DESPESA' %}selected{% endif %}>Despesa</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">
+                        Categoria
+                    </label>
+                    <input type="text" name="categoria" 
+                           value="{{ lancamento.categoria or '' }}"
+                           class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
+                           placeholder="Ex: Combustível, Manutenção, Vendas">
+                </div>
+            </div>
+
+            <!-- Descrição -->
+            <div class="form-group mb-6">
+                <label class="block text-sm font-semibold text-gray-900 mb-2">
+                    Descrição *
+                </label>
+                <input type="text" name="descricao" 
+                       value="{{ lancamento.descricao }}"
+                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none" 
+                       placeholder="Descrição detalhada do lançamento" required>
+            </div>
+
+            <!-- Valor e Data -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="form-group">
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">
+                        Valor Total *
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-3 text-gray-500">R$</span>
+                        <input type="number" name="valor_total" 
+                               value="{{ lancamento.valor_total }}"
+                               class="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
+                               step="0.01" min="0" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">
+                        Data de Vencimento *
+                    </label>
+                    <input type="date" name="data_vencimento" 
+                           value="{{ lancamento.data_vencimento.strftime('%Y-%m-%d') }}"
+                           class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none" required>
+                </div>
+            </div>
+
+            <!-- Fornecedor/Cliente e Documento -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="form-group">
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">
+                        Fornecedor/Cliente
+                    </label>
+                    <input type="text" name="fornecedor_cliente" 
+                           value="{{ lancamento.fornecedor_cliente or '' }}"
+                           class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
+                           placeholder="Nome do fornecedor ou cliente">
+                </div>
+
+                <div class="form-group">
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">
+                        Número do Documento
+                    </label>
+                    <input type="text" name="documento_numero" 
+                           value="{{ lancamento.documento_numero or '' }}"
+                           class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
+                           placeholder="Ex: NF-123, Boleto-456">
+                </div>
+            </div>
+
+            <!-- Observações -->
+            <div class="form-group mb-6">
+                <label class="block text-sm font-semibold text-gray-900 mb-2">
+                    Observações
+                </label>
+                <textarea name="observacoes" rows="4"
+                          class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
+                          placeholder="Observações adicionais sobre este lançamento...">{{ lancamento.observacoes or '' }}</textarea>
+            </div>
+
+            <!-- Status Atual -->
+            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                    <i class="fas fa-info-circle text-blue-500"></i>
+                    Informações do Lançamento
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                        <span class="font-medium text-gray-700">Status:</span>
+                        <span class="ml-2 px-2 py-1 rounded 
+                            {% if lancamento.status_pagamento == 'PAGO' %}bg-green-100 text-green-800
+                            {% elif lancamento.is_vencido %}bg-red-100 text-red-800
+                            {% else %}bg-blue-100 text-blue-800{% endif %}">
+                            {{ lancamento.status_pagamento }}
+                        </span>
+                    </div>
+                    <div>
+                        <span class="font-medium text-gray-700">Criado em:</span>
+                        <span class="ml-2">{{ lancamento.data_lancamento.strftime('%d/%m/%Y às %H:%M') }}</span>
+                    </div>
+                    {% if lancamento.data_pagamento %}
+                    <div>
+                        <span class="font-medium text-gray-700">Pago em:</span>
+                        <span class="ml-2">{{ lancamento.data_pagamento.strftime('%d/%m/%Y') }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-between">
+                <a href="{{ url_for('fluxo_caixa') }}" 
+                   class="btn-secondary inline-flex items-center justify-center px-6 py-3 rounded-lg">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Voltar ao Fluxo
+                </a>
+
+                <div class="flex gap-3">
+                    {% if lancamento.status_pagamento != 'PAGO' %}
+                        <button type="submit" 
+                                class="btn-green inline-flex items-center justify-center px-6 py-3 rounded-lg">
+                            <i class="fas fa-save mr-2"></i>
+                            Salvar Alterações
+                        </button>
+                    {% else %}
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                            <div class="flex items-center gap-2 text-yellow-800">
+                                <i class="fas fa-lock"></i>
+                                <span class="text-sm font-medium">
+                                    Lançamento pago não pode ser editado
+                                </span>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar se o lançamento está pago e desabilitar campos se necessário
+    const statusPagamento = '{{ lancamento.status_pagamento }}';
+    
+    if (statusPagamento === 'PAGO') {
+        const inputs = document.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            input.disabled = true;
+        });
+        
+        const submitBtn = document.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.style.display = 'none';
+        }
+    }
+
+    // Formatação automática do valor
+    const inputValor = document.querySelector('input[name="valor_total"]');
+    if (inputValor) {
+        inputValor.addEventListener('input', function() {
+            let valor = this.value.replace(/[^\d.,]/g, '');
+            if (valor) {
+                this.value = parseFloat(valor).toFixed(2);
+            }
+        });
+    }
+
+    // Validação do formulário
+    const form = document.getElementById('formEditarLancamento');
+    form.addEventListener('submit', function(e) {
+        const valor = parseFloat(document.querySelector('input[name="valor_total"]').value);
+        
+        if (valor <= 0) {
+            e.preventDefault();
+            alert('O valor deve ser maior que zero.');
+            return false;
+        }
+
+        // Confirmação antes de salvar
+        const confirmacao = confirm('Deseja salvar as alterações neste lançamento?');
+        if (!confirmacao) {
+            e.preventDefault();
+            return false;
+        }
+    });
+});
+</script>
+
+{% endblock %}

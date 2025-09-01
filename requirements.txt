@@ -16,3 +16,11 @@ eventlet
 Pillow
 pytesseract
 openrouteservice
+cryptography
+lxml
+zeep
+xmlsec
+
+
+
+
