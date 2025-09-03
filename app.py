@@ -34,6 +34,7 @@ from cryptography.hazmat.primitives.serialization.pkcs12 import load_key_and_cer
 from cryptography.x509.oid import NameOID
 import zipfile
 from flask import send_file
+from flask_socketio import emit, join_room, leave_room
 
 # 1. Importa as extensões E os modelos do novo arquivo 'extensions.py'
 from extensions import db, migrate, socketio, login_manager, mail, CertificadoDigital, NFeImportada
@@ -474,6 +475,10 @@ class Veiculo(db.Model):
     @property
     def km_rodados(self):
         return self.km_atual
+    
+    @km_rodados.setter
+    def km_rodados(self, value):
+        self.km_atual = value
 
     @property
     def ano(self):
@@ -7777,6 +7782,54 @@ def add_header(response):
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
+
+from datetime import datetime
+
+@app.cli.command("consultar-sefaz")
+def consultar_sefaz_command():
+    """
+    Comando de terminal para executar a consulta de NFe na SEFAZ para todas as empresas ativas.
+    Projetado para ser chamado por um Cron Job.
+    """
+    logger.info("=====================================================")
+    logger.info("INICIANDO TAREFA AGENDADA: Consulta de NFe na SEFAZ")
+    logger.info(f"Horário de início: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info("=====================================================")
+    
+    # É crucial rodar dentro do contexto da aplicação para ter acesso ao banco
+    with app.app_context():
+        # Busca todas as empresas que têm pelo menos um certificado digital válido
+        empresas_para_consultar = db.session.query(Empresa).join(
+            CertificadoDigital, Empresa.id == CertificadoDigital.empresa_id
+        ).filter(
+            CertificadoDigital.data_validade >= datetime.utcnow().date()
+        ).distinct().all()
+
+        if not empresas_para_consultar:
+            logger.info("Nenhuma empresa com certificados válidos encontrada. Encerrando tarefa.")
+            return
+
+        logger.info(f"Encontradas {len(empresas_para_consultar)} empresa(s) para consultar.")
+        
+        for empresa in empresas_para_consultar:
+            logger.info(f"--- Consultando para a empresa: {empresa.razao_social} (ID: {empresa.id}) ---")
+            try:
+                # A função principal do nosso outro arquivo é chamada aqui
+                from sefaz_service import consultar_notas_sefaz
+                resultado = consultar_notas_sefaz(empresa.id)
+                
+                if resultado.get('success'):
+                    logger.info(f"Resultado para empresa {empresa.id}: {resultado.get('message', 'Sucesso.')}")
+                else:
+                    logger.error(f"Falha na consulta para empresa {empresa.id}: {resultado.get('message', 'Erro desconhecido.')}")
+            
+            except Exception as e:
+                logger.error(f"ERRO CRÍTICO ao processar empresa {empresa.id}: {e}", exc_info=True)
+                db.session.rollback()
+    
+    logger.info("=====================================================")
+    logger.info("FIM DA TAREFA AGENDADA.")
+    logger.info("=====================================================")
 
 
 if __name__ == '__main__':
