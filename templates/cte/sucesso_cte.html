@@ -1,0 +1,467 @@
+{% extends "base.html" %}
+
+{% block title %}CT-e Emitida com Sucesso - TrackBras{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0 overflow-hidden">
+                <!-- Header de sucesso -->
+                <div class="card-header text-white position-relative" 
+                     style="background: linear-gradient(135deg, #28a745, #20c997); padding: 2rem;">
+                    <div class="text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-check-circle" style="font-size: 4rem; opacity: 0.9;"></i>
+                        </div>
+                        <h1 class="h2 mb-2">CT-e Emitida com Sucesso!</h1>
+                        <p class="mb-0 opacity-90">O Conhecimento de Transporte foi gerado e está pronto para uso</p>
+                    </div>
+                    <!-- Decoração de fundo -->
+                    <div class="position-absolute top-0 end-0 opacity-25" style="font-size: 6rem; margin-top: -1rem; margin-right: -1rem;">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </div>
+                </div>
+
+                <div class="card-body p-4">
+                    <!-- Informações da CT-e -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="bg-light rounded p-3 mb-3">
+                                <h6 class="text-muted mb-2">Número da CT-e</h6>
+                                <div class="h4 mb-0 text-primary fw-bold">{{ cte.numero_cte }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="bg-light rounded p-3 mb-3">
+                                <h6 class="text-muted mb-2">Status</h6>
+                                <div class="d-flex align-items-center">
+                                    {% if cte.status == 'AUTORIZADO' %}
+                                        <span class="badge bg-success me-2">
+                                            <i class="fas fa-check-circle me-1"></i>Autorizada
+                                        </span>
+                                    {% elif cte.status == 'PROCESSANDO' %}
+                                        <span class="badge bg-warning me-2">
+                                            <i class="fas fa-clock me-1"></i>Processando
+                                        </span>
+                                    {% elif cte.status == 'DIGITADO' %}
+                                        <span class="badge bg-info me-2">
+                                            <i class="fas fa-edit me-1"></i>Digitada
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary me-2">
+                                            <i class="fas fa-question-circle me-1"></i>{{ cte.status }}
+                                        </span>
+                                    {% endif %}
+                                    {% if cte.protocolo_autorizacao %}
+                                        <small class="text-muted">Protocolo: {{ cte.protocolo_autorizacao }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chave de acesso -->
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-2">Chave de Acesso</h6>
+                        <div class="input-group">
+                            <input type="text" class="form-control font-monospace" 
+                                   value="{{ cte.chave_acesso }}" readonly id="chaveAcesso"
+                                   style="letter-spacing: 2px; font-size: 0.9rem;">
+                            <button class="btn btn-outline-secondary" type="button" onclick="copiarChave()" id="btnCopiar">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Clique no botão para copiar a chave de acesso</small>
+                    </div>
+
+                    <!-- Informações adicionais -->
+                    <div class="row mb-4">
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-building text-primary me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Destinatário</small>
+                                    <span class="fw-medium">{{ cte.dest_nome }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-dollar-sign text-success me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Valor Total</small>
+                                    <span class="fw-medium">R$ {{ "%.2f"|format(cte.valor_total_servico)|replace('.', ',') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% if cte.placa_veiculo %}
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-truck text-info me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Veículo</small>
+                                    <span class="fw-medium">{{ cte.placa_veiculo }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-calendar text-warning me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Data de Emissão</small>
+                                    <span class="fw-medium">{{ cte.data_criacao.strftime('%d/%m/%Y às %H:%M') if cte.data_criacao else 'N/A' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Seção de ações -->
+                    <div class="border-top pt-4">
+                        <h6 class="mb-3">O que você gostaria de fazer agora?</h6>
+                        
+                        <div class="row g-3">
+                            <!-- Ação principal - Baixar PDF -->
+                            <div class="col-md-6">
+                                <a href="{{ url_for('gerar_dacte_pdf', cte_id=cte.id) }}" 
+                                   class="btn btn-primary btn-lg w-100 d-flex align-items-center justify-content-center"
+                                   target="_blank">
+                                    <i class="fas fa-download me-2"></i>
+                                    <div class="text-start">
+                                        <div>Baixar DACTe</div>
+                                        <small class="opacity-75">Documento PDF</small>
+                                    </div>
+                                </a>
+                            </div>
+
+                            <!-- Enviar por email -->
+                            <div class="col-md-6">
+                                <button type="button" class="btn btn-outline-primary btn-lg w-100 d-flex align-items-center justify-content-center"
+                                        onclick="abrirModalEmail()">
+                                    <i class="fas fa-envelope me-2"></i>
+                                    <div class="text-start">
+                                        <div>Enviar por E-mail</div>
+                                        <small class="opacity-75">Para cliente/transportadora</small>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <!-- Consultar na SEFAZ -->
+                            <div class="col-md-6">
+                                <button type="button" class="btn btn-outline-info btn-lg w-100 d-flex align-items-center justify-content-center"
+                                        onclick="consultarSefaz()">
+                                    <i class="fas fa-search me-2"></i>
+                                    <div class="text-start">
+                                        <div>Consultar SEFAZ</div>
+                                        <small class="opacity-75">Verificar status</small>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <!-- Imprimir -->
+                            <div class="col-md-6">
+                                <button type="button" class="btn btn-outline-secondary btn-lg w-100 d-flex align-items-center justify-content-center"
+                                        onclick="imprimirCTe()">
+                                    <i class="fas fa-print me-2"></i>
+                                    <div class="text-start">
+                                        <div>Imprimir</div>
+                                        <small class="opacity-75">DACTe diretamente</small>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Ações secundárias -->
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="d-flex flex-wrap gap-2 justify-content-center">
+                                    <a href="{{ url_for('listar_ctes') }}" class="btn btn-link">
+                                        <i class="fas fa-list me-1"></i>Ver todas as CT-es
+                                    </a>
+                                    <a href="{{ url_for('escolher_viagem_para_cte') }}" class="btn btn-link">
+                                        <i class="fas fa-plus me-1"></i>Emitir nova CT-e
+                                    </a>
+                                    <a href="{{ url_for('painel') }}" class="btn btn-link">
+                                        <i class="fas fa-home me-1"></i>Voltar ao painel
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para envio por email -->
+<div class="modal fade" id="modalEmail" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Enviar CT-e por E-mail</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formEnvioEmail">
+                    <div class="mb-3">
+                        <label for="emailDestinatario" class="form-label">E-mail do destinatário</label>
+                        <input type="email" class="form-control" id="emailDestinatario" 
+                               placeholder="cliente@exemplo.com" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="assunto" class="form-label">Assunto</label>
+                        <input type="text" class="form-control" id="assunto" 
+                               value="CT-e nº {{ cte.numero_cte }} - {{ cte.dest_nome }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="mensagem" class="form-label">Mensagem</label>
+                        <textarea class="form-control" id="mensagem" rows="4" required>Prezado(a) cliente,
+
+Segue em anexo o Conhecimento de Transporte Eletrônico (CT-e) referente ao serviço prestado.
+
+Número: {{ cte.numero_cte }}
+Chave de Acesso: {{ cte.chave_acesso }}
+
+Atenciosamente,
+{{ current_user.empresa.razao_social if current_user.empresa else 'Empresa' }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="incluirXml" checked>
+                            <label class="form-check-label" for="incluirXml">
+                                Incluir arquivo XML da CT-e
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="enviarEmail()">
+                    <i class="fas fa-paper-plane me-1"></i>Enviar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copiarChave() {
+    const chaveInput = document.getElementById('chaveAcesso');
+    const btnCopiar = document.getElementById('btnCopiar');
+    
+    chaveInput.select();
+    document.execCommand('copy');
+    
+    // Feedback visual
+    const iconOriginal = btnCopiar.innerHTML;
+    btnCopiar.innerHTML = '<i class="fas fa-check text-success"></i>';
+    btnCopiar.disabled = true;
+    
+    setTimeout(() => {
+        btnCopiar.innerHTML = iconOriginal;
+        btnCopiar.disabled = false;
+    }, 2000);
+    
+    // Notificação
+    showNotification('Chave de acesso copiada!', 'success');
+}
+
+function abrirModalEmail() {
+    const modal = new bootstrap.Modal(document.getElementById('modalEmail'));
+    modal.show();
+}
+
+function consultarSefaz() {
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Consultando...';
+    btn.disabled = true;
+    
+    fetch(`/api/cte/consultar/{{ cte.id }}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.sucesso) {
+            showNotification('Consulta realizada com sucesso!', 'success');
+            // Atualizar status na tela se necessário
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            showNotification(`Erro na consulta: ${data.erro}`, 'error');
+        }
+    })
+    .catch(error => {
+        showNotification('Erro ao consultar SEFAZ', 'error');
+    })
+    .finally(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+}
+
+function imprimirCTe() {
+    const url = `{{ url_for('gerar_dacte_pdf', cte_id=cte.id) }}`;
+    const printWindow = window.open(url, '_blank');
+    printWindow.addEventListener('load', function() {
+        printWindow.print();
+    });
+}
+
+function enviarEmail() {
+    const form = document.getElementById('formEnvioEmail');
+    const formData = new FormData(form);
+    
+    const dados = {
+        cte_id: {{ cte.id }},
+        email: document.getElementById('emailDestinatario').value,
+        assunto: document.getElementById('assunto').value,
+        mensagem: document.getElementById('mensagem').value,
+        incluir_xml: document.getElementById('incluirXml').checked
+    };
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Enviando...';
+    btn.disabled = true;
+    
+    fetch('/api/cte/enviar-email', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(dados)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.sucesso) {
+            showNotification('E-mail enviado com sucesso!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('modalEmail')).hide();
+        } else {
+            showNotification(`Erro ao enviar e-mail: ${data.erro}`, 'error');
+        }
+    })
+    .catch(error => {
+        showNotification('Erro ao enviar e-mail', 'error');
+    })
+    .finally(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} alert-dismissible fade show`;
+    notification.style.cssText = `
+        position: fixed; top: 20px; right: 20px; z-index: 10000;
+        max-width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    `;
+    
+    const icon = type === 'error' ? 'fas fa-exclamation-triangle' : 
+                 type === 'success' ? 'fas fa-check-circle' : 'fas fa-info-circle';
+                 
+    notification.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="${icon} me-2"></i>
+            <div>${message}</div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto remover após 5 segundos
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', function() {
+    // Animar entrada da página
+    const card = document.querySelector('.card');
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(20px)';
+    
+    setTimeout(() => {
+        card.style.transition = 'all 0.5s ease-out';
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+    }, 100);
+    
+    // Auto-focar no botão de download após 2 segundos
+    setTimeout(() => {
+        const btnDownload = document.querySelector('a[href*="gerar_dacte_pdf"]');
+        if (btnDownload) {
+            btnDownload.focus();
+        }
+    }, 2000);
+});
+</script>
+
+<style>
+.font-monospace {
+    font-family: 'Courier New', monospace !important;
+}
+
+.card {
+    border-radius: 15px;
+}
+
+.btn-lg {
+    padding: 0.75rem 1.25rem;
+}
+
+.btn-lg .text-start div {
+    line-height: 1.2;
+}
+
+.btn-lg small {
+    font-size: 0.75rem;
+}
+
+@media (max-width: 768px) {
+    .btn-lg .text-start {
+        text-align: center !important;
+    }
+    
+    .btn-lg small {
+        display: none;
+    }
+    
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+}
+
+/* Animação de pulsação para status em processamento */
+.badge.bg-warning {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+</style>
+{% endblock %}

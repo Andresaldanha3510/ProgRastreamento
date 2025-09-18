@@ -4,305 +4,1458 @@
 
 {% block styles %}
 <style>
-    /* Estilos customizados para a Borracharia */
-    .kpi-card {
-        border: none;
-        border-left: 5px solid var(--bs-primary);
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    :root {
+        --primary-green: #2e7d32;
+        --primary-green-dark: #1b5e20;
+        --primary-green-light: #4caf50;
+        --accent-yellow: #ffc107;
+        --gray-50: #f8fafc;
+        --gray-100: #f1f5f9;
+        --gray-200: #e2e8f0;
+        --gray-300: #cbd5e1;
+        --gray-600: #475569;
+        --gray-700: #334155;
+        --gray-900: #0f172a;
+        --red-600: #dc2626;
+        --red-100: #fee2e2;
+        --green-600: #16a34a;
+        --green-100: #dcfce7;
+        --blue-600: #2563eb;
+        --blue-100: #dbeafe;
+        --orange-500: #f97316;
+        --orange-100: #fed7aa;
     }
-    .kpi-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+
+    body {
+        background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        color: var(--gray-900);
+        line-height: 1.6;
     }
-    .kpi-card .card-body {
+
+    .dashboard-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+
+    /* Header Principal */
+    .main-header {
+        background: linear-gradient(135deg, var(--primary-green-dark) 0%, var(--primary-green) 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+        border-radius: 0 0 24px 24px;
+        box-shadow: 0 10px 25px rgba(46, 125, 50, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .main-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: -50px;
+        width: 300px;
+        height: 300px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(50%, -50%);
+    }
+
+    .header-content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+    }
+
+    .header-title {
+        flex: 1;
+    }
+
+    .header-title h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem 0;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        gap: 1rem;
     }
-    .kpi-card .kpi-icon {
-        font-size: 2.5rem;
-        opacity: 0.3;
-    }
-    .kpi-card .kpi-value {
-        font-size: 2.2rem;
-        font-weight: 600;
-    }
-    .kpi-card.border-info { border-left-color: var(--bs-info); }
-    .kpi-card.border-warning { border-left-color: var(--bs-warning); }
-    .kpi-card.border-secondary { border-left-color: var(--bs-secondary); }
 
-    /* Estilo do Mapa de Pneus */
-    .vehicle-layout {
+    .header-title h1 i {
+        font-size: 3rem;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .header-subtitle {
+        font-size: 1.125rem;
+        opacity: 0.9;
+        font-weight: 400;
+    }
+
+    .header-actions {
         display: flex;
-        flex-direction: column;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    /* Botões do Header */
+    .btn-header {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 10px;
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        border: 1px solid #dee2e6;
-        min-width: 280px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
     }
-    .axle {
+
+    .btn-header:hover {
+        background: rgba(255, 255, 255, 0.25);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        color: white;
+        text-decoration: none;
+    }
+
+    .btn-header.primary {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    /* Loading Spinner */
+    .loading-spinner {
+        display: none;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s linear infinite;
+        margin-right: 8px;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Cards de Estatísticas */
+    .stats-section {
+        margin-bottom: 2rem;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid var(--gray-200);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+    }
+
+    .stat-card.estoque::before {
+        background: linear-gradient(90deg, var(--green-600) 0%, var(--primary-green-light) 100%);
+    }
+
+    .stat-card.uso::before {
+        background: linear-gradient(90deg, var(--blue-600) 0%, #3b82f6 100%);
+    }
+
+    .stat-card.recapagem::before {
+        background: linear-gradient(90deg, var(--accent-yellow) 0%, var(--orange-500) 100%);
+    }
+
+    .stat-card.descarte::before {
+        background: linear-gradient(90deg, var(--gray-600) 0%, var(--gray-700) 100%);
+    }
+
+    .stat-header {
         display: flex;
         justify-content: space-between;
-        width: 100%;
-        align-items: center;
+        align-items: flex-start;
+        margin-bottom: 1rem;
     }
-    .tire-position {
-        width: 40px;
-        height: 40px;
-        border-radius: 8px;
+
+    .stat-info h3 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--gray-600);
+        margin: 0 0 0.5rem 0;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin: 0;
+        line-height: 1;
+    }
+
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: bold;
+        font-size: 1.5rem;
         color: white;
-        font-size: 0.8em;
-        position: relative;
     }
-    .tire-position.filled {
-        background-color: #198754; /* Verde (sucesso) */
-        cursor: pointer;
+
+    .stat-icon.estoque {
+        background: linear-gradient(135deg, var(--green-600) 0%, var(--primary-green-light) 100%);
     }
-    .tire-position.empty {
-        background-color: #6c757d; /* Cinza (secundário) */
-        border: 2px dashed #555;
+
+    .stat-icon.uso {
+        background: linear-gradient(135deg, var(--blue-600) 0%, #3b82f6 100%);
     }
-    .tire-position-group {
+
+    .stat-icon.recapagem {
+        background: linear-gradient(135deg, var(--accent-yellow) 0%, var(--orange-500) 100%);
+    }
+
+    .stat-icon.descarte {
+        background: linear-gradient(135deg, var(--gray-600) 0%, var(--gray-700) 100%);
+    }
+
+    .stat-trend {
         display: flex;
-        gap: 5px;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--gray-600);
+        margin-top: 0.5rem;
+    }
+
+    /* Alertas */
+    .alerts-section {
+        margin-bottom: 2rem;
+    }
+
+    .alert-container {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid var(--gray-200);
+        border-left: 4px solid var(--red-600);
+    }
+
+    .alert-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 1rem;
+        color: var(--red-600);
+        font-size: 1.125rem;
+        font-weight: 600;
+    }
+
+    .alert-header i {
+        font-size: 1.25rem;
+    }
+
+    .alert-item {
+        background: var(--red-100);
+        border: 1px solid rgba(220, 38, 38, 0.2);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s ease;
+    }
+
+    .alert-item:hover {
+        background: rgba(220, 38, 38, 0.1);
+        border-color: var(--red-600);
+    }
+
+    .alert-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .alert-content {
+        flex: 1;
+    }
+
+    .alert-content strong {
+        color: var(--red-600);
+        font-weight: 600;
+    }
+
+    .alert-content small {
+        display: block;
+        color: var(--gray-600);
+        margin-top: 0.25rem;
+        font-size: 0.875rem;
+    }
+
+    .alert-badge {
+        background: var(--red-600);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Container Principal */
+    .main-content {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid var(--gray-200);
+        overflow: hidden;
+    }
+
+    /* Navegação por Tabs */
+    .nav-tabs-container {
+        background: linear-gradient(135deg, var(--gray-50) 0%, white 100%);
+        border-bottom: 1px solid var(--gray-200);
+        padding: 0 2rem;
+    }
+
+    .nav-tabs {
+        display: flex;
+        gap: 0;
+        border: none;
+        margin: 0;
+    }
+
+    .nav-tab {
+        padding: 1.25rem 2rem;
+        border: none;
+        background: transparent;
+        color: var(--gray-600);
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-bottom: 3px solid transparent;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .nav-tab:hover {
+        color: var(--primary-green);
+        background: rgba(46, 125, 50, 0.05);
+    }
+
+    .nav-tab.active {
+        color: var(--primary-green);
+        border-bottom-color: var(--primary-green);
+        background: rgba(46, 125, 50, 0.05);
+    }
+
+    .nav-tab .badge {
+        background: var(--primary-green);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: 4px;
+    }
+
+    /* Conteúdo das Tabs */
+    .tab-content {
+        padding: 2rem;
+    }
+
+    .tab-pane {
+        display: none;
+    }
+
+    .tab-pane.active {
+        display: block;
+        animation: fadeInUp 0.4s ease-out;
+    }
+
+    /* Mapa de Pneus Moderno */
+    .vehicle-card {
+        background: white;
+        border: 1px solid var(--gray-200);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+
+    .vehicle-card:hover {
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .vehicle-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .vehicle-info h4 {
+        margin: 0 0 0.25rem 0;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--gray-900);
+    }
+
+    .vehicle-details {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .vehicle-detail {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .vehicle-detail-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--gray-600);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .vehicle-detail-value {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--gray-900);
+    }
+
+    .vehicle-detail-value.placa {
+        background: var(--primary-green);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        letter-spacing: 1px;
+    }
+
+    .vehicle-actions {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+    }
+
+    .btn-vehicle {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .btn-vehicle.install {
+        background: var(--green-100);
+        color: var(--green-600);
+        border: 1px solid var(--green-600);
+    }
+
+    .btn-vehicle.install:hover {
+        background: var(--green-600);
+        color: white;
+    }
+
+    .btn-vehicle.remove {
+        background: var(--orange-100);
+        color: var(--orange-500);
+        border: 1px solid var(--orange-500);
+    }
+
+    .btn-vehicle.remove:hover {
+        background: var(--orange-500);
+        color: white;
+    }
+
+    /* Mapa de Pneus Aprimorado */
+    .tire-map {
+        background: linear-gradient(135deg, var(--gray-50) 0%, white 100%);
+        border: 2px solid var(--gray-200);
+        border-radius: 16px;
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+        min-width: 350px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .tire-map::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(46, 125, 50, 0.05) 0%, transparent 70%);
+        animation: rotate 20s linear infinite;
+        pointer-events: none;
+    }
+
+    .axle {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        gap: 1rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .axle-label {
+        position: absolute;
+        left: -60px;
+        top: 50%;
+        transform: translateY(-50%);
+       
+        font-weight: 600;
+        color: var(--gray-600);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+    }
+
+    .tire-position {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        border: 2px solid transparent;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .tire-position::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        transition: left 0.5s;
+    }
+
+    .tire-position:hover::before {
+        left: 100%;
+    }
+
+    .tire-position.filled {
+        background: linear-gradient(135deg, var(--green-600) 0%, var(--primary-green-light) 100%);
+        color: white;
+        border-color: rgba(255, 255, 255, 0.3);
+        box-shadow: 0 4px 15px rgba(22, 163, 74, 0.4);
+    }
+
+    .tire-position.filled:hover {
+        transform: scale(1.1) rotate(5deg);
+        box-shadow: 0 8px 25px rgba(22, 163, 74, 0.6);
+    }
+
+    .tire-position.empty {
+        background: linear-gradient(135deg, var(--gray-300) 0%, var(--gray-200) 100%);
+        color: var(--gray-600);
+        border: 2px dashed var(--gray-400);
+        opacity: 0.7;
+    }
+
+    .tire-position.empty:hover {
+        opacity: 1;
+        border-color: var(--primary-green);
+        background: linear-gradient(135deg, var(--gray-200) 0%, var(--gray-100) 100%);
+        transform: scale(1.05);
+    }
+
+    .tire-group {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    /* Lista de Pneus */
+    .tire-list {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .tire-item {
+        background: white;
+        border: 1px solid var(--gray-200);
+        border-radius: 12px;
+        padding: 1.25rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s ease;
+    }
+
+    .tire-item:hover {
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        border-color: var(--primary-green);
+    }
+
+    .tire-info {
+        flex: 1;
+    }
+
+    .tire-info h4 {
+        margin: 0 0 0.25rem 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--primary-green);
+    }
+
+    .tire-details {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        font-size: 0.875rem;
+        color: var(--gray-600);
+    }
+
+    .tire-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .btn-tire {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+
+    .btn-tire.measure {
+        background: var(--blue-100);
+        color: var(--blue-600);
+        border: 1px solid var(--blue-600);
+    }
+
+    .btn-tire.measure:hover {
+        background: var(--blue-600);
+        color: white;
+    }
+
+    .btn-tire.history {
+        background: var(--gray-100);
+        color: var(--gray-600);
+        border: 1px solid var(--gray-600);
+    }
+
+    .btn-tire.history:hover {
+        background: var(--gray-600);
+        color: white;
+        text-decoration: none;
+    }
+
+    .btn-tire.return {
+        background: var(--green-100);
+        color: var(--green-600);
+        border: 1px solid var(--green-600);
+    }
+
+    .btn-tire.return:hover {
+        background: var(--green-600);
+        color: white;
+    }
+
+    /* Badges */
+    .badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .badge.dimension {
+        background: var(--gray-100);
+        color: var(--gray-700);
+        border: 1px solid var(--gray-300);
+    }
+
+    .badge.recapagem {
+        background: var(--accent-yellow);
+        color: var(--gray-900);
+    }
+
+    /* Estado Vazio */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: var(--gray-600);
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: var(--gray-300);
+        margin-bottom: 1.5rem;
+    }
+
+    .empty-state h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--gray-700);
+        margin-bottom: 0.75rem;
+    }
+
+    .empty-state p {
+        font-size: 0.875rem;
+        color: var(--gray-600);
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    /* Notificações */
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: white;
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        border-left: 4px solid var(--green-600);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 300px;
+        animation: slideInRight 0.3s ease-out;
+    }
+
+    .notification.error {
+        border-left-color: var(--red-600);
+    }
+
+    .notification.warning {
+        border-left-color: var(--accent-yellow);
+    }
+
+    .notification .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.25rem;
+        color: var(--gray-600);
+        cursor: pointer;
+        margin-left: auto;
+    }
+
+    /* Animações */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+
+    @keyframes slideInRight {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+
+    .animate-pulse {
+        animation: pulse 2s infinite;
+    }
+
+    /* Responsividade */
+    @media (max-width: 1024px) {
+        .header-content {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .header-actions {
+            justify-content: center;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+
+        .vehicle-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .vehicle-details {
+            width: 100%;
+        }
+
+        .tire-map {
+            min-width: 320px;
+            max-width: 420px;
+            padding: 1.5rem;
+        }
+
+        .tire-position {
+            width: 55px;
+            height: 55px;
+            font-size: 0.7rem;
+        }
+
+        .axle-label {
+            left: -55px;
+            font-size: 0.7rem;
+        }
+
+        .axle {
+            max-width: 350px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: 0 0.5rem;
+        }
+
+        .main-header {
+            padding: 1.5rem 0;
+            margin-bottom: 1.5rem;
+        }
+
+        .header-title h1 {
+            font-size: 2rem;
+        }
+
+        .header-title h1 i {
+            font-size: 2.5rem;
+        }
+
+        .header-actions {
+            width: 100%;
+            flex-direction: column;
+        }
+
+        .btn-header {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .stat-card {
+            padding: 1.5rem;
+        }
+
+        .nav-tabs-container {
+            padding: 0 1rem;
+        }
+
+        .nav-tabs {
+            flex-wrap: wrap;
+        }
+
+        .nav-tab {
+            padding: 1rem 1.5rem;
+            font-size: 0.8rem;
+        }
+
+        .tab-content {
+            padding: 1.5rem;
+        }
+
+        .tire-map {
+            min-width: 300px;
+            max-width: 350px;
+            padding: 1.25rem;
+        }
+
+        .tire-position {
+            width: 50px;
+            height: 50px;
+            font-size: 0.65rem;
+        }
+
+        .axle {
+            gap: 0.75rem;
+            max-width: 280px;
+        }
+
+        .tire-group {
+            gap: 8px;
+        }
+
+        .axle-label {
+            left: -50px;
+            font-size: 0.65rem;
+        }
+
+        .vehicle-details {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .vehicle-actions {
+            flex-wrap: wrap;
+            width: 100%;
+            justify-content: flex-start;
+        }
+
+        .tire-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .tire-actions {
+            width: 100%;
+            justify-content: flex-end;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .dashboard-container {
+            padding: 0 0.25rem;
+        }
+
+        .main-header {
+            padding: 1.25rem 0;
+            margin-bottom: 1.25rem;
+        }
+
+        .header-title h1 {
+            font-size: 1.75rem;
+        }
+
+        .header-title h1 i {
+            font-size: 2rem;
+        }
+
+        .header-subtitle {
+            font-size: 1rem;
+        }
+
+        .tire-map {
+            min-width: 280px;
+            max-width: 320px;
+            padding: 1rem;
+            gap: 1rem;
+        }
+
+        .tire-position {
+            width: 45px;
+            height: 45px;
+            font-size: 0.6rem;
+        }
+
+        .axle {
+            gap: 0.5rem;
+            max-width: 240px;
+        }
+
+        .tire-group {
+            gap: 6px;
+        }
+
+        .axle-label {
+            left: -45px;
+            font-size: 0.6rem;
+        }
+
+        .vehicle-card {
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .vehicle-header {
+            gap: 0.75rem;
+        }
+
+        .vehicle-info h4 {
+            font-size: 1.1rem;
+        }
+
+        .vehicle-detail-value.placa {
+            font-size: 0.8rem;
+            padding: 3px 8px;
+        }
+
+        .btn-vehicle {
+            padding: 6px 12px;
+            font-size: 0.7rem;
+        }
+
+        .tire-item {
+            padding: 1rem;
+        }
+
+        .tire-info h4 {
+            font-size: 0.9rem;
+        }
+
+        .tire-details {
+            font-size: 0.8rem;
+            gap: 0.75rem;
+        }
+
+        .btn-tire {
+            padding: 4px 8px;
+            font-size: 0.7rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .tire-map {
+            min-width: 260px;
+            max-width: 300px;
+            padding: 0.75rem;
+        }
+
+        .tire-position {
+            width: 40px;
+            height: 40px;
+            font-size: 0.55rem;
+            border-radius: 12px;
+        }
+
+        .axle {
+            gap: 0.4rem;
+            max-width: 220px;
+        }
+
+        .tire-group {
+            gap: 4px;
+        }
+
+        .axle-label {
+            left: -40px;
+            font-size: 0.55rem;
+        }
+
+        .vehicle-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .btn-vehicle {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    /* Melhorias para dispositivos touch */
+    @media (hover: none) and (pointer: coarse) {
+        .tire-position:hover {
+            transform: none;
+        }
+
+        .tire-position.filled:hover {
+            transform: none;
+            box-shadow: 0 4px 15px rgba(22, 163, 74, 0.4);
+        }
+
+        .tire-position.empty:hover {
+            transform: none;
+            opacity: 0.7;
+        }
+
+        .vehicle-card:hover {
+            transform: none;
+        }
+
+        .stat-card:hover {
+            transform: none;
+        }
     }
 </style>
 {% endblock %}
 
-
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">
-            <i class="fas fa-dot-circle me-2"></i>Dashboard da Borracharia
-        </h1>
-        <div class="btn-toolbar mb-2 mb-md-0">
-            <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#novoPneuModal">
-                <i class="fas fa-plus-circle me-1"></i> Cadastrar Pneu
-            </button>
-            <button type="button" class="btn btn-info me-2" data-bs-toggle="modal" data-bs-target="#importarPneusModal">
-                <i class="fas fa-file-csv me-1"></i> Importar em Lote
-            </button>
-            <a href="{{ url_for('borracharia_configuracoes') }}" class="btn btn-secondary">
-                <i class="fas fa-cog me-1"></i> Configurações
-            </a>
+<div class="dashboard-container">
+    <div class="main-header">
+        <div class="header-content">
+            <div class="header-title">
+                <h1>
+                    
+                    Dashboard da Borracharia
+                </h1>
+                <p class="header-subtitle">Gestão completa de pneus e manutenção da frota</p>
+            </div>
+            <div class="header-actions">
+                <button type="button" class="btn-header primary" data-bs-toggle="modal" data-bs-target="#novoPneuModal">
+                    <span class="loading-spinner" id="loadingNovoPneu"></span>
+                    <i class="fas fa-plus-circle"></i>
+                    Cadastrar Pneu
+                </button>
+                <button type="button" class="btn-header" data-bs-toggle="modal" data-bs-target="#importarPneusModal">
+                    <span class="loading-spinner" id="loadingImportar"></span>
+                    <i class="fas fa-file-csv"></i>
+                    Importar em Lote
+                </button>
+                <a href="{{ url_for('borracharia_configuracoes') }}" class="btn-header">
+                    <i class="fas fa-cog"></i>
+                    Configurações
+                </a>
+            </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card kpi-card border-primary">
-                <div class="card-body">
-                    <div>
-                        <h5 class="card-title text-primary">Em Estoque</h5>
-                        <div class="kpi-value">{{ kpis.em_estoque }}</div>
+    <div class="stats-section">
+        <div class="stats-grid">
+            <div class="stat-card estoque">
+                <div class="stat-header">
+                    <div class="stat-info">
+                        <h3>Pneus em Estoque</h3>
+                        <div class="stat-number">{{ kpis.em_estoque }}</div>
+                        <div class="stat-trend">
+                            <i class="fas fa-arrow-up"></i>
+                            Disponíveis para uso
+                        </div>
                     </div>
-                    <i class="fas fa-box-open kpi-icon text-primary"></i>
+                    <div class="stat-icon estoque">
+                        <i class="fas fa-box-open"></i>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card kpi-card border-info">
-                <div class="card-body">
-                    <div>
-                        <h5 class="card-title text-info">Em Uso</h5>
-                        <div class="kpi-value">{{ kpis.em_uso }}</div>
+
+            <div class="stat-card uso">
+                <div class="stat-header">
+                    <div class="stat-info">
+                        <h3>Pneus em Uso</h3>
+                        <div class="stat-number">{{ kpis.em_uso }}</div>
+                        <div class="stat-trend">
+                            <i class="fas fa-arrow-right"></i>
+                            Instalados na frota
+                        </div>
                     </div>
-                    <i class="fas fa-truck-moving kpi-icon text-info"></i>
+                    <div class="stat-icon uso">
+                        <i class="fas fa-truck-moving"></i>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card kpi-card border-warning">
-                <div class="card-body">
-                    <div>
-                        <h5 class="card-title text-warning">Recapando</h5>
-                        <div class="kpi-value">{{ kpis.recapando }}</div>
+
+            <div class="stat-card recapagem">
+                <div class="stat-header">
+                    <div class="stat-info">
+                        <h3>Em Recapagem</h3>
+                        <div class="stat-number">{{ kpis.recapando }}</div>
+                        <div class="stat-trend">
+                            <i class="fas fa-tools"></i>
+                            Sendo reformados
+                        </div>
                     </div>
-                    <i class="fas fa-tools kpi-icon text-warning"></i>
+                    <div class="stat-icon recapagem">
+                        <i class="fas fa-tools"></i>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="col-lg-3 col-md-6 mb-4">
-             <div class="card kpi-card border-secondary">
-                <div class="card-body">
-                    <div>
-                        <h5 class="card-title text-secondary">Descartados</h5>
-                        <div class="kpi-value">{{ kpis.descartados }}</div>
+
+            <div class="stat-card descarte">
+                <div class="stat-header">
+                    <div class="stat-info">
+                        <h3>Descartados</h3>
+                        <div class="stat-number">{{ kpis.descartados }}</div>
+                        <div class="stat-trend">
+                            <i class="fas fa-minus-circle"></i>
+                            Fora de uso
+                        </div>
                     </div>
-                    <i class="fas fa-trash-alt kpi-icon text-secondary"></i>
+                    <div class="stat-icon descarte">
+                        <i class="fas fa-trash-alt"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     {% if alertas %}
-    <div class="alert alert-light border-start border-danger border-4" role="alert">
-        <h4 class="alert-heading"><i class="fas fa-exclamation-triangle text-danger"></i> Alertas de Pneus</h4>
-        <div class="list-group">
+    <div class="alerts-section">
+        <div class="alert-container">
+            <div class="alert-header">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Alertas de Manutenção</span>
+            </div>
             {% for alerta in alertas %}
-            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>Pneu <a href="{{ url_for('pneu_historico', pneu_id=alerta.pneu.id) }}">{{ alerta.pneu.numero_fogo }}</a>:</strong> {{ alerta.tipo }}
-                    <small class="d-block text-muted">{{ alerta.mensagem }}</small>
+            <div class="alert-item">
+                <div class="alert-content">
+                    <strong>Pneu <a href="{{ url_for('pneu_historico', pneu_id=alerta.pneu.id) }}" class="text-red-600 hover:text-red-800">{{ alerta.pneu.numero_fogo }}</a>:</strong> {{ alerta.tipo }}
+                    <small>{{ alerta.mensagem }}</small>
                 </div>
-                <span class="badge bg-{{ 'danger' if alerta.gravidade == 'vermelho' else 'warning text-dark' }} rounded-pill fs-6">
+                <div class="alert-badge">
                     {{ 'Crítico' if alerta.gravidade == 'vermelho' else 'Atenção' }}
-                </span>
+                </div>
             </div>
             {% endfor %}
         </div>
     </div>
     {% endif %}
 
-    <div class="card">
-        <div class="card-header">
-            <ul class="nav nav-tabs card-header-tabs" role="tablist">
-                <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#frota" type="button"><i class="fas fa-truck me-2"></i>Gestão da Frota</button></li>
-                <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#estoque" type="button"><i class="fas fa-boxes me-2"></i>Pneus em Estoque <span class="badge rounded-pill bg-primary ms-2">{{ kpis.em_estoque }}</span></button></li>
-                <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#recapagem" type="button"><i class="fas fa-tools me-2"></i>Pneus em Recapagem <span class="badge rounded-pill bg-warning text-dark ms-2">{{ kpis.recapando }}</span></button></li>
-            </ul>
+    <div class="main-content">
+        <div class="nav-tabs-container">
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-tab="frota">
+                    <i class="fas fa-truck"></i>
+                    Gestão da Frota
+                </button>
+                <button class="nav-tab" data-tab="estoque">
+                    <i class="fas fa-boxes"></i>
+                    Estoque
+                    <span class="badge">{{ kpis.em_estoque }}</span>
+                </button>
+                <button class="nav-tab" data-tab="recapagem">
+                    <i class="fas fa-tools"></i>
+                    Recapagem
+                    <span class="badge">{{ kpis.recapando }}</span>
+                </button>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="tab-content" id="borrachariaTabsContent">
-                <div class="tab-pane fade show active" id="frota" role="tabpanel" aria-labelledby="frota-tab">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Veículo</th>
-                                    <th>Placa</th>
-                                    <th>KM Atual</th>
-                                    <th class="text-center">Mapa de Pneus</th>
-                                    <th class="text-end">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for veiculo in veiculos %}
-                                <tr>
-                                    <td><strong>{{ veiculo.marca }} {{ veiculo.modelo }}</strong></td>
-                                    <td><span class="badge bg-secondary">{{ veiculo.placa }}</span></td>
-                                    <td>{{ "%.0f"|format(veiculo.km_atual or 0) }} km</td>
-                                    <td>
-                                        <div class="vehicle-layout mx-auto">
-                                            <div class="axle">
-                                                {% set pneu_e1de = veiculo.pneus.filter_by(posicao='Eixo 1 - Dianteiro Esquerdo').first() %}
-                                                <div class="tire-position {{ 'filled' if pneu_e1de else 'empty' }}" data-bs-toggle="tooltip" title="{{ pneu_e1de.numero_fogo if pneu_e1de else 'Vazio' }}">DE</div>
-                                                
-                                                {% set pneu_e1dd = veiculo.pneus.filter_by(posicao='Eixo 1 - Dianteiro Direito').first() %}
-                                                <div class="tire-position {{ 'filled' if pneu_e1dd else 'empty' }}" data-bs-toggle="tooltip" title="{{ pneu_e1dd.numero_fogo if pneu_e1dd else 'Vazio' }}">DD</div>
-                                            </div>
-                                            <div class="axle">
-                                                <div class="tire-position-group">
-                                                    {% set pneu_e2tee = veiculo.pneus.filter_by(posicao='Eixo 2 - Traseiro Esquerdo Externo').first() %}
-                                                    <div class="tire-position {{ 'filled' if pneu_e2tee else 'empty' }}" data-bs-toggle="tooltip" title="{{ pneu_e2tee.numero_fogo if pneu_e2tee else 'Vazio' }}">TEE</div>
-                                                    {% set pneu_e2tei = veiculo.pneus.filter_by(posicao='Eixo 2 - Traseiro Esquerdo Interno').first() %}
-                                                    <div class="tire-position {{ 'filled' if pneu_e2tei else 'empty' }}" data-bs-toggle="tooltip" title="{{ pneu_e2tei.numero_fogo if pneu_e2tei else 'Vazio' }}">TEI</div>
-                                                </div>
-                                                <div class="tire-position-group">
-                                                    {% set pneu_e2tde = veiculo.pneus.filter_by(posicao='Eixo 2 - Traseiro Direito Externo').first() %}
-                                                    <div class="tire-position {{ 'filled' if pneu_e2tde else 'empty' }}" data-bs-toggle="tooltip" title="{{ pneu_e2tde.numero_fogo if pneu_e2tde else 'Vazio' }}">TDE</div>
-                                                    {% set pneu_e2tdi = veiculo.pneus.filter_by(posicao='Eixo 2 - Traseiro Direito Interno').first() %}
-                                                    <div class="tire-position {{ 'filled' if pneu_e2tdi else 'empty' }}" data-bs-toggle="tooltip" title="{{ pneu_e2tdi.numero_fogo if pneu_e2tdi else 'Vazio' }}">TDI</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="text-end">
-                                        <div class="btn-group">
-                                            <button class="btn btn-sm btn-primary" onclick="abrirModalInstalar({{ veiculo.id }}, '{{ veiculo.placa }}')"><i class="fas fa-plus"></i> Instalar</button>
-                                            <button class="btn btn-sm btn-warning" onclick="abrirModalRemover({{ veiculo.id }}, '{{ veiculo.placa }}')"><i class="fas fa-minus"></i> Remover</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
 
-                
+        <div class="tab-content">
+            <div class="tab-pane active" id="frota">
+                {% if veiculos %}
+                    {% for veiculo in veiculos %}
+                    <div class="vehicle-card">
+                        <div class="vehicle-header">
+                            <div class="vehicle-info">
+                                <h4>{{ veiculo.marca or 'N/A' }} {{ veiculo.modelo }}</h4>
+                                <div class="vehicle-details">
+                                    <div class="vehicle-detail">
+                                        <span class="vehicle-detail-label">Placa</span>
+                                        <span class="vehicle-detail-value placa">{{ veiculo.placa }}</span>
+                                    </div>
+                                    <div class="vehicle-detail">
+                                        <span class="vehicle-detail-label">Categoria</span>
+                                        <span class="vehicle-detail-value">{{ veiculo.categoria or 'N/A' }}</span>
+                                    </div>
+                                    <div class="vehicle-detail">
+                                        <span class="vehicle-detail-label">KM Atual</span>
+                                        <span class="vehicle-detail-value">{{ "%.0f"|format(veiculo.km_atual or 0) }} km</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="vehicle-actions">
+                                <button class="btn-vehicle install" onclick="abrirModalInstalar({{ veiculo.id }}, '{{ veiculo.placa }}')">
+                                    <i class="fas fa-plus"></i>
+                                    Instalar
+                                </button>
+                                <button class="btn-vehicle remove" onclick="abrirModalRemover({{ veiculo.id }}, '{{ veiculo.placa }}')">
+                                    <i class="fas fa-minus"></i>
+                                    Remover
+                                </button>
+                            </div>
+                        </div>
 
-                <div class="tab-pane fade" id="estoque" role="tabpanel" aria-labelledby="estoque-tab">
-                     <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Nº Fogo</th>
-                                    <th>Marca/Modelo</th>
-                                    <th>Dimensão</th>
-                                    <th>Data Compra</th>
-                                    <th>Valor</th>
-                                    <th class="text-end">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for pneu in pneus_em_estoque %}
-                                <tr>
-                                    <td><strong>{{ pneu.numero_fogo }}</strong></td>
-                                    <td>{{ pneu.marca }} / {{ pneu.modelo }}</td>
-                                    <td>{{ pneu.dimensao }}</td>
-                                    <td>{{ pneu.data_compra.strftime('%d/%m/%Y') }}</td>
-                                    <td>R$ {{ "%.2f"|format(pneu.valor_compra)|replace('.', ',') }}</td>
-                                    <td class="text-end">
-                                        <button class="btn btn-sm btn-info" onclick="abrirModalMedicao({{ pneu.id }}, '{{ pneu.numero_fogo }}')"><i class="fas fa-ruler-combined"></i> Medir Sulco</button>
-                                        <a href="{{ url_for('pneu_historico', pneu_id=pneu.id) }}" class="btn btn-sm btn-secondary"><i class="fas fa-history"></i> Histórico</a>
-                                    </td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td colspan="6" class="text-center">Nenhum pneu em estoque.</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                        <div class="tire-map">
+                            <div class="axle">
+                                <span class="axle-label">Eixo 1</span>
+                                {% set pneu_e1de = veiculo.pneus|selectattr('posicao', 'equalto', 'Eixo 1 - Dianteiro Esquerdo')|selectattr('status', 'equalto', 'Em Uso')|first %}
+                                <div class="tire-position {{ 'filled' if pneu_e1de else 'empty' }}" 
+                                     data-bs-toggle="tooltip" 
+                                     title="{{ pneu_e1de.numero_fogo if pneu_e1de else 'Vazio' }}">DE</div>
+                                
+                                {% set pneu_e1dd = veiculo.pneus|selectattr('posicao', 'equalto', 'Eixo 1 - Dianteiro Direito')|selectattr('status', 'equalto', 'Em Uso')|first %}
+                                <div class="tire-position {{ 'filled' if pneu_e1dd else 'empty' }}" 
+                                     data-bs-toggle="tooltip" 
+                                     title="{{ pneu_e1dd.numero_fogo if pneu_e1dd else 'Vazio' }}">DD</div>
+                            </div>
+
+                            <div class="axle">
+                                <span class="axle-label">Eixo 2</span>
+                                <div class="tire-group">
+                                    {% set pneu_e2tee = veiculo.pneus|selectattr('posicao', 'equalto', 'Eixo 2 - Traseiro Esquerdo Externo')|selectattr('status', 'equalto', 'Em Uso')|first %}
+                                    <div class="tire-position {{ 'filled' if pneu_e2tee else 'empty' }}" 
+                                         data-bs-toggle="tooltip" 
+                                         title="{{ pneu_e2tee.numero_fogo if pneu_e2tee else 'Vazio' }}">TEE</div>
+                                    {% set pneu_e2tei = veiculo.pneus|selectattr('posicao', 'equalto', 'Eixo 2 - Traseiro Esquerdo Interno')|selectattr('status', 'equalto', 'Em Uso')|first %}
+                                    <div class="tire-position {{ 'filled' if pneu_e2tei else 'empty' }}" 
+                                         data-bs-toggle="tooltip" 
+                                         title="{{ pneu_e2tei.numero_fogo if pneu_e2tei else 'Vazio' }}">TEI</div>
+                                </div>
+                                <div class="tire-group">
+                                    {% set pneu_e2tde = veiculo.pneus|selectattr('posicao', 'equalto', 'Eixo 2 - Traseiro Direito Externo')|selectattr('status', 'equalto', 'Em Uso')|first %}
+                                    <div class="tire-position {{ 'filled' if pneu_e2tde else 'empty' }}" 
+                                         data-bs-toggle="tooltip" 
+                                         title="{{ pneu_e2tde.numero_fogo if pneu_e2tde else 'Vazio' }}">TDE</div>
+                                    {% set pneu_e2tdi = veiculo.pneus|selectattr('posicao', 'equalto', 'Eixo 2 - Traseiro Direito Interno')|selectattr('status', 'equalto', 'Em Uso')|first %}
+                                    <div class="tire-position {{ 'filled' if pneu_e2tdi else 'empty' }}" 
+                                         data-bs-toggle="tooltip" 
+                                         title="{{ pneu_e2tdi.numero_fogo if pneu_e2tdi else 'Vazio' }}">TDI</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="tab-pane fade" id="recapagem" role="tabpanel">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Nº Fogo</th>
-                                    <th>Marca/Modelo</th>
-                                    <th>Dimensão</th>
-                                    <th>Histórico de Recapagens</th>
-                                    <th class="text-end">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for pneu in pneus_recapando %}
-                                <tr>
-                                    <td><strong>{{ pneu.numero_fogo }}</strong></td>
-                                    <td>{{ pneu.marca }} / {{ pneu.modelo }}</td>
-                                    <td>{{ pneu.dimensao }}</td>
-                                    <td>{{ pneu.numero_recapagens }} vez(es)</td>
-                                    <td class="text-end">
-                                        <button class="btn btn-sm btn-success" onclick="abrirModalRetorno({{ pneu.id }}, '{{ pneu.numero_fogo }}')">
-                                            <i class="fas fa-check-circle me-1"></i> Registrar Retorno
-                                        </button>
-                                        <a href="{{ url_for('pneu_historico', pneu_id=pneu.id) }}" class="btn btn-sm btn-secondary">
-                                            <i class="fas fa-history"></i> Histórico
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td colspan="5" class="text-center">Nenhum pneu em processo de recapagem.</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-truck"></i>
+                        <h3>Nenhum veículo cadastrado</h3>
+                        <p>Cadastre veículos para começar a gerenciar os pneus da sua frota.</p>
                     </div>
-                </div>
+                {% endif %}
+            </div>
+
+            <div class="tab-pane" id="estoque">
+                {% if pneus_em_estoque %}
+                    <div class="tire-list">
+                        {% for pneu in pneus_em_estoque %}
+                        <div class="tire-item">
+                            <div class="tire-info">
+                                <h4>{{ pneu.numero_fogo }}</h4>
+                                <div class="tire-details">
+                                    <span><strong>{{ pneu.marca }}</strong> {{ pneu.modelo }}</span>
+                                    <span class="badge dimension">{{ pneu.dimensao }}</span>
+                                    <span>Compra: {{ pneu.data_compra.strftime('%d/%m/%Y') }}</span>
+                                    <span><strong>R$ {{ "%.2f"|format(pneu.valor_compra)|replace('.', ',') }}</strong></span>
+                                </div>
+                            </div>
+                            <div class="tire-actions">
+                                <button class="btn-tire measure" onclick="abrirModalMedicao({{ pneu.id }}, '{{ pneu.numero_fogo }}')">
+                                    <i class="fas fa-ruler-combined"></i>
+                                    Medir
+                                </button>
+                                <a href="{{ url_for('pneu_historico', pneu_id=pneu.id) }}" class="btn-tire history">
+                                    <i class="fas fa-history"></i>
+                                    Histórico
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-boxes"></i>
+                        <h3>Nenhum pneu em estoque</h3>
+                        <p>Cadastre novos pneus ou aguarde retorno de recapagem.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="tab-pane" id="recapagem">
+                {% if pneus_recapando %}
+                    <div class="tire-list">
+                        {% for pneu in pneus_recapando %}
+                        <div class="tire-item">
+                            <div class="tire-info">
+                                <h4>{{ pneu.numero_fogo }}</h4>
+                                <div class="tire-details">
+                                    <span><strong>{{ pneu.marca }}</strong> {{ pneu.modelo }}</span>
+                                    <span class="badge dimension">{{ pneu.dimensao }}</span>
+                                    <span class="badge recapagem">{{ pneu.numero_recapagens }} recapagem(ns)</span>
+                                </div>
+                            </div>
+                            <div class="tire-actions">
+                                <button class="btn-tire return" onclick="abrirModalRetorno({{ pneu.id }}, '{{ pneu.numero_fogo }}')">
+                                    <i class="fas fa-check-circle"></i>
+                                    Registrar Retorno
+                                </button>
+                                <a href="{{ url_for('pneu_historico', pneu_id=pneu.id) }}" class="btn-tire history">
+                                    <i class="fas fa-history"></i>
+                                    Histórico
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-tools"></i>
+                        <h3>Nenhum pneu em recapagem</h3>
+                        <p>Pneus enviados para recapagem aparecerão aqui.</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -313,37 +1466,256 @@
 {% endblock %}
 
 {% block scripts %}
+{{ super() }}
 <script>
-// Garante que o código só rode depois que a página carregar
+// Variáveis globais
+let modais = {};
+
+// Inicialização
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Dashboard Moderno da Borracharia inicializado');
 
-    // Inicializar Tooltips do Bootstrap para o mapa de pneus
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-      return new bootstrap.Tooltip(tooltipTriggerEl);
+    // Configurar navegação por tabs
+    configurarTabs();
+    
+    // Inicializar tooltips
+    inicializarTooltips();
+    
+    // Animação de contadores
+    animateCounters();
+    
+    // Configurar modais
+    configurarModais();
+    
+    // Configurar eventos
+    configurarEventos();
+});
+
+// Sistema de navegação por tabs
+function configurarTabs() {
+    const tabButtons = document.querySelectorAll('.nav-tab');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const targetTab = this.dataset.tab;
+            
+            // Remover classe active de todos os botões e panes
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabPanes.forEach(pane => pane.classList.remove('active'));
+            
+            // Adicionar classe active ao botão clicado e respectivo pane
+            this.classList.add('active');
+            document.getElementById(targetTab).classList.add('active');
+            
+            // Trigger evento para atualizar tooltips se necessário
+            setTimeout(inicializarTooltips, 100);
+        });
     });
+}
 
-    // Criar instâncias dos modais
-    const instalarPneuModal = new bootstrap.Modal(document.getElementById('instalarPneuModal'));
-    const removerPneuModal = new bootstrap.Modal(document.getElementById('removerPneuModal'));
-    const medicaoPneuModal = new bootstrap.Modal(document.getElementById('medicaoPneuModal'));
-    const retornoRecapagemModal = new bootstrap.Modal(document.getElementById('retornoRecapagemModal')); // <-- NOVO
+// Inicializar tooltips
+function inicializarTooltips() {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+}
 
-    // --- ABRIR MODAL INSTALAR ---
-    window.abrirModalInstalar = function(veiculoId, veiculoPlaca) {
-        document.getElementById('instalarVeiculoId').value = veiculoId;
-        document.getElementById('instalarPneuModalLabel').innerText = `Instalar Pneu no Veículo: ${veiculoPlaca}`;
-        instalarPneuModal.show();
+// Animação de contadores
+function animateCounters() {
+    const counters = document.querySelectorAll('.stat-number');
+    
+    counters.forEach(counter => {
+        const target = parseInt(counter.textContent);
+        const duration = 1500;
+        const step = target / (duration / 16);
+        let current = 0;
+        
+        const timer = setInterval(() => {
+            current += step;
+            if (current >= target) {
+                counter.textContent = target;
+                clearInterval(timer);
+            } else {
+                counter.textContent = Math.floor(current);
+            }
+        }, 16);
+    });
+}
+
+// Configurar modais
+function configurarModais() {
+    // Instanciar modais do Bootstrap
+    const modalElements = ['novoPneuModal', 'importarPneusModal', 'instalarPneuModal', 'removerPneuModal', 'medicaoPneuModal', 'retornoRecapagemModal'];
+    
+    modalElements.forEach(modalId => {
+        const modalElement = document.getElementById(modalId);
+        if (modalElement) {
+            modais[modalId] = new bootstrap.Modal(modalElement);
+        }
+    });
+}
+
+// Configurar eventos
+function configurarEventos() {
+    // Formulário de cadastro de pneu
+    const formNovoPneu = document.getElementById('formNovoPneu');
+    if (formNovoPneu) {
+        formNovoPneu.addEventListener('submit', function(e) {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            showLoading(submitBtn, 'loadingNovoPneu');
+        });
     }
 
-    // --- ABRIR MODAL REMOVER ---
-    window.abrirModalRemover = async function(veiculoId, veiculoPlaca) {
-        document.getElementById('removerVeiculoId').value = veiculoId;
-        document.getElementById('removerPneuModalLabel').innerText = `Remover Pneu do Veículo: ${veiculoPlaca}`;
+    // Formulário de importação
+    const formImportarPneus = document.getElementById('formImportarPneus');
+    if (formImportarPneus) {
+        formImportarPneus.addEventListener('submit', function(e) {
+            const fileInput = this.querySelector('#csv_file');
+            if (!fileInput.files.length) {
+                e.preventDefault();
+                showNotification('Selecione um arquivo CSV para importar', 'error');
+                return;
+            }
+            const submitBtn = this.querySelector('button[type="submit"]');
+            showLoading(submitBtn, 'loadingImportar');
+        });
+    }
+
+    // Formulários dos modais (se existirem)
+    configurarFormulariosModais();
+}
+
+// Configurar formulários dos modais
+function configurarFormulariosModais() {
+    // Form Instalar Pneu
+    const formInstalar = document.getElementById('formInstalarPneu');
+    if (formInstalar) {
+        formInstalar.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await handleInstalarPneu(this);
+        });
+    }
+
+    // Form Remover Pneu
+    const formRemover = document.getElementById('formRemoverPneu');
+    if (formRemover) {
+        formRemover.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await handleRemoverPneu(this);
+        });
+    }
+
+    // Form Medição
+    const formMedicao = document.getElementById('formMedicaoPneu');
+    if (formMedicao) {
+        formMedicao.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await handleMedicaoPneu(this);
+        });
+    }
+
+    // Form Retorno Recapagem
+    const formRetorno = document.getElementById('formRetornoRecapagem');
+    if (formRetorno) {
+        formRetorno.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await handleRetornoRecapagem(this);
+        });
+    }
+
+    // Controle de destino de remoção
+    const destinoSelect = document.getElementById('removerDestino');
+    if (destinoSelect) {
+        destinoSelect.addEventListener('change', function() {
+            const motivoContainer = document.getElementById('motivoDescarteContainer');
+            const motivoField = document.getElementById('motivoDescarte');
+            
+            if (this.value === 'descarte') {
+                motivoContainer.style.display = 'block';
+                motivoField.required = true;
+            } else {
+                motivoContainer.style.display = 'none';
+                motivoField.required = false;
+                motivoField.value = '';
+            }
+        });
+    }
+}
+
+// Funções dos modais
+window.abrirModalInstalar = async function(veiculoId, veiculoPlaca) {
+    document.getElementById('instalarVeiculoId').value = veiculoId;
+    document.getElementById('instalarPneuModalLabel').textContent = `Instalar Pneu no Veículo: ${veiculoPlaca}`;
+    
+    // Carregar pneus disponíveis
+    await carregarPneusEstoque();
+    
+    modais.instalarPneuModal.show();
+};
+
+window.abrirModalRemover = async function(veiculoId, veiculoPlaca) {
+    document.getElementById('removerVeiculoId').value = veiculoId;
+    document.getElementById('removerPneuModalLabel').textContent = `Remover Pneu do Veículo: ${veiculoPlaca}`;
+    
+    // Carregar pneus do veículo
+    await carregarPneusVeiculo(veiculoId);
+    
+    modais.removerPneuModal.show();
+};
+
+window.abrirModalMedicao = function(pneuId, pneuFogo) {
+    document.getElementById('medicaoPneuId').value = pneuId;
+    document.getElementById('medicaoPneuModalLabel').textContent = `Medir Sulco do Pneu: ${pneuFogo}`;
+    document.getElementById('formMedicaoPneu').reset();
+    document.getElementById('medicaoPneuId').value = pneuId;
+    
+    modais.medicaoPneuModal.show();
+};
+
+window.abrirModalRetorno = function(pneuId, pneuFogo) {
+    document.getElementById('retornoPneuId').value = pneuId;
+    document.getElementById('retornoRecapagemModalLabel').textContent = `Retorno do Pneu: ${pneuFogo}`;
+    document.getElementById('formRetornoRecapagem').reset();
+    document.getElementById('retornoPneuId').value = pneuId;
+    
+    modais.retornoRecapagemModal.show();
+};
+
+// Carregar pneus disponíveis no estoque
+async function carregarPneusEstoque() {
+    try {
+        const response = await fetch('/api/pneus/estoque');
+        const data = await response.json();
+        
+        if (data.success) {
+            const select = document.getElementById('instalarPneuId');
+            select.innerHTML = '<option selected disabled value="">Selecione um pneu...</option>';
+            
+            data.pneus.forEach(pneu => {
+                const option = new Option(
+                    `${pneu.numero_fogo} - ${pneu.marca} ${pneu.modelo} (${pneu.dimensao})`,
+                    pneu.id
+                );
+                select.add(option);
+            });
+        }
+    } catch (error) {
+        console.error('Erro ao carregar pneus do estoque:', error);
+        showNotification('Erro ao carregar pneus do estoque', 'error');
+    }
+}
+
+// Carregar pneus do veículo
+async function carregarPneusVeiculo(veiculoId) {
+    try {
         const response = await fetch(`/api/veiculo/${veiculoId}/pneus`);
         const data = await response.json();
         const selectPneu = document.getElementById('removerPneuId');
+        
         selectPneu.innerHTML = '<option selected disabled value="">Selecione um pneu...</option>';
+        
         if (data.success && data.pneus.length > 0) {
             data.pneus.forEach(pneu => {
                 const option = new Option(`${pneu.posicao} - (Nº Fogo: ${pneu.numero_fogo})`, pneu.id);
@@ -353,97 +1725,420 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             selectPneu.innerHTML = '<option selected disabled>Nenhum pneu instalado</option>';
         }
-        removerPneuModal.show();
+    } catch (error) {
+        console.error('Erro ao carregar pneus do veículo:', error);
+        showNotification('Erro ao carregar pneus do veículo', 'error');
     }
+}
 
-    window.abrirModalRetorno = function(pneuId, pneuFogo) {
-        document.getElementById('retornoPneuId').value = pneuId;
-        document.getElementById('retornoRecapagemModalLabel').innerText = `Retorno do Pneu: ${pneuFogo}`;
-        document.getElementById('formRetornoRecapagem').reset();
-        retornoRecapagemModal.show();
-    };
+// Handlers dos formulários
+async function handleInstalarPneu(form) {
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = showLoading(submitBtn);
 
-    // --- ABRIR MODAL MEDIÇÃO ---
-    window.abrirModalMedicao = function(pneuId, pneuFogo) {
-        document.getElementById('medicaoPneuId').value = pneuId;
-        document.getElementById('medicaoPneuModalLabel').innerText = `Medir Sulco do Pneu: ${pneuFogo}`;
-        document.getElementById('formMedicaoPneu').reset(); // Limpa o formulário
-        medicaoPneuModal.show();
-    }
-
-    // --- SUBMISSÃO DOS FORMULÁRIOS ---
-    document.getElementById('formInstalarPneu').addEventListener('submit', async function(e) {
-        e.preventDefault();
+    try {
         const response = await fetch('/api/pneu/instalar', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-                pneu_id: this.pneu_id.value,
-                veiculo_id: this.veiculo_id.value,
-                posicao: this.posicao.value,
-                km_veiculo: this.km_veiculo.value,
+                pneu_id: form.pneu_id.value,
+                veiculo_id: form.veiculo_id.value,
+                posicao: form.posicao.value,
+                km_veiculo: form.km_veiculo.value,
             })
         });
-        if (response.ok) window.location.reload();
-        else alert('Erro ao instalar o pneu.');
-    });
+        
+        const result = await response.json();
+        hideLoading(submitBtn, originalText);
+        
+        if (response.ok && result.success) {
+            modais.instalarPneuModal.hide();
+            showNotification('Pneu instalado com sucesso!', 'success');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            showNotification(result.message || 'Erro ao instalar o pneu', 'error');
+        }
+    } catch (error) {
+        hideLoading(submitBtn, originalText);
+        showNotification('Erro de conexão. Tente novamente.', 'error');
+    }
+}
 
-    document.getElementById('formRemoverPneu').addEventListener('submit', async function(e) {
-        e.preventDefault();
+async function handleRemoverPneu(form) {
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = showLoading(submitBtn);
+
+    try {
         const response = await fetch('/api/pneu/remover', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-                pneu_id: this.pneu_id.value,
-                km_veiculo: this.km_veiculo.value,
-                destino: this.destino.value,
-                motivo_descarte: this.motivo_descarte.value,
+                pneu_id: form.pneu_id.value,
+                km_veiculo: form.km_veiculo.value,
+                destino: form.destino.value,
+                motivo_descarte: form.motivo_descarte.value,
             })
         });
-        if (response.ok) window.location.reload();
-        else alert('Erro ao remover o pneu.');
-    });
+        
+        const result = await response.json();
+        hideLoading(submitBtn, originalText);
+        
+        if (response.ok && result.success) {
+            modais.removerPneuModal.hide();
+            showNotification('Pneu removido com sucesso!', 'success');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            showNotification(result.message || 'Erro ao remover o pneu', 'error');
+        }
+    } catch (error) {
+        hideLoading(submitBtn, originalText);
+        showNotification('Erro de conexão. Tente novamente.', 'error');
+    }
+}
 
-    document.getElementById('formMedicaoPneu').addEventListener('submit', async function(e) {
-        e.preventDefault();
+async function handleMedicaoPneu(form) {
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = showLoading(submitBtn);
+
+    try {
         const response = await fetch('/api/pneu/registrar_medicao', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-                pneu_id: this.pneu_id.value,
-                sulco_mm: this.sulco_mm.value,
-                observacoes: this.observacoes.value,
+                pneu_id: form.pneu_id.value,
+                sulco_mm: form.sulco_mm.value,
+                observacoes: form.observacoes.value,
             })
         });
-        if (response.ok) {
-            medicaoPneuModal.hide();
-            alert('Medição registrada com sucesso!');
+        
+        const result = await response.json();
+        hideLoading(submitBtn, originalText);
+        
+        if (response.ok && result.success) {
+            modais.medicaoPneuModal.hide();
+            showNotification('Medição registrada com sucesso!', 'success');
         } else {
-            alert('Erro ao registrar medição.');
+            showNotification(result.message || 'Erro ao registrar medição', 'error');
         }
-    });
+    } catch (error) {
+        hideLoading(submitBtn, originalText);
+        showNotification('Erro de conexão. Tente novamente.', 'error');
+    }
+}
 
-    // ===== SUBMISSÃO DO NOVO FORMULÁRIO DE RETORNO =====
-    document.getElementById('formRetornoRecapagem').addEventListener('submit', async function(e) {
-        e.preventDefault();
+async function handleRetornoRecapagem(form) {
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = showLoading(submitBtn);
+
+    try {
         const response = await fetch('/api/pneu/retorno_recapagem', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-                pneu_id: this.pneu_id.value,
-                sulco_mm: this.sulco_mm.value, // <-- DADO NOVO ADICIONADO
-                custo: this.custo.value,
-                fornecedor: this.fornecedor.value,
-                observacoes: this.observacoes.value,
+                pneu_id: form.pneu_id.value,
+                sulco_mm: form.sulco_mm.value,
+                custo: form.custo.value,
+                fornecedor: form.fornecedor.value,
+                observacoes: form.observacoes.value,
             })
         });
-        if (response.ok) {
-            window.location.reload();
+        
+        const result = await response.json();
+        hideLoading(submitBtn, originalText);
+        
+        if (response.ok && result.success) {
+            modais.retornoRecapagemModal.hide();
+            showNotification('Retorno de recapagem registrado com sucesso!', 'success');
+            setTimeout(() => window.location.reload(), 1500);
         } else {
-            alert('Erro ao registrar retorno de recapagem.');
+            showNotification(result.message || 'Erro ao registrar retorno', 'error');
+        }
+    } catch (error) {
+        hideLoading(submitBtn, originalText);
+        showNotification('Erro de conexão. Tente novamente.', 'error');
+    }
+}
+
+// Funções utilitárias
+function showLoading(button, spinnerId = null) {
+    const originalText = button.innerHTML;
+    
+    if (spinnerId) {
+        const spinner = document.getElementById(spinnerId);
+        if (spinner) {
+            spinner.style.display = 'inline-block';
+        }
+    }
+    
+    const spinner = button.querySelector('.loading-spinner');
+    if (spinner) {
+        spinner.style.display = 'inline-block';
+    }
+    
+    button.disabled = true;
+    button.classList.add('loading');
+    
+    return originalText;
+}
+
+function hideLoading(button, originalText, spinnerId = null) {
+    if (originalText) {
+        button.innerHTML = originalText;
+    }
+    
+    if (spinnerId) {
+        const spinner = document.getElementById(spinnerId);
+        if (spinner) {
+            spinner.style.display = 'none';
+        }
+    }
+    
+    const spinner = button.querySelector('.loading-spinner');
+    if (spinner) {
+        spinner.style.display = 'none';
+    }
+    
+    button.disabled = false;
+    button.classList.remove('loading');
+}
+
+function showNotification(message, type = 'success') {
+    // Remover notificações existentes
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(n => n.remove());
+    
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    
+    const icon = type === 'success' ? 'fa-check-circle' : 
+                 type === 'error' ? 'fa-exclamation-triangle' : 
+                 'fa-info-circle';
+    
+    notification.innerHTML = `
+        <i class="fas ${icon}"></i>
+        <span>${message}</span>
+        <button class="close-btn" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto remove após 5 segundos
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.style.animation = 'slideInRight 0.3s ease-in reverse';
+            setTimeout(() => notification.remove(), 300);
+        }
+    }, 5000);
+}
+
+// Efeitos visuais adicionais
+document.addEventListener('mouseover', function(e) {
+    if (e.target.classList.contains('tire-position') && e.target.classList.contains('filled')) {
+        e.target.classList.add('animate-pulse');
+    }
+});
+
+document.addEventListener('mouseout', function(e) {
+    if (e.target.classList.contains('tire-position')) {
+        e.target.classList.remove('animate-pulse');
+    }
+});
+
+// Validações em tempo real
+function addRealTimeValidation() {
+    // Validação para número do fogo (apenas alfanumérico)
+    const numeroFogoInput = document.getElementById('numero_fogo');
+    if (numeroFogoInput) {
+        numeroFogoInput.addEventListener('input', function() {
+            this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        });
+    }
+
+    // Validação para DOT (apenas números)
+    const dotInput = document.getElementById('dot');
+    if (dotInput) {
+        dotInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+    }
+
+    // Formatação de valor monetário
+    const valorInput = document.getElementById('valor_compra');
+    if (valorInput) {
+        valorInput.addEventListener('blur', function() {
+            if (this.value) {
+                this.value = parseFloat(this.value).toFixed(2);
+            }
+        });
+    }
+}
+
+// Validações em tempo real
+function adicionarValidacoesTempoReal() {
+    // Validação para número do fogo (apenas alfanumérico)
+    const numeroFogoInput = document.getElementById('numero_fogo');
+    if (numeroFogoInput) {
+        numeroFogoInput.addEventListener('input', function() {
+            this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            
+            // Adicionar feedback visual
+            if (this.value.length >= 2) {
+                this.classList.add('is-valid');
+                this.classList.remove('is-invalid');
+            } else {
+                this.classList.add('is-invalid');
+                this.classList.remove('is-valid');
+            }
+        });
+    }
+
+    // Validação para DOT (apenas números)
+    const dotInput = document.getElementById('dot');
+    if (dotInput) {
+        dotInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            
+            // Feedback visual para DOT
+            if (this.value.length >= 4) {
+                this.classList.add('is-valid');
+                this.classList.remove('is-invalid');
+            } else {
+                this.classList.add('is-invalid');
+                this.classList.remove('is-valid');
+            }
+        });
+    }
+
+    // Formatação de valor monetário
+    const valorInput = document.getElementById('valor_compra');
+    if (valorInput) {
+        valorInput.addEventListener('input', function() {
+            // Remover caracteres não numéricos exceto ponto e vírgula
+            let valor = this.value.replace(/[^0-9.,]/g, '');
+            
+            // Substituir vírgula por ponto para cálculos
+            valor = valor.replace(',', '.');
+            
+            this.value = valor;
+            
+            // Feedback visual
+            const valorNum = parseFloat(valor);
+            if (valorNum > 0) {
+                this.classList.add('is-valid');
+                this.classList.remove('is-invalid');
+            } else {
+                this.classList.add('is-invalid');
+                this.classList.remove('is-valid');
+            }
+        });
+        
+        valorInput.addEventListener('blur', function() {
+            if (this.value) {
+                const valor = parseFloat(this.value);
+                if (!isNaN(valor) && valor > 0) {
+                    this.value = valor.toFixed(2);
+                }
+            }
+        });
+    }
+
+    // Validação para dimensão (formato padrão)
+    const dimensaoInput = document.getElementById('dimensao');
+    if (dimensaoInput) {
+        dimensaoInput.addEventListener('input', function() {
+            // Permitir apenas números, barra, ponto, espaço e R
+            this.value = this.value.toUpperCase().replace(/[^0-9\/\.\sR]/g, '');
+            
+            // Verificar formato básico (exemplo: 295/80 R22.5)
+            const formatoValido = /^\d+\/\d+\s*R\d+(\.\d+)?$/.test(this.value.trim());
+            
+            if (formatoValido || this.value.length < 5) {
+                this.classList.remove('is-invalid');
+                if (formatoValido) {
+                    this.classList.add('is-valid');
+                }
+            } else {
+                this.classList.add('is-invalid');
+                this.classList.remove('is-valid');
+            }
+        });
+    }
+
+    // Validação para data da compra
+    const dataCompraInput = document.getElementById('data_compra');
+    if (dataCompraInput) {
+        dataCompraInput.addEventListener('change', function() {
+            const hoje = new Date();
+            const dataSelecionada = new Date(this.value);
+            
+            if (dataSelecionada <= hoje) {
+                this.classList.add('is-valid');
+                this.classList.remove('is-invalid');
+            } else {
+                this.classList.add('is-invalid');
+                this.classList.remove('is-valid');
+            }
+        });
+    }
+
+    // Validação geral dos campos obrigatórios
+    const camposObrigatorios = ['numero_fogo', 'marca', 'modelo', 'dimensao', 'dot', 'data_compra', 'valor_compra'];
+    
+    camposObrigatorios.forEach(campoId => {
+        const campo = document.getElementById(campoId);
+        if (campo && !campo.hasAttribute('data-validation-added')) {
+            campo.setAttribute('data-validation-added', 'true');
+            
+            campo.addEventListener('blur', function() {
+                if (this.value.trim() === '') {
+                    this.classList.add('is-invalid');
+                    this.classList.remove('is-valid');
+                } else if (!this.classList.contains('is-invalid')) {
+                    this.classList.add('is-valid');
+                }
+            });
+            
+            campo.addEventListener('input', function() {
+                if (this.value.trim() !== '') {
+                    this.classList.remove('is-invalid');
+                }
+            });
         }
     });
+}
 
+// Adicionar estilos para feedback visual das validações
+function adicionarEstilosValidacao() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .form-control.is-valid {
+            border-color: var(--green-600);
+            box-shadow: 0 0 0 0.2rem rgba(22, 163, 74, 0.15);
+        }
+        
+        .form-control.is-invalid {
+            border-color: var(--red-600);
+            box-shadow: 0 0 0 0.2rem rgba(220, 38, 38, 0.15);
+        }
+        
+        .form-control.is-valid:focus {
+            border-color: var(--green-600);
+            box-shadow: 0 0 0 0.2rem rgba(22, 163, 74, 0.25);
+        }
+        
+        .form-control.is-invalid:focus {
+            border-color: var(--red-600);
+            box-shadow: 0 0 0 0.2rem rgba(220, 38, 38, 0.25);
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Ativar validações quando DOM estiver pronto
+document.addEventListener('DOMContentLoaded', function() {
+    adicionarEstilosValidacao();
 });
+
+console.log('Dashboard da Borracharia carregado com tema moderno e funcionalidades completas');
 </script>
 {% endblock %}

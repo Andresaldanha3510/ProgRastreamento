@@ -1,0 +1,1066 @@
+{% extends "base.html" %}
+
+{% block title %}Emitir CT-e da Viagem - TrackGo{% endblock %}
+
+{% block styles %} 
+<style>
+.cte-form {
+    background: #f8f9fa;
+    min-height: 100vh;
+    padding: 20px 0;
+}
+
+.cte-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.cte-header {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    padding: 30px;
+    text-align: center;
+}
+
+.cte-header h1 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 300;
+}
+
+.cte-subtitle {
+    opacity: 0.9;
+    margin-top: 10px;
+}
+
+.form-step {
+    padding: 40px;
+}
+
+.step-nav {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 40px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.step-nav button {
+    background: none;
+    border: none;
+    padding: 15px 30px;
+    font-size: 16px;
+    color: #6c757d;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.step-nav button.active {
+    color: #007bff;
+    border-bottom-color: #007bff;
+}
+
+.step-nav button:hover {
+    color: #007bff;
+}
+
+.step-nav button.completed {
+    color: #28a745;
+}
+
+.form-section {
+    display: none;
+}
+
+.form-section.active {
+    display: block;
+}
+
+.form-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.form-group {
+    flex: 1;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #495057;
+}
+
+.form-group label.required::after {
+    content: " *";
+    color: #dc3545;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    outline: none;
+}
+
+.form-control.is-invalid {
+    border-color: #dc3545;
+}
+
+.form-control.is-valid {
+    border-color: #28a745;
+}
+
+.invalid-feedback {
+    display: block;
+    margin-top: 5px;
+    color: #dc3545;
+    font-size: 14px;
+}
+
+.btn-cte {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-cte:hover:not(:disabled) {
+    background: linear-gradient(135deg, #20c997, #28a745);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(40, 167, 69, 0.3);
+}
+
+.btn-cte:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid #e9ecef;
+    margin-top: 30px;
+}
+
+.loading {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    text-align: center;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 25px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.section-subtitle {
+    font-weight: 600;
+    margin: 20px 0 15px 0;
+    padding: 10px 0;
+    border-left: 4px solid #007bff;
+    padding-left: 15px;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #007bff;
+}
+
+.alert-cte {
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+}
+
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.alert-error {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+        gap: 15px;
+    }
+    .step-nav {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .form-actions {
+        flex-direction: column;
+        gap: 15px;
+    }
+    .cte-container {
+        margin: 10px;
+        border-radius: 8px;
+    }
+    .form-step {
+        padding: 20px;
+    }
+}
+
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background-color: #e9ecef;
+    border-radius: 2px;
+    margin-bottom: 30px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #007bff, #28a745);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.required-info {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 20px;
+    color: #856404;
+}
+
+.campo-calculado {
+    background-color: #f8f9fa;
+    cursor: not-allowed;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cte-form">
+    <div class="cte-container">
+        <div class="cte-header">
+            <h1>Emissão de CT-e</h1>
+            <p class="cte-subtitle">A partir da Viagem ID: {{ dados.viagem_id }}</p>
+        </div>
+
+        <form id="cteForm" class="form-step" novalidate>
+            <input type="hidden" name="viagem_id" value="{{ dados.viagem_id }}">
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 25%"></div>
+            </div>
+
+            <div class="step-nav">
+                <button type="button" class="step-btn active" data-step="1">1. Dados Básicos</button>
+                <button type="button" class="step-btn" data-step="2">2. Envolvidos</button>
+                <button type="button" class="step-btn" data-step="3">3. Carga e Transporte</button>
+                <button type="button" class="step-btn" data-step="4">4. Valores e Impostos</button>
+            </div>
+
+            <!-- Passo 1: Dados Básicos -->
+            <div class="form-section active" id="step-1">
+                <h2 class="section-title">Dados Básicos da CT-e</h2>
+                <div class="required-info">
+                    <i class="fas fa-info-circle"></i> Campos marcados com * são obrigatórios
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="tipo_operacao" class="required">Tipo de Operação</label>
+                        <select class="form-control" id="tipo_operacao" name="tipo_operacao" required>
+                            <option value="0" selected>Normal</option>
+                            <option value="1">Subcontratação</option>
+                            <option value="2">Redespacho</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="cfop" class="required">CFOP</label>
+                        <input type="text" class="form-control" id="cfop" name="cfop" value="5353" required maxlength="4">
+                    </div>
+                    <div class="form-group">
+                        <label for="natureza_operacao" class="required">Natureza da Operação</label>
+                        <input type="text" class="form-control" id="natureza_operacao" name="natureza_operacao" 
+                               value="PRESTACAO DE SERVICO DE TRANSPORTE" required maxlength="60">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="modal" class="required">Modal de Transporte</label>
+                        <select class="form-control" id="modal" name="modal" required>
+                            <option value="01" selected>Rodoviário</option>
+                            <option value="02">Aéreo</option>
+                            <option value="03">Aquaviário</option>
+                            <option value="04">Ferroviário</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="tipo_servico" class="required">Tipo de Serviço</label>
+                        <select class="form-control" id="tipo_servico" name="tipo_servico" required>
+                            <option value="0" selected>Normal</option>
+                            <option value="1">Subcontratação</option>
+                            <option value="2">Redespacho</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Passo 2: Envolvidos -->
+            <div class="form-section" id="step-2">
+                <h2 class="section-title">Dados do Remetente e Destinatário</h2>
+                
+                <div class="section-subtitle" style="color: #007bff;">Remetente (Sua Empresa)</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="rem_cnpj_cpf" class="required">CNPJ/CPF</label>
+                        <input type="text" class="form-control cnpj-cpf-mask" id="rem_cnpj_cpf" name="rem_cnpj_cpf" 
+                               value="{{ dados.remetente.cnpj if dados.remetente else '' }}" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="rem_nome" class="required">Nome/Razão Social</label>
+                        <input type="text" class="form-control" id="rem_nome" name="rem_nome" 
+                               value="{{ dados.remetente.razao_social if dados.remetente else '' }}" required maxlength="60">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="rem_ie">Inscrição Estadual</label>
+                        <input type="text" class="form-control" id="rem_ie" name="rem_ie" 
+                               value="{{ dados.remetente.inscricao_estadual if dados.remetente else '' }}" maxlength="14">
+                    </div>
+                    <div class="form-group">
+                        <label for="rem_endereco" class="required">Endereço</label>
+                        <input type="text" class="form-control" id="rem_endereco" name="rem_endereco" 
+                               value="{{ dados.remetente.endereco if dados.remetente else '' }}" required maxlength="60">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="rem_cidade" class="required">Cidade</label>
+                        <input type="text" class="form-control" id="rem_cidade" name="rem_cidade" 
+                               value="{{ dados.remetente.cidade if dados.remetente else '' }}" required maxlength="60">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="rem_uf" class="required">UF</label>
+                        <select class="form-control" id="rem_uf" name="rem_uf" required>
+                            <option value="">Selecione...</option>
+                            <option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option>
+                            <option value="AM">AM</option><option value="BA">BA</option><option value="CE">CE</option>
+                            <option value="DF">DF</option><option value="ES">ES</option><option value="GO">GO</option>
+                            <option value="MA">MA</option><option value="MT">MT</option><option value="MS">MS</option>
+                            <option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option>
+                            <option value="PR">PR</option><option value="PE">PE</option><option value="PI">PI</option>
+                            <option value="RJ">RJ</option><option value="RN">RN</option><option value="RS">RS</option>
+                            <option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option>
+                            <option value="SP" selected>SP</option><option value="SE">SE</option><option value="TO">TO</option>
+                        </select>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                     <div class="form-group">
+                        <label for="rem_cep" class="required">CEP</label>
+                        <input type="text" class="form-control cep-mask" id="rem_cep" name="rem_cep" 
+                               value="{{ dados.remetente.cep if dados.remetente else '' }}" required maxlength="9">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+
+                <div class="section-subtitle" style="color: #28a745;">Destinatário (Cliente)</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="dest_cnpj_cpf" class="required">CNPJ/CPF</label>
+                        <input type="text" class="form-control cnpj-cpf-mask" id="dest_cnpj_cpf" name="dest_cnpj_cpf" 
+                               value="{{ dados.destinatario.cpf_cnpj if dados.destinatario else '' }}" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="dest_nome" class="required">Nome/Razão Social</label>
+                        <input type="text" class="form-control" id="dest_nome" name="dest_nome" 
+                               value="{{ dados.destinatario.nome_razao_social if dados.destinatario else dados.viagem.cliente }}" required maxlength="60">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="form-row">
+                     <div class="form-group">
+                        <label for="dest_ie">Inscrição Estadual</label>
+                        <input type="text" class="form-control" id="dest_ie" name="dest_ie" 
+                               value="{{ dados.destinatario.inscricao_estadual if dados.destinatario else '' }}" maxlength="14">
+                    </div>
+                    <div class="form-group">
+                        <label for="dest_endereco" class="required">Endereço</label>
+                        <input type="text" class="form-control" id="dest_endereco" name="dest_endereco" 
+                               value="{{ dados.destinatario.logradouro if dados.destinatario else '' }}" required maxlength="60">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                 <div class="form-row">
+                    <div class="form-group">
+                        <label for="dest_cidade" class="required">Cidade</label>
+                        <input type="text" class="form-control" id="dest_cidade" name="dest_cidade" 
+                               value="{{ dados.destinatario.cidade if dados.destinatario else '' }}" required maxlength="60">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="dest_uf" class="required">UF</label>
+                        <select class="form-control" id="dest_uf" name="dest_uf" required>
+                            <option value="">Selecione...</option>
+                            <option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option>
+                            <option value="AM">AM</option><option value="BA">BA</option><option value="CE">CE</option>
+                            <option value="DF">DF</option><option value="ES">ES</option><option value="GO">GO</option>
+                            <option value="MA">MA</option><option value="MT">MT</option><option value="MS">MS</option>
+                            <option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option>
+                            <option value="PR">PR</option><option value="PE">PE</option><option value="PI">PI</option>
+                            <option value="RJ">RJ</option><option value="RN">RN</option><option value="RS">RS</option>
+                            <option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option>
+                            <option value="SP">SP</option><option value="SE">SE</option><option value="TO">TO</option>
+                        </select>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="dest_cep" class="required">CEP</label>
+                        <input type="text" class="form-control cep-mask" id="dest_cep" name="dest_cep" 
+                               value="{{ dados.destinatario.cep if dados.destinatario else '' }}" required maxlength="9">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Passo 3: Carga e Transporte -->
+            <div class="form-section" id="step-3">
+                <h2 class="section-title">Dados da Carga e Transporte</h2>
+                
+                <div class="section-subtitle" style="color: #17a2b8;">Informações da Carga</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="natureza_carga" class="required">Natureza da Carga</label>
+                        <input type="text" class="form-control" id="natureza_carga" name="natureza_carga" 
+                               placeholder="Ex: PRODUTOS DIVERSOS" required maxlength="60">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="valor_carga" class="required">Valor da Carga (R$)</label>
+                        <input type="number" step="0.01" min="0" class="form-control" id="valor_carga" name="valor_carga" 
+                               value="0.00" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="peso_bruto" class="required">Peso Bruto (kg)</label>
+                        <input type="number" step="0.001" min="0" class="form-control" id="peso_bruto" name="peso_bruto" 
+                               value="0.000" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="quantidade_volumes" class="required">Quantidade de Volumes</label>
+                        <input type="number" min="1" class="form-control" id="quantidade_volumes" name="quantidade_volumes" 
+                               value="1" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                
+                <div class="section-subtitle" style="color: #ffc107;">Dados do Veículo</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="placa_veiculo">Placa do Veículo</label>
+                        <input type="text" class="form-control placa-mask" id="placa_veiculo" name="placa_veiculo" 
+                               value="{{ dados.veiculo.placa if dados.veiculo else '' }}" maxlength="8">
+                    </div>
+                    <div class="form-group">
+                        <label for="renavam_veiculo">RENAVAM</label>
+                        <input type="text" class="form-control" id="renavam_veiculo" name="renavam_veiculo" 
+                               value="{{ dados.veiculo.renavam if dados.veiculo else '' }}" maxlength="11">
+                    </div>
+                </div>
+                
+                <div class="section-subtitle" style="color: #6c757d;">Dados do Motorista</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="motorista_nome">Nome do Motorista</label>
+                        <input type="text" class="form-control" id="motorista_nome" name="motorista_nome" 
+                               value="{{ dados.motorista.nome if dados.motorista else '' }}" maxlength="60">
+                    </div>
+                    <div class="form-group">
+                        <label for="motorista_cpf">CPF do Motorista</label>
+                        <input type="text" class="form-control cpf-mask" id="motorista_cpf" name="motorista_cpf" 
+                               value="{{ dados.motorista.cpf if dados.motorista else '' }}" maxlength="14">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Passo 4: Valores e Impostos -->
+            <div class="form-section" id="step-4">
+                <h2 class="section-title">Valores do Serviço e Impostos</h2>
+                
+                <div class="section-subtitle" style="color: #28a745;">Valores do Serviço</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="valor_total_servico" class="required">Valor Total do Serviço (R$)</label>
+                        <input type="number" step="0.01" min="0" class="form-control" id="valor_total_servico" 
+                               name="valor_total_servico" value="{{ '%.2f'|format(dados.viagem.valor_recebido or 0.00) }}" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="valor_receber" class="required">Valor a Receber (R$)</label>
+                        <input type="number" step="0.01" min="0" class="form-control" id="valor_receber" 
+                               name="valor_receber" value="{{ '%.2f'|format(dados.viagem.valor_recebido or 0.00) }}" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                
+                <div class="section-subtitle" style="color: #dc3545;">ICMS</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="base_calculo_icms" class="required">Base de Cálculo ICMS (R$)</label>
+                        <input type="number" step="0.01" min="0" class="form-control campo-calculado" id="base_calculo_icms" 
+                               name="base_calculo_icms" value="{{ '%.2f'|format(dados.viagem.valor_recebido or 0.00) }}" required readonly>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="aliquota_icms" class="required">Alíquota ICMS (%)</label>
+                        <input type="number" step="0.01" min="0" max="100" class="form-control" id="aliquota_icms" 
+                               name="aliquota_icms" value="17.00" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="valor_icms">Valor ICMS (R$)</label>
+                        <input type="number" step="0.01" class="form-control campo-calculado" id="valor_icms" 
+                               name="valor_icms" readonly>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="observacoes">Observações</label>
+                    <textarea class="form-control" id="observacoes" name="observacoes" rows="4" 
+                              placeholder="Informações adicionais sobre o transporte..." maxlength="5000"></textarea>
+                    <small class="form-text text-muted">Máximo 5000 caracteres</small>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="transmitir_automaticamente" name="transmitir_automaticamente" checked>
+                    <label for="transmitir_automaticamente">Transmitir automaticamente para a SEFAZ</label>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div class="loading" id="loading">
+                <div>
+                    <div class="spinner"></div>
+                    <p><strong>Processando CT-e...</strong></p>
+                    <p>Por favor, aguarde. Não feche esta janela.</p>
+                </div>
+            </div>
+
+            <!-- Ações do formulário -->
+            <div class="form-actions">
+                <button type="button" id="btnPrevious" class="btn-secondary" style="display: none;">
+                    <i class="fas fa-arrow-left"></i> Anterior
+                </button>
+                <div>
+                    <button type="button" id="btnNext" class="btn-cte">
+                        Próximo <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <button type="submit" id="btnSubmit" class="btn-cte" style="display: none;">
+                        <i class="fas fa-check"></i> Emitir CT-e
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.6.0/cleave.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const stepButtons = document.querySelectorAll('.step-btn');
+    const formSections = document.querySelectorAll('.form-section');
+    const btnNext = document.getElementById('btnNext');
+    const btnPrevious = document.getElementById('btnPrevious');
+    const btnSubmit = document.getElementById('btnSubmit');
+    const form = document.getElementById('cteForm');
+    const progressFill = document.getElementById('progressFill');
+    let currentStep = 1;
+    const totalSteps = 4;
+
+    // Máscaras de entrada
+    const cnpjCpfMasks = document.querySelectorAll('.cnpj-cpf-mask');
+    const cepMasks = document.querySelectorAll('.cep-mask');
+    const cpfMasks = document.querySelectorAll('.cpf-mask');
+    const placaMasks = document.querySelectorAll('.placa-mask');
+
+    // Configurar máscaras
+    cnpjCpfMasks.forEach(input => {
+        new Cleave(input, {
+            delimiters: ['.', '.', '/', '-', '.', '-'],
+            blocks: [2, 3, 3, 4, 2],
+            numericOnly: true
+        });
+    });
+
+    cepMasks.forEach(input => {
+        new Cleave(input, {
+            delimiters: ['-'],
+            blocks: [5, 3],
+            numericOnly: true
+        });
+    });
+
+    cpfMasks.forEach(input => {
+        new Cleave(input, {
+            delimiters: ['.', '.', '-'],
+            blocks: [3, 3, 3, 2],
+            numericOnly: true
+        });
+    });
+
+    placaMasks.forEach(input => {
+        new Cleave(input, {
+            blocks: [3, 4],
+            uppercase: true
+        });
+    });
+
+    function updateProgress() {
+        const progress = (currentStep / totalSteps) * 100;
+        progressFill.style.width = `${progress}%`;
+    }
+
+    function showStep(step) {
+        if (step < 1 || step > totalSteps) return;
+
+        // Validar passo atual antes de avançar
+        if (step > currentStep && !validateCurrentStep()) {
+            return;
+        }
+
+        formSections.forEach(section => section.classList.remove('active'));
+        stepButtons.forEach(btn => {
+            btn.classList.remove('active');
+            if (parseInt(btn.dataset.step) < step) {
+                btn.classList.add('completed');
+            } else {
+                btn.classList.remove('completed');
+            }
+        });
+
+        document.getElementById(`step-${step}`).classList.add('active');
+        document.querySelector(`[data-step="${step}"]`).classList.add('active');
+        
+        btnPrevious.style.display = step > 1 ? 'block' : 'none';
+        btnNext.style.display = step < totalSteps ? 'block' : 'none';
+        btnSubmit.style.display = step === totalSteps ? 'block' : 'none';
+        
+        currentStep = step;
+        updateProgress();
+
+        // Scroll para o topo
+        document.querySelector('.cte-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function validateCurrentStep() {
+        const currentSection = document.getElementById(`step-${currentStep}`);
+        const requiredFields = currentSection.querySelectorAll('[required]');
+        let isValid = true;
+
+        requiredFields.forEach(field => {
+            if (!validateField(field)) {
+                isValid = false;
+            }
+        });
+
+        return isValid;
+    }
+
+    function validateField(field) {
+        const value = field.value.trim();
+        let isValid = true;
+        let message = '';
+
+        // Limpar estado anterior
+        field.classList.remove('is-invalid', 'is-valid');
+        const feedback = field.parentNode.querySelector('.invalid-feedback');
+        if (feedback) feedback.textContent = '';
+
+        // Validação de campo obrigatório
+        if (field.required && !value) {
+            isValid = false;
+            message = 'Este campo é obrigatório.';
+        }
+        // Validações específicas
+        else if (field.classList.contains('cnpj-cpf-mask') && value) {
+            const cleanValue = value.replace(/\D/g, '');
+            if (cleanValue.length === 11) {
+                if (!validateCPF(cleanValue)) {
+                    isValid = false;
+                    message = 'CPF inválido.';
+                }
+            } else if (cleanValue.length === 14) {
+                if (!validateCNPJ(cleanValue)) {
+                    isValid = false;
+                    message = 'CNPJ inválido.';
+                }
+            } else {
+                isValid = false;
+                message = 'CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos.';
+            }
+        }
+        else if (field.classList.contains('cep-mask') && value) {
+            const cleanValue = value.replace(/\D/g, '');
+            if (cleanValue.length !== 8) {
+                isValid = false;
+                message = 'CEP deve ter 8 dígitos.';
+            }
+        }
+        else if (field.type === 'number' && value) {
+            const numValue = parseFloat(value);
+            if (isNaN(numValue) || numValue < 0) {
+                isValid = false;
+                message = 'Valor deve ser maior ou igual a zero.';
+            }
+        }
+        else if (field.type === 'email' && value) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(value)) {
+                isValid = false;
+                message = 'Email inválido.';
+            }
+        }
+
+        // Aplicar classe de validação
+        field.classList.add(isValid ? 'is-valid' : 'is-invalid');
+        if (feedback && message) {
+            feedback.textContent = message;
+        }
+
+        return isValid;
+    }
+
+    function validateCPF(cpf) {
+        if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+        
+        let sum = 0;
+        for (let i = 0; i < 9; i++) {
+            sum += parseInt(cpf[i]) * (10 - i);
+        }
+        let remainder = 11 - (sum % 11);
+        if (remainder === 10 || remainder === 11) remainder = 0;
+        if (remainder !== parseInt(cpf[9])) return false;
+
+        sum = 0;
+        for (let i = 0; i < 10; i++) {
+            sum += parseInt(cpf[i]) * (11 - i);
+        }
+        remainder = 11 - (sum % 11);
+        if (remainder === 10 || remainder === 11) remainder = 0;
+        
+        return remainder === parseInt(cpf[10]);
+    }
+
+    function validateCNPJ(cnpj) {
+        if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
+
+        const weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+        const weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+
+        let sum = 0;
+        for (let i = 0; i < 12; i++) {
+            sum += parseInt(cnpj[i]) * weights1[i];
+        }
+        let remainder = sum % 11;
+        const digit1 = remainder < 2 ? 0 : 11 - remainder;
+        if (parseInt(cnpj[12]) !== digit1) return false;
+
+        sum = 0;
+        for (let i = 0; i < 13; i++) {
+            sum += parseInt(cnpj[i]) * weights2[i];
+        }
+        remainder = sum % 11;
+        const digit2 = remainder < 2 ? 0 : 11 - remainder;
+        
+        return parseInt(cnpj[13]) === digit2;
+    }
+
+    // Event listeners para navegação
+    stepButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetStep = parseInt(btn.dataset.step);
+            if (targetStep <= currentStep || validateCurrentStep()) {
+                showStep(targetStep);
+            }
+        });
+    });
+
+    btnNext.addEventListener('click', () => {
+        if (currentStep < totalSteps && validateCurrentStep()) {
+            showStep(currentStep + 1);
+        }
+    });
+
+    btnPrevious.addEventListener('click', () => {
+        if (currentStep > 1) {
+            showStep(currentStep - 1);
+        }
+    });
+
+    // Validação em tempo real
+    form.addEventListener('input', (e) => {
+        if (e.target.classList.contains('is-invalid') || e.target.classList.contains('is-valid')) {
+            validateField(e.target);
+        }
+    });
+
+    // Cálculos automáticos
+    function calcularICMS() {
+        const baseCalculo = parseFloat(document.getElementById('base_calculo_icms').value) || 0;
+        const aliquota = parseFloat(document.getElementById('aliquota_icms').value) || 0;
+        const valorICMS = (baseCalculo * aliquota) / 100;
+        document.getElementById('valor_icms').value = valorICMS.toFixed(2);
+    }
+
+    document.getElementById('valor_total_servico').addEventListener('input', function() {
+        const valor = parseFloat(this.value) || 0;
+        document.getElementById('base_calculo_icms').value = valor.toFixed(2);
+        document.getElementById('valor_receber').value = valor.toFixed(2);
+        calcularICMS();
+    });
+
+    document.getElementById('base_calculo_icms').addEventListener('input', calcularICMS);
+    document.getElementById('aliquota_icms').addEventListener('input', calcularICMS);
+    
+    // Calcular ICMS inicial
+    calcularICMS();
+
+    // Submissão do formulário
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        if (!validateCurrentStep()) {
+            showNotification('Por favor, corrija os campos obrigatórios antes de continuar.', 'error');
+            return;
+        }
+
+        const loading = document.getElementById('loading');
+        const formData = new FormData(form);
+        
+        // Preparar dados para envio
+        const dadosCTE = {
+            viagem_id: formData.get('viagem_id'),
+            tipo_operacao: parseInt(formData.get('tipo_operacao')),
+            cfop: formData.get('cfop'),
+            natureza_operacao: formData.get('natureza_operacao'),
+            modal: formData.get('modal'),
+            tipo_servico: parseInt(formData.get('tipo_servico')),
+            empresa: {
+                cnpj: document.getElementById('rem_cnpj_cpf').value.replace(/\D/g, ''),
+                razao_social: document.getElementById('rem_nome').value,
+                endereco: document.getElementById('rem_endereco').value,
+                cidade: document.getElementById('rem_cidade').value,
+                estado: document.getElementById('rem_uf').value,
+                cep: document.getElementById('rem_cep').value.replace(/\D/g, ''),
+                inscricao_estadual: document.getElementById('rem_ie').value
+            },
+            remetente: {
+                cnpj_cpf: document.getElementById('rem_cnpj_cpf').value.replace(/\D/g, ''),
+                nome: document.getElementById('rem_nome').value,
+                endereco: document.getElementById('rem_endereco').value,
+                cidade: document.getElementById('rem_cidade').value,
+                uf: document.getElementById('rem_uf').value,
+                cep: document.getElementById('rem_cep').value.replace(/\D/g, ''),
+                ie: document.getElementById('rem_ie').value
+            },
+            destinatario: {
+                cnpj_cpf: document.getElementById('dest_cnpj_cpf').value.replace(/\D/g, ''),
+                nome: document.getElementById('dest_nome').value,
+                endereco: document.getElementById('dest_endereco').value,
+                cidade: document.getElementById('dest_cidade').value,
+                uf: document.getElementById('dest_uf').value,
+                cep: document.getElementById('dest_cep').value.replace(/\D/g, ''),
+                ie: document.getElementById('dest_ie').value
+            },
+            carga: {
+                natureza: formData.get('natureza_carga'),
+                valor: parseFloat(formData.get('valor_carga')),
+                peso_bruto: parseFloat(formData.get('peso_bruto')),
+                volumes: parseInt(formData.get('quantidade_volumes'))
+            },
+            valores: {
+                valor_total: parseFloat(formData.get('valor_total_servico')),
+                valor_receber: parseFloat(formData.get('valor_receber'))
+            },
+            impostos: {
+                base_calculo: parseFloat(formData.get('base_calculo_icms')),
+                aliquota: parseFloat(formData.get('aliquota_icms')),
+                valor_icms: parseFloat(document.getElementById('valor_icms').value)
+            },
+            veiculo: {
+                placa: formData.get('placa_veiculo'),
+                renavam: formData.get('renavam_veiculo')
+            },
+            motorista: {
+                nome: formData.get('motorista_nome'),
+                cpf: formData.get('motorista_cpf')
+            },
+            observacoes: formData.get('observacoes'),
+            transmitir_automaticamente: formData.get('transmitir_automaticamente') === 'on'
+        };
+
+        try {
+            document.querySelector('.form-section.active').style.display = 'none';
+            document.querySelector('.form-actions').style.display = 'none';
+            loading.style.display = 'flex';
+
+            const response = await fetch('/api/cte/emitir', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(dadosCTE)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success || result.sucesso) {
+                const cteId = result.cte_id;
+                showNotification('CT-e emitida com sucesso!', 'success');
+                
+                // Redirecionar após 2 segundos
+                setTimeout(() => {
+                    window.location.href = `/fiscal/cte/sucesso/${cteId}`;
+                }, 2000);
+            } else {
+                throw new Error(result.message || result.erro || 'Erro desconhecido');
+            }
+
+        } catch (error) {
+            loading.style.display = 'none';
+            document.querySelector('.form-section.active').style.display = 'block';
+            document.querySelector('.form-actions').style.display = 'flex';
+            
+            console.error('Erro ao emitir CT-e:', error);
+            showNotification(`Erro ao emitir CT-e: ${error.message}`, 'error');
+        }
+    });
+
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `alert-cte alert-${type === 'error' ? 'error' : 'success'}`;
+        notification.style.cssText = `
+            position: fixed; top: 20px; right: 20px; z-index: 10000;
+            max-width: 400px; animation: slideIn 0.3s ease-out;
+            border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        `;
+        
+        const icon = type === 'error' ? 'fas fa-exclamation-triangle' : 'fas fa-check-circle';
+        notification.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="${icon}"></i>
+                <div>
+                    <strong>${type === 'error' ? 'Erro!' : 'Sucesso!'}</strong>
+                    <div>${message}</div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease-in forwards';
+            setTimeout(() => notification.remove(), 300);
+        }, 5000);
+    }
+
+    // Definir valores iniciais dos selects
+    if (document.getElementById('rem_uf').value === '') {
+        document.getElementById('rem_uf').value = '{{ dados.remetente.estado if dados.remetente else "SP" }}';
+    }
+    if (document.getElementById('dest_uf').value === '') {
+        document.getElementById('dest_uf').value = '{{ dados.destinatario.estado if dados.destinatario else "" }}';
+    }
+
+    // CSS adicional para animações
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn { 
+            from { transform: translateX(100%); opacity: 0; } 
+            to { transform: translateX(0); opacity: 1; } 
+        }
+        @keyframes slideOut { 
+            from { transform: translateX(0); opacity: 1; } 
+            to { transform: translateX(100%); opacity: 0; } 
+        }
+    `;
+    document.head.appendChild(style);
+});
+</script>
+{% endblock %}

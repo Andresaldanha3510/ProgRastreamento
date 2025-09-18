@@ -1,0 +1,413 @@
+{% extends "base.html" %}
+
+{% block title %}Escolher Viagem para Emitir CT-e - TrackBras{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #007bff, #0056b3);">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-1"><i class="fas fa-file-invoice-dollar me-2"></i>Emitir CT-e</h2>
+                            <p class="mb-0 opacity-75">Selecione uma viagem concluída para emitir o Conhecimento de Transporte</p>
+                        </div>
+                        <div class="text-end">
+                            <i class="fas fa-truck text-white-50" style="font-size: 3rem;"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body p-0">
+                    {% if viagens %}
+                        <div class="p-3 border-bottom bg-light">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                        <input type="text" class="form-control" id="filtroCliente" placeholder="Buscar por cliente...">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select" id="filtroMes">
+                                        <option value="">Todos os meses</option>
+                                        <option value="01">Janeiro</option>
+                                        <option value="02">Fevereiro</option>
+                                        <option value="03">Março</option>
+                                        <option value="04">Abril</option>
+                                        <option value="05">Maio</option>
+                                        <option value="06">Junho</option>
+                                        <option value="07">Julho</option>
+                                        <option value="08">Agosto</option>
+                                        <option value="09">Setembro</option>
+                                        <option value="10">Outubro</option>
+                                        <option value="11">Novembro</option>
+                                        <option value="12">Dezembro</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select" id="filtroValor">
+                                        <option value="">Qualquer valor</option>
+                                        <option value="0-500">Até R$ 500</option>
+                                        <option value="500-1000">R$ 500 - R$ 1.000</option>
+                                        <option value="1000-5000">R$ 1.000 - R$ 5.000</option>
+                                        <option value="5000+">Acima de R$ 5.000</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="button" class="btn btn-outline-secondary w-100" onclick="limparFiltros()">
+                                        <i class="fas fa-times"></i> Limpar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-3 border-bottom bg-light">
+                            <div class="row text-center">
+                                <div class="col-6 col-md-3">
+                                    <div class="h5 mb-0 text-primary" id="totalViagens">{{ viagens|length }}</div>
+                                    <small class="text-muted">Viagens</small>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="h5 mb-0 text-success" id="valorTotal">
+                                        R$ {{ "%.2f"|format(viagens|sum(attribute='valor_recebido')|float)|replace('.', ',') }}
+                                    </div>
+                                    <small class="text-muted">Valor Total</small>
+                                </div>
+                                <div class="col-6 col-md-3 d-none d-md-block">
+                                    <div class="h5 mb-0 text-info">{{ viagens|map(attribute='cliente')|list|unique|list|length }}</div>
+                                    <small class="text-muted">Clientes</small>
+                                </div>
+                                <div class="col-6 col-md-3 d-none d-md-block">
+                                    <div class="h5 mb-0 text-warning">
+                                        {{ "%.2f"|format((viagens|sum(attribute='valor_recebido')|float / viagens|length)|round(2)) }}
+                                    </div>
+                                    <small class="text-muted">Ticket Médio</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 responsive-table" id="tabelaViagens">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th style="width: 80px;">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary border-0" onclick="ordenarTabela('id')">
+                                                ID <i class="fas fa-sort"></i>
+                                            </button>
+                                        </th>
+                                        <th style="width: 120px;">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary border-0" onclick="ordenarTabela('data')">
+                                                Data <i class="fas fa-sort"></i>
+                                            </button>
+                                        </th>
+                                        <th>Cliente</th>
+                                        <th class="d-none d-lg-table-cell">Origem</th>
+                                        <th class="d-none d-lg-table-cell">Destino</th>
+                                        <th style="width: 120px;">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary border-0" onclick="ordenarTabela('valor')">
+                                                Valor <i class="fas fa-sort"></i>
+                                            </button>
+                                        </th>
+                                        <th style="width: 120px;">Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for viagem in viagens %}
+                                    <tr data-cliente="{{ viagem.cliente|lower }}" 
+                                        data-valor="{{ viagem.valor_recebido or 0 }}"
+                                        data-mes="{% if viagem.data_fim %}{{ viagem.data_fim.strftime('%m') }}{% endif %}">
+                                        <td data-label="ID">
+                                            <span class="badge bg-light text-dark fw-normal">#{{ viagem.id }}</span>
+                                        </td>
+                                        <td data-label="Data">
+                                            {% if viagem.data_fim %}
+                                                <span class="text-nowrap">{{ viagem.data_fim.strftime('%d/%m/%Y') }}</span>
+                                                <small class="d-block text-muted d-md-none">{{ viagem.data_fim.strftime('%H:%M') }}</small>
+                                            {% else %}
+                                                <span class="text-muted">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                        <td data-label="Cliente">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" 
+                                                     style="width: 32px; height: 32px; font-size: 12px;">
+                                                    {{ viagem.cliente[:2].upper() }}
+                                                </div>
+                                                <div>
+                                                    <div class="fw-medium">{{ viagem.cliente }}</div>
+                                                    <div class="d-lg-none">
+                                                        <small class="text-muted">{{ viagem.endereco_saida }} → {{ viagem.endereco_destino }}</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td data-label="Origem" class="d-none d-lg-table-cell">
+                                            <small class="text-muted">{{ viagem.endereco_saida|truncate(40) }}</small>
+                                        </td>
+                                        <td data-label="Destino" class="d-none d-lg-table-cell">
+                                            <small class="text-muted">{{ viagem.endereco_destino|truncate(40) }}</small>
+                                        </td>
+                                        <td data-label="Valor">
+                                            <div class="fw-medium text-success">
+                                                R$ {{ "%.2f"|format(viagem.valor_recebido or 0)|replace('.', ',') }}
+                                            </div>
+                                        </td>
+                                        <td data-label="Ação" class="action-buttons">
+                                            <a href="{{ url_for('nova_cte_page', viagem_id=viagem.id) }}" 
+                                               class="btn btn-success btn-sm">
+                                                <i class="fas fa-file-invoice-dollar me-1"></i>
+                                                <span class="d-none d-sm-inline">Emitir CT-e</span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="text-muted mb-4">
+                                <i class="fas fa-inbox" style="font-size: 4rem;"></i>
+                            </div>
+                            <h5>Nenhuma viagem encontrada</h5>
+                            <p class="text-muted">Não há viagens concluídas pendentes de emissão de CT-e.</p>
+                            <div class="mt-4">
+                                <a href="{{ url_for('consultar_viagens') }}" class="btn btn-primary me-2">
+                                    <i class="fas fa-search me-1"></i> Ver todas as viagens
+                                </a>
+                                <a href="{{ url_for('iniciar_viagem_page') }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-plus me-1"></i> Criar nova viagem
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+}
+
+.table th button {
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.table th button:hover {
+    background-color: rgba(0,123,255,0.1);
+}
+
+.bg-gradient {
+    background-image: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+}
+
+.badge {
+    font-size: 0.875em;
+}
+
+@media (max-width: 767px) {
+    .table-responsive {
+        border: none;
+    }
+    
+    .responsive-table thead { 
+        display: none; 
+    }
+    
+    .responsive-table tbody, 
+    .responsive-table tr, 
+    .responsive-table td {
+        display: block;
+        width: 100%;
+    }
+    
+    .responsive-table tr {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        padding: 0.5rem;
+    }
+    
+    .responsive-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        text-align: right;
+        border: none;
+    }
+    
+    .responsive-table td:not(:last-child) {
+        border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .responsive-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        text-align: left;
+        margin-right: 1rem;
+        color: #475569;
+        flex-shrink: 0;
+    }
+    
+    .responsive-table .action-buttons {
+        justify-content: flex-end;
+    }
+    
+    .responsive-table td[data-label="Ação"]::before {
+        content: none;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filtroCliente = document.getElementById('filtroCliente');
+    const filtroMes = document.getElementById('filtroMes');
+    const filtroValor = document.getElementById('filtroValor');
+    const tabela = document.getElementById('tabelaViagens');
+    const linhas = Array.from(tabela?.querySelectorAll('tbody tr') || []);
+    
+    let ordemAscendente = {
+        'id': true,
+        'data': true,
+        'valor': true
+    };
+
+    function aplicarFiltros() {
+        const cliente = filtroCliente?.value.toLowerCase() || '';
+        const mes = filtroMes?.value || '';
+        const valor = filtroValor?.value || '';
+        
+        let linhasVisiveis = 0;
+        let valorTotalVisivel = 0;
+
+        linhas.forEach(linha => {
+            const clienteLinha = linha.getAttribute('data-cliente') || '';
+            const mesLinha = linha.getAttribute('data-mes') || '';
+            const valorLinha = parseFloat(linha.getAttribute('data-valor')) || 0;
+            
+            let mostrar = true;
+
+            // Filtro por cliente
+            if (cliente && !clienteLinha.includes(cliente)) {
+                mostrar = false;
+            }
+
+            // Filtro por mês
+            if (mes && mesLinha !== mes) {
+                mostrar = false;
+            }
+
+            // Filtro por valor
+            if (valor) {
+                const [min, max] = valor.split('-').map(v => 
+                    v === '+' ? Infinity : parseFloat(v.replace('+', '')) || 0
+                );
+                if (max) {
+                    if (valorLinha < min || valorLinha > max) {
+                        mostrar = false;
+                    }
+                } else if (valorLinha < min) {
+                    mostrar = false;
+                }
+            }
+
+            linha.style.display = mostrar ? '' : 'none';
+            
+            if (mostrar) {
+                linhasVisiveis++;
+                valorTotalVisivel += valorLinha;
+            }
+        });
+
+        // Atualizar estatísticas
+        const totalViagensEl = document.getElementById('totalViagens');
+        const valorTotalEl = document.getElementById('valorTotal');
+        
+        if (totalViagensEl) {
+            totalViagensEl.textContent = linhasVisiveis;
+        }
+        if (valorTotalEl) {
+            valorTotalEl.textContent = `R$ ${valorTotalVisivel.toFixed(2).replace('.', ',')}`;
+        }
+    }
+
+    // Event listeners para filtros
+    filtroCliente?.addEventListener('input', aplicarFiltros);
+    filtroMes?.addEventListener('change', aplicarFiltros);
+    filtroValor?.addEventListener('change', aplicarFiltros);
+
+    // Função para limpar filtros
+    window.limparFiltros = function() {
+        if (filtroCliente) filtroCliente.value = '';
+        if (filtroMes) filtroMes.value = '';
+        if (filtroValor) filtroValor.value = '';
+        aplicarFiltros();
+    };
+
+    // Função para ordenar tabela
+    window.ordenarTabela = function(coluna) {
+        const ascendente = ordemAscendente[coluna];
+        
+        linhas.sort((a, b) => {
+            let valorA, valorB;
+            
+            switch (coluna) {
+                case 'id':
+                    valorA = parseInt(a.querySelector('td:first-child').textContent.replace('#', ''));
+                    valorB = parseInt(b.querySelector('td:first-child').textContent.replace('#', ''));
+                    break;
+                case 'data':
+                    valorA = a.getAttribute('data-mes') || '00';
+                    valorB = b.getAttribute('data-mes') || '00';
+                    break;
+                case 'valor':
+                    valorA = parseFloat(a.getAttribute('data-valor')) || 0;
+                    valorB = parseFloat(b.getAttribute('data-valor')) || 0;
+                    break;
+                default:
+                    return 0;
+            }
+            
+            if (valorA < valorB) return ascendente ? -1 : 1;
+            if (valorA > valorB) return ascendente ? 1 : -1;
+            return 0;
+        });
+
+        // Reordenar no DOM
+        const tbody = tabela?.querySelector('tbody');
+        if (tbody) {
+            linhas.forEach(linha => tbody.appendChild(linha));
+        }
+        
+        // Alternar ordem para próximo clique
+        ordemAscendente[coluna] = !ascendente;
+        
+        // Atualizar ícone
+        const botoes = document.querySelectorAll('th button i.fa-sort');
+        botoes.forEach(icone => {
+            icone.className = 'fas fa-sort';
+        });
+        
+        const iconeAtual = document.querySelector(`th button[onclick="ordenarTabela('${coluna}')"] i`);
+        if (iconeAtual) {
+            iconeAtual.className = `fas fa-sort-${ascendente ? 'up' : 'down'}`;
+        }
+        
+        // Reaplicar filtros após ordenação
+        aplicarFiltros();
+    };
+});
+</script>
+{% endblock %}

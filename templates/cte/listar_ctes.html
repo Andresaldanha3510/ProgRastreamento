@@ -1,0 +1,786 @@
+{% extends "base.html" %}
+
+{% block title %}Listagem de CT-es - TrackBras{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header da página -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">
+                        <i class="fas fa-file-invoice-dollar text-primary me-2"></i>
+                        CT-es Emitidas
+                    </h1>
+                    <p class="text-muted mb-0">Gerencie todas as suas CT-es emitidas</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('escolher_viagem_para_cte') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Nova CT-e
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros e busca -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="filtrosForm" class="row g-3">
+                <div class="col-md-3">
+                    <label for="buscarNumero" class="form-label">Número CT-e</label>
+                    <input type="text" class="form-control" id="buscarNumero" placeholder="Digite o número...">
+                </div>
+                <div class="col-md-3">
+                    <label for="buscarDestinatario" class="form-label">Destinatário</label>
+                    <input type="text" class="form-control" id="buscarDestinatario" placeholder="Nome ou CNPJ/CPF...">
+                </div>
+                <div class="col-md-2">
+                    <label for="filtroStatus" class="form-label">Status</label>
+                    <select class="form-select" id="filtroStatus">
+                        <option value="">Todos</option>
+                        <option value="AUTORIZADO">Autorizada</option>
+                        <option value="PROCESSANDO">Processando</option>
+                        <option value="DIGITADO">Digitada</option>
+                        <option value="REJEITADO">Rejeitada</option>
+                        <option value="CANCELADO">Cancelada</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="dataInicio" class="form-label">Data Início</label>
+                    <input type="date" class="form-control" id="dataInicio">
+                </div>
+                <div class="col-md-2">
+                    <label for="dataFim" class="form-label">Data Fim</label>
+                    <input type="date" class="form-control" id="dataFim">
+                </div>
+                <div class="col-12">
+                    <button type="button" class="btn btn-outline-primary" onclick="aplicarFiltros()">
+                        <i class="fas fa-search me-1"></i>Buscar
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="limparFiltros()">
+                        <i class="fas fa-times me-1"></i>Limpar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Estatísticas rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+                    <h5 class="card-title">Autorizadas</h5>
+                    <h3 class="text-success" id="countAutorizadas">{{ estatisticas.autorizadas if estatisticas else 0 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <i class="fas fa-clock text-warning fa-2x mb-2"></i>
+                    <h5 class="card-title">Processando</h5>
+                    <h3 class="text-warning" id="countProcessando">{{ estatisticas.processando if estatisticas else 0 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-edit text-info fa-2x mb-2"></i>
+                    <h5 class="card-title">Digitadas</h5>
+                    <h3 class="text-info" id="countDigitadas">{{ estatisticas.digitadas if estatisticas else 0 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body text-center">
+                    <i class="fas fa-times-circle text-danger fa-2x mb-2"></i>
+                    <h5 class="card-title">Rejeitadas</h5>
+                    <h3 class="text-danger" id="countRejeitadas">{{ estatisticas.rejeitadas if estatisticas else 0 }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de CT-es -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">CT-es Emitidas</h5>
+            <div class="d-flex gap-2">
+                <select class="form-select form-select-sm" id="itensPorPagina" style="width: auto;" onchange="alterarItensPorPagina()">
+                    <option value="10">10 por página</option>
+                    <option value="25" selected>25 por página</option>
+                    <option value="50">50 por página</option>
+                    <option value="100">100 por página</option>
+                </select>
+                <button class="btn btn-outline-secondary btn-sm" onclick="atualizarLista()">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <!-- Loading indicator -->
+            <div id="loadingIndicator" class="text-center p-4" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Carregando...</span>
+                </div>
+                <p class="mt-2 text-muted">Carregando CT-es...</p>
+            </div>
+
+            <!-- Tabela responsiva -->
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="tabelaCtes">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Número</th>
+                            <th>Destinatário</th>
+                            <th>Valor Total</th>
+                            <th>Status</th>
+                            <th>Data Emissão</th>
+                            <th>Chave de Acesso</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpoTabela">
+                        <!-- Conteúdo será carregado via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Mensagem quando não há dados -->
+            <div id="semDados" class="text-center p-5" style="display: none;">
+                <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Nenhuma CT-e encontrada</h5>
+                <p class="text-muted">Não há CT-es emitidas com os filtros aplicados.</p>
+                <a href="{{ url_for('escolher_viagem_para_cte') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Emitir primeira CT-e
+                </a>
+            </div>
+        </div>
+        
+        <!-- Paginação -->
+        <div class="card-footer">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted" id="infoResultados">
+                        Mostrando 0 - 0 de 0 resultados
+                    </small>
+                </div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0" id="paginacao">
+                        <!-- Paginação será gerada via JavaScript -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Cancelamento -->
+<div class="modal fade" id="modalCancelar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                    Cancelar CT-e
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <strong>Atenção!</strong> Esta ação não pode ser desfeita.
+                </div>
+                <p>Tem certeza que deseja cancelar a CT-e <strong id="numeroCancelamento"></strong>?</p>
+                <div class="mb-3">
+                    <label for="motivoCancelamento" class="form-label">Motivo do cancelamento *</label>
+                    <select class="form-select" id="motivoCancelamento" required>
+                        <option value="">Selecione o motivo...</option>
+                        <option value="1">Duplicidade da CT-e</option>
+                        <option value="2">CT-e emitida em desacordo com a legislação</option>
+                        <option value="3">Operação não realizada</option>
+                        <option value="4">Outros</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="justificativaCancelamento" class="form-label">Justificativa *</label>
+                    <textarea class="form-control" id="justificativaCancelamento" rows="3" 
+                              placeholder="Descreva o motivo do cancelamento..." required maxlength="255"></textarea>
+                    <div class="form-text">Mínimo 15 caracteres, máximo 255.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" onclick="confirmarCancelamento()" id="btnConfirmarCancelamento">
+                    <i class="fas fa-ban me-1"></i>Cancelar CT-e
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Detalhes da CT-e -->
+<div class="modal fade" id="modalDetalhes" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle text-primary me-2"></i>
+                    Detalhes da CT-e
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="conteudoDetalhes">
+                <!-- Conteúdo será carregado via JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Variáveis globais
+let paginaAtual = 1;
+let itensPorPagina = 25;
+let totalPaginas = 1;
+let cteParaCancelar = null;
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', function() {
+    carregarCtes();
+    
+    // Auto-refresh a cada 30 segundos para verificar mudanças de status
+    setInterval(atualizarLista, 30000);
+});
+
+// Função principal para carregar CT-es
+function carregarCtes(pagina = 1) {
+    paginaAtual = pagina;
+    mostrarLoading(true);
+    
+    const filtros = obterFiltros();
+    const params = new URLSearchParams({
+        pagina: paginaAtual,
+        por_pagina: itensPorPagina,
+        ...filtros
+    });
+    
+    fetch(`/api/ctes/listar?${params}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.sucesso) {
+            renderizarTabela(data.ctes);
+            atualizarPaginacao(data.paginacao);
+            atualizarEstatisticas(data.estatisticas);
+            mostrarLoading(false);
+        } else {
+            showNotification(`Erro ao carregar CT-es: ${data.erro}`, 'error');
+            mostrarLoading(false);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        showNotification('Erro ao carregar CT-es', 'error');
+        mostrarLoading(false);
+    });
+}
+
+function obterFiltros() {
+    return {
+        numero: document.getElementById('buscarNumero').value,
+        destinatario: document.getElementById('buscarDestinatario').value,
+        status: document.getElementById('filtroStatus').value,
+        data_inicio: document.getElementById('dataInicio').value,
+        data_fim: document.getElementById('dataFim').value
+    };
+}
+
+function renderizarTabela(ctes) {
+    const tbody = document.getElementById('corpoTabela');
+    const semDados = document.getElementById('semDados');
+    
+    if (!ctes || ctes.length === 0) {
+        tbody.innerHTML = '';
+        semDados.style.display = 'block';
+        return;
+    }
+    
+    semDados.style.display = 'none';
+    
+    tbody.innerHTML = ctes.map(cte => `
+        <tr>
+            <td>
+                <span class="fw-bold">${cte.numero_cte}</span>
+                ${cte.serie ? `<small class="text-muted d-block">Série: ${cte.serie}</small>` : ''}
+            </td>
+            <td>
+                <div class="fw-medium">${truncarTexto(cte.dest_nome, 30)}</div>
+                <small class="text-muted">${formatarDocumento(cte.dest_cnpj_cpf)}</small>
+            </td>
+            <td>
+                <span class="fw-bold text-success">
+                    R$ ${formatarMoeda(cte.valor_total_servico)}
+                </span>
+            </td>
+            <td>${renderizarStatus(cte.status)}</td>
+            <td>
+                <span>${formatarData(cte.data_criacao)}</span>
+                ${cte.data_autorizacao ? `<small class="text-muted d-block">Aut: ${formatarData(cte.data_autorizacao)}</small>` : ''}
+            </td>
+            <td>
+                <div class="d-flex align-items-center">
+                    <input type="text" class="form-control form-control-sm font-monospace me-2" 
+                           value="${formatarChaveAcesso(cte.chave_acesso)}" readonly style="width: 200px; font-size: 0.75rem;">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="copiarChave('${cte.chave_acesso}')" title="Copiar chave">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </td>
+            <td class="text-center">
+                <div class="btn-group" role="group">
+                    <button class="btn btn-outline-primary btn-sm" onclick="gerarPdf(${cte.id})" title="Gerar PDF">
+                        <i class="fas fa-file-pdf"></i>
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="imprimir(${cte.id})" title="Imprimir">
+                        <i class="fas fa-print"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="verDetalhes(${cte.id})" title="Ver detalhes">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    ${cte.status === 'AUTORIZADO' ? `
+                        <button class="btn btn-outline-danger btn-sm" onclick="abrirModalCancelamento(${cte.id}, '${cte.numero_cte}')" title="Cancelar">
+                            <i class="fas fa-ban"></i>
+                        </button>
+                    ` : ''}
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function renderizarStatus(status) {
+    const statusConfig = {
+        'AUTORIZADO': { class: 'success', icon: 'check-circle', text: 'Autorizada' },
+        'PROCESSANDO': { class: 'warning', icon: 'clock', text: 'Processando' },
+        'DIGITADO': { class: 'info', icon: 'edit', text: 'Digitada' },
+        'REJEITADO': { class: 'danger', icon: 'times-circle', text: 'Rejeitada' },
+        'CANCELADO': { class: 'secondary', icon: 'ban', text: 'Cancelada' }
+    };
+    
+    const config = statusConfig[status] || { class: 'secondary', icon: 'question-circle', text: status };
+    
+    return `<span class="badge bg-${config.class}">
+        <i class="fas fa-${config.icon} me-1"></i>${config.text}
+    </span>`;
+}
+
+function formatarChaveAcesso(chave) {
+    if (!chave) return '';
+    return chave.replace(/(\d{4})/g, '$1 ').trim();
+}
+
+function formatarDocumento(doc) {
+    if (!doc) return '';
+    if (doc.length === 11) {
+        return doc.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    } else if (doc.length === 14) {
+        return doc.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    }
+    return doc;
+}
+
+function formatarMoeda(valor) {
+    return new Intl.NumberFormat('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(parseFloat(valor) || 0);
+}
+
+function formatarData(dataStr) {
+    if (!dataStr) return '';
+    const data = new Date(dataStr);
+    return data.toLocaleDateString('pt-BR') + ' ' + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function truncarTexto(texto, limite) {
+    if (!texto) return '';
+    return texto.length > limite ? texto.substring(0, limite) + '...' : texto;
+}
+
+// Ações das CT-es
+function gerarPdf(cteId) {
+    const url = `/cte/${cteId}/pdf`;
+    window.open(url, '_blank');
+}
+
+function imprimir(cteId) {
+    const url = `/cte/${cteId}/pdf`;
+    const printWindow = window.open(url, '_blank');
+    printWindow.addEventListener('load', function() {
+        printWindow.print();
+    });
+}
+
+function copiarChave(chave) {
+    navigator.clipboard.writeText(chave).then(() => {
+        showNotification('Chave de acesso copiada!', 'success');
+    }).catch(() => {
+        // Fallback para navegadores mais antigos
+        const textArea = document.createElement('textarea');
+        textArea.value = chave;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showNotification('Chave de acesso copiada!', 'success');
+    });
+}
+
+function verDetalhes(cteId) {
+    fetch(`/api/cte/${cteId}/detalhes`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.sucesso) {
+            renderizarDetalhes(data.cte);
+            const modal = new bootstrap.Modal(document.getElementById('modalDetalhes'));
+            modal.show();
+        } else {
+            showNotification(`Erro ao carregar detalhes: ${data.erro}`, 'error');
+        }
+    })
+    .catch(error => {
+        showNotification('Erro ao carregar detalhes', 'error');
+    });
+}
+
+function renderizarDetalhes(cte) {
+    const conteudo = document.getElementById('conteudoDetalhes');
+    conteudo.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-primary">Informações Gerais</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Número:</strong></td><td>${cte.numero_cte}</td></tr>
+                    <tr><td><strong>Chave:</strong></td><td class="font-monospace small">${cte.chave_acesso}</td></tr>
+                    <tr><td><strong>Status:</strong></td><td>${renderizarStatus(cte.status)}</td></tr>
+                    <tr><td><strong>Data Emissão:</strong></td><td>${formatarData(cte.data_criacao)}</td></tr>
+                    ${cte.protocolo_autorizacao ? `<tr><td><strong>Protocolo:</strong></td><td>${cte.protocolo_autorizacao}</td></tr>` : ''}
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-primary">Valores</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Valor Total:</strong></td><td>R$ ${formatarMoeda(cte.valor_total_servico)}</td></tr>
+                    <tr><td><strong>Valor a Receber:</strong></td><td>R$ ${formatarMoeda(cte.valor_receber)}</td></tr>
+                    <tr><td><strong>Base Cálculo ICMS:</strong></td><td>R$ ${formatarMoeda(cte.base_calculo_icms)}</td></tr>
+                    <tr><td><strong>Valor ICMS:</strong></td><td>R$ ${formatarMoeda(cte.valor_icms)}</td></tr>
+                </table>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <h6 class="text-primary">Remetente</h6>
+                <p class="mb-1"><strong>${cte.rem_nome}</strong></p>
+                <p class="mb-1">${formatarDocumento(cte.rem_cnpj_cpf)}</p>
+                <p class="mb-1">${cte.rem_endereco}</p>
+                <p class="mb-0">${cte.rem_cidade}/${cte.rem_uf} - ${cte.rem_cep}</p>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-primary">Destinatário</h6>
+                <p class="mb-1"><strong>${cte.dest_nome}</strong></p>
+                <p class="mb-1">${formatarDocumento(cte.dest_cnpj_cpf)}</p>
+                <p class="mb-1">${cte.dest_endereco}</p>
+                <p class="mb-0">${cte.dest_cidade}/${cte.dest_uf} - ${cte.dest_cep}</p>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-12">
+                <h6 class="text-primary">Carga</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Natureza:</strong></td><td>${cte.natureza_carga}</td></tr>
+                    <tr><td><strong>Peso Bruto:</strong></td><td>${cte.peso_bruto} kg</td></tr>
+                    <tr><td><strong>Quantidade Volumes:</strong></td><td>${cte.quantidade_volumes}</td></tr>
+                    <tr><td><strong>Valor da Carga:</strong></td><td>R$ ${formatarMoeda(cte.valor_carga)}</td></tr>
+                    ${cte.placa_veiculo ? `<tr><td><strong>Placa Veículo:</strong></td><td>${cte.placa_veiculo}</td></tr>` : ''}
+                    ${cte.motorista_nome ? `<tr><td><strong>Motorista:</strong></td><td>${cte.motorista_nome}</td></tr>` : ''}
+                </table>
+            </div>
+        </div>
+        ${cte.observacoes ? `
+        <div class="row mt-3">
+            <div class="col-12">
+                <h6 class="text-primary">Observações</h6>
+                <p>${cte.observacoes}</p>
+            </div>
+        </div>
+        ` : ''}
+    `;
+}
+
+// Cancelamento
+function abrirModalCancelamento(cteId, numeroCte) {
+    cteParaCancelar = cteId;
+    document.getElementById('numeroCancelamento').textContent = numeroCte;
+    document.getElementById('motivoCancelamento').value = '';
+    document.getElementById('justificativaCancelamento').value = '';
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalCancelar'));
+    modal.show();
+}
+
+function confirmarCancelamento() {
+    const motivo = document.getElementById('motivoCancelamento').value;
+    const justificativa = document.getElementById('justificativaCancelamento').value;
+    
+    if (!motivo) {
+        showNotification('Selecione o motivo do cancelamento', 'error');
+        return;
+    }
+    
+    if (!justificativa || justificativa.length < 15) {
+        showNotification('Justificativa deve ter pelo menos 15 caracteres', 'error');
+        return;
+    }
+    
+    const btn = document.getElementById('btnConfirmarCancelamento');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Cancelando...';
+    btn.disabled = true;
+    
+    fetch(`/api/cte/${cteParaCancelar}/cancelar`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            motivo: motivo,
+            justificativa: justificativa
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.sucesso) {
+            showNotification('CT-e cancelada com sucesso!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('modalCancelar')).hide();
+            carregarCtes(paginaAtual);
+        } else {
+            showNotification(`Erro ao cancelar CT-e: ${data.erro}`, 'error');
+        }
+    })
+    .catch(error => {
+        showNotification('Erro ao cancelar CT-e', 'error');
+    })
+    .finally(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+}
+
+// Filtros e paginação
+function aplicarFiltros() {
+    carregarCtes(1);
+}
+
+function limparFiltros() {
+    document.getElementById('filtrosForm').reset();
+    carregarCtes(1);
+}
+
+function alterarItensPorPagina() {
+    itensPorPagina = parseInt(document.getElementById('itensPorPagina').value);
+    carregarCtes(1);
+}
+
+function atualizarLista() {
+    carregarCtes(paginaAtual);
+}
+
+function atualizarPaginacao(paginacao) {
+    totalPaginas = paginacao.total_paginas;
+    
+    // Atualizar informações
+    document.getElementById('infoResultados').textContent = 
+        `Mostrando ${paginacao.inicio} - ${paginacao.fim} de ${paginacao.total} resultados`;
+    
+    // Gerar paginação
+    const paginacaoEl = document.getElementById('paginacao');
+    let html = '';
+    
+    // Anterior
+    if (paginaAtual > 1) {
+        html += `<li class="page-item">
+            <a class="page-link" href="#" onclick="carregarCtes(${paginaAtual - 1})">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+        </li>`;
+    }
+    
+    // Páginas
+    const inicio = Math.max(1, paginaAtual - 2);
+    const fim = Math.min(totalPaginas, paginaAtual + 2);
+    
+    if (inicio > 1) {
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="carregarCtes(1)">1</a></li>`;
+        if (inicio > 2) {
+            html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+    }
+    
+    for (let i = inicio; i <= fim; i++) {
+        html += `<li class="page-item ${i === paginaAtual ? 'active' : ''}">
+            <a class="page-link" href="#" onclick="carregarCtes(${i})">${i}</a>
+        </li>`;
+    }
+    
+    if (fim < totalPaginas) {
+        if (fim < totalPaginas - 1) {
+            html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="carregarCtes(${totalPaginas})">${totalPaginas}</a></li>`;
+    }
+    
+    // Próximo
+    if (paginaAtual < totalPaginas) {
+        html += `<li class="page-item">
+            <a class="page-link" href="#" onclick="carregarCtes(${paginaAtual + 1})">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </li>`;
+    }
+    
+    paginacaoEl.innerHTML = html;
+}
+
+function atualizarEstatisticas(estatisticas) {
+    if (estatisticas) {
+        document.getElementById('countAutorizadas').textContent = estatisticas.autorizadas || 0;
+        document.getElementById('countProcessando').textContent = estatisticas.processando || 0;
+        document.getElementById('countDigitadas').textContent = estatisticas.digitadas || 0;
+        document.getElementById('countRejeitadas').textContent = estatisticas.rejeitadas || 0;
+    }
+}
+
+function mostrarLoading(mostrar) {
+    const loading = document.getElementById('loadingIndicator');
+    const tabela = document.getElementById('tabelaCtes');
+    
+    if (mostrar) {
+        loading.style.display = 'block';
+        tabela.style.opacity = '0.5';
+    } else {
+        loading.style.display = 'none';
+        tabela.style.opacity = '1';
+    }
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} alert-dismissible fade show`;
+    notification.style.cssText = `
+        position: fixed; top: 20px; right: 20px; z-index: 10000;
+        max-width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    `;
+    
+    const icon = type === 'error' ? 'fas fa-exclamation-triangle' : 
+                 type === 'success' ? 'fas fa-check-circle' : 'fas fa-info-circle';
+                 
+    notification.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="${icon} me-2"></i>
+            <div>${message}</div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+</script>
+
+<style>
+.table-responsive {
+    border-radius: 0.375rem;
+}
+
+.font-monospace {
+    font-family: 'Courier New', monospace !important;
+}
+
+.btn-group .btn {
+    margin-right: 2px;
+}
+
+.btn-group .btn:last-child {
+    margin-right: 0;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.pagination .page-link {
+    color: #6c757d;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+    .btn-group {
+        flex-direction: column;
+    }
+    
+    .btn-group .btn {
+        margin-right: 0;
+        margin-bottom: 2px;
+    }
+    
+    .table-responsive table {
+        font-size: 0.875rem;
+    }
+}
+
+/* Animação para badges com status processando */
+.badge.bg-warning {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+</style>
+{% endblock %}

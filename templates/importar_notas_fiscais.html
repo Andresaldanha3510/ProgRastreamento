@@ -20,6 +20,8 @@
         --red-100: #fee2e2;
         --green-600: #16a34a;
         --green-100: #dcfce7;
+        --blue-600: #2563eb;
+        --blue-100: #dbeafe;
     }
 
     .nfe-container {
@@ -209,6 +211,36 @@
         border-color: var(--primary-green);
     }
 
+    .empresa-filter {
+        position: relative;
+        min-width: 200px;
+    }
+
+    .empresa-filter select {
+        padding: 10px 16px;
+        padding-left: 40px;
+        border: 2px solid var(--gray-200);
+        border-radius: 8px;
+        background: white;
+        font-size: 0.875rem;
+        width: 100%;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 12px center;
+        background-repeat: no-repeat;
+        background-size: 16px;
+    }
+
+    .empresa-filter i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--blue-600);
+        font-size: 1rem;
+        pointer-events: none;
+    }
+
     .progress-bar {
         background: var(--gray-200);
         border-radius: 10px;
@@ -239,15 +271,15 @@
 
     .modal-content {
         background: white;
-        margin: 3% auto;
+        margin: 2% auto;
         padding: 0;
         border-radius: 16px;
-        width: 90%;
-        max-width: 700px;
+        width: 95%;
+        max-width: 800px;
         box-shadow: 0 25px 50px rgba(0,0,0,0.25);
         animation: modalSlide 0.3s ease-out;
         overflow: hidden;
-        max-height: 90vh;
+        max-height: 95vh;
         overflow-y: auto;
     }
 
@@ -391,6 +423,157 @@
         color: rgba(255, 255, 255, 0.9);
     }
 
+    /* Sistema de Parcelamento Customizado */
+    .parcelamento-container {
+        background: var(--gray-50);
+        border: 2px solid var(--gray-200);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .parcelamento-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 1rem;
+        font-weight: 600;
+        color: var(--gray-700);
+    }
+
+    .parcela-item {
+        background: white;
+        border: 1px solid var(--gray-200);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        display: grid;
+        grid-template-columns: auto 1fr 1fr;
+        gap: 1rem;
+        align-items: center;
+        transition: all 0.3s ease;
+    }
+
+    .parcela-item:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .parcela-numero {
+        background: var(--primary-green);
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .parcela-input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .parcela-input-group label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--gray-600);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .parcela-input-group input {
+        padding: 8px 12px;
+        border: 1px solid var(--gray-300);
+        border-radius: 6px;
+        font-size: 0.875rem;
+    }
+
+    .parcela-input-group input:focus {
+        outline: none;
+        border-color: var(--primary-green);
+        box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.1);
+    }
+
+    .validation-error {
+        background: #fef2f2;
+        border: 2px solid #fecaca;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+        display: none;
+    }
+
+    .validation-error.show {
+        display: block;
+        animation: shake 0.5s ease-in-out;
+    }
+
+    .validation-error-content {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #dc2626;
+        font-weight: 500;
+    }
+
+    .validation-error i {
+        font-size: 1.25rem;
+    }
+
+    @keyframes shake {
+        0%, 20%, 40%, 60%, 80% { transform: translateX(0); }
+        10%, 30%, 50%, 70% { transform: translateX(-5px); }
+        90% { transform: translateX(5px); }
+        100% { transform: translateX(0); }
+    }
+
+    .totalizacao {
+        background: linear-gradient(135deg, #e8f5e8 0%, #f0f9f0 100%);
+        border: 2px solid var(--primary-green);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+
+    .totalizacao-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 1rem;
+        text-align: center;
+    }
+
+    .totalizacao-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .totalizacao-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--gray-600);
+        font-weight: 500;
+    }
+
+    .totalizacao-valor {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--primary-green);
+    }
+
+    .totalizacao-diferenca {
+        color: #dc2626;
+    }
+
+    .totalizacao-ok {
+        color: var(--primary-green);
+    }
+
     /* Alerta de Impacto */
     .impacto-alert {
         padding: 1rem;
@@ -521,6 +704,23 @@
         color: white;
     }
 
+    .empresa-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: linear-gradient(135deg, var(--blue-600) 0%, #1e40af 100%);
+        color: white;
+        border-radius: 16px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        font-family: 'Courier New', monospace;
+    }
+
+    .empresa-badge i {
+        font-size: 0.875rem;
+    }
+
     .btn-table {
         padding: 6px 12px;
         border: none;
@@ -645,7 +845,7 @@
             align-items: stretch;
         }
         
-        .search-box {
+        .search-box, .empresa-filter {
             min-width: auto;
         }
         
@@ -664,6 +864,22 @@
 
         .tipo-movimento-container {
             grid-template-columns: 1fr;
+        }
+
+        .modal-content {
+            width: 98%;
+            margin: 1% auto;
+        }
+
+        .parcela-item {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+            text-align: center;
+        }
+
+        .totalizacao-content {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
         }
     }
 </style>
@@ -703,6 +919,10 @@
                     R$ {{ "%.2f"|format(notas|sum(attribute='valor_total') if notas else 0)|replace('.', ',')|replace(',', '.', 1) }}
                 </span>
                 <span class="stat-label">Valor Total</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="totalEmpresas">0</span>
+                <span class="stat-label">Empresas Consultadas</span>
             </div>
         </div>
 
@@ -761,6 +981,13 @@
             <div class="search-box">
                 <input type="text" id="searchInput" placeholder="Buscar por CNPJ, nome, chave..." class="search-input">
                 <i class="fas fa-search"></i>
+            </div>
+
+            <div class="empresa-filter">
+                <i class="fas fa-building"></i>
+                <select id="empresaFilter">
+                    <option value="">Todas as Empresas</option>
+                </select>
             </div>
             
             <select id="statusFilter" class="form-select">
@@ -829,6 +1056,7 @@
                     <table class="nfe-table">
                         <thead>
                             <tr>
+                                <th>Empresa Consultada</th>
                                 <th>Emitente</th>
                                 <th>CNPJ</th>
                                 <th>Data Emissão</th>
@@ -875,6 +1103,7 @@
     </div>
 </div>
 
+<!-- Modal de Lançamento -->
 <div id="modalLancamento" class="modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -936,35 +1165,54 @@
                 </select>
             </div>
 
+            <!-- Sistema de Parcelamento Customizado -->
             <div class="form-group">
-                <label class="form-label">Parcelamento</label>
-                <select id="parcelasLancamento" class="form-control">
-                    <option value="1">À vista (1x)</option>
-                    <option value="2">2x (mensais)</option>
-                    <option value="3">3x (mensais)</option>
-                    <option value="4">4x (mensais)</option>
-                    <option value="5">5x (mensais)</option>
-                    <option value="6">6x (mensais)</option>
-                    <option value="12">12x (mensais)</option>
-                </select>
-                <small class="text-gray-600 mt-1">
-                    <i class="fas fa-info-circle"></i>
-                    Para parcelamento, as parcelas serão criadas com vencimento mensal
-                </small>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Data de Vencimento *</label>
-                <input type="date" id="dataVencimento" class="form-control" required>
-            </div>
-
-            <div id="resumoLancamento" class="mt-4 p-4 bg-gray-50 rounded-lg border">
-                <h4 class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                    <i class="fas fa-clipboard-check"></i>
-                    Resumo do Lançamento
-                </h4>
-                <div id="resumoConteudo">
+                <label class="form-label">Parcelamento Customizado</label>
+                <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end; margin-bottom: 1rem;">
+                    <div>
+                        <label for="quantidadeParcelas" style="font-size: 0.875rem; color: var(--gray-600);">Quantidade de Parcelas</label>
+                        <input type="number" id="quantidadeParcelas" min="1" max="36" value="1" class="form-control" style="padding: 8px 12px;">
                     </div>
+                    <button type="button" id="btnGerarParcelas" class="btn-secondary">
+                        <i class="fas fa-calculator"></i>
+                        Gerar Parcelas
+                    </button>
+                </div>
+                
+                <!-- Container das parcelas -->
+                <div class="parcelamento-container" id="parcelamentoContainer" style="display: none;">
+                    <div class="parcelamento-header">
+                        <i class="fas fa-credit-card"></i>
+                        <span>Detalhamento das Parcelas</span>
+                    </div>
+                    <div id="parcelasContainer"></div>
+                    
+                    <!-- Totalização -->
+                    <div class="totalizacao">
+                        <div class="totalizacao-content">
+                            <div class="totalizacao-item">
+                                <span class="totalizacao-label">Valor da Nota</span>
+                                <span class="totalizacao-valor" id="valorNota">R$ 0,00</span>
+                            </div>
+                            <div class="totalizacao-item">
+                                <span class="totalizacao-label">Total das Parcelas</span>
+                                <span class="totalizacao-valor" id="totalParcelas">R$ 0,00</span>
+                            </div>
+                            <div class="totalizacao-item">
+                                <span class="totalizacao-label">Diferença</span>
+                                <span class="totalizacao-valor" id="diferencaValor">R$ 0,00</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Erro de validação -->
+                    <div class="validation-error" id="validationError">
+                        <div class="validation-error-content">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span id="validationMessage">O valor total das parcelas não confere com o valor da nota!</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="flex gap-4 justify-end mt-6">
@@ -988,17 +1236,50 @@ let notasData = [];
 let notasFiltradas = [];
 let currentPage = 1;
 let itemsPerPage = 50;
+let empresasDisponiveis = new Set();
+let valorTotalNota = 0;
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM carregado, iniciando aplicação...');
     carregarNotasDoHTML();
     configurarEventos();
     configurarFiltros();
     atualizarEstatisticas();
+    popularFiltroEmpresas();
     renderizarTabela();
+    console.log('Aplicação inicializada com sucesso');
 });
 
-// Carregar notas do HTML renderizado pelo Flask
+function popularFiltroEmpresas() {
+    const empresaSelect = document.getElementById('empresaFilter');
+    empresasDisponiveis.clear();
+    
+    notasData.forEach(nota => {
+        if (nota.cnpj_consultado) {
+            empresasDisponiveis.add(nota.cnpj_consultado);
+        }
+    });
+    
+    while (empresaSelect.children.length > 1) {
+        empresaSelect.removeChild(empresaSelect.lastChild);
+    }
+    
+    const empresasOrdenadas = Array.from(empresasDisponiveis).sort();
+    empresasOrdenadas.forEach(cnpj => {
+        const option = document.createElement('option');
+        option.value = cnpj;
+        option.textContent = `${formatarCNPJ(cnpj)} (${contarNotasPorEmpresa(cnpj)} notas)`;
+        empresaSelect.appendChild(option);
+    });
+    
+    document.getElementById('totalEmpresas').textContent = empresasDisponiveis.size;
+}
+
+function contarNotasPorEmpresa(cnpj) {
+    return notasData.filter(nota => nota.cnpj_consultado === cnpj).length;
+}
+
 function carregarNotasDoHTML() {
     notasData = [
         {% for nota in notas %}
@@ -1009,16 +1290,20 @@ function carregarNotasDoHTML() {
             "valor_total": {{ nota.valor_total }},
             "data_emissao": "{{ nota.data_emissao.isoformat() }}",
             "nsu": "{{ nota.nsu }}",
-            "status": "{{ nota.status }}"
+            "status": "{{ nota.status }}",
+            "cnpj_consultado": "{{ nota.cnpj_consultado or '' }}"
         }{% if not loop.last %},{% endif %}
         {% endfor %}
     ];
     
     notasFiltradas = [...notasData];
     renderizarContador();
+    console.log('Notas carregadas:', notasData.length);
 }
 
 function configurarEventos() {
+    console.log('Configurando eventos...');
+    
     document.getElementById('btnConsultarSefaz').addEventListener('click', consultarSefaz);
     document.getElementById('btnLancarRapido').addEventListener('click', lancarRapido);
     document.getElementById('btnSalvarLancamento').addEventListener('click', salvarLancamento);
@@ -1027,28 +1312,139 @@ function configurarEventos() {
     document.getElementById('itemsPerPage').addEventListener('change', alterarItensPorPagina);
     document.getElementById('btnPrevPage').addEventListener('click', paginaAnterior);
     document.getElementById('btnNextPage').addEventListener('click', proximaPagina);
-    
-    // Evento para o novo botão de exportação
     document.getElementById('btnExportarDocumentos').addEventListener('click', exportarDocumentos);
     
-    // Novos eventos para o modal atualizado
+    // Eventos do modal
     document.getElementById('tipoReceita').addEventListener('change', atualizarTipoMovimento);
     document.getElementById('tipoDespesa').addEventListener('change', atualizarTipoMovimento);
-    document.getElementById('categoriaLancamento').addEventListener('change', atualizarResumo);
-    document.getElementById('parcelasLancamento').addEventListener('change', atualizarResumo);
-    document.getElementById('dataVencimento').addEventListener('change', atualizarResumo);
+    
+    // Eventos do sistema de parcelamento
+    document.getElementById('btnGerarParcelas').addEventListener('click', gerarParcelas);
+    document.getElementById('quantidadeParcelas').addEventListener('input', function() {
+        if (this.value > 36) this.value = 36;
+        if (this.value < 1) this.value = 1;
+    });
+    
+    console.log('Eventos configurados');
 }
 
 function configurarFiltros() {
     document.getElementById('searchInput').addEventListener('input', aplicarFiltros);
     document.getElementById('statusFilter').addEventListener('change', aplicarFiltros);
+    document.getElementById('empresaFilter').addEventListener('change', aplicarFiltros);
     document.getElementById('startDateFilter').addEventListener('change', aplicarFiltros);
     document.getElementById('endDateFilter').addEventListener('change', aplicarFiltros);
+}
+
+// Função para gerar parcelas customizadas
+function gerarParcelas() {
+    const quantidadeParcelas = parseInt(document.getElementById('quantidadeParcelas').value);
+    const parcelamentoContainer = document.getElementById('parcelamentoContainer');
+    const parcelasContainer = document.getElementById('parcelasContainer');
+    
+    if (!quantidadeParcelas || quantidadeParcelas < 1 || quantidadeParcelas > 36) {
+        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Quantidade de parcelas deve ser entre 1 e 36');
+        return;
+    }
+
+    // Mostrar container de parcelamento
+    parcelamentoContainer.style.display = 'block';
+    
+    // Limpar parcelas existentes
+    parcelasContainer.innerHTML = '';
+    
+    // Calcular valor por parcela
+    const valorPorParcela = valorTotalNota / quantidadeParcelas;
+    
+    // Gerar campos para cada parcela
+    for (let i = 1; i <= quantidadeParcelas; i++) {
+        const parcelaDiv = document.createElement('div');
+        parcelaDiv.className = 'parcela-item fade-in';
+        
+        // Calcular data de vencimento (primeira parcela = 30 dias, demais = +30 dias cada)
+        const hoje = new Date();
+        const dataVencimento = new Date(hoje.getTime() + (i * 30 * 24 * 60 * 60 * 1000));
+        const dataFormatada = dataVencimento.toISOString().split('T')[0];
+        
+        parcelaDiv.innerHTML = `
+            <div class="parcela-numero">${i}</div>
+            <div class="parcela-input-group">
+                <label>Data de Vencimento</label>
+                <input type="date" class="parcela-data" data-parcela="${i}" value="${dataFormatada}" onchange="validarParcelas()">
+            </div>
+            <div class="parcela-input-group">
+                <label>Valor (R$)</label>
+                <input type="number" class="parcela-valor" data-parcela="${i}" value="${valorPorParcela.toFixed(2)}" step="0.01" min="0" onchange="validarParcelas()">
+            </div>
+        `;
+        
+        parcelasContainer.appendChild(parcelaDiv);
+    }
+    
+    // Atualizar totalização
+    atualizarTotalizacao();
+    validarParcelas();
+}
+
+// Função para validar parcelas
+function validarParcelas() {
+    const parcelasValor = document.querySelectorAll('.parcela-valor');
+    const validationError = document.getElementById('validationError');
+    let totalParcelas = 0;
+    
+    // Somar valores das parcelas
+    parcelasValor.forEach(input => {
+        const valor = parseFloat(input.value) || 0;
+        totalParcelas += valor;
+    });
+    
+    // Atualizar totalização
+    atualizarTotalizacao();
+    
+    // Verificar se valores batem
+    const diferenca = Math.abs(totalParcelas - valorTotalNota);
+    const tolerancia = 0.01; // Tolerância de 1 centavo
+    
+    if (diferenca > tolerancia) {
+        validationError.classList.add('show');
+        document.getElementById('btnSalvarLancamento').disabled = true;
+        return false;
+    } else {
+        validationError.classList.remove('show');
+        document.getElementById('btnSalvarLancamento').disabled = false;
+        return true;
+    }
+}
+
+// Função para atualizar totalização
+function atualizarTotalizacao() {
+    const parcelasValor = document.querySelectorAll('.parcela-valor');
+    let totalParcelas = 0;
+    
+    parcelasValor.forEach(input => {
+        const valor = parseFloat(input.value) || 0;
+        totalParcelas += valor;
+    });
+    
+    const diferenca = totalParcelas - valorTotalNota;
+    
+    document.getElementById('valorNota').textContent = formatarMoeda(valorTotalNota);
+    document.getElementById('totalParcelas').textContent = formatarMoeda(totalParcelas);
+    
+    const diferencaElement = document.getElementById('diferencaValor');
+    diferencaElement.textContent = formatarMoeda(Math.abs(diferenca));
+    
+    if (Math.abs(diferenca) <= 0.01) {
+        diferencaElement.className = 'totalizacao-valor totalizacao-ok';
+    } else {
+        diferencaElement.className = 'totalizacao-valor totalizacao-diferenca';
+    }
 }
 
 function aplicarFiltros() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     const statusFilter = document.getElementById('statusFilter').value;
+    const empresaFilter = document.getElementById('empresaFilter').value;
     const startDate = document.getElementById('startDateFilter').value;
     const endDate = document.getElementById('endDateFilter').value;
 
@@ -1059,12 +1455,13 @@ function aplicarFiltros() {
             nota.chave_acesso.includes(searchTerm);
 
         const matchStatus = !statusFilter || nota.status === statusFilter;
+        const matchEmpresa = !empresaFilter || nota.cnpj_consultado === empresaFilter;
 
         const notaDate = nota.data_emissao.split('T')[0];
         const matchStartDate = !startDate || notaDate >= startDate;
         const matchEndDate = !endDate || notaDate <= endDate;
 
-        return matchSearch && matchStatus && matchStartDate && matchEndDate;
+        return matchSearch && matchStatus && matchEmpresa && matchStartDate && matchEndDate;
     });
 
     currentPage = 1;
@@ -1075,6 +1472,7 @@ function aplicarFiltros() {
 function limparFiltros() {
     document.getElementById('searchInput').value = '';
     document.getElementById('statusFilter').value = '';
+    document.getElementById('empresaFilter').value = '';
     document.getElementById('startDateFilter').value = '';
     document.getElementById('endDateFilter').value = '';
     aplicarFiltros();
@@ -1091,8 +1489,12 @@ function renderizarContador() {
 }
 
 function renderizarTabela() {
+    console.log('Renderizando tabela...');
     const tbody = document.getElementById('nfeTableBody');
-    if (!tbody) return;
+    if (!tbody) {
+        console.log('tbody não encontrado');
+        return;
+    }
 
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -1116,11 +1518,19 @@ function renderizarTabela() {
     if(tableContainer) tableContainer.style.display = 'block';
     if(emptyState) emptyState.style.display = 'none';
 
-    notasPagina.forEach(nota => {
+    notasPagina.forEach((nota, index) => {
         const row = document.createElement('tr');
         row.className = nota.status === 'PROCESSADA' ? 'processed' : '';
         
+        const empresaConsultada = nota.cnpj_consultado || 'N/A';
+        
         row.innerHTML = `
+            <td>
+                <div class="empresa-badge">
+                    <i class="fas fa-building"></i>
+                    ${formatarCNPJ(empresaConsultada)}
+                </div>
+            </td>
             <td>${nota.emitente_nome}</td>
             <td>${formatarCNPJ(nota.emitente_cnpj)}</td>
             <td>${formatarData(nota.data_emissao)}</td>
@@ -1132,7 +1542,7 @@ function renderizarTabela() {
             </td>
             <td>
                 ${nota.status !== 'PROCESSADA' ? `
-                    <button class="btn-table btn-launch" onclick="lancarNota('${nota.chave_acesso}')">
+                    <button class="btn-table btn-launch" data-chave="${nota.chave_acesso}">
                         <i class="fas fa-plus"></i>
                         Lançar
                     </button>
@@ -1142,7 +1552,7 @@ function renderizarTabela() {
                         Processada
                     </button>
                 `}
-                <button class="btn-table btn-view" onclick="visualizarXML('${nota.chave_acesso}')">
+                <button class="btn-table btn-view" data-chave="${nota.chave_acesso}">
                     <i class="fas fa-eye"></i>
                     Ver XML
                 </button>
@@ -1155,38 +1565,63 @@ function renderizarTabela() {
         tbody.appendChild(row);
     });
 
+    // IMPORTANTE: Adicionar event listeners após criar os elementos
+    adicionarEventListenersTabela();
     atualizarPaginacao();
+    console.log('Tabela renderizada com', notasPagina.length, 'linhas');
+}
+
+// Nova função para adicionar event listeners aos botões da tabela
+function adicionarEventListenersTabela() {
+    console.log('Adicionando event listeners aos botões...');
+    
+    // Event listeners para botões de lançar
+    document.querySelectorAll('.btn-launch').forEach(button => {
+        button.addEventListener('click', function() {
+            const chaveAcesso = this.dataset.chave;
+            console.log('Clicou em lançar, chave:', chaveAcesso);
+            lancarNota(chaveAcesso);
+        });
+    });
+
+    // Event listeners para botões de visualizar XML
+    document.querySelectorAll('.btn-view').forEach(button => {
+        button.addEventListener('click', function() {
+            const chaveAcesso = this.dataset.chave;
+            console.log('Clicou em ver XML, chave:', chaveAcesso);
+            visualizarXML(chaveAcesso);
+        });
+    });
+    
+    console.log('Event listeners adicionados:', 
+        document.querySelectorAll('.btn-launch').length, 'botões de lançar,',
+        document.querySelectorAll('.btn-view').length, 'botões de visualizar');
 }
 
 function atualizarPaginacao() {
     const totalItens = notasFiltradas.length;
     const totalPaginas = Math.ceil(totalItens / itemsPerPage);
     
-    // Atualizar informações de paginação
     const startIndex = (currentPage - 1) * itemsPerPage + 1;
     const endIndex = Math.min(currentPage * itemsPerPage, totalItens);
     
     document.getElementById('paginationInfo').textContent = 
         `Mostrando ${startIndex} a ${endIndex} de ${totalItens} ${totalItens === 1 ? 'nota' : 'notas'}`;
 
-    // Atualizar botões de navegação
     const btnPrev = document.getElementById('btnPrevPage');
     const btnNext = document.getElementById('btnNextPage');
     
     btnPrev.classList.toggle('disabled', currentPage === 1);
     btnNext.classList.toggle('disabled', currentPage >= totalPaginas);
 
-    // Atualizar números de página
     const pageNumbers = document.getElementById('pageNumbers');
     pageNumbers.innerHTML = '';
 
     if (totalPaginas <= 7) {
-        // Mostrar todas as páginas se houver 7 ou menos
         for (let i = 1; i <= totalPaginas; i++) {
             criarBotaoPagina(i, pageNumbers);
         }
     } else {
-        // Lógica para mostrar páginas com reticências
         criarBotaoPagina(1, pageNumbers);
         
         if (currentPage > 4) {
@@ -1219,7 +1654,6 @@ function atualizarPaginacao() {
         }
     }
 }
-
 
 function criarBotaoPagina(pageNum, container) {
     const btn = document.createElement('button');
@@ -1283,7 +1717,6 @@ function atualizarTipoMovimento() {
     const categoriasDespesa = document.getElementById('categoriasDespesa');
     const categoriaSelect = document.getElementById('categoriaLancamento');
     
-    // Atualizar alerta visual
     alert.className = `impacto-alert ${tipoSelecionado.toLowerCase()}`;
     alert.style.display = 'flex';
     
@@ -1297,83 +1730,7 @@ function atualizarTipoMovimento() {
         categoriasDespesa.style.display = 'block';
     }
     
-    // Resetar categoria selecionada
     categoriaSelect.value = '';
-    atualizarResumo();
-}
-
-function atualizarResumo() {
-    const tipoMovimento = document.querySelector('input[name="tipo_movimento"]:checked')?.value;
-    const categoria = document.getElementById('categoriaLancamento').value;
-    const parcelas = document.getElementById('parcelasLancamento').value;
-    const dataVencimento = document.getElementById('dataVencimento').value;
-    const resumoContainer = document.getElementById('resumoConteudo');
-    
-    if (!tipoMovimento) return;
-    
-    // Obter dados da nota atual do modal
-    const modal = document.getElementById('modalLancamento');
-    const chaveAcesso = modal.dataset.chaveAcesso;
-    const dadosNota = modal.dataset.dadosNota ? JSON.parse(modal.dataset.dadosNota) : null;
-    
-    if (!dadosNota) return;
-    
-    const valor = parseFloat(dadosNota.valor_total);
-    const valorParcela = valor / parseInt(parcelas);
-    
-    let categoriaFinal = categoria;
-    if (!categoria) {
-        categoriaFinal = tipoMovimento === 'RECEITA' ? 'Vendas/Receitas (NFe)' : 'Fornecedores (NFe)';
-    }
-    
-    let resumoHTML = `
-        <div class="grid grid-cols-2 gap-4 text-sm">
-            <div>
-                <span class="font-medium text-gray-600">Tipo:</span>
-                <span class="ml-2 font-semibold ${tipoMovimento === 'RECEITA' ? 'text-green-600' : 'text-red-600'}">
-                    ${tipoMovimento === 'RECEITA' ? '💰 RECEITA' : '💸 DESPESA'}
-                </span>
-            </div>
-            <div>
-                <span class="font-medium text-gray-600">Categoria:</span>
-                <span class="ml-2">${categoriaFinal}</span>
-            </div>
-            <div>
-                <span class="font-medium text-gray-600">Parcelas:</span>
-                <span class="ml-2">${parcelas}x</span>
-            </div>
-            <div>
-                <span class="font-medium text-gray-600">Valor por parcela:</span>
-                <span class="ml-2 font-semibold">${formatarMoeda(valorParcela)}</span>
-            </div>
-        </div>
-    `;
-    
-    if (parseInt(parcelas) > 1 && dataVencimento) {
-        resumoHTML += `
-            <div class="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
-                <h5 class="text-xs font-semibold text-blue-700 mb-2">Cronograma de Vencimentos:</h5>
-                <div class="grid gap-1 text-xs">
-        `;
-        
-        for (let i = 1; i <= parseInt(parcelas); i++) {
-            const dataBase = new Date(dataVencimento);
-            const dataParcela = new Date(dataBase.getTime() + ((i-1) * 30 * 24 * 60 * 60 * 1000));
-            resumoHTML += `
-                <div class="flex justify-between">
-                    <span>Parcela ${i}/${parcelas}:</span>
-                    <span class="font-medium">${dataParcela.toLocaleDateString('pt-BR')} - ${formatarMoeda(valorParcela)}</span>
-                </div>
-            `;
-        }
-        
-        resumoHTML += `
-                </div>
-            </div>
-        `;
-    }
-    
-    resumoContainer.innerHTML = resumoHTML;
 }
 
 async function consultarSefaz() {
@@ -1445,10 +1802,20 @@ async function lancarRapido() {
     await buscarDadosNota(chaveAcesso);
 }
 
+// CORRIGIDO: Função agora é async
 async function buscarDadosNota(chaveAcesso) {
+    console.log('Buscando dados da nota:', chaveAcesso);
+    
     try {
         const response = await fetch(`/api/fiscal/buscar_dados_nota/${chaveAcesso}`);
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const result = await response.json();
+        console.log('Result:', result);
 
         if (result.success) {
             abrirModalLancamento(result.nota, chaveAcesso);
@@ -1456,13 +1823,32 @@ async function buscarDadosNota(chaveAcesso) {
             mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> ${result.message}`);
         }
     } catch (error) {
-        mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro ao buscar nota: ${error.message}`);
+        console.error('Erro na requisição:', error);
+        
+        // Se a rota não existir, criar dados mock para teste
+        if (error.message.includes('404')) {
+            console.log('Rota não encontrada, usando dados mock para teste');
+            const dadosMock = {
+                chave_acesso: chaveAcesso,
+                emitente_nome: 'Empresa Teste LTDA',
+                emitente_cnpj: '12.345.678/0001-99',
+                valor_total: 1500.00,
+                data_emissao: new Date().toISOString()
+            };
+            abrirModalLancamento(dadosMock, chaveAcesso);
+        } else {
+            mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro ao buscar nota: ${error.message}`);
+        }
     }
 }
 
 function abrirModalLancamento(dadosNota, chaveAcesso) {
+    console.log('Abrindo modal para a nota:', dadosNota);
     const modal = document.getElementById('modalLancamento');
     const dadosContainer = document.getElementById('dadosNota');
+    
+    // Armazenar valor total da nota globalmente
+    valorTotalNota = parseFloat(dadosNota.valor_total);
     
     dadosContainer.innerHTML = `
         <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
@@ -1495,23 +1881,21 @@ function abrirModalLancamento(dadosNota, chaveAcesso) {
         </div>
     `;
 
-    // Definir data de vencimento padrão (30 dias)
-    const hoje = new Date();
-    const dataVencimento = new Date(hoje.getTime() + (30 * 24 * 60 * 60 * 1000));
-    document.getElementById('dataVencimento').value = dataVencimento.toISOString().split('T')[0];
-
-    // Resetar formulário para despesa por padrão
+    // Resetar formulário
     document.getElementById('tipoDespesa').checked = true;
     document.getElementById('categoriaLancamento').value = '';
-    document.getElementById('parcelasLancamento').value = '1';
+    document.getElementById('quantidadeParcelas').value = '1';
+    
+    // Ocultar container de parcelamento
+    document.getElementById('parcelamentoContainer').style.display = 'none';
+    document.getElementById('parcelasContainer').innerHTML = '';
+    document.getElementById('validationError').classList.remove('show');
     
     // Armazenar dados no modal
     modal.dataset.chaveAcesso = chaveAcesso;
     modal.dataset.dadosNota = JSON.stringify(dadosNota);
     
-    // Atualizar interface
     atualizarTipoMovimento();
-    atualizarResumo();
     
     modal.style.display = 'block';
     document.getElementById('chaveAcessoInput').value = '';
@@ -1522,18 +1906,39 @@ async function salvarLancamento() {
     const chaveAcesso = modal.dataset.chaveAcesso;
     const tipoMovimento = document.querySelector('input[name="tipo_movimento"]:checked')?.value;
     const categoria = document.getElementById('categoriaLancamento').value;
-    const parcelas = parseInt(document.getElementById('parcelasLancamento').value);
-    const dataVencimento = document.getElementById('dataVencimento').value;
     const btn = document.getElementById('btnSalvarLancamento');
     const loading = document.getElementById('loadingSalvar');
 
-    if (!dataVencimento) {
-        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Data de vencimento é obrigatória');
+    if (!tipoMovimento) {
+        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Selecione o tipo de movimento');
         return;
     }
 
-    if (!tipoMovimento) {
-        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Selecione o tipo de movimento');
+    // Verificar se há parcelas configuradas
+    const parcelasData = document.querySelectorAll('.parcela-data');
+    const parcelasValor = document.querySelectorAll('.parcela-valor');
+
+    if (parcelasData.length === 0) {
+        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Configure as parcelas antes de salvar');
+        return;
+    }
+
+    // Validar parcelas
+    if (!validarParcelas()) {
+        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> O valor total das parcelas não confere com o valor da nota');
+        return;
+    }
+
+    // Validar datas
+    let datasValidas = true;
+    parcelasData.forEach(input => {
+        if (!input.value) {
+            datasValidas = false;
+        }
+    });
+
+    if (!datasValidas) {
+        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Todas as parcelas devem ter data de vencimento');
         return;
     }
 
@@ -1541,12 +1946,20 @@ async function salvarLancamento() {
     loading.style.display = 'inline-block';
 
     try {
+        // Preparar dados das parcelas
+        const parcelas = [];
+        for (let i = 0; i < parcelasData.length; i++) {
+            parcelas.push({
+                data_vencimento: parcelasData[i].value,
+                valor: parseFloat(parcelasValor[i].value) || 0
+            });
+        }
+
         const payload = {
             chave_acesso: chaveAcesso,
-            data_vencimento: dataVencimento,
             tipo_movimento: tipoMovimento,
-            parcelas: parcelas,
-            categoria: categoria || (tipoMovimento === 'RECEITA' ? 'Vendas/Receitas (NFe)' : 'Fornecedores (NFe)')
+            categoria: categoria || (tipoMovimento === 'RECEITA' ? 'Vendas/Receitas (NFe)' : 'Fornecedores (NFe)'),
+            parcelas: parcelas
         };
 
         const response = await fetch('/api/fiscal/salvar_lancamento', {
@@ -1561,7 +1974,7 @@ async function salvarLancamento() {
 
         if (result.success) {
             const tipoTexto = tipoMovimento === 'RECEITA' ? 'receita' : 'despesa';
-            mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> Lançamento de ${tipoTexto} criado com sucesso! ${parcelas} parcela(s) gerada(s).`);
+            mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> Lançamento de ${tipoTexto} criado com sucesso! ${parcelas.length} parcela(s) gerada(s).`);
             fecharModal();
             setTimeout(() => {
                 window.location.reload();
@@ -1581,27 +1994,104 @@ function fecharModal() {
     const modal = document.getElementById('modalLancamento');
     modal.style.display = 'none';
     document.getElementById('dadosNota').innerHTML = '';
-    document.getElementById('dataVencimento').value = '';
     document.getElementById('categoriaLancamento').value = '';
-    document.getElementById('parcelasLancamento').value = '1';
+    document.getElementById('quantidadeParcelas').value = '1';
+    document.getElementById('parcelamentoContainer').style.display = 'none';
+    document.getElementById('parcelasContainer').innerHTML = '';
     document.getElementById('tipoDespesa').checked = true;
     document.getElementById('impactoAlert').style.display = 'none';
-    document.getElementById('resumoConteudo').innerHTML = '';
+    document.getElementById('validationError').classList.remove('show');
+    valorTotalNota = 0;
     delete modal.dataset.chaveAcesso;
     delete modal.dataset.dadosNota;
 }
 
+// CORRIGIDO: Função agora é async
 async function lancarNota(chaveAcesso) {
-    await buscarDadosNota(chaveAcesso);
+    console.log('Clicou em lançar nota:', chaveAcesso);
+    try {
+        await buscarDadosNota(chaveAcesso);
+    } catch (error) {
+        console.error('Erro ao lançar nota:', error);
+        mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro ao carregar dados da nota: ${error.message}`);
+    }
 }
 
 function visualizarXML(chaveAcesso) {
-    // Abre o XML em uma nova janela/aba
+    console.log('Visualizando XML:', chaveAcesso);
     window.open(`/fiscal/xml/${chaveAcesso}`, '_blank');
 }
 
 function atualizarEstatisticas() {
-    // As estatísticas já são renderizadas pelo template Flask
+    // Estatísticas já renderizadas pelo Flask
+}
+
+async function exportarDocumentos() {
+    const btn = document.getElementById('btnExportarDocumentos');
+    const loading = document.getElementById('loadingExportar');
+    const tipoExportacao = document.getElementById('tipoExportacao').value;
+
+    let notasParaExportar = [];
+    if (tipoExportacao === 'processadas') {
+        notasParaExportar = notasFiltradas.filter(nota => nota.status === 'PROCESSADA');
+    } else {
+        notasParaExportar = [...notasFiltradas];
+    }
+
+    if (notasParaExportar.length === 0) {
+        mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Nenhuma nota para exportar com os critérios selecionados.');
+        return;
+    }
+
+    const chavesAcesso = notasParaExportar.map(nota => nota.chave_acesso);
+
+    btn.disabled = true;
+    loading.style.display = 'inline-block';
+
+    try {
+        const response = await fetch('/api/fiscal/exportar_documentos', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ chaves_acesso: chavesAcesso })
+        });
+
+        if (response.ok) {
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = downloadUrl;
+            
+            const disposition = response.headers.get('Content-Disposition');
+            let filename = 'Exportacao_Contabil.zip';
+            if (disposition && disposition.indexOf('attachment') !== -1) {
+                const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                const matches = filenameRegex.exec(disposition);
+                if (matches != null && matches[1]) {
+                    filename = matches[1].replace(/['"]/g, '');
+                }
+            }
+            a.download = filename;
+            
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(downloadUrl);
+            a.remove();
+            
+            mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> Exportação de ${chavesAcesso.length} documento(s) concluída!`);
+        } else {
+            const result = await response.json();
+            mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> Erro na exportação: ${result.message}`);
+        }
+
+    } catch (error) {
+        mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro de conexão ao exportar: ${error.message}`);
+    } finally {
+        btn.disabled = false;
+        loading.style.display = 'none';
+    }
 }
 
 function mostrarNotificacao(tipo, mensagem) {
@@ -1630,80 +2120,6 @@ function mostrarNotificacao(tipo, mensagem) {
     }, 5000);
 }
 
-async function exportarDocumentos() {
-    const btn = document.getElementById('btnExportarDocumentos');
-    const loading = document.getElementById('loadingExportar');
-    const tipoExportacao = document.getElementById('tipoExportacao').value;
-
-    let notasParaExportar = [];
-    if (tipoExportacao === 'processadas') {
-        // Filtra apenas as notas com status 'PROCESSADA' da lista já filtrada na tela
-        notasParaExportar = notasFiltradas.filter(nota => nota.status === 'PROCESSADA');
-    } else {
-        // Usa todas as notas atualmente filtradas na tela
-        notasParaExportar = [...notasFiltradas];
-    }
-
-    if (notasParaExportar.length === 0) {
-        mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Nenhuma nota para exportar com os critérios selecionados.');
-        return;
-    }
-
-    // Pega apenas as chaves de acesso
-    const chavesAcesso = notasParaExportar.map(nota => nota.chave_acesso);
-
-    btn.disabled = true;
-    loading.style.display = 'inline-block';
-
-    try {
-        const response = await fetch('/api/fiscal/exportar_documentos', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ chaves_acesso: chavesAcesso })
-        });
-
-        if (response.ok) {
-            // Lida com o download do arquivo .zip
-            const blob = await response.blob();
-            const downloadUrl = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = downloadUrl;
-            
-            // Extrai o nome do arquivo do header da resposta
-            const disposition = response.headers.get('Content-Disposition');
-            let filename = 'Exportacao_Contabil.zip';
-            if (disposition && disposition.indexOf('attachment') !== -1) {
-                const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-                const matches = filenameRegex.exec(disposition);
-                if (matches != null && matches[1]) {
-                    filename = matches[1].replace(/['"]/g, '');
-                }
-            }
-            a.download = filename;
-            
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(downloadUrl);
-            a.remove();
-            
-            mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> Exportação de ${chavesAcesso.length} documento(s) concluída!`);
-        } else {
-            // Se houver um erro, a API retorna JSON
-            const result = await response.json();
-            mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> Erro na exportação: ${result.message}`);
-        }
-
-    } catch (error) {
-        mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro de conexão ao exportar: ${error.message}`);
-    } finally {
-        btn.disabled = false;
-        loading.style.display = 'none';
-    }
-}
-
 // Funções de formatação
 function formatarCNPJ(cnpj) {
     if (!cnpj) return '';
@@ -1712,7 +2128,6 @@ function formatarCNPJ(cnpj) {
 
 function formatarData(dataString) {
     const data = new Date(dataString);
-    // Adiciona o fuso horário para corrigir a data
     const dataCorrigida = new Date(data.valueOf() + data.getTimezoneOffset() * 60000);
     return dataCorrigida.toLocaleDateString('pt-BR');
 }

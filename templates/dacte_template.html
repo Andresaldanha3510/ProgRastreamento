@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>DACTE - CT-e {{ cte.numero_cte }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 8pt;
+            margin: 0;
+            padding: 0;
+            line-height: 1.1;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+            padding: 0;
+        }
+        
+        td, th {
+            border: 1px solid #000;
+            padding: 3px;
+            vertical-align: top;
+            font-size: 8pt;
+            word-wrap: break-word;
+            overflow: hidden;
+        }
+        
+        .header {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: center;
+            font-size: 9pt;
+        }
+        
+        .label {
+            font-size: 6pt;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .value {
+            font-size: 8pt;
+            font-weight: normal;
+        }
+        
+        .center { text-align: center; }
+        .right { text-align: right; }
+        .bold { font-weight: bold; }
+        
+        .dacte-title {
+            font-size: 14pt;
+            font-weight: bold;
+            text-align: center;
+            background-color: #e8e8e8;
+            padding: 5px;
+        }
+        
+        .chave-acesso {
+            font-family: 'Courier New', monospace;
+            font-size: 10pt;
+            text-align: center;
+            padding: 3px;
+            background-color: #f9f9f9;
+        }
+        
+        .no-border { border: none; }
+        .border-top { border-top: 1px solid #000; }
+        .border-bottom { border-bottom: 1px solid #000; }
+        .border-left { border-left: 1px solid #000; }
+        .border-right { border-right: 1px solid #000; }
+        
+        .small { font-size: 6pt; }
+        .medium { font-size: 7pt; }
+    </style>
+</head>
+<body>
+    <!-- CABEÇALHO -->
+    <table style="margin-bottom: 5px;">
+        <tr>
+            <td style="width: 150px; text-align: center; border: 1px solid #000;">
+                <!-- Logo da empresa (se houver) -->
+                <div style="height: 60px; display: flex; align-items: center; justify-content: center;">
+                    <strong>{{ cte.empresa.razao_social.split()[0] if cte.empresa else 'EMPRESA' }}</strong>
+                </div>
+            </td>
+            <td style="border: 1px solid #000; padding: 5px;">
+                <div class="label">RAZÃO SOCIAL / NOME</div>
+                <div class="value bold">{{ cte.empresa.razao_social if cte.empresa else 'EMPRESA TRANSPORTADORA LTDA' }}</div>
+                <br>
+                <div class="label">ENDEREÇO</div>
+                <div class="value">{{ cte.empresa.endereco if cte.empresa else 'RUA EXEMPLO, 123' }}</div>
+                <br>
+                <div class="label">MUNICÍPIO</div>
+                <div class="value">{{ cte.empresa.cidade if cte.empresa else 'CIDADE' }} - {{ cte.empresa.estado if cte.empresa else 'UF' }}</div>
+                
+                <div style="margin-top: 8px;">
+                    <span class="label">CNPJ/CPF:</span> 
+                    <span class="value">{{ cte.empresa.cnpj if cte.empresa else '00.000.000/0001-00' }}</span>
+                    <span style="margin-left: 20px;" class="label">INSCRIÇÃO ESTADUAL:</span>
+                    <span class="value">{{ cte.empresa.inscricao_estadual if cte.empresa else 'ISENTO' }}</span>
+                </div>
+            </td>
+            <td style="width: 150px; border: 1px solid #000; text-align: center;">
+                <div class="dacte-title">DACTE</div>
+                <div class="small">DOCUMENTO AUXILIAR DO</div>
+                <div class="small">CONHECIMENTO DE TRANSPORTE</div>
+                <div class="small">ELETRÔNICO</div>
+                <br>
+                <div class="label">Nº</div>
+                <div class="value bold" style="font-size: 12pt;">{{ cte.numero_cte or '000000001' }}</div>
+                <div class="label">SÉRIE {{ cte.serie or '001' }}</div>
+                <br>
+                <div class="small">FOLHA 01/01</div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- CHAVE DE ACESSO -->
+    <table style="margin-bottom: 5px;">
+        <tr>
+            <td class="center">
+                <div class="label">CHAVE DE ACESSO</div>
+                <div class="chave-acesso">{{ cte.chave_acesso or '00000000000000000000000000000000000000000000' }}</div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- CONSULTA VIA INTERNET -->
+    <table style="margin-bottom: 5px;">
+        <tr>
+            <td class="center">
+                <div class="small">Consulta de autenticidade no portal nacional do CT-e, no site da Fazenda do Estado do</div>
+                <div class="small">{{ cte.uf_inicio or 'SP' }} ou em https://dfe-portal.svrs.rs.gov.br/cte</div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- MODAL RODOVIÁRIO DE CARGAS -->
+    <table style="margin-bottom: 5px;">
+        <tr>
+            <td class="header">MODAL RODOVIÁRIO DE CARGAS</td>
+        </tr>
+    </table>
+
+    <!-- REMETENTE E DESTINATÁRIO -->
+    <table style="margin-bottom: 5px;">
+        <tr>
+            <td style="width: 50%;">
+                <div class="label">REMETENTE</div>
+                <div class="value bold">{{ cte.rem_nome or 'REMETENTE EXEMPLO LTDA' }}</div>
+                <div class="value">{{ cte.rem_endereco or 'RUA DO REMETENTE, 123' }}</div>
+                <div class="value">{{ cte.rem_bairro or 'BAIRRO' }} - {{ cte.rem_cidade or 'CIDADE' }} - {{ cte.rem_uf or 'UF' }}</div>
+                <div class="value">CEP: {{ cte.rem_cep or '00000-000' }}</div>
+                <div class="value">CNPJ/CPF: {{ cte.rem_documento or '00.000.000/0001-00' }}</div>
+                <div class="value">INSCRIÇÃO ESTADUAL: {{ cte.rem_ie or 'ISENTO' }}</div>
+                <div class="value">PAÍS: {{ cte.rem_pais or 'BRASIL' }}</div>
+                <div class="value">FONE: {{ cte.rem_telefone or '(00) 0000-0000' }}</div>
+            </td>
+            <td style="width: 50%;">
+                <div class="label">DESTINATÁRIO</div>
+                <div class="value bold">{{ cte.dest_nome or 'DESTINATÁRIO EXEMPLO LTDA' }}</div>
+                <div class="value">{{ cte.dest_endereco or 'RUA DO DESTINATÁRIO, 456' }}</div>
+                <div class="value">{{ cte.dest_bairro or 'BAIRRO' }} - {{ cte.dest_cidade or 'CIDADE' }} - {{ cte.dest_uf or 'UF' }}</div>
+                <div class="value">CEP: {{ cte.dest_cep or '00000-000' }}</div>
+                <div class="value">CNPJ/CPF: {{ cte.dest_documento or '00.000.000/0001-00' }}</div>
+                <div class="value">INSCRIÇÃO ESTADUAL: {{ cte.dest_ie or 'ISENTO' }}</div>
+                <div class="value">PAÍS: {{ cte.dest_pais or 'BRASIL' }}</div>
+                <div class="value">FONE: {{ cte.dest_telefone or '(00) 0000-0000' }}</div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- EXPEDIDOR E RECEBEDOR -->
+    <table style="margin-bottom: 5px;">
+        <tr>
+            <td style="width: 50%;">
+                <div class="label">EXPEDIDOR</div>
+                <div class="value">{{ cte.exp_nome or 'MESMO DO REMETENTE' }}</div>
+                {% if cte.exp_endereco %}
+                <div class="value">{{ cte.exp_endereco }}</div>
+                <div class="value">{{ cte.exp_cidade }} - {{ cte.exp_uf }}</div>
+                <div class="value">CNPJ/CPF: {{ cte.exp_documento }}</div>
+                {% endif %}
+            </td>
+            <td style="width: 50%;">
+                <div class="label">RECEBEDOR</div>
+                <div class="value">{{ cte.rec_nome or 'MESMO DO DESTINATÁRIO' }}</div>
+                {% if cte.rec_endereco %}
+                <div class="value">{{ cte.rec_endereco }}</div>
+                <div class="value">{{ cte.rec_cidade }} - {{ cte.rec_uf }}</div>
+                <div class="value">CNPJ/CPF: {{ cte.rec_documento }}</div>
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+
+    <!-- TOMADOR DO SERVIÇO -->
+    <table style="margin-bottom: 5px;">
+        <tr>
+            <td>
+                <div class="label">TOMADOR DO SERVIÇO</div>
+                <div class="value">
+                    ({{ cte.tomador_tipo or '0' }}) 
+                    {% if cte.tomador_tipo == '0' %}REMETENTE
+                    {% elif cte.tomador_tipo == '1' %}EXPEDIDOR
+                    {% elif cte.tomador_tipo == '2' %}RECEBEDOR
+                    {% elif cte.tomador_tipo == '3' %}DESTINATÁRIO
+                    {% else %}OUTROS{% endif %}
+                    - {{ cte.tomador_nome or cte.rem_nome or 'NOME DO TOMADOR' }}
+                </div>
+                <div class="value">{{ cte.tomador_municipio or cte.rem_cidade or 'CIDADE' }} - {{ cte.tomador_uf or cte.rem_uf or 'UF' }}</div>
+                <div class="value">CNPJ/CPF: {{ cte.tomador_documento or cte.rem_documento or '00.000.000/0001-00' }}</div>
+                <div class="value">INSCRIÇÃO ESTADUAL: {{ cte.tomador_ie or 'ISENTO' }}</div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- PRODUTO PREDOMINANTE -->
+    <table style="margin-bottom: 5px;">
+        <tr>
+            <td style="width: 70%;">
+                <div class="label">PRODUTO PREDOMINANTE</div>
+                <div class="value">{{ cte.produto_predominante or 'MERCADORIAS EM GERAL' }}</div>
+            </td>
+            <td style="width: 15%;">
+                <div class="label">PESO TOTAL (KG)</div>
+                <div class="value center">{{ "%.3f"|format(cte.peso_bruto or 0) }}</div>
+            </td>
+            <td style="width: 15%;">
+                <div class="label">VALOR TOTAL DA CARGA</div>
+                <div class="value right">{{ "%.2f"|format(cte.valor_carga or 0) }}</div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- INFORMAÇÕES DA CARGA -->
+    <table style="margin-bottom: 5px;">
+        <tr>
+            <td class="header" colspan="6">INFORMAÇÕES DA CARGA</td>
+        </tr>
+        <tr>
+            <td class="label center" style="width: 40%;">DESCRIÇÃO DA MERCADORIA</td>
+            <td class="label center" style="width: 10%;">QTD</td>
+            <td class="label center" style="width: 10%;">UNID</td>
+            <td class="label center" style="width: 15%;">PESO (KG)</td>
+            <td class="label center" style="width: 15%;">VALOR (R$)</td>
+            <td class="label center" style="width: 10%;">M³</td>
+        </tr>
+        <tr>
+            <td class="value">{{ cte.descricao_mercadoria or 'MERCADORIAS EM GERAL' }}</td>
+            <td class="value center">{{ cte.quantidade or '1' }}</td>
+            <td class="value center">{{ cte.unidade or 'UN' }}</td>
+            <td class="value right">{{ "%.3f"|format(cte.peso_bruto or 0) }}</td>
+            <td class="value right">{{ "%.2f"|format(cte.valor_carga or 0) }}</td>
+            <td class="value center">{{ "%.3f"|format(cte.metro_cubico or 0) }}</td>
+        </tr>
+    </table>
+
+    <!-- COMPONENTES DO VALOR DA PRESTAÇÃO DO SERVIÇO -->
+    <table style="margin-bottom: 5px;">
+        <tr>
+            <td class="header" colspan="4">COMPONENTES DO VALOR DA PRESTAÇÃO DO SERVIÇO</td>
+        </tr>
+        <tr>
+            <td class="label" style="width: 40%;">NOME</td>
+            <td class="label center" style="width: 20%;">VALOR</td>
+            <td class="label" style="width: 40%;">NOME</td>
+            <td class="label center" style="width: 20%;">VALOR</td>
+        </tr>
+        <tr>
+            <td class="value">FRETE VALOR</td>
+            <td class="value right">{{ "%.2f"|format(cte.valor_total_servico or 0) }}</td>
+            <td class="value">PEDAGIO</td>
+            <td class="value right">{{ "%.2f"|format(cte.valor_pedagio or 0) }}</td>
+        </tr>
+        <tr>
+            <td class="value">SEC./CAT</td>
+            <td class="value right">{{ "%.2f"|format(cte.valor_sec_cat or 0) }}</td>
+            <td class="value">OUTROS</td>
+            <td class="value right">{{ "%.2f"|format(cte.valor_outros or 0) }}</td>
+        </tr>
+        <tr>
+            <td class="value bold">VALOR TOTAL DO SERVIÇO</td>
+            <td class="value right bold">{{ "%.2f"|format(cte.valor_total_servico or 0) }}</td>
+            <td class="value"></td>
+            <td class="value"></td>
+        </tr>
+    </table>
+
+    <!-- IMPOSTOS -->
+    <table style="margin-bottom: 5px;">
+        <tr>
+            <td class="header" colspan="6">IMPOSTOS</td>
+        </tr>
+        <tr>
+            <td class="label center">SITUAÇÃO TRIBUTÁRIA</td>
+            <td class="label center">BASE DE CÁLCULO</td>
+            <td class="label center">ALÍQ ICMS</td>
+            <td class="label center">VALOR ICMS</td>
+            <td class="label center">% RED BC</td>
+            <td class="label center">ICMS ST</td>
+        </tr>
+        <tr>
+            <td class="value center">{{ cte.cst_icms or '00' }}</td>
+            <td class="value right">{{ "%.2f"|format(cte.base_calculo_icms or 0) }}</td>
+            <td class="value center">{{ "%.2f"|format(cte.aliquota_icms or 0) }}%</td>
+            <td class="value right">{{ "%.2f"|format(cte.valor_icms or 0) }}</td>
+            <td class="value center">{{ "%.2f"|format(cte.reducao_bc or 0) }}%</td>
+            <td class="value right">{{ "%.2f"|format(cte.valor_icms_st or 0) }}</td>
+        </tr>
+    </table>
+
+    <!-- DADOS DO VEÍCULO -->
+    <table style="margin-bottom: 5px;">
+        <tr>
+            <td class="header" colspan="4">DADOS DO VEÍCULO</td>
+        </tr>
+        <tr>
+            <td class="label" style="width: 25%;">PLACA DO VEÍCULO</td>
+            <td class="label" style="width: 25%;">RENAVAM</td>
+            <td class="label" style="width: 25%;">UF</td>
+            <td class="label" style="width: 25%;">TARA (KG)</td>
+        </tr>
+        <tr>
+            <td class="value center">{{ cte.placa_veiculo or 'ABC-1234' }}</td>
+            <td class="value center">{{ cte.renavam_veiculo or '00000000000' }}</td>
+            <td class="value center">{{ cte.uf_veiculo or 'RS' }}</td>
+            <td class="value right">{{ "%.0f"|format(cte.tara_veiculo or 0) }}</td>
+        </tr>
+    </table>
+
+    <!-- DADOS DO MOTORISTA -->
+    <table style="margin-bottom: 5px;">
+        <tr>
+            <td class="header" colspan="2">DADOS DO MOTORISTA</td>
+        </tr>
+        <tr>
+            <td class="label" style="width: 70%;">NOME</td>
+            <td class="label" style="width: 30%;">CPF</td>
+        </tr>
+        <tr>
+            <td class="value">{{ cte.motorista_nome or 'NOME DO MOTORISTA' }}</td>
+            <td class="value center">{{ cte.motorista_cpf or '000.000.000-00' }}</td>
+        </tr>
+    </table>
+
+    <!-- OBSERVAÇÕES -->
+    <table style="margin-bottom: 5px;">
+        <tr>
+            <td>
+                <div class="label">OBSERVAÇÕES</div>
+                <div class="value" style="min-height: 30px;">
+                    {{ cte.observacoes or 'SEM OBSERVAÇÕES' }}
+                    {% if cte.protocolo_autorizacao %}
+                    <br>PROTOCOLO DE AUTORIZAÇÃO: {{ cte.protocolo_autorizacao }}
+                    {% endif %}
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- RODAPÉ -->
+    <table>
+        <tr>
+            <td class="center small">
+                <div>CT-e emitida em {{ cte.data_criacao.strftime('%d/%m/%Y às %H:%M') if cte.data_criacao else 'DATA/HORA' }}</div>
+                <div>Via {{ 'Remetente' }} - Documento auxiliar do Conhecimento de Transporte Eletrônico</div>
+                <div>Para visualização do CT-e, acesse: https://dfe-portal.svrs.rs.gov.br/cte</div>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

@@ -47,7 +47,7 @@
 
     .form-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); /* Ajustado para caber 3 colunas */
         gap: 1.5rem;
         margin-bottom: 2rem;
     }
@@ -165,6 +165,81 @@
         font-size: 0.875rem;
         margin-top: 0.25rem;
         opacity: 0.8;
+    }
+
+    .pagamento-section {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border: 2px solid #0ea5e9;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .pagamento-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 1rem;
+        font-weight: 600;
+        color: #0c4a6e;
+    }
+
+    .pagamento-toggle {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 24px;
+    }
+
+    .pagamento-toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .pagamento-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: var(--gray-300);
+        transition: .4s;
+        border-radius: 24px;
+    }
+
+    .pagamento-slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+
+    input:checked + .pagamento-slider {
+        background-color: #0ea5e9;
+    }
+
+    input:checked + .pagamento-slider:before {
+        transform: translateX(26px);
+    }
+
+    .pagamento-config {
+        display: none;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #bae6fd;
+    }
+
+    .pagamento-config.show {
+        display: grid;
     }
 
     .parcelas-section {
@@ -388,7 +463,7 @@
             grid-template-columns: 1fr;
         }
         
-        .parcelas-config {
+        .parcelas-config, .pagamento-config {
             grid-template-columns: 1fr;
         }
     }
@@ -397,7 +472,6 @@
 
 {% block content %}
 <div class="space-y-6">
-    <!-- Cabeçalho -->
     <div class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 shadow-lg">
         <h1 class="text-2xl font-bold flex items-center gap-3">
             <i class="fas fa-plus-circle"></i>
@@ -406,10 +480,8 @@
         <p class="text-green-100 mt-2">Adicione uma nova receita ou despesa ao seu fluxo de caixa</p>
     </div>
 
-    <!-- Container de Notificações -->
     <div id="notifications"></div>
 
-    <!-- Formulário -->
     <div class="lancamento-container">
         <div class="section-header">
             <i class="fas fa-edit"></i>
@@ -417,7 +489,6 @@
         </div>
 
         <form id="formLancamento" method="POST">
-            <!-- Seletor de Tipo -->
             <div class="form-group">
                 <label class="form-label required">Tipo de Movimento</label>
                 <div class="tipo-selector">
@@ -436,7 +507,6 @@
                 </div>
             </div>
 
-            <!-- Dados Principais -->
             <div class="form-grid">
                 <div class="form-group">
                     <label class="form-label required">Descrição</label>
@@ -492,9 +562,17 @@
                         Data prevista para pagamento/recebimento
                     </div>
                 </div>
-            </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Data de Emissão</label>
+                    <input type="date" name="data_emissao" class="form-control">
+                    <div class="help-text">
+                        <i class="fas fa-calendar-alt"></i>
+                        Data em que o documento foi emitido
+                    </div>
+                </div>
+                </div>
 
-            <!-- Dados Opcionais -->
             <div class="form-grid">
                 <div class="form-group">
                     <label class="form-label">Fornecedor/Cliente</label>
@@ -509,7 +587,39 @@
                 </div>
             </div>
 
-            <!-- Controle de Parcelas -->
+            <div class="pagamento-section">
+                <div class="pagamento-header">
+                    <i class="fas fa-credit-card"></i>
+                    Marcar como Pago Agora
+                    <label class="pagamento-toggle">
+                        <input type="checkbox" id="pagoAgoraCheck" onchange="togglePagamento()">
+                        <span class="pagamento-slider"></span>
+                    </label>
+                </div>
+                <p style="font-size: 0.875rem; color: #475569; margin-bottom: 0;">
+                    <i class="fas fa-info-circle"></i>
+                    Ative esta opção se o pagamento já foi realizado
+                </p>
+
+                <div class="pagamento-config" id="pagamentoConfig">
+                    <div class="form-group">
+                        <label class="form-label">Forma de Pagamento</label>
+                        <select name="meio_pagamento" id="meioPagamento" class="form-select">
+                            <option value="">Selecione a forma</option>
+                            <option value="PIX">PIX</option>
+                            <option value="DEPOSITO">Depósito</option>
+                            <option value="TRANSFERENCIA">Transferência</option>
+                            <option value="DINHEIRO">Dinheiro</option>
+                            <option value="CARTAO">Cartão</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Data do Pagamento</label>
+                        <input type="date" name="data_pagamento" id="dataPagamento" class="form-control">
+                    </div>
+                </div>
+            </div>
+
             <div class="parcelas-section">
                 <div class="parcelas-header">
                     <i class="fas fa-layer-group"></i>
@@ -547,14 +657,12 @@
                 </div>
             </div>
 
-            <!-- Observações -->
             <div class="form-group">
                 <label class="form-label">Observações</label>
                 <textarea name="observacoes" class="form-control" rows="3" 
                           placeholder="Informações adicionais sobre este lançamento..."></textarea>
             </div>
 
-            <!-- Ações -->
             <div class="actions-grid">
                 <a href="{{ url_for('fluxo_caixa') }}" class="btn-secondary">
                     <i class="fas fa-arrow-left"></i>
@@ -580,7 +688,6 @@ document.addEventListener('DOMContentLoaded', function() {
 function configurarEventos() {
     document.getElementById('formLancamento').addEventListener('submit', handleSubmit);
     
-    // Atualizar prévia quando campos importantes mudarem
     const camposPreview = ['valor_total', 'data_vencimento'];
     camposPreview.forEach(campo => {
         const element = document.querySelector(`[name="${campo}"]`);
@@ -596,26 +703,35 @@ function configurarEventos() {
 function definirDataPadrao() {
     const hoje = new Date();
     const dataVencimento = document.querySelector('[name="data_vencimento"]');
+    const dataPagamento = document.getElementById('dataPagamento');
+    // LINHA ADICIONADA PARA A DATA DE EMISSÃO
+    const dataEmissao = document.querySelector('[name="data_emissao"]'); 
+    
     if (dataVencimento && !dataVencimento.value) {
         dataVencimento.value = hoje.toISOString().split('T')[0];
+    }
+    
+    // LÓGICA ADICIONADA PARA A DATA DE EMISSÃO
+    if (dataEmissao && !dataEmissao.value) {
+        dataEmissao.value = hoje.toISOString().split('T')[0];
+    }
+    
+    if (dataPagamento && !dataPagamento.value) {
+        dataPagamento.value = hoje.toISOString().split('T')[0];
     }
 }
 
 function selecionarTipo(tipo) {
-    // Remover seleção anterior
     document.querySelectorAll('.tipo-option').forEach(option => {
         option.classList.remove('selected');
     });
     
-    // Adicionar seleção atual
     const selectedOption = document.querySelector(`.tipo-option.${tipo.toLowerCase()}`);
     selectedOption.classList.add('selected');
     
-    // Marcar o radio button
     const radio = selectedOption.querySelector('input[type="radio"]');
     radio.checked = true;
     
-    // Atualizar texto do botão
     const btnSalvar = document.getElementById('btnSalvar');
     const icon = tipo === 'RECEITA' ? 'fa-arrow-up' : 'fa-arrow-down';
     const texto = tipo === 'RECEITA' ? 'Criar Receita' : 'Criar Despesa';
@@ -627,17 +743,45 @@ function selecionarTipo(tipo) {
     `;
 }
 
+function togglePagamento() {
+    const check = document.getElementById('pagoAgoraCheck');
+    const config = document.getElementById('pagamentoConfig');
+    const parcelarCheck = document.getElementById('parcelarCheck');
+    
+    if (check.checked) {
+        config.classList.add('show');
+        if (parcelarCheck.checked) {
+            parcelarCheck.checked = false;
+            toggleParcelas();
+            mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Parcelamento desabilitado para pagamentos imediatos');
+        }
+        parcelarCheck.disabled = true;
+    } else {
+        config.classList.remove('show');
+        parcelarCheck.disabled = false;
+        document.getElementById('meioPagamento').value = '';
+    }
+}
+
 function toggleParcelas() {
     const check = document.getElementById('parcelarCheck');
     const config = document.getElementById('parcelasConfig');
     const preview = document.getElementById('previewParcelas');
+    const pagoAgoraCheck = document.getElementById('pagoAgoraCheck');
     
     if (check.checked) {
         config.classList.add('show');
+        if (pagoAgoraCheck.checked) {
+            pagoAgoraCheck.checked = false;
+            togglePagamento();
+            mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Pagamento imediato desabilitado para lançamentos parcelados');
+        }
+        pagoAgoraCheck.disabled = true;
         atualizarPreview();
     } else {
         config.classList.remove('show');
         preview.classList.remove('show');
+        pagoAgoraCheck.disabled = false;
     }
 }
 
@@ -656,7 +800,7 @@ function atualizarPreview() {
     }
     
     const valorParcela = valorTotal / parcelas;
-    const dataBase = new Date(dataVencimento);
+    const dataBase = new Date(dataVencimento + 'T00:00:00'); // Adiciona T00:00:00 para evitar problemas de fuso horário
     const previewList = document.getElementById('previewList');
     
     previewList.innerHTML = '';
@@ -669,7 +813,7 @@ function atualizarPreview() {
         item.className = 'preview-item';
         item.innerHTML = `
             <div class="preview-parcela">
-                Parcela ${i}/${parcelas} - ${dataParcela.toLocaleDateString('pt-BR')}
+                Parcela ${i}/${parcelas} - ${dataParcela.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}
             </div>
             <div class="preview-valor">
                 R$ ${valorParcela.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -687,7 +831,6 @@ async function handleSubmit(event) {
     const btn = document.getElementById('btnSalvar');
     const loading = document.getElementById('loadingSalvar');
     
-    // Validações básicas
     if (!validarFormulario()) {
         return;
     }
@@ -695,42 +838,49 @@ async function handleSubmit(event) {
     btn.disabled = true;
     loading.style.display = 'inline-block';
     
+    const form = event.target;
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+
+    // Ajustes antes de enviar
+    if (!document.getElementById('parcelarCheck').checked) {
+        data.parcela_total = '1';
+    }
+    if (!document.getElementById('pagoAgoraCheck').checked) {
+        delete data.meio_pagamento;
+        delete data.data_pagamento;
+    }
+
     try {
-        const formData = new FormData(event.target);
-        
-        // Adicionar dados de parcelas se necessário
-        if (document.getElementById('parcelarCheck').checked) {
-            formData.set('parcela_total', document.getElementById('parcelaTotal').value);
-        } else {
-            formData.set('parcela_total', '1');
-        }
-        
-        const response = await fetch(event.target.action || window.location.href, {
+        const response = await fetch(form.action, {
             method: 'POST',
-            body: formData
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
         });
-        
-        if (response.ok) {
-            mostrarNotificacao('success', 
-                '<i class="fas fa-check-circle"></i> Lançamento criado com sucesso!'
-            );
-            
+
+        const result = await response.json();
+
+        if (result.success) {
+            mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> ${result.message}`);
             setTimeout(() => {
-                window.location.href = '{{ url_for("fluxo_caixa") }}';
+                window.location.href = result.redirect_url || '{{ url_for("fluxo_caixa") }}';
             }, 1500);
         } else {
-            throw new Error('Erro na resposta do servidor');
+            throw new Error(result.message || 'Erro desconhecido do servidor.');
         }
-        
+
     } catch (error) {
-        mostrarNotificacao('error', 
-            `<i class="fas fa-times-circle"></i> Erro ao criar lançamento: ${error.message}`
-        );
+        mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro ao criar lançamento: ${error.message}`);
     } finally {
         btn.disabled = false;
         loading.style.display = 'none';
     }
 }
+
+// A função de submit foi refatorada para usar fetch com JSON
+// Removendo a antiga `handleSubmit` que usava `FormData`
 
 function validarFormulario() {
     const tipo = document.querySelector('input[name="tipo"]:checked');
@@ -758,12 +908,20 @@ function validarFormulario() {
         return false;
     }
     
-    // Validar parcelas se estiver habilitado
     const parcelarCheck = document.getElementById('parcelarCheck');
     if (parcelarCheck.checked) {
         const parcelas = parseInt(document.getElementById('parcelaTotal').value);
         if (!parcelas || parcelas < 2 || parcelas > 24) {
             mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Número de parcelas deve estar entre 2 e 24');
+            return false;
+        }
+    }
+    
+    const pagoAgoraCheck = document.getElementById('pagoAgoraCheck');
+    if (pagoAgoraCheck.checked) {
+        const meioPagamento = document.getElementById('meioPagamento').value;
+        if (!meioPagamento) {
+            mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Selecione a forma de pagamento');
             return false;
         }
     }
@@ -787,7 +945,6 @@ function mostrarNotificacao(tipo, mensagem) {
     
     container.appendChild(notification);
     
-    // Scroll para a notificação
     notification.scrollIntoView({ behavior: 'smooth', block: 'center' });
     
     setTimeout(() => {
@@ -800,7 +957,6 @@ function mostrarNotificacao(tipo, mensagem) {
     }, 5000);
 }
 
-// Estilos de animação
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideIn {

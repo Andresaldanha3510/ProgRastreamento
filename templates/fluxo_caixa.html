@@ -189,7 +189,7 @@
         color: var(--gray-500);
         margin-top: 0.25rem;
     }
-    /* Filtros */
+    /* Filtros e Busca */
     .filtros-section {
         background: white;
         border-radius: 12px;
@@ -197,6 +197,31 @@
         margin-bottom: 1.5rem;
         border: 1px solid var(--gray-200);
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .search-container {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+    .search-input {
+        width: 100%;
+        padding: 12px 45px 12px 16px;
+        border: 2px solid var(--gray-200);
+        border-radius: 8px;
+        font-size: 0.875rem;
+        transition: all 0.3s;
+    }
+    .search-input:focus {
+        outline: none;
+        border-color: var(--primary-green);
+        box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+    }
+    .search-icon {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--gray-400);
+        font-size: 1rem;
     }
     .filtros-grid {
         display: grid;
@@ -366,6 +391,37 @@
         background: #f3e5f5;
         color: #7b1fa2;
     }
+    /* Forma de Pagamento */
+    .pagamento-badge {
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.65rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 2px;
+        display: inline-block;
+    }
+    .pagamento-badge.pix {
+        background: #e8f5e8;
+        color: #2e7d32;
+    }
+    .pagamento-badge.deposito {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+    .pagamento-badge.transferencia {
+        background: #f3e5f5;
+        color: #7b1fa2;
+    }
+    .pagamento-badge.dinheiro {
+        background: #fff3e0;
+        color: #f57c00;
+    }
+    .pagamento-badge.cartao {
+        background: #fce4ec;
+        color: #c2185b;
+    }
     /* Botões de ação */
     .btn-table {
         padding: 4px 8px;
@@ -415,6 +471,13 @@
     }
     .btn-table.btn-estornar:hover {
         background: #5a6268;
+    }
+    .btn-table.btn-details {
+        background: #007bff;
+        color: white;
+    }
+    .btn-table.btn-details:hover {
+        background: #0056b3;
     }
     /* Ações em Massa */
     #barraAcoesMassa {
@@ -466,9 +529,14 @@
         box-shadow: 0 25px 50px rgba(0,0,0,0.25);
         animation: modalSlide 0.3s ease-out;
         overflow: hidden;
+        max-height: 90vh;
+        overflow-y: auto;
     }
     .modal-content.large {
         max-width: 700px;
+    }
+    .modal-content.extra-large {
+        max-width: 900px;
     }
     @keyframes modalSlide {
         from { transform: translateY(-50px); opacity: 0; }
@@ -507,6 +575,26 @@
         padding: 1rem 2rem;
         background-color: var(--gray-50);
         text-align: right;
+    }
+    /* Detalhes do lançamento no modal */
+    .detail-row {
+        display: flex;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--gray-100);
+    }
+    .detail-row:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+    .detail-label {
+        font-weight: 600;
+        color: var(--gray-700);
+        min-width: 140px;
+    }
+    .detail-value {
+        color: var(--gray-900);
+        flex: 1;
     }
     /* Empty state */
     .empty-state {
@@ -582,25 +670,25 @@
     <div class="kpis-grid">
         <div class="kpi-card receitas">
             <div class="kpi-icon"><i class="fas fa-arrow-up"></i></div>
-            <span class="kpi-value">R$ {{ "%.2f"|format(totais.total_receitas)|replace('.', ',')|replace(',', '.', 1) }}</span>
+            <span class="kpi-value">R$ {{ totais.total_receitas_formatado }}</span>
             <div class="kpi-label">Total Receitas</div>
-            <div class="kpi-subtitle">R$ {{ "%.2f"|format(totais.total_receitas_pagas)|replace('.', ',')|replace(',', '.', 1) }} realizadas</div>
+            <div class="kpi-subtitle">R$ {{ totais.total_receitas_pagas_formatado }} realizadas</div>
         </div>
         <div class="kpi-card despesas">
             <div class="kpi-icon"><i class="fas fa-arrow-down"></i></div>
-            <span class="kpi-value">R$ {{ "%.2f"|format(totais.total_despesas)|replace('.', ',')|replace(',', '.', 1) }}</span>
+            <span class="kpi-value">R$ {{ totais.total_despesas_formatado }}</span>
             <div class="kpi-label">Total Despesas</div>
-            <div class="kpi-subtitle">R$ {{ "%.2f"|format(totais.total_despesas_pagas)|replace('.', ',')|replace(',', '.', 1) }} pagas</div>
+            <div class="kpi-subtitle">R$ {{ totais.total_despesas_pagas_formatado }} pagas</div>
         </div>
         <div class="kpi-card saldo">
             <div class="kpi-icon"><i class="fas fa-balance-scale"></i></div>
-            <span class="kpi-value">R$ {{ "%.2f"|format(totais.saldo_previsto)|replace('.', ',')|replace(',', '.', 1) }}</span>
+            <span class="kpi-value">R$ {{ totais.saldo_previsto_formatado }}</span>
             <div class="kpi-label">Saldo Previsto</div>
-            <div class="kpi-subtitle">R$ {{ "%.2f"|format(totais.saldo_realizado)|replace('.', ',')|replace(',', '.', 1) }} realizado</div>
+            <div class="kpi-subtitle">R$ {{ totais.saldo_realizado_formatado }} realizado</div>
         </div>
         <div class="kpi-card vencido">
             <div class="kpi-icon"><i class="fas fa-exclamation-triangle"></i></div>
-            <span class="kpi-value">R$ {{ "%.2f"|format(totais.vencido_total)|replace('.', ',')|replace(',', '.', 1) }}</span>
+            <span class="kpi-value">R$ {{ totais.vencido_total_formatado }}</span>
             <div class="kpi-label">Valores Vencidos</div>
             <div class="kpi-subtitle">Requer atenção</div>
         </div>
@@ -610,13 +698,20 @@
         <div class="section-header">
             <div class="section-title">
                 <i class="fas fa-filter"></i>
-                Filtros e Período
+                Busca e Filtros
             </div>
             <a href="{{ url_for('novo_lancamento_fluxo') }}" class="btn-green">
                 <i class="fas fa-plus"></i>
                 Novo Lançamento
             </a>
         </div>
+        
+        <!-- Campo de Busca -->
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-input" placeholder="Buscar por descrição, fornecedor, cliente, documento...">
+            <i class="fas fa-search search-icon"></i>
+        </div>
+        
         <form method="GET" id="filtrosForm">
             <div class="filtros-grid">
                 <div class="form-group">
@@ -626,6 +721,14 @@
                 <div class="form-group">
                     <label class="form-label">Data Fim</label>
                     <input type="date" name="data_fim" class="form-control" value="{{ data_fim }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Data Emissão Início</label>
+                    <input type="date" name="data_emissao_inicio" class="form-control" value="{{ data_emissao_inicio }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Data Emissão Fim</label>
+                    <input type="date" name="data_emissao_fim" class="form-control" value="{{ data_emissao_fim }}">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Categoria</label>
@@ -648,6 +751,25 @@
                         <option value="Pago" {% if status_filtro == 'Pago' %}selected{% endif %}>Pagos (NFe)</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Forma de Pagamento</label>
+                    <select name="meio_pagamento" class="form-select">
+                        <option value="">Todas as Formas</option>
+                        <option value="PIX" {% if meio_pagamento_filtro == 'PIX' %}selected{% endif %}>PIX</option>
+                        <option value="DEPOSITO" {% if meio_pagamento_filtro == 'DEPOSITO' %}selected{% endif %}>Depósito</option>
+                        <option value="TRANSFERENCIA" {% if meio_pagamento_filtro == 'TRANSFERENCIA' %}selected{% endif %}>Transferência</option>
+                        <option value="DINHEIRO" {% if meio_pagamento_filtro == 'DINHEIRO' %}selected{% endif %}>Dinheiro</option>
+                        <option value="CARTAO" {% if meio_pagamento_filtro == 'CARTAO' %}selected{% endif %}>Cartão</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tipo</label>
+                    <select name="tipo" class="form-select">
+                        <option value="">Todos os Tipos</option>
+                        <option value="RECEITA" {% if tipo_filtro == 'RECEITA' %}selected{% endif %}>Receitas</option>
+                        <option value="DESPESA" {% if tipo_filtro == 'DESPESA' %}selected{% endif %}>Despesas</option>
+                    </select>
+                </div>
             </div>
             <div class="filtros-actions">
                 <a href="{{ url_for('api_exportar_fluxo_excel', **request.args) }}" class="btn-secondary">
@@ -668,7 +790,7 @@
             <div class="section-title">
                 <i class="fas fa-list-alt"></i>
                 Movimentações do Período
-                <span class="text-base font-normal text-gray-600">({{ fluxo_consolidado|length }} lançamento(s))</span>
+                <span class="text-base font-normal text-gray-600">(<span id="contadorLancamentos">{{ fluxo_consolidado|length }}</span> lançamento(s))</span>
             </div>
         </div>
         {% if not fluxo_consolidado %}
@@ -684,25 +806,28 @@
             </div>
         {% else %}
             <div class="fluxo-table-container">
-                <table class="fluxo-table">
+                <table class="fluxo-table" id="fluxoTable">
                     <thead>
                         <tr>
                             <th style="width: 50px; text-align: center;">
                                 <input type="checkbox" id="selecionarTodosHeader" onchange="toggleSelecionarTodos(this.checked)">
                             </th>
                             <th>Data Venc.</th>
+                            <th>Data Emissão</th>
                             <th>Tipo</th>
                             <th>Descrição</th>
                             <th>Fornecedor/Cliente</th>
                             <th>Categoria</th>
                             <th>Valor</th>
                             <th>Status</th>
+                            <th>Forma Pagto.</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in fluxo_consolidado %}
-                        <tr class="{% if item.is_vencido %}vencido{% elif item.status in ['PAGO', 'Pago'] %}pago{% elif item.data_vencimento == hoje %}hoje{% endif %}">
+                        <tr class="{% if item.is_vencido %}vencido{% elif item.status in ['PAGO', 'Pago'] %}pago{% elif item.data_vencimento == hoje %}hoje{% endif %} table-row" 
+                            data-search="{{ (item.descricao or '') + ' ' + (item.fornecedor_cliente or '') + ' ' + (item.documento or '') + ' ' + (item.categoria or '') }}">
                             <td style="width: 50px; text-align: center;">
                                 {% if item.tipo_origem == 'MANUAL' and item.status not in ['PAGO', 'Pago'] %}
                                     <input type="checkbox" class="item-checkbox" value="{{ item.id }}" onchange="atualizarSelecao()">
@@ -716,6 +841,13 @@
                                     <div class="text-xs text-red-600 font-medium">
                                         VENCIDO ({{ (hoje - item.data_vencimento).days }} dias)
                                     </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.data_emissao %}
+                                    <div class="font-medium">{{ item.data_emissao.strftime('%d/%m/%Y') }}</div>
+                                {% else %}
+                                    <span class="text-gray-400">-</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -737,7 +869,7 @@
                             <td><span class="text-sm bg-gray-100 px-2 py-1 rounded">{{ item.categoria }}</span></td>
                             <td>
                                 <div class="font-semibold text-lg {{ 'valor-receita' if item.tipo_movimento == 'RECEITA' else 'valor-despesa' }}">
-                                    {% if item.tipo_movimento == 'RECEITA' %}+{% else %}-{% endif %} R$ {{ "%.2f"|format(item.valor)|replace('.', ',')|replace(',', '.', 1) }}
+                                    {% if item.tipo_movimento == 'RECEITA' %}+{% else %}-{% endif %} R$ {{ item.valor_formatado }}
                                 </div>
                                 {% if item.data_pagamento %}<div class="text-xs text-gray-600">Pago em {{ item.data_pagamento.strftime('%d/%m/%Y') }}</div>{% endif %}
                             </td>
@@ -753,9 +885,19 @@
                                 {% endif %}
                             </td>
                             <td>
+                                {% if item.meio_pagamento %}
+                                    <span class="pagamento-badge {{ item.meio_pagamento.lower() }}">{{ item.meio_pagamento }}</span>
+                                {% else %}
+                                    <span class="text-gray-400 text-xs">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn-table btn-details" data-item-id="{{ item.id }}" title="Ver detalhes">
+                                    <i class="fas fa-eye"></i>
+                                </button>
                                 {% if item.status not in ['PAGO', 'Pago'] %}
                                     <button class="btn-table btn-pagar" data-item-id="{{ item.id }}" data-item-valor="{{ item.valor }}">
-                                        <i class="fas fa-check"></i> Pagar
+                                        <i class="fas fa-check"></i>
                                     </button>
                                     {% if item.tipo_origem == 'MANUAL' %}
                                     <button class="btn-table btn-edit" data-item-id="{{ item.id }}">
@@ -767,12 +909,12 @@
                                     </button>
                                 {% else %}
                                     <button class="btn-table btn-estornar" data-item-id="{{ item.id }}">
-                                        <i class="fas fa-undo"></i> Estornar
+                                        <i class="fas fa-undo"></i>
                                     </button>
                                 {% endif %}
                                 {% if item.tipo_origem == 'NFE' and item.objeto.chave_acesso %}
                                     <a href="{{ url_for('visualizar_xml_page', chave_acesso=item.objeto.chave_acesso) }}" class="btn-table btn-view" target="_blank">
-                                        <i class="fas fa-file-code"></i> XML
+                                        <i class="fas fa-file-code"></i>
                                     </a>
                                 {% endif %}
                                 {% if item.tipo_origem == 'MANUAL' %}
@@ -797,6 +939,22 @@
     <button class="btn-table btn-massa" id="btnExcluirMassa"><i class="fas fa-trash-alt"></i> Excluir</button>
 </div>
 
+<!-- Modal de Detalhes -->
+<div id="detalhesModal" class="modal">
+    <div class="modal-content extra-large">
+        <div class="modal-header">
+            <h2 class="modal-title"><i class="fas fa-eye"></i>Detalhes do Lançamento</h2>
+            <span class="close" onclick="closeModal('detalhesModal')">&times;</span>
+        </div>
+        <div class="modal-body" id="detalhesContent">
+            <!-- Conteúdo será carregado via JavaScript -->
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="closeModal('detalhesModal')">Fechar</button>
+        </div>
+    </div>
+</div>
+
 <div id="pagamentoModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -811,6 +969,17 @@
                 <div class="form-group mt-4">
                     <label class="form-label" for="data_pagamento_modal">Data do Pagamento</label>
                     <input type="date" id="data_pagamento_modal" name="data_pagamento" class="form-control" required>
+                </div>
+                <div class="form-group mt-4">
+                    <label class="form-label" for="meio_pagamento_modal">Forma de Pagamento</label>
+                    <select id="meio_pagamento_modal" name="meio_pagamento" class="form-select" required>
+                        <option value="">Selecione a forma de pagamento</option>
+                        <option value="PIX">PIX</option>
+                        <option value="DEPOSITO">Depósito</option>
+                        <option value="TRANSFERENCIA">Transferência</option>
+                        <option value="DINHEIRO">Dinheiro</option>
+                        <option value="CARTAO">Cartão</option>
+                    </select>
                 </div>
             </div>
             <div class="modal-footer">
@@ -991,13 +1160,42 @@
             });
         }
 
+        // Busca em tempo real
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('.table-row');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const searchData = row.getAttribute('data-search').toLowerCase();
+                if (searchData.includes(searchTerm)) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            document.getElementById('contadorLancamentos').textContent = visibleCount;
+        });
+
         // --- MANIPULADORES DE EVENTOS PARA BOTÕES DE AÇÃO ---
+        
+        // Botão de detalhes
+        document.querySelectorAll('.btn-details').forEach(button => {
+            button.addEventListener('click', function() {
+                const itemId = this.dataset.itemId;
+                carregarDetalhesLancamento(itemId);
+            });
+        });
+
         document.querySelectorAll('.btn-pagar').forEach(button => {
             button.addEventListener('click', function() {
                 const itemId = this.dataset.itemId;
-                const itemValor = parseFloat(this.dataset.itemValor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                const itemValor = formatarMoeda(parseFloat(this.dataset.itemValor));
                 document.getElementById('itemId').value = itemId;
-                document.getElementById('valorPagamentoModal').textContent = `Valor: ${itemValor}`;
+                document.getElementById('valorPagamentoModal').textContent = `Valor: R$ ${itemValor}`;
                 document.getElementById('data_pagamento_modal').valueAsDate = new Date();
                 openModal('pagamentoModal');
             });
@@ -1061,7 +1259,8 @@
             const formData = new FormData(this);
             const data = {
                 item_id: formData.get('itemId'),
-                data_pagamento: formData.get('data_pagamento')
+                data_pagamento: formData.get('data_pagamento'),
+                meio_pagamento: formData.get('meio_pagamento')
             };
             fetch('/api/fluxo_caixa/marcar_pago', {
                 method: 'POST',
@@ -1166,6 +1365,118 @@
         }
     });
 
+    function carregarDetalhesLancamento(itemId) {
+        fetch(`/api/fluxo_caixa/detalhes/${itemId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const conteudo = document.getElementById('detalhesContent');
+                    const dados = data.dados;
+                    
+                    conteudo.innerHTML = `
+                        <div class="detail-row">
+                            <div class="detail-label">ID:</div>
+                            <div class="detail-value">${dados.id}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Tipo:</div>
+                            <div class="detail-value">
+                                <span class="tipo-badge ${dados.tipo_movimento === 'RECEITA' ? 'receita' : 'despesa'}">
+                                    ${dados.tipo_movimento}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Descrição:</div>
+                            <div class="detail-value">${dados.descricao || '-'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Valor:</div>
+                            <div class="detail-value">
+                                <span class="${dados.tipo_movimento === 'RECEITA' ? 'valor-receita' : 'valor-despesa'}">
+                                    R$ ${dados.valor_formatado || formatarMoeda(dados.valor)}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Categoria:</div>
+                            <div class="detail-value">${dados.categoria || '-'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Data Emissão:</div>
+                            <div class="detail-value">${dados.data_emissao || '-'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Data Vencimento:</div>
+                            <div class="detail-value">${dados.data_vencimento || '-'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Data Pagamento:</div>
+                            <div class="detail-value">${dados.data_pagamento || '-'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Fornecedor/Cliente:</div>
+                            <div class="detail-value">${dados.fornecedor_cliente || '-'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Documento:</div>
+                            <div class="detail-value">${dados.documento || '-'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Status:</div>
+                            <div class="detail-value">
+                                <span class="status-badge ${dados.status.toLowerCase()}">${dados.status}</span>
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Forma Pagamento:</div>
+                            <div class="detail-value">
+                                ${dados.meio_pagamento ? `<span class="pagamento-badge ${dados.meio_pagamento.toLowerCase()}">${dados.meio_pagamento}</span>` : '-'}
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Origem:</div>
+                            <div class="detail-value">
+                                <span class="origem-badge ${dados.tipo_origem === 'NFE' ? 'nfe' : 'manual'}">${dados.tipo_origem}</span>
+                            </div>
+                        </div>
+                        ${dados.parcela ? `
+                        <div class="detail-row">
+                            <div class="detail-label">Parcela:</div>
+                            <div class="detail-value">${dados.parcela}</div>
+                        </div>
+                        ` : ''}
+                        ${dados.observacoes ? `
+                        <div class="detail-row">
+                            <div class="detail-label">Observações:</div>
+                            <div class="detail-value">${dados.observacoes}</div>
+                        </div>
+                        ` : ''}
+                        <div class="detail-row">
+                            <div class="detail-label">Criado em:</div>
+                            <div class="detail-value">${dados.data_criacao || '-'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Atualizado em:</div>
+                            <div class="detail-value">${dados.data_atualizacao || '-'}</div>
+                        </div>
+                    `;
+                    
+                    openModal('detalhesModal');
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showNotification('Erro ao carregar detalhes do lançamento', 'error');
+                console.error('Erro:', error);
+            });
+    }
+
+    function formatarMoeda(valor) {
+        return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
     function showNotification(message, type = 'success') {
         const container = document.getElementById('notifications');
         const alert = document.createElement('div');
@@ -1181,10 +1492,15 @@
 
     function limparFiltros() {
         const form = document.getElementById('filtrosForm');
-        form.data_inicio.value = '';
-        form.data_fim.value = '';
-        form.categoria.value = '';
-        form.status.value = '';
+        const inputs = form.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            if (input.type === 'checkbox' || input.type === 'radio') {
+                input.checked = false;
+            } else {
+                input.value = '';
+            }
+        });
+        document.getElementById('searchInput').value = '';
         form.submit();
     }
     
