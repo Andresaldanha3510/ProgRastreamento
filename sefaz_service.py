@@ -1,4 +1,4 @@
-# sefaz_service.py (VERSÃO CORRIGIDA COM CONSULTA UNIFICADA PARA MÚLTIPLOS CNPJs)
+# sefaz_service.py (VERSÃO CORRIGIDA COM TRATAMENTO DE ERRO 656 PRIORITÁRIO)
 # -*- coding: utf-8 -*-
 
 import os
@@ -211,8 +211,8 @@ def _consultar_cnpj_com_paginacao(cnpj_consulta, nsu_inicial, client, tpAmb_valo
 
 def _processar_certificado_individual(certificado_info, empresa_id, wsdl_url, tpAmb_valor, uf_para_sefaz):
     """
-    VERSÃO CORRIGIDA (2025-09-02): Usa consulta UNIFICADA para múltiplos CNPJs.
-    Isso evita quebrar a sequência de paginação da SEFAZ, resolvendo o erro 656.
+    VERSÃO CORRIGIDA (2025-09-03): Tratamento de erro 656 PRIORITÁRIO.
+    Isso evita logs confusos e garante que a falha seja tratada primeiro.
     """
     logger.info(f"[CERT {certificado_info.id}] Iniciando processamento com consulta unificada.")
     
@@ -237,8 +237,6 @@ def _processar_certificado_individual(certificado_info, empresa_id, wsdl_url, tp
         if not cnpj_do_certificado: 
             return {'success': False, 'message': f'Certificado {certificado_info.id}: CNPJ não encontrado.'}
         
-        # *** LÓGICA DE CONSULTA UNIFICADA CORRIGIDA ***
-        # Obtém a lista de CNPJs relacionados, mas usará apenas o principal para a consulta.
         cnpjs_relacionados = obter_cnpjs_relacionados(cnpj_do_certificado)
         cnpj_para_consulta_unificada = cnpj_do_certificado
         
@@ -263,23 +261,17 @@ def _processar_certificado_individual(certificado_info, empresa_id, wsdl_url, tp
         
         certificado_info.ultima_consulta_sefaz = datetime.utcnow()
         
-        # Obter NSU inicial para o CNPJ principal da consulta
         nsu_inicial = _get_nsu_para_cnpj(certificado_info.id, cnpj_para_consulta_unificada)
         logger.info(f"[CERT {certificado_info.id}] Consultando com NSU inicial específico: {nsu_inicial}")
 
-        # Chamar a função de paginação UMA VEZ e deixá-la rodar até o fim
         resultado_consulta = _consultar_cnpj_com_paginacao(
             cnpj_para_consulta_unificada, nsu_inicial, client, tpAmb_valor, uf_para_sefaz, certificado_info.id
         )
 
         novo_nsu = resultado_consulta.get('nsu_final', 0)
         
-        # Atualizar o NSU individual do CNPJ usado na consulta
-        if novo_nsu > nsu_inicial:
-            _atualizar_nsu_cnpj(certificado_info.id, cnpj_para_consulta_unificada, novo_nsu)
-            logger.info(f"[CERT {certificado_info.id}] NSU do CNPJ {cnpj_para_consulta_unificada} atualizado: {nsu_inicial} → {novo_nsu}")
-
-        # Tratamento para código 656 (consumo indevido)
+        # --- INÍCIO DA CORREÇÃO ---
+        # PRIMEIRO, verifica se houve erro. Se sim, trata e sai da função.
         if resultado_consulta.get('cStat') == '656':
             logger.warning(f"[CERT {certificado_info.id}] CNPJ {cnpj_para_consulta_unificada}: Consumo indevido detectado")
             certificado_info.bloqueado_ate = datetime.utcnow() + timedelta(hours=1)
@@ -294,13 +286,18 @@ def _processar_certificado_individual(certificado_info, empresa_id, wsdl_url, tp
                 'message': f"CNPJ {cnpj_para_consulta_unificada}: {resultado_consulta['xMotivo']}. NSU corrigido.",
                 'motivo': 'consumo_indevido'
             }
+        # --- FIM DA CORREÇÃO ---
+
+        # Se não houve erro 656, continua com a lógica normal de atualização
+        if novo_nsu > nsu_inicial:
+            _atualizar_nsu_cnpj(certificado_info.id, cnpj_para_consulta_unificada, novo_nsu)
+            logger.info(f"[CERT {certificado_info.id}] NSU do CNPJ {cnpj_para_consulta_unificada} atualizado: {nsu_inicial} → {novo_nsu}")
         
         documentos = resultado_consulta.get('documentos', [])
         total_documentos = len(documentos)
         
-        # Atualiza o NSU geral com o maior valor retornado pela consulta, mesmo que não haja notas
         maior_nsu_retornado = novo_nsu
-        maior_nsu_documento = 0 # Será calculado abaixo
+        maior_nsu_documento = 0
         
         if total_documentos == 0:
             certificado_info.ultimo_nsu = str(max(maior_nsu_retornado, int(certificado_info.ultimo_nsu or 0)))
@@ -313,7 +310,6 @@ def _processar_certificado_individual(certificado_info, empresa_id, wsdl_url, tp
 
         logger.info(f"[CERT {certificado_info.id}] Processando {total_documentos} documentos baixados via CNPJ {cnpj_para_consulta_unificada}")
         
-        # Processamento dos documentos
         notas_processadas, documentos_pulados, notas_com_erro = 0, 0, 0
         
         with db.session.no_autoflush:
@@ -334,7 +330,6 @@ def _processar_certificado_individual(certificado_info, empresa_id, wsdl_url, tp
                         continue
                     
                     xml_str = gzip.decompress(base64.b64decode(xml_gz_b64)).decode('utf-8')
-                    # O cnpj_consultado é sempre o que foi usado na query
                     resultado = processar_nfe_individual(
                         xml_str, str(nsu_doc).zfill(15), 
                         certificado_info, empresa_id, cnpj_para_consulta_unificada 
@@ -352,7 +347,6 @@ def _processar_certificado_individual(certificado_info, empresa_id, wsdl_url, tp
         
         db.session.commit()
         
-        # Atualizar NSU geral do certificado com o maior valor visto
         nsu_final_real = max(maior_nsu_documento, maior_nsu_retornado, int(certificado_info.ultimo_nsu or 0))
         certificado_info.ultimo_nsu = str(nsu_final_real)
         db.session.commit()

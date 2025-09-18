@@ -4,7 +4,7 @@ eventlet.monkey_patch()
 import uuid
 import xml.etree.ElementTree as ET
 import json
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, make_response, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, make_response, send_from_directory, Response
 from datetime import datetime, timedelta, date
 import requests
 import logging
@@ -35,6 +35,11 @@ from cryptography.x509.oid import NameOID
 import zipfile
 from flask import send_file
 from flask_socketio import emit, join_room, leave_room
+from xhtml2pdf import pisa
+from extensions import db, CTeEmitido
+from flask_mail import Message
+
+
 
 # 1. Importa as extensões E os modelos do novo arquivo 'extensions.py'
 from extensions import db, migrate, socketio, login_manager, mail, CertificadoDigital, NFeImportada
@@ -231,6 +236,187 @@ class Motorista(db.Model):
     
 
     
+
+class ConfiguracaoBorracharia(db.Model):
+    __tablename__ = 'configuracao_borracharia'
+    id = db.Column(db.Integer, primary_key=True)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False, unique=True)
+    
+    # Configurações de vida útil e alertas
+    vida_util_dot_anos = db.Column(db.Integer, default=7)
+    alerta_dot_dias = db.Column(db.Integer, default=90)
+    
+    # Configurações de sulco
+    sulco_minimo_recapagem_mm = db.Column(db.Float, default=3.0)
+    sulco_minimo_descarte_mm = db.Column(db.Float, default=1.6)
+    
+    # Configurações de recapagem
+    max_recapagens = db.Column(db.Integer, default=2)
+    km_alerta_recapagem = db.Column(db.Integer, default=5000)
+    
+    # Relacionamento
+    empresa = db.relationship('Empresa', backref=db.backref('config_borracharia', uselist=False))
+    
+    def __repr__(self):
+        return f'<ConfiguracaoBorracharia {self.empresa_id}>'
+
+class Pneu(db.Model):
+    __tablename__ = 'pneu'
+    id = db.Column(db.Integer, primary_key=True)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
+    veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculo.id'), nullable=True)
+    
+    # Identificação do pneu
+    numero_fogo = db.Column(db.String(50), nullable=False)
+    marca = db.Column(db.String(100), nullable=False)
+    modelo = db.Column(db.String(100), nullable=False)
+    dimensao = db.Column(db.String(50), nullable=False)
+    dot = db.Column(db.String(20), nullable=False)
+    
+    # Dados de compra
+    data_compra = db.Column(db.Date, nullable=False)
+    valor_compra = db.Column(db.Float, nullable=False)
+    fornecedor = db.Column(db.String(200), nullable=True)
+    
+    # Status e localização
+    status = db.Column(db.String(50), default='Estoque', nullable=False, index=True)
+    # Status: Estoque, Em Uso, Recapando, Descartado
+    posicao = db.Column(db.String(100), nullable=True)
+    # Ex: "Eixo 1 - Dianteiro Esquerdo"
+    
+    # Dados de uso
+    km_instalacao = db.Column(db.Float, nullable=True)
+    data_instalacao = db.Column(db.Date, nullable=True)
+    km_remocao = db.Column(db.Float, nullable=True)
+    data_remocao = db.Column(db.Date, nullable=True)
+    
+    # Recapagem
+    numero_recapagens = db.Column(db.Integer, default=0)
+    data_ultima_recapagem = db.Column(db.Date, nullable=True)
+    custo_total_recapagens = db.Column(db.Float, default=0.0)
+    
+    # Medições de sulco
+    sulco_atual_mm = db.Column(db.Float, nullable=True)
+    data_ultima_medicao = db.Column(db.Date, nullable=True)
+    
+    # Motivo de descarte
+    motivo_descarte = db.Column(db.Text, nullable=True)
+    data_descarte = db.Column(db.Date, nullable=True)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relacionamentos
+    empresa = db.relationship('Empresa', backref='pneus')
+    veiculo = db.relationship('Veiculo', backref='pneus')
+    medicoes = db.relationship('MedicaoSulco', backref='pneu', cascade="all, delete-orphan")
+    movimentacoes = db.relationship('MovimentacaoPneu', backref='pneu', cascade="all, delete-orphan")
+    
+    # Constraint para evitar duplicatas
+    __table_args__ = (
+        db.UniqueConstraint('empresa_id', 'numero_fogo', name='_empresa_numero_fogo_uc'),
+    )
+    
+    @property
+    def idade_anos(self):
+        """Calcula a idade do pneu baseada no DOT"""
+        try:
+            # Extrai os últimos 4 dígitos do DOT (semana + ano)
+            if len(self.dot) >= 4:
+                ano_fabricacao = int(self.dot[-2:])
+                # Se for menor que 30, assume 20xx, senão 19xx
+                if ano_fabricacao < 30:
+                    ano_fabricacao += 2000
+                else:
+                    ano_fabricacao += 1900
+                
+                ano_atual = datetime.now().year
+                return ano_atual - ano_fabricacao
+        except:
+            pass
+        return 0
+    
+    @property
+    def precisa_alerta_dot(self):
+        """Verifica se precisa alerta por idade"""
+        config = ConfiguracaoBorracharia.query.filter_by(empresa_id=self.empresa_id).first()
+        if not config:
+            return False
+        return self.idade_anos >= config.vida_util_dot_anos
+    
+    @property
+    def precisa_recapagem(self):
+        """Verifica se precisa ir para recapagem"""
+        config = ConfiguracaoBorracharia.query.filter_by(empresa_id=self.empresa_id).first()
+        if not config or not self.sulco_atual_mm:
+            return False
+        return self.sulco_atual_mm <= config.sulco_minimo_recapagem_mm
+    
+    @property
+    def precisa_descarte(self):
+        """Verifica se precisa ser descartado"""
+        config = ConfiguracaoBorracharia.query.filter_by(empresa_id=self.empresa_id).first()
+        if not config:
+            return False
+        
+        # Por sulco
+        if self.sulco_atual_mm and self.sulco_atual_mm <= config.sulco_minimo_descarte_mm:
+            return True
+        
+        # Por número máximo de recapagens
+        if self.numero_recapagens >= config.max_recapagens:
+            return True
+        
+        return False
+    
+    def __repr__(self):
+        return f'<Pneu {self.numero_fogo}>'
+
+class MedicaoSulco(db.Model):
+    __tablename__ = 'medicao_sulco'
+    id = db.Column(db.Integer, primary_key=True)
+    pneu_id = db.Column(db.Integer, db.ForeignKey('pneu.id'), nullable=False)
+    
+    sulco_mm = db.Column(db.Float, nullable=False)
+    data_medicao = db.Column(db.Date, default=date.today)
+    observacoes = db.Column(db.Text, nullable=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=True)
+    
+    usuario = db.relationship('Usuario')
+    
+    def __repr__(self):
+        return f'<MedicaoSulco {self.pneu_id}: {self.sulco_mm}mm>'
+
+class MovimentacaoPneu(db.Model):
+    __tablename__ = 'movimentacao_pneu'
+    id = db.Column(db.Integer, primary_key=True)
+    pneu_id = db.Column(db.Integer, db.ForeignKey('pneu.id'), nullable=False)
+    
+    tipo_movimentacao = db.Column(db.String(50), nullable=False)
+    # Tipos: INSTALACAO, REMOCAO, RECAPAGEM_ENVIO, RECAPAGEM_RETORNO, DESCARTE
+    
+    data_movimentacao = db.Column(db.DateTime, default=datetime.utcnow)
+    veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculo.id'), nullable=True)
+    posicao_origem = db.Column(db.String(100), nullable=True)
+    posicao_destino = db.Column(db.String(100), nullable=True)
+    km_veiculo = db.Column(db.Float, nullable=True)
+    
+    # Dados específicos para recapagem
+    custo_recapagem = db.Column(db.Float, nullable=True)
+    fornecedor_recapagem = db.Column(db.String(200), nullable=True)
+    
+    observacoes = db.Column(db.Text, nullable=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=True)
+    
+    veiculo = db.relationship('Veiculo')
+    usuario = db.relationship('Usuario')
+    
+    def __repr__(self):
+        return f'<MovimentacaoPneu {self.tipo_movimentacao}>'
+    
+
+    
 class FolhaPagamento(db.Model):
     __tablename__ = 'folha_pagamento'
     id = db.Column(db.Integer, primary_key=True)
@@ -383,7 +569,10 @@ class Cobranca(db.Model):
     empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
     
     cliente = db.relationship('Cliente', backref='cobrancas')
-    usuario = db.relationship('Usuario', backref='cobrancas_geradas')
+    
+    # ▼▼▼ LINHA CORRIGIDA PARA RESOLVER O PROBLEMA DE EXCLUSÃO ▼▼▼
+    usuario = db.relationship('Usuario', backref=db.backref('cobrancas_geradas', cascade="all, delete-orphan"))
+    
     viagens = db.relationship('Viagem', backref='cobranca', lazy='dynamic')
 
     @property
@@ -911,174 +1100,132 @@ def get_distancia_total_periodo(veiculo_id, dias=365):
 def api_salvar_lancamento():
     try:
         data = request.get_json()
-        
-        # Log para debug
         logger.info(f"Dados recebidos para lançamento: {data}")
         
         chave_acesso = data.get('chave_acesso')
-        data_vencimento_str = data.get('data_vencimento')
         tipo_movimento = data.get('tipo_movimento')
-        parcelas = data.get('parcelas', 1)
+        parcelas_array = data.get('parcelas', [])
         categoria = data.get('categoria', '')
 
-        # Validação básica melhorada
+        # Validações básicas
         if not chave_acesso:
             return jsonify({'success': False, 'message': 'Chave de acesso é obrigatória.'}), 400
-        
-        if not data_vencimento_str:
-            return jsonify({'success': False, 'message': 'Data de vencimento é obrigatória.'}), 400
-            
-        if not tipo_movimento:
-            return jsonify({'success': False, 'message': 'Tipo de movimento é obrigatório.'}), 400
+        if not tipo_movimento or tipo_movimento not in ['RECEITA', 'DESPESA']:
+            return jsonify({'success': False, 'message': 'Tipo de movimento inválido.'}), 400
+        if not parcelas_array or len(parcelas_array) == 0:
+            return jsonify({'success': False, 'message': 'Pelo menos uma parcela deve ser informada.'}), 400
+        if len(parcelas_array) > 36:
+            return jsonify({'success': False, 'message': 'Máximo de 36 parcelas permitidas.'}), 400
 
-        if tipo_movimento not in ['RECEITA', 'DESPESA']:
-            return jsonify({'success': False, 'message': 'Tipo de movimento inválido. Use RECEITA ou DESPESA.'}), 400
-
-        # Buscar a nota fiscal original
-        nota = NFeImportada.query.filter_by(
-            chave_acesso=chave_acesso, 
-            empresa_id=current_user.empresa_id
-        ).first()
-        
+        # Buscar a nota fiscal
+        nota = NFeImportada.query.filter_by(chave_acesso=chave_acesso, empresa_id=current_user.empresa_id).first()
         if not nota:
-            return jsonify({'success': False, 'message': 'Nota fiscal não encontrada na sua empresa.'}), 404
-        
+            return jsonify({'success': False, 'message': 'Nota fiscal não encontrada.'}), 404
         if nota.status == 'PROCESSADA':
-            return jsonify({'success': False, 'message': 'Esta nota já foi processada anteriormente.'}), 409
+            return jsonify({'success': False, 'message': 'Esta nota já foi processada.'}), 409
 
-        # Converter e validar dados
-        try:
-            data_vencimento = datetime.strptime(data_vencimento_str, '%Y-%m-%d').date()
-            parcelas = int(parcelas)
+        # Validar parcelas
+        parcelas_validadas = []
+        total_parcelas_valor = 0
+        
+        for i, parcela in enumerate(parcelas_array, 1):
+            data_vencimento_str = parcela.get('data_vencimento')
+            valor_parcela = parcela.get('valor')
             
-            if parcelas < 1 or parcelas > 12:
-                return jsonify({'success': False, 'message': 'Número de parcelas deve ser entre 1 e 12.'}), 400
-                
-        except ValueError as ve:
-            return jsonify({'success': False, 'message': f'Dados inválidos: {ve}'}), 400
+            if not data_vencimento_str:
+                return jsonify({'success': False, 'message': f'Data obrigatória para parcela {i}.'}), 400
+            
+            try:
+                data_vencimento = datetime.strptime(data_vencimento_str, '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'success': False, 'message': f'Data inválida para parcela {i}.'}), 400
+            
+            if data_vencimento < nota.data_emissao.date():
+                return jsonify({'success': False, 'message': f'Data de vencimento não pode ser anterior à emissão.'}), 400
+            
+            if not valor_parcela or float(valor_parcela) <= 0:
+                return jsonify({'success': False, 'message': f'Valor inválido para parcela {i}.'}), 400
+            
+            valor_parcela = float(valor_parcela)
+            total_parcelas_valor += valor_parcela
+            
+            parcelas_validadas.append({
+                'data_vencimento': data_vencimento,
+                'valor': valor_parcela,
+                'numero': i
+            })
 
-        # Determinar categoria baseada no tipo se não foi fornecida
+        # Validar total das parcelas
+        diferenca = abs(total_parcelas_valor - float(nota.valor_total))
+        if diferenca > 0.01:
+            return jsonify({
+                'success': False, 
+                'message': f'Valor das parcelas (R$ {total_parcelas_valor:.2f}) não confere com nota (R$ {float(nota.valor_total):.2f}).'
+            }), 400
+
+        # Categoria padrão
         if not categoria:
             categoria = 'Vendas/Receitas (NFe)' if tipo_movimento == 'RECEITA' else 'Fornecedores (NFe)'
 
-        # LÓGICA PRINCIPAL: Criar lançamentos no fluxo de caixa
-        if parcelas <= 1:
-            # === Lançamento único ===
-            novo_lancamento_fluxo = LancamentoFluxoCaixa(
-                empresa_id=current_user.empresa_id,
-                tipo=tipo_movimento,
-                descricao=f"NFe {tipo_movimento.title()} - {nota.emitente_nome}",
-                categoria=categoria,
-                valor_total=nota.valor_total,
-                data_vencimento=data_vencimento,
-                fornecedor_cliente=nota.emitente_nome,
-                documento_numero=chave_acesso[-8:],  # Últimos 8 dígitos
-                observacoes=f"NFe importada da SEFAZ - Chave: {chave_acesso}",
-                parcela_numero=1,
-                parcela_total=1
-            )
-            db.session.add(novo_lancamento_fluxo)
-            
-            # Para despesas, manter compatibilidade com sistema antigo
-            if tipo_movimento == 'DESPESA':
-                novo_lancamento_nfe = LancamentoNotaFiscal(
-                    empresa_id=current_user.empresa_id,
-                    nfe_importada_chave_acesso=nota.chave_acesso,
-                    chave_acesso=nota.chave_acesso,
-                    emitente_cnpj=nota.emitente_cnpj,
-                    emitente_nome=nota.emitente_nome,
-                    valor_total=nota.valor_total,
-                    data_emissao=nota.data_emissao,
-                    data_vencimento=data_vencimento,
-                    status_pagamento='A Pagar',
-                    parcela_numero=1,
-                    parcela_total=1
-                )
-                db.session.add(novo_lancamento_nfe)
-                
-        else:
-            # === Lançamento parcelado ===
-            valor_parcela = nota.valor_total / parcelas
-            
-            # Criar lançamento pai para controle (opcional, para relatórios)
-            lancamento_pai = LancamentoFluxoCaixa(
-                empresa_id=current_user.empresa_id,
-                tipo=tipo_movimento,
-                descricao=f"NFe {tipo_movimento.title()} - {nota.emitente_nome} (Parcelado)",
-                categoria=categoria,
-                valor_total=nota.valor_total,
-                data_vencimento=data_vencimento,
-                fornecedor_cliente=nota.emitente_nome,
-                documento_numero=chave_acesso[-8:],
-                observacoes=f"NFe importada da SEFAZ - Chave: {chave_acesso} - Controle de parcelamento em {parcelas}x",
-                parcela_numero=0,  # Pai não conta como parcela ativa
-                parcela_total=parcelas,
-                status_pagamento='PARCELADO'  # Status especial para identificar como pai
-            )
-            db.session.add(lancamento_pai)
-            db.session.flush()  # Para obter o ID do pai
-            
-            # Criar as parcelas efetivas
-            for i in range(1, parcelas + 1):
-                data_parcela = data_vencimento + timedelta(days=(i-1)*30)  # Mensais
-                
-                # Parcela no fluxo de caixa
-                nova_parcela_fluxo = LancamentoFluxoCaixa(
-                    empresa_id=current_user.empresa_id,
-                    tipo=tipo_movimento,
-                    descricao=f"NFe {tipo_movimento.title()} - {nota.emitente_nome} - Parcela {i}/{parcelas}",
-                    categoria=categoria,
-                    valor_total=valor_parcela,
-                    data_vencimento=data_parcela,
-                    fornecedor_cliente=nota.emitente_nome,
-                    documento_numero=f"{chave_acesso[-8:]}-{i:02d}",
-                    observacoes=f"NFe importada da SEFAZ - Chave: {chave_acesso} - Parcela {i} de {parcelas}",
-                    parcela_numero=i,
-                    parcela_total=parcelas,
-                    lancamento_pai_id=lancamento_pai.id
-                )
-                db.session.add(nova_parcela_fluxo)
-                
-                # Para despesas, manter compatibilidade com sistema antigo
-                if tipo_movimento == 'DESPESA':
-                    nova_parcela_nfe = LancamentoNotaFiscal(
-                        empresa_id=current_user.empresa_id,
-                        nfe_importada_chave_acesso=nota.chave_acesso,
-                        chave_acesso=nota.chave_acesso,
-                        emitente_cnpj=nota.emitente_cnpj,
-                        emitente_nome=nota.emitente_nome,
-                        valor_total=valor_parcela,
-                        data_emissao=nota.data_emissao,
-                        data_vencimento=data_parcela,
-                        status_pagamento='A Pagar',
-                        parcela_numero=i,
-                        parcela_total=parcelas,
-                        observacoes=f"Parcela {i} de {parcelas}"
-                    )
-                    db.session.add(nova_parcela_nfe)
+        # Número da nota formatado
+        numero_nota = chave_acesso[-9:]
+        serie_numero = f"{numero_nota[:3]}-{numero_nota[3:]}"
 
-        # Atualizar status da nota original
+        # Log
+        logger.info(f"Lançando NFe {serie_numero} - {len(parcelas_validadas)} parcela(s) - Total: R$ {total_parcelas_valor:.2f}")
+
+        # ============================================
+        # LÓGICA PRINCIPAL: CRIAR APENAS AS PARCELAS
+        # ============================================
+        
+        total_parcelas = len(parcelas_validadas)
+        
+        # Criar um lançamento para cada parcela (e APENAS isso)
+        for parcela in parcelas_validadas:
+            if total_parcelas == 1:
+                # Para 1 parcela: descrição simples
+                descricao = f"NFe {serie_numero} - {nota.emitente_nome}"
+                documento = serie_numero
+            else:
+                # Para múltiplas parcelas: descrição com parcela
+                descricao = f"NFe {serie_numero} - {nota.emitente_nome} - Parcela {parcela['numero']}/{total_parcelas}"
+                documento = f"{serie_numero}-{parcela['numero']:02d}"
+            
+            novo_lancamento = LancamentoFluxoCaixa(
+                empresa_id=current_user.empresa_id,
+                tipo=tipo_movimento,
+                descricao=descricao,
+                categoria=categoria,
+                valor_total=parcela['valor'],  # VALOR DA PARCELA, NÃO DA NOTA
+                data_vencimento=parcela['data_vencimento'],
+                fornecedor_cliente=nota.emitente_nome,
+                documento_numero=documento,
+                observacoes=f"NFe importada da SEFAZ - Chave: {chave_acesso} - Parcela {parcela['numero']} de {total_parcelas}",
+                parcela_numero=parcela['numero'],
+                parcela_total=total_parcelas
+            )
+            
+            db.session.add(novo_lancamento)
+            logger.info(f"  Criada parcela {parcela['numero']}: R$ {parcela['valor']:.2f} - {parcela['data_vencimento']}")
+
+        # Atualizar status da nota
         nota.status = 'PROCESSADA'
         
-        # Commit de todas as operações
+        # Commit final
         db.session.commit()
         
-        # Mensagem de sucesso personalizada
+        logger.info(f"Lançamento concluído - {total_parcelas} registro(s) criado(s) no fluxo de caixa")
+        
         movimento_texto = "receita" if tipo_movimento == 'RECEITA' else "despesa"
-        impacto_texto = "creditada no" if tipo_movimento == 'RECEITA' else "debitada do"
-        
-        logger.info(f"Lançamento criado com sucesso - Tipo: {tipo_movimento}, Parcelas: {parcelas}, Valor: {nota.valor_total}")
-        
         return jsonify({
             'success': True, 
-            'message': f'Lançamento de {movimento_texto} criado! {parcelas} parcela(s) {impacto_texto} fluxo de caixa.'
+            'message': f'Lançamento de {movimento_texto} criado! {total_parcelas} parcela(s) no fluxo de caixa.'
         })
 
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Erro ao salvar lançamento para NFe {chave_acesso}: {e}", exc_info=True)
-        return jsonify({'success': False, 'message': f'Erro interno do servidor: {str(e)}'}), 500
-    
+        logger.error(f"Erro ao salvar lançamento NFe {chave_acesso}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Erro interno: {str(e)}'}), 500
 
 @app.route('/api/fiscal/visualizar_xml/<string:chave_acesso>')
 @login_required
@@ -1339,6 +1486,29 @@ def obter_preco_medio_combustivel_recente(empresa_id, default=5.80, limit=20):
     except Exception as e:
         logger.error(f"Erro ao obter preço médio do combustível para empresa {empresa_id}: {e}")
         return default
+    
+@app.route('/api/pneus/estoque')
+@login_required
+def api_pneus_em_estoque():
+    """API para listar pneus disponíveis no estoque para os modais."""
+    try:
+        pneus = Pneu.query.filter_by(
+            empresa_id=current_user.empresa_id,
+            status='Estoque'
+        ).order_by(Pneu.numero_fogo).all()
+
+        pneus_data = [{
+            'id': p.id,
+            'numero_fogo': p.numero_fogo,
+            'marca': p.marca,
+            'modelo': p.modelo,
+            'dimensao': p.dimensao
+        } for p in pneus]
+
+        return jsonify({'success': True, 'pneus': pneus_data})
+    except Exception as e:
+        logger.error(f"Erro ao buscar pneus em estoque: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
     
 
 def calcular_consumo_medio_real(veiculo_id, periodo_dias=90):
@@ -2781,6 +2951,538 @@ def consultar_cobrancas():
                            total_pago=total_pago,
                            active_page='cobrancas')
 
+@app.route('/borracharia')
+@login_required
+def borracharia_dashboard():
+    """Dashboard principal da borracharia"""
+    # KPIs básicos
+    kpis = {
+        'em_estoque': Pneu.query.filter_by(empresa_id=current_user.empresa_id, status='Estoque').count(),
+        'em_uso': Pneu.query.filter_by(empresa_id=current_user.empresa_id, status='Em Uso').count(),
+        'recapando': Pneu.query.filter_by(empresa_id=current_user.empresa_id, status='Recapando').count(),
+        'descartados': Pneu.query.filter_by(empresa_id=current_user.empresa_id, status='Descartado').count(),
+    }
+    
+    # Alertas
+    alertas = []
+    config = ConfiguracaoBorracharia.query.filter_by(empresa_id=current_user.empresa_id).first()
+    if config:
+        # Pneus com problemas
+        pneus_alertas = Pneu.query.filter_by(empresa_id=current_user.empresa_id).filter(
+            Pneu.status.in_(['Estoque', 'Em Uso'])
+        ).all()
+        
+        for pneu in pneus_alertas:
+            if pneu.precisa_descarte:
+                alertas.append({
+                    'pneu': pneu,
+                    'tipo': 'Descarte Necessário',
+                    'mensagem': 'Pneu deve ser descartado por sulco ou excesso de recapagens',
+                    'gravidade': 'vermelho'
+                })
+            elif pneu.precisa_recapagem:
+                alertas.append({
+                    'pneu': pneu,
+                    'tipo': 'Recapagem Necessária',
+                    'mensagem': f'Sulco atual: {pneu.sulco_atual_mm}mm',
+                    'gravidade': 'amarelo'
+                })
+            elif pneu.precisa_alerta_dot:
+                alertas.append({
+                    'pneu': pneu,
+                    'tipo': 'Idade Avançada',
+                    'mensagem': f'Pneu com {pneu.idade_anos} anos de idade',
+                    'gravidade': 'amarelo'
+                })
+    
+    # Buscar veículos e pneus
+    veiculos = Veiculo.query.filter_by(empresa_id=current_user.empresa_id).options(
+        db.joinedload(Veiculo.pneus)
+    ).all()
+    
+    pneus_em_estoque = Pneu.query.filter_by(
+        empresa_id=current_user.empresa_id, 
+        status='Estoque'
+    ).order_by(Pneu.numero_fogo).all()
+    
+    pneus_recapando = Pneu.query.filter_by(
+        empresa_id=current_user.empresa_id,
+        status='Recapando'
+    ).order_by(Pneu.numero_fogo).all()
+    
+    return render_template('borracharia_dashboard.html',
+                           kpis=kpis,
+                           alertas=alertas,
+                           veiculos=veiculos,
+                           pneus_em_estoque=pneus_em_estoque,
+                           pneus_recapando=pneus_recapando,
+                           active_page='borracharia')
+
+@app.route('/borracharia/configuracoes', methods=['GET', 'POST'])
+@login_required
+@master_required
+def borracharia_configuracoes():
+    """Configurações da borracharia"""
+    config = ConfiguracaoBorracharia.query.filter_by(empresa_id=current_user.empresa_id).first()
+    
+    if not config:
+        config = ConfiguracaoBorracharia(empresa_id=current_user.empresa_id)
+        db.session.add(config)
+        db.session.commit()
+    
+    if request.method == 'POST':
+        try:
+            config.vida_util_dot_anos = int(request.form.get('vida_util_dot_anos', 7))
+            config.alerta_dot_dias = int(request.form.get('alerta_dot_dias', 90))
+            config.sulco_minimo_recapagem_mm = float(request.form.get('sulco_minimo_recapagem_mm', 3.0))
+            config.sulco_minimo_descarte_mm = float(request.form.get('sulco_minimo_descarte_mm', 1.6))
+            config.max_recapagens = int(request.form.get('max_recapagens', 2))
+            config.km_alerta_recapagem = int(request.form.get('km_alerta_recapagem', 5000))
+            
+            db.session.commit()
+            flash('Configurações atualizadas com sucesso!', 'success')
+            return redirect(url_for('borracharia_dashboard'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao salvar configurações: {e}', 'error')
+    
+    return render_template('configuracao_borracharia.html', config=config)
+
+@app.route('/borracharia/pneu/novo', methods=['POST'])
+@login_required
+def pneu_novo():
+    """Cadastrar novo pneu"""
+    try:
+        # Verificar se já existe pneu com mesmo número
+        numero_fogo = request.form.get('numero_fogo')
+        if Pneu.query.filter_by(empresa_id=current_user.empresa_id, numero_fogo=numero_fogo).first():
+            flash(f'Já existe um pneu com o número {numero_fogo}', 'error')
+            return redirect(url_for('borracharia_dashboard'))
+        
+        novo_pneu = Pneu(
+            empresa_id=current_user.empresa_id,
+            numero_fogo=numero_fogo,
+            marca=request.form.get('marca'),
+            modelo=request.form.get('modelo'),
+            dimensao=request.form.get('dimensao'),
+            dot=request.form.get('dot'),
+            data_compra=datetime.strptime(request.form.get('data_compra'), '%Y-%m-%d').date(),
+            valor_compra=float(request.form.get('valor_compra')),
+            fornecedor=request.form.get('fornecedor'),
+            status='Estoque'
+        )
+        
+        db.session.add(novo_pneu)
+        db.session.commit()
+        
+        # Registrar movimentação
+        movimentacao = MovimentacaoPneu(
+            pneu_id=novo_pneu.id,
+            tipo_movimentacao='ENTRADA_ESTOQUE',
+            observacoes='Pneu cadastrado no sistema',
+            usuario_id=current_user.id
+        )
+        db.session.add(movimentacao)
+        db.session.commit()
+        
+        flash('Pneu cadastrado com sucesso!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao cadastrar pneu: {e}', 'error')
+        logger.error(f"Erro ao cadastrar pneu: {e}", exc_info=True)
+    
+    return redirect(url_for('borracharia_dashboard'))
+
+@app.route('/api/pneu/instalar', methods=['POST'])
+@login_required
+def api_instalar_pneu():
+    """API para instalar pneu em veículo"""
+    try:
+        data = request.get_json()
+        pneu_id = data.get('pneu_id')
+        veiculo_id = data.get('veiculo_id')
+        posicao = data.get('posicao')
+        km_veiculo = float(data.get('km_veiculo', 0))
+        
+        # Buscar pneu e veículo
+        pneu = Pneu.query.filter_by(id=pneu_id, empresa_id=current_user.empresa_id).first()
+        veiculo = Veiculo.query.filter_by(id=veiculo_id, empresa_id=current_user.empresa_id).first()
+        
+        if not pneu or not veiculo:
+            return jsonify({'success': False, 'message': 'Pneu ou veículo não encontrado'}), 404
+        
+        if pneu.status != 'Estoque':
+            return jsonify({'success': False, 'message': 'Pneu não está disponível no estoque'}), 400
+        
+        # Verificar se já existe pneu na posição
+        pneu_existente = Pneu.query.filter_by(
+            veiculo_id=veiculo_id, 
+            posicao=posicao, 
+            status='Em Uso'
+        ).first()
+        
+        if pneu_existente:
+            return jsonify({'success': False, 'message': f'Já existe um pneu na posição {posicao}'}), 400
+        
+        # Instalar pneu
+        pneu.status = 'Em Uso'
+        pneu.veiculo_id = veiculo_id
+        pneu.posicao = posicao
+        pneu.km_instalacao = km_veiculo
+        pneu.data_instalacao = date.today()
+        
+        # Atualizar KM do veículo se necessário
+        if veiculo.km_atual is None or km_veiculo > veiculo.km_atual:
+            veiculo.km_atual = km_veiculo
+        
+        # Registrar movimentação
+        movimentacao = MovimentacaoPneu(
+            pneu_id=pneu.id,
+            tipo_movimentacao='INSTALACAO',
+            veiculo_id=veiculo_id,
+            posicao_destino=posicao,
+            km_veiculo=km_veiculo,
+            observacoes=f'Instalado na posição {posicao}',
+            usuario_id=current_user.id
+        )
+        db.session.add(movimentacao)
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Pneu instalado com sucesso!'})
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao instalar pneu: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/pneu/remover', methods=['POST'])
+@login_required
+def api_remover_pneu():
+    """API para remover pneu de veículo"""
+    try:
+        data = request.get_json()
+        pneu_id = data.get('pneu_id')
+        km_veiculo = float(data.get('km_veiculo', 0))
+        destino = data.get('destino')  # estoque, recapagem, descarte
+        motivo_descarte = data.get('motivo_descarte')
+        
+        # Buscar pneu
+        pneu = Pneu.query.filter_by(id=pneu_id, empresa_id=current_user.empresa_id).first()
+        if not pneu:
+            return jsonify({'success': False, 'message': 'Pneu não encontrado'}), 404
+        
+        if pneu.status != 'Em Uso':
+            return jsonify({'success': False, 'message': 'Pneu não está em uso'}), 400
+        
+        # Atualizar KM do veículo
+        if pneu.veiculo and (pneu.veiculo.km_atual is None or km_veiculo > pneu.veiculo.km_atual):
+            pneu.veiculo.km_atual = km_veiculo
+        
+        # Registrar dados de remoção
+        posicao_origem = pneu.posicao
+        pneu.km_remocao = km_veiculo
+        pneu.data_remocao = date.today()
+        
+        # Definir novo status baseado no destino
+        if destino == 'estoque':
+            pneu.status = 'Estoque'
+            pneu.veiculo_id = None
+            pneu.posicao = None
+            tipo_mov = 'REMOCAO'
+            obs = 'Removido para estoque'
+        elif destino == 'recapagem':
+            pneu.status = 'Recapando'
+            pneu.veiculo_id = None
+            pneu.posicao = None
+            tipo_mov = 'RECAPAGEM_ENVIO'
+            obs = 'Enviado para recapagem'
+        elif destino == 'descarte':
+            pneu.status = 'Descartado'
+            pneu.veiculo_id = None
+            pneu.posicao = None
+            pneu.motivo_descarte = motivo_descarte
+            pneu.data_descarte = date.today()
+            tipo_mov = 'DESCARTE'
+            obs = f'Descartado: {motivo_descarte}'
+        else:
+            return jsonify({'success': False, 'message': 'Destino inválido'}), 400
+        
+        # Registrar movimentação
+        movimentacao = MovimentacaoPneu(
+            pneu_id=pneu.id,
+            tipo_movimentacao=tipo_mov,
+            veiculo_id=pneu.veiculo_id,
+            posicao_origem=posicao_origem,
+            km_veiculo=km_veiculo,
+            observacoes=obs,
+            usuario_id=current_user.id
+        )
+        db.session.add(movimentacao)
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Pneu removido com sucesso!'})
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao remover pneu: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/veiculo/<int:veiculo_id>/pneus')
+@login_required
+def api_veiculo_pneus(veiculo_id):
+    """API para listar pneus instalados em um veículo"""
+    veiculo = Veiculo.query.filter_by(id=veiculo_id, empresa_id=current_user.empresa_id).first()
+    if not veiculo:
+        return jsonify({'success': False, 'message': 'Veículo não encontrado'}), 404
+    
+    pneus = Pneu.query.filter_by(veiculo_id=veiculo_id, status='Em Uso').all()
+    
+    pneus_data = [{
+        'id': p.id,
+        'numero_fogo': p.numero_fogo,
+        'posicao': p.posicao,
+        'marca': p.marca,
+        'modelo': p.modelo
+    } for p in pneus]
+    
+    return jsonify({
+        'success': True,
+        'pneus': pneus_data,
+        'km_atual': veiculo.km_atual
+    })
+
+@app.route('/api/pneu/registrar_medicao', methods=['POST'])
+@login_required
+def api_registrar_medicao():
+    """API para registrar medição de sulco"""
+    try:
+        data = request.get_json()
+        pneu_id = data.get('pneu_id')
+        sulco_mm = float(data.get('sulco_mm'))
+        observacoes = data.get('observacoes')
+        
+        # Buscar pneu
+        pneu = Pneu.query.filter_by(id=pneu_id, empresa_id=current_user.empresa_id).first()
+        if not pneu:
+            return jsonify({'success': False, 'message': 'Pneu não encontrado'}), 404
+        
+        # Registrar medição
+        medicao = MedicaoSulco(
+            pneu_id=pneu_id,
+            sulco_mm=sulco_mm,
+            observacoes=observacoes,
+            usuario_id=current_user.id
+        )
+        db.session.add(medicao)
+        
+        # Atualizar sulco atual do pneu
+        pneu.sulco_atual_mm = sulco_mm
+        pneu.data_ultima_medicao = date.today()
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Medição registrada com sucesso!'})
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao registrar medição: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/pneu/retorno_recapagem', methods=['POST'])
+@login_required
+def api_retorno_recapagem():
+    """API para registrar retorno de recapagem"""
+    try:
+        data = request.get_json()
+        pneu_id = data.get('pneu_id')
+        sulco_mm = float(data.get('sulco_mm'))
+        custo = float(data.get('custo', 0))
+        fornecedor = data.get('fornecedor')
+        observacoes = data.get('observacoes')
+        
+        # Buscar pneu
+        pneu = Pneu.query.filter_by(id=pneu_id, empresa_id=current_user.empresa_id).first()
+        if not pneu:
+            return jsonify({'success': False, 'message': 'Pneu não encontrado'}), 404
+        
+        if pneu.status != 'Recapando':
+            return jsonify({'success': False, 'message': 'Pneu não está em recapagem'}), 400
+        
+        # Atualizar dados do pneu
+        pneu.status = 'Estoque'
+        pneu.numero_recapagens += 1
+        pneu.data_ultima_recapagem = date.today()
+        pneu.custo_total_recapagens += custo
+        pneu.sulco_atual_mm = sulco_mm
+        pneu.data_ultima_medicao = date.today()
+        
+        # Registrar movimentação
+        movimentacao = MovimentacaoPneu(
+            pneu_id=pneu.id,
+            tipo_movimentacao='RECAPAGEM_RETORNO',
+            custo_recapagem=custo,
+            fornecedor_recapagem=fornecedor,
+            observacoes=observacoes,
+            usuario_id=current_user.id
+        )
+        db.session.add(movimentacao)
+        
+        # Registrar medição de sulco
+        medicao = MedicaoSulco(
+            pneu_id=pneu_id,
+            sulco_mm=sulco_mm,
+            observacoes=f'Medição após recapagem #{pneu.numero_recapagens}',
+            usuario_id=current_user.id
+        )
+        db.session.add(medicao)
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Retorno de recapagem registrado com sucesso!'})
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao registrar retorno de recapagem: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/borracharia/pneu/importar_lote', methods=['POST'])
+@login_required
+def pneu_importar_lote():
+    """Importar pneus em lote via CSV"""
+    try:
+        if 'csv_file' not in request.files:
+            flash('Nenhum arquivo selecionado', 'error')
+            return redirect(url_for('borracharia_dashboard'))
+        
+        file = request.files['csv_file']
+        if file.filename == '' or not file.filename.endswith('.csv'):
+            flash('Arquivo inválido. Selecione um arquivo CSV.', 'error')
+            return redirect(url_for('borracharia_dashboard'))
+        
+        import csv
+        import io
+        
+        # Ler arquivo CSV
+        stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
+        csv_reader = csv.DictReader(stream)
+        
+        pneus_criados = 0
+        erros = []
+        
+        for linha_num, row in enumerate(csv_reader, start=2):
+            try:
+                # Verificar se já existe
+                numero_fogo = row.get('numero_fogo', '').strip()
+                if not numero_fogo:
+                    erros.append(f'Linha {linha_num}: Número do fogo é obrigatório')
+                    continue
+                
+                if Pneu.query.filter_by(empresa_id=current_user.empresa_id, numero_fogo=numero_fogo).first():
+                    erros.append(f'Linha {linha_num}: Pneu {numero_fogo} já existe')
+                    continue
+                
+                # Criar pneu
+                pneu = Pneu(
+                    empresa_id=current_user.empresa_id,
+                    numero_fogo=numero_fogo,
+                    marca=row.get('marca', '').strip(),
+                    modelo=row.get('modelo', '').strip(),
+                    dimensao=row.get('dimensao', '').strip(),
+                    dot=row.get('dot', '').strip(),
+                    data_compra=datetime.strptime(row.get('data_compra', ''), '%Y-%m-%d').date(),
+                    valor_compra=float(row.get('valor_compra', 0)),
+                    fornecedor=row.get('fornecedor', '').strip(),
+                    status='Estoque'
+                )
+                db.session.add(pneu)
+                db.session.flush()
+                
+                # Registrar movimentação
+                movimentacao = MovimentacaoPneu(
+                    pneu_id=pneu.id,
+                    tipo_movimentacao='ENTRADA_ESTOQUE',
+                    observacoes='Importado via CSV',
+                    usuario_id=current_user.id
+                )
+                db.session.add(movimentacao)
+                
+                pneus_criados += 1
+                
+            except Exception as e:
+                erros.append(f'Linha {linha_num}: {str(e)}')
+        
+        if pneus_criados > 0:
+            db.session.commit()
+            flash(f'{pneus_criados} pneu(s) importado(s) com sucesso!', 'success')
+        
+        if erros:
+            flash(f'Erros encontrados: {"; ".join(erros[:5])}{"..." if len(erros) > 5 else ""}', 'warning')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao importar arquivo: {e}', 'error')
+        logger.error(f"Erro ao importar CSV de pneus: {e}", exc_info=True)
+    
+    return redirect(url_for('borracharia_dashboard'))
+
+@app.route('/borracharia/pneu/modelo_csv')
+@login_required
+def pneu_exportar_modelo_csv():
+    """Gerar arquivo modelo CSV para importação"""
+    import csv
+    import io
+    
+    output = io.BytesIO()
+    wrapper = io.TextIOWrapper(output, encoding='utf-8', newline='')
+    
+    # --- CORREÇÃO APLICADA AQUI ---
+    # Adicionamos o delimiter=';' para que o Excel (no Brasil) abra corretamente.
+    writer = csv.writer(wrapper, delimiter=';') 
+    
+    # Cabeçalhos
+    writer.writerow([
+        'numero_fogo', 'marca', 'modelo', 'dimensao', 'dot', 
+        'data_compra', 'valor_compra', 'fornecedor'
+    ])
+    
+    # Linha de exemplo
+    writer.writerow([
+        'P001', 'Michelin', 'X Line Energy D', '295/80 R22.5', 'DOT1234',
+        '2024-01-15', '1200.50', 'Fornecedor Exemplo'
+    ])
+    
+    wrapper.detach()
+    output.seek(0)
+    
+    return send_file(
+        output,
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name='modelo_pneus.csv'
+    )
+
+@app.route('/borracharia/pneu/<int:pneu_id>/historico')
+@login_required
+def pneu_historico(pneu_id):
+    """Histórico detalhado de um pneu"""
+    pneu = Pneu.query.filter_by(id=pneu_id, empresa_id=current_user.empresa_id).first_or_404()
+    
+    # Buscar movimentações e medições
+    movimentacoes = MovimentacaoPneu.query.filter_by(pneu_id=pneu_id).options(
+        db.joinedload(MovimentacaoPneu.veiculo),
+        db.joinedload(MovimentacaoPneu.usuario)
+    ).order_by(MovimentacaoPneu.data_movimentacao.desc()).all()
+    
+    medicoes = MedicaoSulco.query.filter_by(pneu_id=pneu_id).options(
+        db.joinedload(MedicaoSulco.usuario)
+    ).order_by(MedicaoSulco.data_medicao.desc()).all()
+    
+    return render_template('pneu_historico.html',
+                           pneu=pneu,
+                           movimentacoes=movimentacoes,
+                           medicoes=medicoes)
+
+
 @app.route('/api/viagem/<int:viagem_id>/map_data')
 @login_required
 def get_viagem_map_data(viagem_id):
@@ -2897,6 +3599,32 @@ def get_address_geoapify(lat, lon):
     except Exception as e:
         logger.error(f"Erro na geocodificação Geoapify: {str(e)}")
     return "Endereço não encontrado"
+@app.route('/fiscal/cte/escolher_viagem')
+@login_required
+@master_required
+def escolher_viagem_para_cte():
+    """Mostra a lista de viagens concluídas sem CT-e para iniciar a emissão."""
+    viagens_sem_cte = Viagem.query.filter(
+        Viagem.empresa_id == current_user.empresa_id,
+        Viagem.status == 'concluida',
+        ~Viagem.ctes.any()  # Filtra viagens que NÃO têm CT-e
+    ).order_by(Viagem.data_fim.desc()).all()
+    
+    return render_template('cte/escolher_viagem_cte.html', 
+                           viagens=viagens_sem_cte, 
+                           active_page='cte')
+
+
+# ROTA 3: Para a tela de sucesso após a emissão
+@app.route('/fiscal/cte/sucesso/<int:cte_id>')
+@login_required
+@master_required
+def sucesso_cte(cte_id):
+    """Página exibida após a emissão bem-sucedida de um CT-e."""
+    cte = CTeEmitido.query.filter_by(id=cte_id, empresa_id=current_user.empresa_id).first_or_404()
+    return render_template('cte/sucesso_cte.html', cte=cte)
+
+
 
 @app.route('/api/cliente/<int:cliente_id>/viagens_nao_cobradas')
 @login_required
@@ -3069,6 +3797,40 @@ def dateformat(value):
         return value
     return ''
     # --- FIM DA CORREÇÃO 2 ---
+
+
+@app.route('/fiscal/cte/<int:cte_id>/pdf')
+@login_required
+@master_required # <--- SEU DECORATOR ESTAVA FALTANDO AQUI
+def gerar_dacte_pdf(cte_id):
+    """Gera e baixa o PDF do DACTe usando xhtml2pdf (versão simplificada)."""
+    cte = CTeEmitido.query.filter_by(id=cte_id, empresa_id=current_user.empresa_id).first_or_404()
+    
+    # Renderiza o template HTML (isso não muda)
+    html_renderizado = render_template('cte/dacte_template.html', cte=cte)
+    
+    # --- INÍCIO DA LÓGICA SIMPLIFICADA com xhtml2pdf ---
+    pdf_buffer = io.BytesIO()
+    
+    # Converte o HTML para PDF e salva no buffer de memória
+    pisa_status = pisa.CreatePDF(
+        io.StringIO(html_renderizado),  # Fonte do HTML
+        dest=pdf_buffer)                # Destino (o buffer)
+
+    # Se a conversão falhou, retorna um erro
+    if pisa_status.err:
+        logger.error(f"Erro ao gerar PDF com xhtml2pdf: {pisa_status.err}")
+        return "<h1>Erro ao gerar PDF</h1><p>Ocorreu um problema com a biblioteca de conversão.</p>", 500
+
+    pdf_buffer.seek(0)
+    # --- FIM DA LÓGICA SIMPLIFICADA ---
+    
+    return send_file(
+        pdf_buffer,
+        as_attachment=True,
+        download_name=f'DACTe_{cte.chave_acesso}.pdf',
+        mimetype='application/pdf'
+    )
 
 @app.route('/editar_cliente/<int:cliente_id>', methods=['GET', 'POST'])
 @login_required
@@ -4028,6 +4790,69 @@ def processar_nfe_api():
 
     return jsonify({'success': True, 'viagens': viagens_processadas, 'message': mensagem_sucesso})
 
+def buscar_lancamento_consolidado_por_id(item_id, empresa_id):
+    """
+    Busca um lançamento de qualquer tipo (manual ou NFe) pelo seu ID consolidado
+    e retorna um dicionário com os dados formatados.
+    """
+    hoje = date.today()
+    dados_formatados = None
+
+    if item_id.startswith('manual_'):
+        lancamento_id = int(item_id.replace('manual_', ''))
+        lancamento = db.session.get(LancamentoFluxoCaixa, lancamento_id)
+        if lancamento and lancamento.empresa_id == empresa_id:
+            dados_formatados = {
+                'id': f"manual_{lancamento.id}",
+                'tipo_origem': 'MANUAL',
+                'tipo_movimento': lancamento.tipo,
+                'data_vencimento': lancamento.data_vencimento.strftime('%d/%m/%Y'),
+                'data_pagamento': lancamento.data_pagamento.strftime('%d/%m/%Y') if lancamento.data_pagamento else '-',
+                'data_emissao': '-', # Lançamentos manuais não têm data de emissão neste modelo
+                'descricao': lancamento.descricao,
+                'categoria': lancamento.categoria or 'Sem categoria',
+                'fornecedor_cliente': lancamento.fornecedor_cliente,
+                'documento': lancamento.documento_numero,
+                'valor': lancamento.valor_total,
+                'valor_formatado': f"{lancamento.valor_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+                'status': lancamento.status_pagamento,
+                'parcela': f"{lancamento.parcela_numero}/{lancamento.parcela_total}" if lancamento.parcela_total > 1 else None,
+                'observacoes': lancamento.observacoes,
+                'meio_pagamento': None, # Adicione se tiver este campo no modelo
+                'data_criacao': lancamento.data_lancamento.strftime('%d/%m/%Y %H:%M'),
+                'data_atualizacao': lancamento.data_lancamento.strftime('%d/%m/%Y %H:%M') # Simplificado
+            }
+
+    # Nota: O seu modelo `LancamentoNotaFiscal` foi renomeado para `LancamentoFluxoCaixa` na sua última modificação.
+    # A lógica abaixo assume que lançamentos de NFe agora estão na tabela `lancamento_fluxo_caixa`
+    # e podem ser identificados pela descrição ou por um campo específico, se houver.
+    # Se você tiver um modelo separado para NFe, ajuste a lógica de busca aqui.
+
+    return dados_formatados
+
+
+# ADICIONE ESTA ROTA COMPLETA NO SEU app.py
+@app.route('/api/fluxo_caixa/detalhes/<string:item_id>')
+@login_required
+def api_detalhes_lancamento(item_id):
+    """
+    API para buscar os detalhes de um lançamento específico do fluxo de caixa.
+    """
+    try:
+        # Usa a função auxiliar para buscar e formatar os dados
+        dados_lancamento = buscar_lancamento_consolidado_por_id(item_id, current_user.empresa_id)
+
+        if not dados_lancamento:
+            return jsonify({'success': False, 'message': 'Lançamento não encontrado.'}), 404
+        
+        # Retorna os dados formatados em JSON
+        return jsonify({'success': True, 'dados': dados_lancamento})
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar detalhes do lançamento {item_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Erro interno ao buscar detalhes.'}), 500
+
+
 @app.route('/viagem/importar_nfe')
 @login_required
 def importar_nfe_page():
@@ -4753,6 +5578,54 @@ def relatorio_analitico_fluxo():
         logger.error(f"Erro ao gerar relatório analítico: {e}", exc_info=True)
         flash('Erro ao gerar relatório analítico.', 'error')
         return redirect(url_for('fluxo_caixa'))
+    
+@app.route('/fiscal/cte/preparar/<int:viagem_id>')
+@login_required
+@master_required
+def preparar_cte_de_viagem_nova(viagem_id):
+    """Preparar CT-e a partir de uma viagem específica"""
+    try:
+        # Buscar dados da viagem
+        viagem = Viagem.query.filter_by(
+            id=viagem_id,
+            empresa_id=current_user.empresa_id
+        ).options(
+            db.joinedload(Viagem.motorista_formal),
+            db.joinedload(Viagem.veiculo)
+        ).first_or_404()
+        
+        # Verificar se viagem já tem CT-e
+        cte_existente = CTeEmitido.query.filter_by(viagem_id=viagem_id).first()
+        if cte_existente:
+            flash('Esta viagem já possui uma CT-e emitida!', 'warning')
+            return redirect(url_for('visualizar_cte', cte_id=cte_existente.id))
+        
+        # Buscar empresa emitente
+        empresa = db.session.get(Empresa, current_user.empresa_id)
+        
+        # Buscar cliente como destinatário
+        cliente_destinatario = Cliente.query.filter_by(
+            nome_razao_social=viagem.cliente,
+            empresa_id=current_user.empresa_id
+        ).first()
+        
+        # Preparar dados para o template
+        dados = {
+            'viagem_id': viagem_id,
+            'viagem': viagem,
+            'empresa': empresa,
+            'remetente': empresa,  # Empresa é o remetente
+            'destinatario': cliente_destinatario,
+            'veiculo': viagem.veiculo,
+            'motorista': viagem.motorista_formal
+        }
+        
+        return render_template('nova_cte.html', dados=dados)
+        
+    except Exception as e:
+        logger.error(f"Erro ao preparar CT-e da viagem {viagem_id}: {e}", exc_info=True)
+        flash('Erro ao carregar dados da viagem', 'error')
+        return redirect(url_for('nova_cte_page'))
 
 @app.route('/api/fluxo_caixa/exportar_excel')
 @login_required
@@ -4959,6 +5832,386 @@ def associar_notas_antigas_command():
     except Exception as e:
         db.session.rollback()
         print(f"\nOcorreu um erro: {e}")
+
+# Adicione estas rotas ao seu app.py
+
+from cte_service import emitir_cte, CTeService
+
+@app.route('/fiscal/cte')
+@login_required
+
+def listar_ctes():
+    """Lista todas as CT-e emitidas pela empresa"""
+    ctes = CTeEmitido.query.filter_by(empresa_id=current_user.empresa_id)\
+        .order_by(CTeEmitido.created_at.desc()).all()
+    
+    return render_template('cte/listar_ctes.html', 
+                         ctes=ctes, 
+                         active_page='cte')
+
+@app.route('/fiscal/cte/nova')
+@login_required
+
+def nova_cte_page():
+    """
+    Página para emitir nova CT-e.
+    Carrega dados de uma viagem se um 'viagem_id' for fornecido na URL,
+    caso contrário, abre um formulário para emissão avulsa.
+    """
+    viagem_id = request.args.get('viagem_id', type=int)
+    empresa = db.session.get(Empresa, current_user.empresa_id)
+    dados = {}
+
+    if viagem_id:
+        # Se veio de uma viagem, carrega todos os dados para preencher o formulário
+        viagem = Viagem.query.filter_by(
+            id=viagem_id,
+            empresa_id=current_user.empresa_id
+        ).options(
+            db.joinedload(Viagem.motorista_formal),
+            db.joinedload(Viagem.veiculo)
+        ).first_or_404()
+        
+        # Busca o cliente no cadastro para pegar todos os dados
+        cliente_destinatario = Cliente.query.filter_by(
+            nome_razao_social=viagem.cliente,
+            empresa_id=current_user.empresa_id
+        ).first()
+
+        dados = {
+            'viagem_id': viagem_id,
+            'viagem': viagem,
+            'remetente': empresa,
+            'destinatario': cliente_destinatario,
+            'veiculo': viagem.veiculo,
+            'motorista': viagem.motorista_formal
+        }
+    else:
+        # Se não veio de uma viagem, prepara dados vazios para uma CT-e avulsa
+        dados = {
+            'viagem_id': None,
+            'viagem': None,
+            'remetente': empresa,
+            'destinatario': None,
+            'veiculo': None,
+            'motorista': None
+        }
+    
+    # O template 'nova_cte.html' agora é usado para os dois cenários
+    return render_template('cte/nova_cte.html', 
+                           dados=dados, 
+                           active_page='cte')
+
+
+@app.route('/api/cte/emitir', methods=['POST'])
+@login_required
+def api_emitir_cte():
+    """API para emitir nova CT-e"""
+    try:
+        data = request.get_json()
+        
+        # Validações básicas
+        required_fields = ['destinatario', 'remetente', 'carga', 'valores', 'impostos']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'success': False, 'message': f'Campo {field} é obrigatório'}), 400
+        
+        # Buscar dados da empresa emitente
+        empresa = db.session.get(Empresa, current_user.empresa_id)
+        if not empresa:
+            return jsonify({'success': False, 'message': 'Empresa não encontrada'}), 404
+        
+        # --- INÍCIO DA CORREÇÃO ---
+        # Trata o 'viagem_id' que vem do formulário.
+        # Se for a string "None" ou vazio, converte para o nulo (None) do Python.
+        # Se for um número, converte para inteiro.
+        viagem_id_str = data.get('viagem_id')
+        viagem_id_final = int(viagem_id_str) if viagem_id_str and viagem_id_str != 'None' else None
+        # --- FIM DA CORREÇÃO ---
+        
+        # Preparar dados para emissão
+        dados_cte = {
+            'empresa': {
+                'cnpj': empresa.cnpj,
+                'razao_social': empresa.razao_social,
+                'nome_fantasia': empresa.nome_fantasia,
+                'endereco': empresa.endereco,
+                'cidade': empresa.cidade,
+                'estado': empresa.estado,
+                'cep': empresa.cep,
+                'inscricao_estadual': empresa.inscricao_estadual
+            },
+            'destinatario': data['destinatario'],
+            'remetente': data['remetente'],
+            'carga': data['carga'],
+            'valores': data['valores'],
+            'impostos': data['impostos'],
+            'observacoes': data.get('observacoes', ''),
+            'viagem_id': viagem_id_final, # <-- USA A VARIÁVEL CORRIGIDA AQUI
+            'veiculo': data.get('veiculo', {}),
+            'motorista': data.get('motorista', {}),
+            'transmitir_automaticamente': data.get('transmitir_automaticamente', True)
+        }
+        
+        # Determinar ambiente (produção ou homologação)
+        ambiente = app.config.get('SEFAZ_AMBIENTE', 'PRODUCAO')
+        
+        # Emitir CT-e
+        resultado = emitir_cte(current_user.empresa_id, dados_cte, ambiente)
+        
+        if resultado.get('sucesso'):
+            return jsonify({
+                'success': True,
+                'message': 'CT-e emitida com sucesso!',
+                'cte_id': resultado.get('cte_id'),
+                'chave_acesso': resultado.get('chave_acesso'),
+                'numero_cte': resultado.get('numero_cte'),
+                'protocolo': resultado.get('protocolo')
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'Erro ao emitir CT-e: {resultado.get("erro")}'
+            }), 400
+            
+    except Exception as e:
+        logger.error(f"Erro na API de emissão de CT-e: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/fiscal/cte/<int:cte_id>')
+@login_required
+
+def visualizar_cte(cte_id):
+    """Visualizar CT-e específica"""
+    cte = CTeEmitido.query.filter_by(
+        id=cte_id, 
+        empresa_id=current_user.empresa_id
+    ).first_or_404()
+    
+    return render_template('cte/visualizar_cte.html', 
+                         cte=cte, 
+                         active_page='cte')
+
+@app.route('/api/cte/<int:cte_id>/consultar_status', methods=['POST'])
+@login_required
+
+def api_consultar_status_cte(cte_id):
+    """API para consultar status da CT-e na SEFAZ"""
+    try:
+        cte = CTeEmitido.query.filter_by(
+            id=cte_id,
+            empresa_id=current_user.empresa_id
+        ).first_or_404()
+        
+        if not cte.chave_acesso:
+            return jsonify({'success': False, 'message': 'CT-e não possui chave de acesso'}), 400
+        
+        ambiente = app.config.get('SEFAZ_AMBIENTE', 'PRODUCAO')
+        service = CTeService(current_user.empresa_id, ambiente)
+        
+        resultado = service.consultar_cte(cte.chave_acesso)
+        
+        if resultado.get('sucesso'):
+            # Atualizar status da CT-e se necessário
+            # Você pode implementar lógica para atualizar o status baseado na resposta
+            
+            return jsonify({
+                'success': True,
+                'status': resultado.get('status', 'CONSULTADO'),
+                'protocolo': resultado.get('protocolo'),
+                'message': 'Status consultado com sucesso'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'Erro ao consultar status: {resultado.get("erro")}'
+            }), 400
+            
+    except Exception as e:
+        logger.error(f"Erro ao consultar status da CT-e {cte_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/cte/<int:cte_id>/cancelar', methods=['POST'])
+@login_required
+
+def api_cancelar_cte(cte_id):
+    """API para cancelar CT-e"""
+    try:
+        data = request.get_json()
+        justificativa = data.get('justificativa', '')
+        
+        if len(justificativa) < 15:
+            return jsonify({'success': False, 'message': 'Justificativa deve ter pelo menos 15 caracteres'}), 400
+        
+        cte = CTeEmitido.query.filter_by(
+            id=cte_id,
+            empresa_id=current_user.empresa_id
+        ).first_or_404()
+        
+        if cte.status == 'CANCELADO':
+            return jsonify({'success': False, 'message': 'CT-e já está cancelada'}), 400
+        
+        if cte.status != 'AUTORIZADO':
+            return jsonify({'success': False, 'message': 'Apenas CT-e autorizadas podem ser canceladas'}), 400
+        
+        # Implementar cancelamento na SEFAZ aqui
+        # Por enquanto, apenas atualizar o status localmente
+        cte.status = 'CANCELADO'
+        cte.observacoes = (cte.observacoes or '') + f"\n\nCANCELADA: {justificativa}"
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'CT-e cancelada com sucesso!'
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro ao cancelar CT-e {cte_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/cte/<int:cte_id>/xml')
+@login_required
+
+def api_download_xml_cte(cte_id):
+    """API para download do XML da CT-e"""
+    try:
+        cte = CTeEmitido.query.filter_by(
+            id=cte_id,
+            empresa_id=current_user.empresa_id
+        ).first_or_404()
+        
+        if not cte.xml_content:
+            return jsonify({'success': False, 'message': 'XML não disponível'}), 404
+        
+        import io
+        xml_buffer = io.BytesIO(cte.xml_content)
+        
+        return send_file(
+            xml_buffer,
+            mimetype='text/xml',
+            as_attachment=True,
+            download_name=f'CTE_{cte.chave_acesso}.xml'
+        )
+        
+    except Exception as e:
+        logger.error(f"Erro ao download XML da CT-e {cte_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/viagem/<int:viagem_id>/dados_cte')
+@login_required
+
+def api_dados_viagem_para_cte(viagem_id):
+    """API para buscar dados da viagem para preenchimento automático da CT-e"""
+    try:
+        viagem = Viagem.query.filter_by(
+            id=viagem_id,
+            empresa_id=current_user.empresa_id
+        ).options(
+            db.joinedload(Viagem.motorista_formal),
+            db.joinedload(Viagem.veiculo)
+        ).first_or_404()
+        
+        # Buscar cliente como destinatário
+        cliente_destinatario = Cliente.query.filter_by(
+            nome_razao_social=viagem.cliente,
+            empresa_id=current_user.empresa_id
+        ).first()
+        
+        dados = {
+            'viagem': {
+                'id': viagem.id,
+                'cliente': viagem.cliente,
+                'valor_recebido': viagem.valor_recebido or 0,
+                'origem': viagem.endereco_saida,
+                'destino': viagem.endereco_destino,
+                'distancia_km': viagem.distancia_km or 0
+            },
+            'destinatario': {
+                'nome': cliente_destinatario.nome_razao_social if cliente_destinatario else viagem.cliente,
+                'cnpj_cpf': cliente_destinatario.cpf_cnpj if cliente_destinatario else '',
+                'endereco': cliente_destinatario.logradouro if cliente_destinatario else '',
+                'cidade': cliente_destinatario.cidade if cliente_destinatario else '',
+                'uf': cliente_destinatario.estado if cliente_destinatario else '',
+                'cep': cliente_destinatario.cep if cliente_destinatario else '',
+                'ie': getattr(cliente_destinatario, 'inscricao_estadual', '') if cliente_destinatario else ''
+            } if cliente_destinatario else None,
+            'veiculo': {
+                'placa': viagem.veiculo.placa if viagem.veiculo else '',
+                'renavam': viagem.veiculo.renavam if viagem.veiculo else ''
+            } if viagem.veiculo else None,
+            'motorista': {
+                'nome': viagem.motorista_formal.nome if viagem.motorista_formal else '',
+                'cpf': viagem.motorista_formal.cpf if viagem.motorista_formal else ''
+            } if viagem.motorista_formal else None
+        }
+        
+        return jsonify({'success': True, 'dados': dados})
+        
+    except Exception as e:
+        logger.error(f"Erro ao buscar dados da viagem {viagem_id} para CT-e: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/fiscal/cte/configuracoes', methods=['GET', 'POST'])
+@login_required
+
+def configuracoes_cte():
+    """Configurações dos parâmetros de CT-e"""
+    parametros = CTeParametros.query.filter_by(empresa_id=current_user.empresa_id).first()
+    
+    if not parametros:
+        parametros = CTeParametros(empresa_id=current_user.empresa_id)
+        db.session.add(parametros)
+        db.session.commit()
+    
+    if request.method == 'POST':
+        try:
+            parametros.serie_padrao = request.form.get('serie_padrao', '1')
+            parametros.aliquota_icms_padrao = float(request.form.get('aliquota_icms_padrao', 17.0))
+            parametros.natureza_operacao = request.form.get('natureza_operacao', 'PRESTAÇÃO DE SERVIÇO DE TRANSPORTE')
+            parametros.codigo_cfop = request.form.get('codigo_cfop', '5353')
+            parametros.tipo_documento = request.form.get('tipo_documento', '0')
+            parametros.tipo_servico = request.form.get('tipo_servico', '0')
+            
+            db.session.commit()
+            flash('Configurações de CT-e atualizadas com sucesso!', 'success')
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar configurações: {e}', 'error')
+            logger.error(f"Erro ao atualizar configurações CT-e: {e}", exc_info=True)
+    
+    return render_template('cte/configuracoes_cte.html', 
+                         parametros=parametros,
+                         active_page='cte')
+
+@app.route('/api/cliente/<int:cliente_id>/dados_cte')
+@login_required
+
+def api_dados_cliente_para_cte(cliente_id):
+    """API para buscar dados do cliente para CT-e"""
+    try:
+        cliente = Cliente.query.filter_by(
+            id=cliente_id,
+            empresa_id=current_user.empresa_id
+        ).first_or_404()
+        
+        dados = {
+            'nome': cliente.nome_razao_social,
+            'cnpj_cpf': cliente.cpf_cnpj,
+            'endereco': cliente.logradouro,
+            'numero': cliente.numero,
+            'bairro': cliente.bairro,
+            'cidade': cliente.cidade,
+            'uf': cliente.estado,
+            'cep': cliente.cep,
+            'ie': getattr(cliente, 'inscricao_estadual', '')
+        }
+        
+        return jsonify({'success': True, 'dados': dados})
+        
+    except Exception as e:
+        logger.error(f"Erro ao buscar dados do cliente {cliente_id} para CT-e: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 
@@ -6500,6 +7753,12 @@ def excluir_usuario(usuario_id):
         flash('Você não pode excluir sua própria conta.', 'error')
         return redirect(url_for('configuracoes'))
 
+    # ▼▼▼ VERIFICAÇÃO ADICIONADA AQUI ▼▼▼
+    if Cobranca.query.filter_by(usuario_id=usuario.id).first():
+        flash('Erro: Não é possível excluir este usuário, pois ele possui cobranças financeiras registradas.', 'error')
+        return redirect(url_for('configuracoes'))
+    # ▲▲▲ FIM DA VERIFICAÇÃO ▲▲▲
+
     try:
         db.session.delete(usuario)
         db.session.commit()
@@ -7492,53 +8751,63 @@ def fluxo_caixa():
 def consolidar_fluxo_caixa(lancamentos_manuais, lancamentos_nfe, data_inicio, data_fim):
     """Consolida todos os lançamentos em uma estrutura unificada"""
     fluxo = []
-    
+
+    # Função auxiliar para formatar os números
+    def formatar_brl(valor):
+        if valor is None:
+            return "0,00"
+        return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
     # Processar lançamentos manuais
     for lancamento in lancamentos_manuais:
-        # Correção para garantir que parcela_total não seja None
         parcela_total_manual = lancamento.parcela_total
         fluxo.append({
             'id': f"manual_{lancamento.id}",
             'tipo_origem': 'MANUAL',
             'tipo_movimento': lancamento.tipo,
             'data_vencimento': lancamento.data_vencimento,
+            'data_emissao': lancamento.data_lancamento, # <-- ADICIONADO
             'data_pagamento': lancamento.data_pagamento,
             'descricao': lancamento.descricao,
             'categoria': lancamento.categoria or 'Sem categoria',
             'fornecedor_cliente': lancamento.fornecedor_cliente,
             'documento': lancamento.documento_numero,
             'valor': lancamento.valor_total,
+            'valor_formatado': formatar_brl(lancamento.valor_total), # <-- ADICIONADO
             'status': lancamento.status_pagamento,
+            'meio_pagamento': getattr(lancamento, 'meio_pagamento', None), # <-- ADICIONADO
             'parcela': f"{lancamento.parcela_numero}/{parcela_total_manual}" if parcela_total_manual and parcela_total_manual > 1 else None,
             'observacoes': lancamento.observacoes,
             'is_vencido': lancamento.is_vencido,
             'objeto': lancamento
         })
-    
+
     # Processar lançamentos de NFe
     for lancamento in lancamentos_nfe:
-        # Correção para garantir que parcela_total não seja None
         parcela_total_nfe = getattr(lancamento, 'parcela_total', 1)
         fluxo.append({
             'id': f"nfe_{lancamento.id}",
             'tipo_origem': 'NFE',
             'tipo_movimento': 'DESPESA',
             'data_vencimento': lancamento.data_vencimento,
+            'data_emissao': lancamento.data_emissao, # <-- ADICIONADO
             'data_pagamento': lancamento.data_pagamento,
             'descricao': f"NFe - {lancamento.emitente_nome}",
             'categoria': 'Fornecedores (NFe)',
             'fornecedor_cliente': lancamento.emitente_nome,
             'documento': lancamento.chave_acesso[-8:],
             'valor': lancamento.valor_total,
+            'valor_formatado': formatar_brl(lancamento.valor_total), # <-- ADICIONADO
             'status': lancamento.status_pagamento,
+            'meio_pagamento': getattr(lancamento, 'meio_pagamento', None), # <-- ADICIONADO
             'parcela': f"{getattr(lancamento, 'parcela_numero', 1)}/{parcela_total_nfe}" if parcela_total_nfe and parcela_total_nfe > 1 else None,
             'observacoes': getattr(lancamento, 'observacoes', None),
             'is_vencido': (lancamento.data_vencimento < date.today() if lancamento.data_vencimento else False) and lancamento.status_pagamento == 'A Pagar',
             'objeto': lancamento
         })
-    
+
     fluxo.sort(key=lambda x: x.get('data_vencimento') or date.max)
-    
+
     return fluxo
 
 def calcular_totais_fluxo(fluxo_consolidado):
@@ -7552,7 +8821,6 @@ def calcular_totais_fluxo(fluxo_consolidado):
     total_vencido_receitas = 0
     total_vencido_despesas = 0
     
-    # Totais por status
     pendente_hoje = 0
     vencido_total = 0
     
@@ -7572,24 +8840,28 @@ def calcular_totais_fluxo(fluxo_consolidado):
             elif item['is_vencido']:
                 total_vencido_despesas += valor
         
-        # Vencimentos de hoje
         if item['data_vencimento'] == hoje and item['status'] in ['PENDENTE', 'A Pagar']:
             if item['tipo_movimento'] == 'RECEITA':
                 pendente_hoje += valor
             else:
                 pendente_hoje -= valor
         
-        # Total vencido
         if item['is_vencido']:
             if item['tipo_movimento'] == 'RECEITA':
-                vencido_total += valor
+                vencido_total -= valor # Vencido a receber é positivo para o saldo
             else:
-                vencido_total -= valor
+                vencido_total += valor # Vencido a pagar é negativo para o saldo
     
     saldo_previsto = total_receitas - total_despesas
     saldo_realizado = total_receitas_pagas - total_despesas_pagas
     saldo_pendente = (total_receitas - total_receitas_pagas) - (total_despesas - total_despesas_pagas)
     
+    # Função auxiliar para formatar
+    def formatar_brl(valor):
+        if valor is None:
+            return "0,00"
+        return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
     return {
         'total_receitas': total_receitas,
         'total_despesas': total_despesas,
@@ -7601,9 +8873,16 @@ def calcular_totais_fluxo(fluxo_consolidado):
         'total_vencido_receitas': total_vencido_receitas,
         'total_vencido_despesas': total_vencido_despesas,
         'pendente_hoje': pendente_hoje,
-        'vencido_total': vencido_total
+        'vencido_total': vencido_total,
+        # --- CHAVES FORMATADAS ADICIONADAS AQUI ---
+        'total_receitas_formatado': formatar_brl(total_receitas),
+        'total_despesas_formatado': formatar_brl(total_despesas),
+        'total_receitas_pagas_formatado': formatar_brl(total_receitas_pagas),
+        'total_despesas_pagas_formatado': formatar_brl(total_despesas_pagas),
+        'saldo_previsto_formatado': formatar_brl(saldo_previsto),
+        'saldo_realizado_formatado': formatar_brl(saldo_realizado),
+        'vencido_total_formatado': formatar_brl(abs(vencido_total)) # Mostra o valor absoluto dos vencidos
     }
-
 
 
 @app.route('/financeiro/fluxo_caixa/novo_lancamento', methods=['GET', 'POST'])
