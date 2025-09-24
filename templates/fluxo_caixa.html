@@ -69,6 +69,11 @@
         color: white;
         text-decoration: none;
     }
+    .btn-green:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
+    }
     .btn-secondary {
         background: linear-gradient(135deg, var(--gray-600) 0%, var(--gray-700) 100%);
         color: white;
@@ -230,7 +235,7 @@
         margin-bottom: 1rem;
     }
     .form-group {
-        margin-bottom: 0;
+        margin-bottom: 1.5rem;
     }
     .form-label {
         display: block;
@@ -276,13 +281,14 @@
     .fluxo-table-container {
         background: white;
         border-radius: 12px;
-        overflow: hidden;
+        overflow-x: auto;
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         border: 1px solid var(--gray-200);
     }
     .fluxo-table {
         width: 100%;
         border-collapse: collapse;
+        min-width: 1200px;
     }
     .fluxo-table th {
         background: linear-gradient(135deg, var(--primary-green-dark) 0%, var(--primary-green) 100%);
@@ -303,7 +309,6 @@
     .fluxo-table tr:hover {
         background: var(--gray-50);
     }
-    /* Status específicos */
     .fluxo-table tr.vencido {
         background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
     }
@@ -424,10 +429,10 @@
     }
     /* Botões de ação */
     .btn-table {
-        padding: 4px 8px;
+        padding: 6px 10px;
         border: none;
         border-radius: 6px;
-        font-size: 0.7rem;
+        font-size: 0.75rem;
         font-weight: 500;
         cursor: pointer;
         margin-right: 4px;
@@ -443,6 +448,17 @@
     }
     .btn-table.btn-pagar:hover {
         background: var(--primary-green-dark);
+    }
+    .btn-table.btn-rateio {
+        background: #6f42c1;
+        color: white;
+    }
+    .btn-table.btn-rateio:hover {
+        background: #5a2c9b;
+    }
+    .btn-table.btn-rateio.has-rateio {
+        background: #8b5cf6;
+        box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3);
     }
     .btn-table.btn-view {
         background: #17a2b8;
@@ -479,6 +495,15 @@
     .btn-table.btn-details:hover {
         background: #0056b3;
     }
+    .btn-table.btn-duplicar {
+        background: #007bff;
+        color: white;
+    }
+    .btn-table:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
     /* Ações em Massa */
     #barraAcoesMassa {
         position: fixed;
@@ -521,23 +546,26 @@
     }
     .modal-content {
         background: white;
-        margin: 5% auto;
+        margin: 2% auto;
         padding: 0;
         border-radius: 16px;
-        width: 90%;
-        max-width: 500px;
+        width: 95%;
         box-shadow: 0 25px 50px rgba(0,0,0,0.25);
         animation: modalSlide 0.3s ease-out;
         overflow: hidden;
-        max-height: 90vh;
+        max-height: 95vh;
+        display: flex;
+        flex-direction: column;
+    }
+    .modal-content.small { max-width: 500px; }
+    .modal-content.large { max-width: 700px; }
+    .modal-content.extra-large { max-width: 900px; }
+    
+    .modal-body {
         overflow-y: auto;
+        padding: 2rem;
     }
-    .modal-content.large {
-        max-width: 700px;
-    }
-    .modal-content.extra-large {
-        max-width: 900px;
-    }
+
     @keyframes modalSlide {
         from { transform: translateY(-50px); opacity: 0; }
         to { transform: translateY(0); opacity: 1; }
@@ -549,6 +577,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        flex-shrink: 0;
     }
     .modal-title {
         font-size: 1.25rem;
@@ -568,13 +597,13 @@
     .close:hover {
         opacity: 0.7;
     }
-    .modal-body {
-        padding: 2rem;
-    }
+    
     .modal-footer {
         padding: 1rem 2rem;
         background-color: var(--gray-50);
         text-align: right;
+        flex-shrink: 0;
+        border-top: 1px solid var(--gray-200);
     }
     /* Detalhes do lançamento no modal */
     .detail-row {
@@ -612,34 +641,196 @@
         color: var(--gray-700);
         font-size: 1.25rem;
     }
-    /* Responsividade */
-    @media (max-width: 768px) {
-        .kpis-grid {
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        }
-        .filtros-grid {
-            grid-template-columns: 1fr;
-        }
-        .filtros-actions {
-            justify-content: stretch;
-        }
-        .fluxo-table-container {
-            overflow-x: auto;
-        }
-        .fluxo-table th,
-        .fluxo-table td {
-            padding: 0.5rem;
-            font-size: 0.75rem;
-        }
+
+    /* Estilos para Tipo de Movimento */
+    .tipo-movimento-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
     }
-    /* Animações */
-    .fade-in {
-        animation: fadeIn 0.5s ease-in;
+
+    .radio-option {
+        position: relative;
     }
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
+
+    .radio-option input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
     }
+
+    .radio-label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1.5rem 1rem;
+        border: 2px solid var(--gray-200);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: white;
+        text-align: center;
+    }
+
+    .radio-label:hover {
+        border-color: var(--primary-green);
+        background: var(--gray-50);
+    }
+
+    .radio-label i {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .radio-label span {
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .radio-label small {
+        font-size: 0.75rem;
+        color: var(--gray-600);
+        line-height: 1.2;
+    }
+
+    .radio-label.receita i {
+        color: var(--green-600);
+    }
+
+    .radio-label.despesa i {
+        color: var(--red-600);
+    }
+
+    .radio-option input[type="radio"]:checked + .radio-label {
+        border-color: var(--primary-green);
+        background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+        color: white;
+    }
+
+    .radio-option input[type="radio"]:checked + .radio-label i {
+        color: white;
+    }
+
+    .radio-option input[type="radio"]:checked + .radio-label small {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Estilos do sistema de rateio (copiados de importar_notas_fiscais) */
+    .veiculo-rateio-item {
+        background: white;
+        border: 2px solid var(--gray-200);
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    .veiculo-rateio-item:hover {
+        border-color: var(--primary-green);
+        box-shadow: 0 4px 12px rgba(46, 125, 50, 0.1);
+    }
+    .veiculo-header { display: flex; align-items: center; margin-bottom: 1rem; gap: 12px; }
+    .veiculo-numero { background: linear-gradient(135deg, var(--blue-600) 0%, #1e40af 100%); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.875rem; flex-shrink: 0; }
+    .veiculo-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    .veiculo-nome { font-weight: 600; color: var(--gray-900); font-size: 0.95rem; }
+    .veiculo-percentual { font-size: 0.75rem; color: var(--primary-green); font-weight: 600; background: var(--green-100); padding: 2px 8px; border-radius: 12px; display: inline-block; width: fit-content; }
+    .btn-delete-veiculo { background: #ef4444; color: white; border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; flex-shrink: 0; }
+    .btn-delete-veiculo:hover { background: #dc2626; transform: scale(1.1); }
+    .veiculo-valores { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .valor-input-group { display: flex; flex-direction: column; gap: 0.5rem; }
+    .valor-input-group label { font-size: 0.75rem; font-weight: 600; color: var(--gray-700); text-transform: uppercase; letter-spacing: 0.5px; }
+    .rateio-valor-input, .rateio-percentual-input { padding: 10px 12px; border: 2px solid var(--gray-200); border-radius: 8px; font-size: 0.95rem; font-weight: 500; transition: all 0.3s; text-align: right; }
+    .rateio-valor-input:focus, .rateio-percentual-input:focus { outline: none; border-color: var(--primary-green); box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1); }
+    .rateio-valor-input { color: var(--primary-green); }
+    .rateio-percentual-input { color: var(--blue-600); }
+    .parcelamento-container { background: var(--gray-50); border: 2px solid var(--gray-200); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .parcelamento-header { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; font-weight: 600; color: var(--gray-700); justify-content: space-between; }
+    #rateioControles { display: flex; gap: 0.5rem; }
+    #rateioControles .btn-secondary { white-space: nowrap; padding: 6px 12px; font-size: 0.75rem; }
+    .totalizacao { background: linear-gradient(135deg, #e8f5e8 0%, #f0f9f0 100%); border: 2px solid var(--primary-green); border-radius: 8px; padding: 1rem; margin-top: 1rem; }
+    .totalizacao-content { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; text-align: center; }
+    .totalizacao-item { display: flex; flex-direction: column; gap: 0.25rem; }
+    .totalizacao-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gray-600); font-weight: 500; }
+    .totalizacao-valor { font-size: 1.125rem; font-weight: 700; color: var(--primary-green); }
+    .totalizacao-diferenca { color: var(--red-600); }
+    .totalizacao-ok { color: var(--primary-green); }
+    #rateioStatusContainer { background: var(--gray-50); border-radius: 8px; padding: 1rem; }
+    .progress-bar { background: var(--gray-200); border-radius: 10px; overflow: hidden; height: 6px; }
+    .progress-fill { height: 100%; background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%); width: 0%; transition: width 0.3s ease; }
+    .text-green-600 { color: var(--green-600); }
+    .text-red-600 { color: var(--red-600); }
+    .text-orange-600 { color: #ea580c; }
+    .underline { text-decoration: underline; cursor: pointer; }
+    .underline:hover { color: var(--primary-green); }
+    .ml-2 { margin-left: 0.5rem; }
+    .text-xs { font-size: 0.75rem; }
+    /* Switch/Toggle Styles */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 24px;
+    }
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 24px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+
+    input:checked + .slider {
+        background-color: var(--primary-green);
+    }
+
+    input:checked + .slider:before {
+        transform: translateX(26px);
+    }
+
+    /* Loading states for buttons */
+    .btn-loading {
+        position: relative;
+        pointer-events: none;
+    }
+
+    .btn-loading .btn-text {
+        opacity: 0;
+    }
+
+    .btn-loading .loading-spinner {
+        display: inline-block !important;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    /* Enhanced loading spinner */
     .loading-spinner {
         display: none;
         width: 16px;
@@ -649,9 +840,29 @@
         border-top-color: white;
         animation: spin 1s linear infinite;
     }
-    @keyframes spin {
-        to { transform: rotate(360deg); }
+
+    .loading-text {
+        display: none;
+        color: var(--gray-600);
+        font-size: 0.875rem;
+        margin-left: 8px;
     }
+
+    .btn-loading .loading-text {
+        display: inline;
+    }
+    @media (max-width: 768px) {
+        .kpis-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+        .filtros-grid { grid-template-columns: 1fr; }
+        .filtros-actions { justify-content: stretch; }
+        .fluxo-table th, .fluxo-table td { padding: 0.5rem; font-size: 0.75rem; }
+        .totalizacao-content { grid-template-columns: 1fr; gap: 0.5rem; }
+    }
+    /* Animações */
+    .fade-in { animation: fadeIn 0.5s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .loading-spinner { display: none; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 {% endblock %}
 
@@ -700,13 +911,12 @@
                 <i class="fas fa-filter"></i>
                 Busca e Filtros
             </div>
-            <a href="{{ url_for('novo_lancamento_fluxo') }}" class="btn-green">
+            <button class="btn-green" onclick="openModal('novoLancamentoModal')">
                 <i class="fas fa-plus"></i>
                 Novo Lançamento
-            </a>
+            </button>
         </div>
         
-        <!-- Campo de Busca -->
         <div class="search-container">
             <input type="text" id="searchInput" class="search-input" placeholder="Buscar por descrição, fornecedor, cliente, documento...">
             <i class="fas fa-search search-icon"></i>
@@ -714,73 +924,15 @@
         
         <form method="GET" id="filtrosForm">
             <div class="filtros-grid">
-                <div class="form-group">
-                    <label class="form-label">Data Início</label>
-                    <input type="date" name="data_inicio" class="form-control" value="{{ data_inicio }}">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Data Fim</label>
-                    <input type="date" name="data_fim" class="form-control" value="{{ data_fim }}">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Data Emissão Início</label>
-                    <input type="date" name="data_emissao_inicio" class="form-control" value="{{ data_emissao_inicio }}">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Data Emissão Fim</label>
-                    <input type="date" name="data_emissao_fim" class="form-control" value="{{ data_emissao_fim }}">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Categoria</label>
-                    <select name="categoria" class="form-select">
-                        <option value="">Todas as Categorias</option>
-                        {% for categoria in categorias %}
-                            <option value="{{ categoria }}" {% if categoria == categoria_filtro %}selected{% endif %}>
-                                {{ categoria }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Status</label>
-                    <select name="status" class="form-select">
-                        <option value="">Todos os Status</option>
-                        <option value="PENDENTE" {% if status_filtro == 'PENDENTE' %}selected{% endif %}>Pendentes</option>
-                        <option value="A Pagar" {% if status_filtro == 'A Pagar' %}selected{% endif %}>A Pagar</option>
-                        <option value="PAGO" {% if status_filtro == 'PAGO' %}selected{% endif %}>Pagos (Manual)</option>
-                        <option value="Pago" {% if status_filtro == 'Pago' %}selected{% endif %}>Pagos (NFe)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Forma de Pagamento</label>
-                    <select name="meio_pagamento" class="form-select">
-                        <option value="">Todas as Formas</option>
-                        <option value="PIX" {% if meio_pagamento_filtro == 'PIX' %}selected{% endif %}>PIX</option>
-                        <option value="DEPOSITO" {% if meio_pagamento_filtro == 'DEPOSITO' %}selected{% endif %}>Depósito</option>
-                        <option value="TRANSFERENCIA" {% if meio_pagamento_filtro == 'TRANSFERENCIA' %}selected{% endif %}>Transferência</option>
-                        <option value="DINHEIRO" {% if meio_pagamento_filtro == 'DINHEIRO' %}selected{% endif %}>Dinheiro</option>
-                        <option value="CARTAO" {% if meio_pagamento_filtro == 'CARTAO' %}selected{% endif %}>Cartão</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Tipo</label>
-                    <select name="tipo" class="form-select">
-                        <option value="">Todos os Tipos</option>
-                        <option value="RECEITA" {% if tipo_filtro == 'RECEITA' %}selected{% endif %}>Receitas</option>
-                        <option value="DESPESA" {% if tipo_filtro == 'DESPESA' %}selected{% endif %}>Despesas</option>
-                    </select>
-                </div>
+                <div class="form-group"><label class="form-label">Data Início</label><input type="date" name="data_inicio" class="form-control" value="{{ data_inicio }}"></div>
+                <div class="form-group"><label class="form-label">Data Fim</label><input type="date" name="data_fim" class="form-control" value="{{ data_fim }}"></div>
+                <div class="form-group"><label class="form-label">Categoria</label><select name="categoria" class="form-select"><option value="">Todas</option>{% for categoria in categorias %}<option value="{{ categoria }}" {% if categoria == categoria_filtro %}selected{% endif %}>{{ categoria }}</option>{% endfor %}</select></div>
+                <div class="form-group"><label class="form-label">Status</label><select name="status" class="form-select"><option value="">Todos</option><option value="PENDENTE" {% if status_filtro == 'PENDENTE' %}selected{% endif %}>Pendentes</option><option value="A Pagar" {% if status_filtro == 'A Pagar' %}selected{% endif %}>A Pagar</option><option value="PAGO" {% if status_filtro == 'PAGO' %}selected{% endif %}>Pagos</option></select></div>
             </div>
             <div class="filtros-actions">
-                <a href="{{ url_for('api_exportar_fluxo_excel', **request.args) }}" class="btn-secondary">
-                    <i class="fas fa-file-excel"></i> Exportar
-                </a>
-                <button type="button" class="btn-secondary" onclick="limparFiltros()">
-                    <i class="fas fa-times"></i> Limpar Filtros
-                </button>
-                <button type="submit" class="btn-green">
-                    <i class="fas fa-search"></i> Filtrar
-                </button>
+                <a href="{{ url_for('api_exportar_fluxo_excel', **request.args) }}" class="btn-secondary"><i class="fas fa-file-excel"></i> Exportar</a>
+                <button type="button" class="btn-secondary" onclick="limparFiltros()"><i class="fas fa-times"></i> Limpar</button>
+                <button type="submit" class="btn-green"><i class="fas fa-search"></i> Filtrar</button>
             </div>
         </form>
     </div>
@@ -798,70 +950,55 @@
                 <i class="fas fa-calendar-times"></i>
                 <h3>Nenhuma movimentação encontrada</h3>
                 <p>Não há lançamentos para o período ou filtros selecionados</p>
-                <div class="mt-4">
-                    <a href="{{ url_for('novo_lancamento_fluxo') }}" class="btn-green">
-                        <i class="fas fa-plus"></i> Fazer Primeiro Lançamento
-                    </a>
-                </div>
             </div>
         {% else %}
             <div class="fluxo-table-container">
                 <table class="fluxo-table" id="fluxoTable">
                     <thead>
                         <tr>
-                            <th style="width: 50px; text-align: center;">
-                                <input type="checkbox" id="selecionarTodosHeader" onchange="toggleSelecionarTodos(this.checked)">
-                            </th>
-                            <th>Data Venc.</th>
-                            <th>Data Emissão</th>
-                            <th>Tipo</th>
+                            <th style="width: 50px; text-align: center;"><input type="checkbox" id="selecionarTodosHeader" onchange="toggleSelecionarTodos(this.checked)"></th>
+                            <th>Data Lançamento</th>
+                            <th>Vencimento</th>
+                            <th>Tipo / Origem</th>
                             <th>Descrição</th>
                             <th>Fornecedor/Cliente</th>
                             <th>Categoria</th>
                             <th>Valor</th>
                             <th>Status</th>
-                            <th>Forma Pagto.</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in fluxo_consolidado %}
                         <tr class="{% if item.is_vencido %}vencido{% elif item.status in ['PAGO', 'Pago'] %}pago{% elif item.data_vencimento == hoje %}hoje{% endif %} table-row" 
-                            data-search="{{ (item.descricao or '') + ' ' + (item.fornecedor_cliente or '') + ' ' + (item.documento or '') + ' ' + (item.categoria or '') }}">
+                            data-search="{{ (item.descricao or '') | lower }} {{ (item.fornecedor_cliente or '') | lower }} {{ (item.documento or '') | lower }} {{ (item.categoria or '') | lower }}">
                             <td style="width: 50px; text-align: center;">
                                 {% if item.tipo_origem == 'MANUAL' and item.status not in ['PAGO', 'Pago'] %}
                                     <input type="checkbox" class="item-checkbox" value="{{ item.id }}" onchange="atualizarSelecao()">
                                 {% endif %}
                             </td>
                             <td>
-                                <div class="font-semibold">{{ item.data_vencimento.strftime('%d/%m/%Y') }}</div>
-                                {% if item.data_vencimento == hoje %}
-                                    <div class="text-xs text-blue-600 font-medium">HOJE</div>
-                                {% elif item.is_vencido %}
-                                    <div class="text-xs text-red-600 font-medium">
-                                        VENCIDO ({{ (hoje - item.data_vencimento).days }} dias)
-                                    </div>
-                                {% endif %}
+                                <div class="font-semibold">{{ item.data_emissao.strftime('%d/%m/%Y') if item.data_emissao else item.created_at.strftime('%d/%m/%Y') }}</div>
+                                <div class="text-xs text-gray-600">Lançamento</div>
                             </td>
                             <td>
-                                {% if item.data_emissao %}
-                                    <div class="font-medium">{{ item.data_emissao.strftime('%d/%m/%Y') }}</div>
-                                {% else %}
-                                    <span class="text-gray-400">-</span>
-                                {% endif %}
+                                <div class="font-semibold">{{ item.data_vencimento.strftime('%d/%m/%Y') }}</div>
+                                {% if item.data_vencimento == hoje %}<div class="text-xs text-blue-600 font-medium">HOJE</div>
+                                {% elif item.is_vencido %}<div class="text-xs text-red-600 font-medium">VENCIDO ({{ (hoje - item.data_vencimento).days }} dias)</div>{% endif %}
                             </td>
                             <td>
                                 <div class="tipo-badge {{ 'receita' if item.tipo_movimento == 'RECEITA' else 'despesa' }}">
-                                    {% if item.tipo_movimento == 'RECEITA' %}
-                                        <i class="fas fa-arrow-up"></i> Receita
-                                    {% else %}
-                                        <i class="fas fa-arrow-down"></i> Despesa
-                                    {% endif %}
+                                    {% if item.tipo_movimento == 'RECEITA' %}<i class="fas fa-arrow-up"></i> Receita{% else %}<i class="fas fa-arrow-down"></i> Despesa{% endif %}
                                 </div>
                                 <div class="origem-badge {{ 'nfe' if item.tipo_origem == 'NFE' else 'manual' }} mt-1">{{ item.tipo_origem }}</div>
                             </td>
                             <td>
-                                <div class="font-medium">{{ item.descricao }}</div>
+                                <div class="font-medium">
+                                    {{ item.descricao }}
+                                    {% if item.tem_rateio %}
+                                        <i class="fas fa-truck-moving text-purple-600" title="Despesa rateada"></i>
+                                    {% endif %}
+                                </div>
                                 {% if item.parcela %}<div class="text-xs text-gray-600"><i class="fas fa-layer-group"></i> Parcela {{ item.parcela }}</div>{% endif %}
                                 {% if item.documento %}<div class="text-xs text-gray-600">Doc: {{ item.documento }}</div>{% endif %}
                             </td>
@@ -874,53 +1011,25 @@
                                 {% if item.data_pagamento %}<div class="text-xs text-gray-600">Pago em {{ item.data_pagamento.strftime('%d/%m/%Y') }}</div>{% endif %}
                             </td>
                             <td>
-                                {% if item.is_vencido %}
-                                    <span class="status-badge vencido">Vencido</span>
-                                {% elif item.status in ['PAGO', 'Pago'] %}
-                                    <span class="status-badge pago">Pago</span>
-                                {% elif item.status == 'A Pagar' %}
-                                     <span class="status-badge a-pagar">A Pagar</span>
-                                {% else %}
-                                    <span class="status-badge pendente">{{ item.status }}</span>
-                                {% endif %}
+                                {% if item.is_vencido %}<span class="status-badge vencido">Vencido</span>
+                                {% elif item.status in ['PAGO', 'Pago'] %}<span class="status-badge pago">Pago</span>
+                                {% elif item.status == 'A Pagar' %}<span class="status-badge a-pagar">A Pagar</span>
+                                {% else %}<span class="status-badge pendente">{{ item.status }}</span>{% endif %}
+                                {% if item.meio_pagamento %}<span class="pagamento-badge {{ item.meio_pagamento.lower() }}">{{ item.meio_pagamento }}</span>{% endif %}
                             </td>
                             <td>
-                                {% if item.meio_pagamento %}
-                                    <span class="pagamento-badge {{ item.meio_pagamento.lower() }}">{{ item.meio_pagamento }}</span>
-                                {% else %}
-                                    <span class="text-gray-400 text-xs">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <button class="btn-table btn-details" data-item-id="{{ item.id }}" title="Ver detalhes">
-                                    <i class="fas fa-eye"></i>
-                                </button>
+                                <button class="btn-table btn-details" data-item-id="{{ item.id }}" title="Ver detalhes"><i class="fas fa-eye"></i></button>
+                                
                                 {% if item.status not in ['PAGO', 'Pago'] %}
-                                    <button class="btn-table btn-pagar" data-item-id="{{ item.id }}" data-item-valor="{{ item.valor }}">
-                                        <i class="fas fa-check"></i>
-                                    </button>
+                                    <button class="btn-table btn-pagar" data-item-id="{{ item.id }}" data-item-valor="{{ item.valor }}"><i class="fas fa-check"></i></button>
                                     {% if item.tipo_origem == 'MANUAL' %}
-                                    <button class="btn-table btn-edit" data-item-id="{{ item.id }}">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
+                                        <button class="btn-table btn-edit" data-item-id="{{ item.id }}"><i class="fas fa-edit"></i></button>
                                     {% endif %}
-                                    <button class="btn-table btn-delete" data-item-id="{{ item.id }}">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    <button class="btn-table btn-rateio {% if item.tem_rateio %}has-rateio{% endif %}" data-item-id="{{ item.id }}" title="{% if item.tem_rateio %}Editar rateio existente{% else %}Ratear lançamento{% endif %}"><i class="fas fa-truck-moving"></i></button>
+                                    <button class="btn-table btn-delete" data-item-id="{{ item.id }}"><i class="fas fa-trash"></i></button>
                                 {% else %}
-                                    <button class="btn-table btn-estornar" data-item-id="{{ item.id }}">
-                                        <i class="fas fa-undo"></i>
-                                    </button>
-                                {% endif %}
-                                {% if item.tipo_origem == 'NFE' and item.objeto.chave_acesso %}
-                                    <a href="{{ url_for('visualizar_xml_page', chave_acesso=item.objeto.chave_acesso) }}" class="btn-table btn-view" target="_blank">
-                                        <i class="fas fa-file-code"></i>
-                                    </a>
-                                {% endif %}
-                                {% if item.tipo_origem == 'MANUAL' %}
-                                <button class="btn-table btn-duplicar" data-item-id="{{ item.id }}" style="background: #007bff; color: white;">
-                                    <i class="fas fa-copy"></i>
-                                </button>
+                                    <button class="btn-table btn-rateio" data-item-id="{{ item.id }}" title="Visualizar rateio" style="opacity: 0.6;"><i class="fas fa-truck-moving"></i></button>
+                                    <button class="btn-table btn-estornar" data-item-id="{{ item.id }}"><i class="fas fa-undo"></i></button>
                                 {% endif %}
                             </td>
                         </tr>
@@ -939,200 +1048,323 @@
     <button class="btn-table btn-massa" id="btnExcluirMassa"><i class="fas fa-trash-alt"></i> Excluir</button>
 </div>
 
-<!-- Modal de Detalhes -->
-<div id="detalhesModal" class="modal">
-    <div class="modal-content extra-large">
-        <div class="modal-header">
-            <h2 class="modal-title"><i class="fas fa-eye"></i>Detalhes do Lançamento</h2>
-            <span class="close" onclick="closeModal('detalhesModal')">&times;</span>
-        </div>
-        <div class="modal-body" id="detalhesContent">
-            <!-- Conteúdo será carregado via JavaScript -->
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn-secondary" onclick="closeModal('detalhesModal')">Fechar</button>
-        </div>
-    </div>
-</div>
-
-<div id="pagamentoModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 class="modal-title"><i class="fas fa-dollar-sign"></i>Confirmar Pagamento</h2>
-            <span class="close" onclick="closeModal('pagamentoModal')">&times;</span>
-        </div>
-        <form id="pagamentoForm">
-            <div class="modal-body">
-                <p>Você está prestes a marcar o lançamento como <strong>pago</strong>.</p>
-                <p class="text-lg font-bold my-2" id="valorPagamentoModal"></p>
-                <input type="hidden" id="itemId" name="itemId">
-                <div class="form-group mt-4">
-                    <label class="form-label" for="data_pagamento_modal">Data do Pagamento</label>
-                    <input type="date" id="data_pagamento_modal" name="data_pagamento" class="form-control" required>
-                </div>
-                <div class="form-group mt-4">
-                    <label class="form-label" for="meio_pagamento_modal">Forma de Pagamento</label>
-                    <select id="meio_pagamento_modal" name="meio_pagamento" class="form-select" required>
-                        <option value="">Selecione a forma de pagamento</option>
-                        <option value="PIX">PIX</option>
-                        <option value="DEPOSITO">Depósito</option>
-                        <option value="TRANSFERENCIA">Transferência</option>
-                        <option value="DINHEIRO">Dinheiro</option>
-                        <option value="CARTAO">Cartão</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('pagamentoModal')">Cancelar</button>
-                <button type="submit" class="btn-green">Confirmar Pagamento</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div id="edicaoModal" class="modal">
+<!-- Modal Novo Lançamento -->
+<div id="novoLancamentoModal" class="modal">
     <div class="modal-content large">
         <div class="modal-header">
-            <h2 class="modal-title"><i class="fas fa-edit"></i>Editar Lançamento</h2>
-            <span class="close" onclick="closeModal('edicaoModal')">&times;</span>
+            <div class="modal-title">
+                <i class="fas fa-plus"></i>
+                Dados do Lançamento
+            </div>
+            <span class="close" onclick="closeModal('novoLancamentoModal')">&times;</span>
         </div>
-        <form id="edicaoForm">
-            <div class="modal-body">
-                 <input type="hidden" id="lancamentoId" name="lancamento_id">
-                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="modal-body">
+            <!-- Container de notificações do modal -->
+            <div id="modalNotifications"></div>
+            
+            <form id="novoLancamentoForm">
+                <!-- Tipo de Movimento -->
+                <div class="form-group">
+                    <label class="form-label">Tipo de Movimento *</label>
+                    <div class="tipo-movimento-container">
+                        <div class="radio-option">
+                            <input type="radio" id="tipoReceita" name="tipo_movimento" value="RECEITA">
+                            <label for="tipoReceita" class="radio-label receita">
+                                <i class="fas fa-arrow-up"></i>
+                                <span>Receita</span>
+                                <small>Entrada de dinheiro</small>
+                            </label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="tipoDespesa" name="tipo_movimento" value="DESPESA" checked>
+                            <label for="tipoDespesa" class="radio-label despesa">
+                                <i class="fas fa-arrow-down"></i>
+                                <span>Despesa</span>
+                                <small>Saída de dinheiro</small>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Descrição e Categoria -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                     <div class="form-group">
-                        <label class="form-label" for="edit-tipo">Tipo</label>
-                        <select id="edit-tipo" name="tipo" class="form-select" required>
-                            <option value="RECEITA">Receita</option>
-                            <option value="DESPESA">Despesa</option>
+                        <label class="form-label">Descrição *</label>
+                        <input type="text" name="descricao" class="form-control" placeholder="Ex: Combustível, Manutenção..." required>
+                        <small style="color: var(--gray-600);">Descreva brevemente o lançamento</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Categoria</label>
+                        <select name="categoria" class="form-control" id="categoriaNovoLancamento">
+                            <option value="Combustível">Combustível</option>
+                            <option value="Manutenção">Manutenção</option>
+                            <option value="Peças e Acessórios">Peças e Acessórios</option>
+                            <option value="Outras Despesas">Outras Despesas</option>
                         </select>
+                        <small style="color: var(--gray-600);">Para melhor organização e relatórios</small>
+                    </div>
+                </div>
+
+                <!-- Valor e Data de Vencimento -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Valor Total *</label>
+                        <input type="number" name="valor" class="form-control" placeholder="0,00" step="0.01" min="0" required id="valorNovoLancamento">
+                        <small style="color: var(--gray-600);">Valor em reais (R$)</small>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="edit-valor_total">Valor (R$)</label>
-                        <input type="number" step="0.01" id="edit-valor_total" name="valor_total" class="form-control" required>
+                        <label class="form-label">Data de Vencimento *</label>
+                        <input type="date" name="data_vencimento" class="form-control" required>
+                        <small style="color: var(--gray-600);">Data prevista para pagamento/recebimento</small>
                     </div>
-                     <div class="form-group col-span-2">
-                        <label class="form-label" for="edit-descricao">Descrição</label>
-                        <input type="text" id="edit-descricao" name="descricao" class="form-control" required>
+                </div>
+
+                <!-- Data de Emissão e Fornecedor/Cliente -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Data de Emissão</label>
+                        <input type="date" name="data_emissao" class="form-control">
+                        <small style="color: var(--gray-600);">Data em que o documento foi emitido</small>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="edit-categoria">Categoria</label>
-                        <input type="text" id="edit-categoria" name="categoria" class="form-control">
+                        <label class="form-label">Fornecedor/Cliente</label>
+                        <input type="text" name="fornecedor_cliente" class="form-control" placeholder="Nome do fornecedor ou cliente">
                     </div>
-                     <div class="form-group">
-                        <label class="form-label" for="edit-data_vencimento">Data Vencimento</label>
-                        <input type="date" id="edit-data_vencimento" name="data_vencimento" class="form-control" required>
-                    </div>
-                     <div class="form-group">
-                        <label class="form-label" for="edit-fornecedor_cliente">Fornecedor/Cliente</label>
-                        <input type="text" id="edit-fornecedor_cliente" name="fornecedor_cliente" class="form-control">
-                    </div>
-                     <div class="form-group">
-                        <label class="form-label" for="edit-documento_numero">Nº Documento</label>
-                        <input type="text" id="edit-documento_numero" name="documento_numero" class="form-control">
-                    </div>
-                      <div class="form-group col-span-2">
-                        <label class="form-label" for="edit-observacoes">Observações</label>
-                        <textarea id="edit-observacoes" name="observacoes" class="form-control" rows="2"></textarea>
-                    </div>
-                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('edicaoModal')">Cancelar</button>
-                <button type="submit" class="btn-green">Salvar Alterações</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div id="confirmarExclusaoModal" class="modal">
-    <div class="modal-content">
-         <div class="modal-header" style="background: linear-gradient(135deg, #c82333 0%, #dc3545 100%);">
-            <h2 class="modal-title"><i class="fas fa-exclamation-triangle"></i>Confirmar Exclusão</h2>
-            <span class="close" onclick="closeModal('confirmarExclusaoModal')">&times;</span>
-        </div>
-        <form id="exclusaoForm">
-            <div class="modal-body">
-                <p>Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.</p>
-                <input type="hidden" id="itemIdParaExcluir" name="item_id">
-            </div>
-             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('confirmarExclusaoModal')">Cancelar</button>
-                <button type="submit" class="btn-danger" style="background: #dc3545; color: white;">Excluir</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div id="estornarPagamentoModal" class="modal">
-    <div class="modal-content">
-         <div class="modal-header" style="background: linear-gradient(135deg, #5a6268 0%, #6c757d 100%);">
-            <h2 class="modal-title"><i class="fas fa-undo"></i>Estornar Pagamento</h2>
-            <span class="close" onclick="closeModal('estornarPagamentoModal')">&times;</span>
-        </div>
-        <form id="estornoForm">
-            <div class="modal-body">
-                <p>Você está prestes a estornar este pagamento, marcando-o novamente como pendente. Deseja continuar?</p>
-                <input type="hidden" id="itemIdParaEstornar" name="item_id">
-                 <div class="form-group mt-4">
-                    <label class="form-label" for="motivo_estorno">Motivo (Opcional)</label>
-                    <input type="text" id="motivo_estorno" name="motivo" class="form-control" placeholder="Ex: Pagamento duplicado">
                 </div>
-            </div>
-             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('estornarPagamentoModal')">Cancelar</button>
-                <button type="submit" class="btn-warning" style="background:#6c757d; color:white;">Confirmar Estorno</button>
-            </div>
-        </form>
-    </div>
-</div>
 
-<div id="duplicarLancamentoModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header" style="background: linear-gradient(135deg, #0069d9 0%, #007bff 100%);">
-            <h2 class="modal-title"><i class="fas fa-copy"></i>Duplicar Lançamento</h2>
-            <span class="close" onclick="closeModal('duplicarLancamentoModal')">&times;</span>
-        </div>
-        <form id="duplicarForm">
-            <div class="modal-body">
-                <p>Uma cópia deste lançamento será criada. Informe a nova data de vencimento.</p>
-                <input type="hidden" id="itemIdParaDuplicar" name="item_id">
-                <div class="form-group mt-4">
-                    <label class="form-label" for="nova_data_vencimento_duplicar">Nova Data de Vencimento</label>
-                    <input type="date" id="nova_data_vencimento_duplicar" name="nova_data_vencimento" class="form-control" required>
+                <!-- Número do Documento -->
+                <div class="form-group">
+                    <label class="form-label">Número do Documento</label>
+                    <input type="text" name="documento" class="form-control" placeholder="NF, Boleto, Contrato...">
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('duplicarLancamentoModal')">Cancelar</button>
-                <button type="submit" class="btn-primary" style="background:#007bff; color:white;">Duplicar</button>
-            </div>
-        </form>
+
+                <!-- Opções de Pagamento -->
+                <div id="marcarPagoSection" style="background: var(--blue-100); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem;">
+                        <i class="fas fa-calendar-check" style="color: var(--blue-600);"></i>
+                        <span style="font-weight: 600; color: var(--blue-600);">Marcar como Pago Agora</span>
+                        <label style="margin-left: auto;" class="switch">
+                            <input type="checkbox" id="marcarPagoAgora">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div style="font-size: 0.875rem; color: var(--blue-700); margin-bottom: 1rem;">
+                        <i class="fas fa-info-circle"></i>
+                        Ative esta opção se o pagamento já foi realizado
+                    </div>
+                    
+                    <div id="dadosPagamento" style="display: none;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div>
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--gray-700);">Forma de Pagamento</label>
+                                <select id="formaPagamento" class="form-control" style="width: 100%;">
+                                    <option value="">Selecione a forma</option>
+                                    <option value="PIX">PIX</option>
+                                    <option value="Depósito">Depósito</option>
+                                    <option value="Transferência">Transferência</option>
+                                    <option value="Dinheiro">Dinheiro</option>
+                                    <option value="Cartão">Cartão</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--gray-700);">Data do Pagamento</label>
+                                <input type="date" id="dataPagamento" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Opção de Parcelamento -->
+                <div style="background: var(--gray-50); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.5rem;">
+                        <i class="fas fa-layer-group" style="color: var(--gray-600);"></i>
+                        <span style="font-weight: 600; color: var(--gray-700);">Parcelar Lançamento</span>
+                    </div>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 1rem;">
+                        <input type="checkbox" id="parcelarLancamento" style="margin: 0;">
+                        <span style="font-size: 0.875rem;">Dividir valor em parcelas</span>
+                    </label>
+                    
+                    <div id="parcelamentoOptions" style="display: none;">
+                        <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end; margin-bottom: 1rem;">
+                            <div>
+                                <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Número de Parcelas:</label>
+                                <input type="number" id="numeroParcelas" min="2" max="36" value="2" style="width: 100px; padding: 8px 12px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 0.875rem;">
+                            </div>
+                            <button type="button" class="btn-secondary" id="gerarParcelasBtn">
+                                <i class="fas fa-magic"></i> 
+                                <span class="btn-text">Gerar Parcelas</span>
+                                <span class="loading-spinner" id="loadingGerar" style="display: none;"></span>
+                            </button>
+                        </div>
+                        
+                        <div style="background: var(--gray-100); padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem;">
+                            <div style="display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: var(--gray-700);">
+                                <i class="fas fa-calendar-alt" style="color: var(--primary-green);"></i>
+                                <span><strong>Intervalo:</strong> 30 dias entre cada parcela (editável após gerar)</span>
+                            </div>
+                        </div>
+
+                        <!-- Prévia das Parcelas -->
+                        <div id="previaParcelasContainer" style="display: none;">
+                            <div style="border: 2px dashed var(--gray-300); border-radius: 8px; padding: 1rem;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; color: var(--green-600); font-weight: 600;">
+                                    <i class="fas fa-list-alt"></i>
+                                    <span>Prévia das Parcelas</span>
+                                </div>
+                                <div id="listaParcelasPrevia"></div>
+                                <div style="text-align: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--gray-200);">
+                                    <span style="font-size: 0.875rem; color: var(--gray-600);">✏️ Você pode editar as datas e valores de cada parcela</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seção de Rateio -->
+                <div id="secaoRateio">
+                    <div class="form-group">
+                        <label class="form-label">Rateio do Lançamento</label>
+                        <div class="tipo-movimento-container">
+                            <div class="radio-option">
+                                <input type="radio" id="semRateioNovo" name="tipo_rateio" value="sem_rateio" checked>
+                                <label for="semRateioNovo" class="radio-label despesa">
+                                    <i class="fas fa-file-invoice-dollar"></i>
+                                    <span>Lançamento Geral</span>
+                                    <small>Lançar como geral da empresa</small>
+                                </label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="comRateioNovo" name="tipo_rateio" value="com_rateio">
+                                <label for="comRateioNovo" class="radio-label despesa">
+                                    <i class="fas fa-truck-moving"></i>
+                                    <span>Ratear por Veículo</span>
+                                    <small>Dividir o custo entre veículos específicos</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="containerRateioNovo" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label">Buscar Veículos (Placa ou Modelo)</label>
+                            <div class="search-container">
+                                <input type="text" id="veiculoSearchInputNovo" placeholder="Digite para buscar e adicionar múltiplos veículos..." autocomplete="off" class="form-control">
+                                <i class="fas fa-search search-icon"></i>
+                            </div>
+                            <div id="veiculoSearchResultsNovo" class="list-group mt-2 position-absolute bg-white shadow-lg rounded" style="z-index: 1001; width: calc(100% - 4rem);"></div>
+                        </div>
+                        
+                        <div class="parcelamento-container">
+                            <div class="parcelamento-header">
+                                <i class="fas fa-list-ul"></i>
+                                <span>Veículos para Rateio</span>
+                                <div id="rateioControlesNovo" style="display: none;">
+                                    <button type="button" class="btn-secondary" onclick="distribuirIgualmenteNovo()"><i class="fas fa-equals"></i> Dividir Igual</button>
+                                    <button type="button" class="btn-secondary" onclick="ajustarAutomaticamenteNovo()"><i class="fas fa-magic"></i> Ajustar Auto</button>
+                                    <button type="button" class="btn-secondary" onclick="limparRateioNovo()"><i class="fas fa-trash"></i> Limpar</button>
+                                </div>
+                            </div>
+                            <div id="veiculosRateioContainerNovo" class="mt-3">
+                                <div class="text-center text-gray-500 my-4" id="rateioEmptyNovo">
+                                    <i class="fas fa-truck" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.3;"></i>
+                                    <p>Nenhum veículo selecionado</p>
+                                </div>
+                            </div>
+                            <div class="totalizacao mt-4" id="rateioTotalizacaoNovo">
+                                <div class="totalizacao-content">
+                                    <div class="totalizacao-item"><span class="totalizacao-label">Valor Total</span><span class="totalizacao-valor" id="rateioValorNotaNovo">R$ 0,00</span></div>
+                                    <div class="totalizacao-item"><span class="totalizacao-label">Total Rateado</span><span class="totalizacao-valor" id="rateioTotalAlocadoNovo">R$ 0,00</span></div>
+                                    <div class="totalizacao-item"><span class="totalizacao-label">Diferença</span><span class="totalizacao-valor" id="rateioDiferencaNovo">R$ 0,00</span></div>
+                                </div>
+                                <div class="mt-3" id="rateioStatusContainerNovo">
+                                    <div class="progress-bar" id="rateioProgressBarNovo" style="display: block; height: 6px;"><div class="progress-fill" id="rateioProgressFillNovo"></div></div>
+                                    <div class="text-center mt-2" id="rateioStatusNovo"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Observações -->
+                <div class="form-group">
+                    <label class="form-label">Observações</label>
+                    <textarea name="observacoes" class="form-control" rows="3" placeholder="Informações adicionais sobre este lançamento..."></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="closeModal('novoLancamentoModal')">
+                <i class="fas fa-times"></i> Voltar
+            </button>
+            <button class="btn-green" id="btnCriarLancamento">
+                <i class="fas fa-save"></i>
+                <span class="loading-spinner" style="display: none;"></span>
+                <span class="btn-text">Criar Lançamento</span>
+            </button>
+        </div>
     </div>
 </div>
 
-<div id="alterarCategoriaMassaModal" class="modal">
-    <div class="modal-content">
+{% include 'modals/fluxo_caixa_modals.html' %}
+
+<div id="rateioModal" class="modal">
+    <div class="modal-content extra-large">
         <div class="modal-header">
-            <h2 class="modal-title"><i class="fas fa-tags"></i>Alterar Categoria em Massa</h2>
-            <span class="close" onclick="closeModal('alterarCategoriaMassaModal')">&times;</span>
+            <div class="modal-title"><i class="fas fa-truck-moving"></i> Rateio de Despesa por Veículo</div>
+            <span class="close" onclick="closeModal('rateioModal')">&times;</span>
         </div>
-        <form id="alterarCategoriaMassaForm">
-            <div class="modal-body">
-                <p>Selecione a nova categoria para os <strong id="contadorModalCategoria"></strong> itens selecionados.</p>
-                <div class="form-group mt-4">
-                    <label class="form-label" for="nova_categoria_massa">Nova Categoria</label>
-                    <select id="nova_categoria_massa" name="nova_categoria" class="form-select" required>
-                        {% for categoria in categorias %}
-                            <option value="{{ categoria }}">{{ categoria }}</option>
-                        {% endfor %}
-                    </select>
+        <div class="modal-body">
+            <div id="dadosLancamentoRateio" style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;"></div>
+            <div id="containerRateio">
+                <div class="form-group">
+                    <label class="form-label">Buscar Veículos (Placa ou Modelo)</label>
+                    <div class="search-container">
+                        <input type="text" id="veiculoSearchInput" placeholder="Digite para buscar e adicionar múltiplos veículos..." autocomplete="off" class="form-control">
+                        <i class="fas fa-search search-icon"></i>
+                    </div>
+                    <div id="veiculoSearchResults" class="list-group mt-2 position-absolute bg-white shadow-lg rounded" style="z-index: 1001; width: calc(100% - 4rem);"></div>
+                </div>
+                <div class="parcelamento-container">
+                    <div class="parcelamento-header">
+                        <i class="fas fa-list-ul"></i><span>Veículos para Rateio</span>
+                        <div id="rateioControles" style="display: none;">
+                            <button type="button" class="btn-secondary" onclick="distribuirIgualmente()"><i class="fas fa-equals"></i> Dividir Igual</button>
+                            <button type="button" class="btn-secondary" onclick="ajustarAutomaticamente()"><i class="fas fa-magic"></i> Ajustar Auto</button>
+                            <button type="button" class="btn-secondary" onclick="limparRateio()"><i class="fas fa-trash"></i> Limpar</button>
+                        </div>
+                    </div>
+                    <div id="veiculosRateioContainer" class="mt-3">
+                        <div class="text-center text-gray-500 my-4" id="rateioEmpty">
+                            <i class="fas fa-truck" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.3;"></i>
+                            <p>Nenhum veículo selecionado</p>
+                        </div>
+                    </div>
+                    <div class="totalizacao mt-4" id="rateioTotalizacao">
+                        <div class="totalizacao-content">
+                            <div class="totalizacao-item"><span class="totalizacao-label">Valor Total</span><span class="totalizacao-valor" id="rateioValorNota">R$ 0,00</span></div>
+                            <div class="totalizacao-item"><span class="totalizacao-label">Total Rateado</span><span class="totalizacao-valor" id="rateioTotalAlocado">R$ 0,00</span></div>
+                            <div class="totalizacao-item"><span class="totalizacao-label">Diferença</span><span class="totalizacao-valor" id="rateioDiferenca">R$ 0,00</span></div>
+                        </div>
+                        <div class="mt-3" id="rateioStatusContainer">
+                            <div class="progress-bar" id="rateioProgressBar" style="display: block; height: 6px;"><div class="progress-fill" id="rateioProgressFill"></div></div>
+                            <div class="text-center mt-2" id="rateioStatus"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('alterarCategoriaMassaModal')">Cancelar</button>
-                <button type="submit" class="btn-green">Aplicar</button>
-            </div>
-        </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" id="btnExcluirRateio" style="margin-right: auto; background: #dc3545;">
+                <i class="fas fa-times-circle"></i> Remover Rateio
+            </button>
+            <button type="button" class="btn-secondary" onclick="closeModal('rateioModal')">Cancelar</button>
+            <button class="btn-green" id="btnSalvarRateio">
+                <i class="fas fa-save"></i>
+                <span class="loading-spinner" style="display: none;"></span>
+                <span class="btn-text">Salvar Rateio</span>
+            </button>
+        </div>
     </div>
 </div>
 
@@ -1140,35 +1372,68 @@
 
 {% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Lógica de Modais
-        const modals = document.querySelectorAll('.modal');
+    // Variáveis globais para o sistema de rateio
+    let valorTotalLancamento = 0;
+    let lancamentoIdAtual = null;
+    let veiculosSelecionados = new Map();
+    
+    // Variáveis para o novo lançamento
+    let valorTotalNovoLancamento = 0;
+    let veiculosSelecionadosNovo = new Map();
+
+    // FUNÇÃO UTILITÁRIA PARA GERENCIAR LOADING STATES
+    function setLoadingState(buttonId, isLoading) {
+        const btn = document.getElementById(buttonId);
+        if (!btn) return;
         
+        const spinner = btn.querySelector('.loading-spinner');
+        const btnText = btn.querySelector('.btn-text');
+        
+        if (isLoading) {
+            btn.disabled = true;
+            btn.classList.add('btn-loading');
+            if (spinner) spinner.style.display = 'inline-block';
+            if (btnText) btnText.style.opacity = '0';
+        } else {
+            btn.disabled = false;
+            btn.classList.remove('btn-loading');
+            if (spinner) spinner.style.display = 'none';
+            if (btnText) btnText.style.opacity = '1';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Lógica de Modais - versão simples e funcional
         window.openModal = function(id) {
             document.getElementById(id).style.display = 'block';
-        }
+            // Limpar notificações se for o modal de novo lançamento
+            if (id === 'novoLancamentoModal') {
+                clearModalNotifications();
+            }
+        };
         
         window.closeModal = function(id) {
             document.getElementById(id).style.display = 'none';
-        }
-
+            // Reset específico para o modal de novo lançamento
+            if (id === 'novoLancamentoModal') {
+                resetarModalNovoLancamento();
+            }
+        };
+        
         window.onclick = function(event) {
-            modals.forEach(modal => {
-                if (event.target == modal) {
-                    modal.style.display = "none";
-                }
-            });
-        }
-
-        // Busca em tempo real
-        const searchInput = document.getElementById('searchInput');
-        searchInput.addEventListener('input', function() {
+            if (event.target.classList.contains('modal')) {
+                const modalId = event.target.id;
+                closeModal(modalId);
+            }
+        };
+        
+        // Lógica de Busca na Tabela
+        document.getElementById('searchInput').addEventListener('input', function() {
             const searchTerm = this.value.toLowerCase();
-            const rows = document.querySelectorAll('.table-row');
+            const rows = document.querySelectorAll('#fluxoTable tbody tr');
             let visibleCount = 0;
-            
             rows.forEach(row => {
-                const searchData = row.getAttribute('data-search').toLowerCase();
+                const searchData = row.dataset.search;
                 if (searchData.includes(searchTerm)) {
                     row.style.display = '';
                     visibleCount++;
@@ -1176,360 +1441,331 @@
                     row.style.display = 'none';
                 }
             });
-            
             document.getElementById('contadorLancamentos').textContent = visibleCount;
         });
-
-        // --- MANIPULADORES DE EVENTOS PARA BOTÕES DE AÇÃO ---
         
-        // Botão de detalhes
-        document.querySelectorAll('.btn-details').forEach(button => {
-            button.addEventListener('click', function() {
-                const itemId = this.dataset.itemId;
-                carregarDetalhesLancamento(itemId);
-            });
-        });
+        // Event delegation para todos os botões de ação na tabela
+        document.getElementById('fluxoTable')?.addEventListener('click', function(e) {
+            const button = e.target.closest('button.btn-table');
+            if (!button) return;
 
-        document.querySelectorAll('.btn-pagar').forEach(button => {
-            button.addEventListener('click', function() {
-                const itemId = this.dataset.itemId;
-                const itemValor = formatarMoeda(parseFloat(this.dataset.itemValor));
-                document.getElementById('itemId').value = itemId;
-                document.getElementById('valorPagamentoModal').textContent = `Valor: R$ ${itemValor}`;
-                document.getElementById('data_pagamento_modal').valueAsDate = new Date();
-                openModal('pagamentoModal');
-            });
-        });
-
-        document.querySelectorAll('.btn-edit').forEach(button => {
-            button.addEventListener('click', function() {
-                const itemId = this.dataset.itemId;
-                fetch(`/api/fluxo_caixa/buscar_dados/${itemId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            const form = document.getElementById('edicaoForm');
-                            form.lancamentoId.value = data.dados.id;
-                            form.tipo.value = data.dados.tipo;
-                            form.valor_total.value = data.dados.valor_total;
-                            form.descricao.value = data.dados.descricao;
-                            form.categoria.value = data.dados.categoria;
-                            form.data_vencimento.value = data.dados.data_vencimento;
-                            form.fornecedor_cliente.value = data.dados.fornecedor_cliente;
-                            form.documento_numero.value = data.dados.documento_numero;
-                            form.observacoes.value = data.dados.observacoes;
-                            openModal('edicaoModal');
-                        } else {
-                            showNotification(data.message, 'error');
-                        }
-                    });
-            });
-        });
-
-        document.querySelectorAll('.btn-delete').forEach(button => {
-            button.addEventListener('click', function() {
-                const itemId = this.dataset.itemId;
-                document.getElementById('itemIdParaExcluir').value = itemId;
-                openModal('confirmarExclusaoModal');
-            });
-        });
-
-        document.querySelectorAll('.btn-estornar').forEach(button => {
-            button.addEventListener('click', function() {
-                document.getElementById('itemIdParaEstornar').value = this.dataset.itemId;
-                document.getElementById('motivo_estorno').value = '';
-                openModal('estornarPagamentoModal');
-            });
-        });
-
-        document.querySelectorAll('.btn-duplicar').forEach(button => {
-            button.addEventListener('click', function() {
-                document.getElementById('itemIdParaDuplicar').value = this.dataset.itemId;
-                const today = new Date();
-                const nextMonth = new Date(today.setMonth(today.getMonth() + 1));
-                document.getElementById('nova_data_vencimento_duplicar').valueAsDate = nextMonth;
-                openModal('duplicarLancamentoModal');
-            });
+            const itemId = button.dataset.itemId;
+            if (button.classList.contains('btn-details')) carregarDetalhesLancamento(itemId);
+            if (button.classList.contains('btn-pagar')) abrirModalPagamento(itemId, button.dataset.itemValor);
+            if (button.classList.contains('btn-edit')) abrirModalEdicao(itemId);
+            if (button.classList.contains('btn-rateio')) openRateioModal(itemId);
+            if (button.classList.contains('btn-delete')) abrirModalExclusao(itemId);
+            if (button.classList.contains('btn-estornar')) abrirModalEstorno(itemId);
+            if (button.classList.contains('btn-duplicar')) abrirModalDuplicar(itemId);
         });
         
-        // --- LÓGICA DE SUBMISSÃO DOS FORMS DOS MODAIS (VIA FETCH API) ---
-        
-        document.getElementById('pagamentoForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const data = {
-                item_id: formData.get('itemId'),
-                data_pagamento: formData.get('data_pagamento'),
-                meio_pagamento: formData.get('meio_pagamento')
-            };
-            fetch('/api/fluxo_caixa/marcar_pago', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
-            })
-            .then(handleResponse)
-            .catch(handleError);
-        });
+        // Forms dos Modais
+        document.getElementById('pagamentoForm')?.addEventListener('submit', handleFormSubmit('/api/fluxo_caixa/marcar_pago'));
+        document.getElementById('edicaoForm')?.addEventListener('submit', handleFormSubmit('/api/fluxo_caixa/salvar_edicao'));
+        document.getElementById('exclusaoForm')?.addEventListener('submit', handleFormSubmit('/api/fluxo_caixa/excluir'));
+        document.getElementById('estornoForm')?.addEventListener('submit', handleFormSubmit('/api/fluxo_caixa/estornar_pagamento'));
+        document.getElementById('duplicarForm')?.addEventListener('submit', handleFormSubmit('/api/fluxo_caixa/duplicar'));
+        document.getElementById('alterarCategoriaMassaForm')?.addEventListener('submit', handleFormSubmit('/api/fluxo_caixa/alterar_categoria_massa', true));
 
-        document.getElementById('edicaoForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const data = Object.fromEntries(formData.entries());
-            fetch('/api/fluxo_caixa/salvar_edicao', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
-            })
-            .then(handleResponse)
-            .catch(handleError);
-        });
-
-        document.getElementById('exclusaoForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const data = { item_id: document.getElementById('itemIdParaExcluir').value };
-            fetch('/api/fluxo_caixa/excluir', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
-            })
-            .then(handleResponse)
-            .catch(handleError);
-        });
-
-        document.getElementById('estornoForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const data = { 
-                item_id: document.getElementById('itemIdParaEstornar').value,
-                motivo: document.getElementById('motivo_estorno').value
-            };
-            fetch('/api/fluxo_caixa/estornar_pagamento', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
-            })
-            .then(handleResponse)
-            .catch(handleError);
-        });
-        
-        document.getElementById('duplicarForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const data = { 
-                item_id: document.getElementById('itemIdParaDuplicar').value,
-                nova_data_vencimento: document.getElementById('nova_data_vencimento_duplicar').value
-            };
-            fetch('/api/fluxo_caixa/duplicar', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
-            })
-            .then(handleResponse)
-            .catch(handleError);
-        });
-
-         // --- LÓGICA DE AÇÕES EM MASSA ---
-
-        document.getElementById('btnAlterarCategoriaMassa').addEventListener('click', function() {
-            const selecionados = getSelectedItems();
-            if (selecionados.length === 0) return;
-            document.getElementById('contadorModalCategoria').textContent = selecionados.length;
-            openModal('alterarCategoriaMassaModal');
-        });
-        
-        document.getElementById('alterarCategoriaMassaForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const data = {
-                item_ids: getSelectedItems(),
-                nova_categoria: document.getElementById('nova_categoria_massa').value
-            };
-            fetch('/api/fluxo_caixa/alterar_categoria_massa', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
-            })
-            .then(handleResponse)
-            .catch(handleError);
-        });
-        
-        // Funções auxiliares
-        function handleResponse(response) {
-            return response.json().then(data => {
-                showNotification(data.message, data.success ? 'success' : 'error');
-                if (data.success) {
-                    setTimeout(() => window.location.reload(), 1500);
-                }
-            });
-        }
-        function handleError(error) {
-            showNotification('Erro de rede ou servidor. Tente novamente.', 'error');
-            console.error('Fetch Error:', error);
-        }
-    });
-
-    function carregarDetalhesLancamento(itemId) {
-        fetch(`/api/fluxo_caixa/detalhes/${itemId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const conteudo = document.getElementById('detalhesContent');
-                    const dados = data.dados;
-                    
-                    conteudo.innerHTML = `
-                        <div class="detail-row">
-                            <div class="detail-label">ID:</div>
-                            <div class="detail-value">${dados.id}</div>
-                        </div>
-                        <div class="detail-row">
-                            <div class="detail-label">Tipo:</div>
-                            <div class="detail-value">
-                                <span class="tipo-badge ${dados.tipo_movimento === 'RECEITA' ? 'receita' : 'despesa'}">
-                                    ${dados.tipo_movimento}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="detail-row">
-                            <div class="detail-label">Descrição:</div>
-                            <div class="detail-value">${dados.descricao || '-'}</div>
-                        </div>
-                        <div class="detail-row">
-                            <div class="detail-label">Valor:</div>
-                            <div class="detail-value">
-                                <span class="${dados.tipo_movimento === 'RECEITA' ? 'valor-receita' : 'valor-despesa'}">
-                                    R$ ${dados.valor_formatado || formatarMoeda(dados.valor)}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="detail-row">
-                            <div class="detail-label">Categoria:</div>
-                            <div class="detail-value">${dados.categoria || '-'}</div>
-                        </div>
-                        <div class="detail-row">
-                            <div class="detail-label">Data Emissão:</div>
-                            <div class="detail-value">${dados.data_emissao || '-'}</div>
-                        </div>
-                        <div class="detail-row">
-                            <div class="detail-label">Data Vencimento:</div>
-                            <div class="detail-value">${dados.data_vencimento || '-'}</div>
-                        </div>
-                        <div class="detail-row">
-                            <div class="detail-label">Data Pagamento:</div>
-                            <div class="detail-value">${dados.data_pagamento || '-'}</div>
-                        </div>
-                        <div class="detail-row">
-                            <div class="detail-label">Fornecedor/Cliente:</div>
-                            <div class="detail-value">${dados.fornecedor_cliente || '-'}</div>
-                        </div>
-                        <div class="detail-row">
-                            <div class="detail-label">Documento:</div>
-                            <div class="detail-value">${dados.documento || '-'}</div>
-                        </div>
-                        <div class="detail-row">
-                            <div class="detail-label">Status:</div>
-                            <div class="detail-value">
-                                <span class="status-badge ${dados.status.toLowerCase()}">${dados.status}</span>
-                            </div>
-                        </div>
-                        <div class="detail-row">
-                            <div class="detail-label">Forma Pagamento:</div>
-                            <div class="detail-value">
-                                ${dados.meio_pagamento ? `<span class="pagamento-badge ${dados.meio_pagamento.toLowerCase()}">${dados.meio_pagamento}</span>` : '-'}
-                            </div>
-                        </div>
-                        <div class="detail-row">
-                            <div class="detail-label">Origem:</div>
-                            <div class="detail-value">
-                                <span class="origem-badge ${dados.tipo_origem === 'NFE' ? 'nfe' : 'manual'}">${dados.tipo_origem}</span>
-                            </div>
-                        </div>
-                        ${dados.parcela ? `
-                        <div class="detail-row">
-                            <div class="detail-label">Parcela:</div>
-                            <div class="detail-value">${dados.parcela}</div>
-                        </div>
-                        ` : ''}
-                        ${dados.observacoes ? `
-                        <div class="detail-row">
-                            <div class="detail-label">Observações:</div>
-                            <div class="detail-value">${dados.observacoes}</div>
-                        </div>
-                        ` : ''}
-                        <div class="detail-row">
-                            <div class="detail-label">Criado em:</div>
-                            <div class="detail-value">${dados.data_criacao || '-'}</div>
-                        </div>
-                        <div class="detail-row">
-                            <div class="detail-label">Atualizado em:</div>
-                            <div class="detail-value">${dados.data_atualizacao || '-'}</div>
-                        </div>
-                    `;
-                    
-                    openModal('detalhesModal');
-                } else {
-                    showNotification(data.message, 'error');
-                }
-            })
-            .catch(error => {
-                showNotification('Erro ao carregar detalhes do lançamento', 'error');
-                console.error('Erro:', error);
-            });
-    }
-
-    function formatarMoeda(valor) {
-        return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-
-    function showNotification(message, type = 'success') {
-        const container = document.getElementById('notifications');
-        const alert = document.createElement('div');
-        alert.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
-        alert.role = 'alert';
-        alert.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-        container.appendChild(alert);
-        setTimeout(() => alert.remove(), 5000);
-    }
-
-    function limparFiltros() {
-        const form = document.getElementById('filtrosForm');
-        const inputs = form.querySelectorAll('input, select');
-        inputs.forEach(input => {
-            if (input.type === 'checkbox' || input.type === 'radio') {
-                input.checked = false;
-            } else {
-                input.value = '';
+        // Ações em Massa
+        document.getElementById('btnAlterarCategoriaMassa')?.addEventListener('click', () => {
+            const selectedCount = getSelectedItems().length;
+            if (selectedCount > 0) {
+                 document.getElementById('contadorModalCategoria').textContent = selectedCount;
+                 openModal('alterarCategoriaMassaModal');
             }
         });
-        document.getElementById('searchInput').value = '';
-        form.submit();
-    }
-    
-    // --- Funções para seleção em massa ---
-    function toggleSelecionarTodos(checked) {
-        document.querySelectorAll('.item-checkbox').forEach(checkbox => {
-            checkbox.checked = checked;
+
+        // Lógica de Rateio
+        document.getElementById('veiculoSearchInput')?.addEventListener('input', buscarVeiculos);
+        document.getElementById('btnSalvarRateio')?.addEventListener('click', salvarRateio);
+        document.getElementById('btnExcluirRateio')?.addEventListener('click', excluirRateio);
+
+        // Novo Lançamento
+        configurarNovoLancamento();
+    });
+
+    function configurarNovoLancamento() {
+        // Configurar mudanças de tipo de movimento
+        document.querySelectorAll('input[name="tipo_movimento"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                atualizarCategoriasDisponiveis();
+            });
         });
-        atualizarSelecao();
-    }
-    
-    function atualizarSelecao() {
-        const selecionados = document.querySelectorAll('.item-checkbox:checked').length;
-        const barra = document.getElementById('barraAcoesMassa');
-        const contador = document.getElementById('contadorSelecionados');
 
-        if (selecionados > 0) {
-            contador.textContent = `${selecionados} item(s) selecionado(s)`;
-            barra.classList.add('visible');
-        } else {
-            barra.classList.remove('visible');
+        // Configurar valor total
+        document.getElementById('valorNovoLancamento')?.addEventListener('input', function() {
+            valorTotalNovoLancamento = parseFloat(this.value) || 0;
+            document.getElementById('rateioValorNotaNovo').textContent = formatarMoeda(valorTotalNovoLancamento);
+            atualizarTotalRateioNovo();
+        });
+
+        // Configurar toggle "Marcar como Pago"
+        document.getElementById('marcarPagoAgora')?.addEventListener('change', function() {
+            const dadosPagamento = document.getElementById('dadosPagamento');
+            if (this.checked) {
+                dadosPagamento.style.display = 'block';
+                // Setar data atual como padrão
+                document.getElementById('dataPagamento').valueAsDate = new Date();
+            } else {
+                dadosPagamento.style.display = 'none';
+                // Limpar campos
+                document.getElementById('formaPagamento').value = '';
+                document.getElementById('dataPagamento').value = '';
+            }
+        });
+
+        // Configurar parcelamento
+        document.getElementById('parcelarLancamento')?.addEventListener('change', function() {
+            document.getElementById('parcelamentoOptions').style.display = this.checked ? 'block' : 'none';
+            if (!this.checked) {
+                document.getElementById('previaParcelasContainer').style.display = 'none';
+            }
+        });
+
+        // Botão gerar parcelas
+        document.getElementById('gerarParcelasBtn')?.addEventListener('click', gerarParcelasAutomaticamente);
+
+        // Configurar rateio no novo lançamento
+        document.getElementById('semRateioNovo')?.addEventListener('change', toggleRateioNovo);
+        document.getElementById('comRateioNovo')?.addEventListener('change', toggleRateioNovo);
+        document.getElementById('veiculoSearchInputNovo')?.addEventListener('input', buscarVeiculosNovo);
+
+        // Botão criar lançamento
+        document.getElementById('btnCriarLancamento')?.addEventListener('click', criarLancamento);
+
+        // Inicializar estado
+        atualizarCategoriasDisponiveis();
+        
+        // Setar data de vencimento padrão (hoje + 30 dias)
+        const hoje = new Date();
+        const dataVencimento = new Date(hoje.getTime() + (30 * 24 * 60 * 60 * 1000));
+        const dataVencimentoInput = document.querySelector('input[name="data_vencimento"]');
+        const dataEmissaoInput = document.querySelector('input[name="data_emissao"]');
+        
+        if (dataVencimentoInput) dataVencimentoInput.valueAsDate = dataVencimento;
+        if (dataEmissaoInput) dataEmissaoInput.valueAsDate = hoje;
+    }
+
+    function gerarParcelasAutomaticamente() {
+        const numParcelas = parseInt(document.getElementById('numeroParcelas').value);
+        const valor = parseFloat(document.getElementById('valorNovoLancamento').value) || 0;
+
+        if (!numParcelas || numParcelas < 2 || numParcelas > 36) {
+            showModalNotification('Número de parcelas deve ser entre 2 e 36!', 'error');
+            return;
         }
-        // Desmarca o header se algum item for desmarcado individualmente
-        document.getElementById('selecionarTodosHeader').checked = selecionados === document.querySelectorAll('.item-checkbox').length && selecionados > 0;
-    }
-    
-    function getSelectedItems() {
-        return Array.from(document.querySelectorAll('.item-checkbox:checked')).map(cb => cb.value);
+
+        if (valor <= 0) {
+            showModalNotification('Informe o valor total antes de gerar as parcelas!', 'error');
+            return;
+        }
+
+        const dataBase = new Date(document.querySelector('input[name="data_vencimento"]').value);
+        
+        if (!dataBase || isNaN(dataBase.getTime())) {
+            showModalNotification('Defina a data de vencimento antes de gerar as parcelas!', 'error');
+            return;
+        }
+
+        // Mostrar loading
+        setLoadingState('gerarParcelasBtn', true);
+
+        // Simular carregamento
+        setTimeout(() => {
+            const valorPorParcela = valor / numParcelas;
+            const listaParcelas = document.getElementById('listaParcelasPrevia');
+            listaParcelas.innerHTML = '';
+
+            for (let i = 0; i < numParcelas; i++) {
+                const dataVencimento = new Date(dataBase);
+                // Sempre 30 dias de intervalo
+                dataVencimento.setDate(dataBase.getDate() + (i * 30));
+
+                const parcelaDiv = document.createElement('div');
+                parcelaDiv.className = 'parcela-preview-item fade-in';
+                parcelaDiv.style.cssText = `
+                    display: grid; 
+                    grid-template-columns: auto 1fr 1fr auto; 
+                    gap: 1rem; 
+                    align-items: center; 
+                    padding: 0.75rem; 
+                    border: 1px solid var(--gray-200); 
+                    border-radius: 8px; 
+                    margin-bottom: 0.5rem;
+                    background: white;
+                `;
+
+                parcelaDiv.innerHTML = `
+                    <div style="
+                        background: var(--primary-green); 
+                        color: white; 
+                        width: 30px; 
+                        height: 30px; 
+                        border-radius: 50%; 
+                        display: flex; 
+                        align-items: center; 
+                        justify-content: center; 
+                        font-weight: bold; 
+                        font-size: 0.875rem;
+                    ">
+                        ${i + 1}
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <label style="font-size: 0.75rem; font-weight: 600; color: var(--gray-600);">Data de Vencimento</label>
+                        <input type="date" value="${dataVencimento.toISOString().split('T')[0]}" 
+                               style="padding: 6px 10px; border: 2px solid var(--gray-200); border-radius: 6px; font-size: 0.875rem;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <label style="font-size: 0.75rem; font-weight: 600; color: var(--gray-600);">Valor (R$)</label>
+                        <input type="number" value="${valorPorParcela.toFixed(2)}" step="0.01" min="0"
+                               style="padding: 6px 10px; border: 2px solid var(--gray-200); border-radius: 6px; font-size: 0.875rem; text-align: right;">
+                    </div>
+                    <div style="text-align: center;">
+                        <span style="font-size: 0.75rem; color: var(--green-600); font-weight: 600;">
+                            Parcela ${i + 1}
+                        </span>
+                        <br>
+                        <span style="font-size: 0.65rem; color: var(--gray-500);">
+                            ${i === 0 ? 'Base' : `+${i * 30} dias`}
+                        </span>
+                    </div>
+                `;
+
+                listaParcelas.appendChild(parcelaDiv);
+            }
+
+            document.getElementById('previaParcelasContainer').style.display = 'block';
+            
+            showModalNotification(`${numParcelas} parcelas geradas com sucesso! Intervalo de 30 dias entre cada uma.`, 'success');
+
+            // Remover loading
+            setLoadingState('gerarParcelasBtn', false);
+        }, 800); // Simulação de 800ms de carregamento
     }
 
-</script>
-{% endblock %}
+    function atualizarCategoriasDisponiveis() {
+        const tipoDespesa = document.getElementById('tipoDespesa')?.checked;
+        const select = document.getElementById('categoriaNovoLancamento');
+        
+        if (!select) return;
+        
+        select.innerHTML = '';
+        
+        if (tipoDespesa) {
+            const categoriasDespesa = [
+                'Combustível', 'Manutenção', 'Peças e Acessórios', 
+                'Fornecedores (NFe)', 'Outras Despesas'
+            ];
+            categoriasDespesa.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                select.appendChild(option);
+            });
+        } else {
+            const categoriasReceita = [
+                'Frete', 'Serviços de Transporte', 'Outras Receitas'
+            ];
+            categoriasReceita.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                select.appendChild(option);
+            });
+        }
+    }
+
+    function toggleRateioNovo() {
+        const tipoSelecionado = document.querySelector('input[name="tipo_rateio"]:checked')?.value;
+        const containerRateio = document.getElementById('containerRateioNovo');
+        
+        if (tipoSelecionado === 'com_rateio') {
+            containerRateio.style.display = 'block';
+            document.getElementById('rateioValorNotaNovo').textContent = formatarMoeda(valorTotalNovoLancamento);
+        } else {
+            containerRateio.style.display = 'none';
+            veiculosSelecionadosNovo.clear();
+            document.getElementById('veiculoSearchInputNovo').value = '';
+            document.getElementById('veiculoSearchResultsNovo').innerHTML = '';
+        }
+    }
+
+    async function buscarVeiculosNovo(event) {
+        const searchTerm = event.target.value;
+        const resultsContainer = document.getElementById('veiculoSearchResultsNovo');
+        if (searchTerm.length < 2) { resultsContainer.innerHTML = ''; return; }
+        try {
+            // Simular busca por veículos
+            const veiculos = [
+                { id: 1, display: "ABC-1234 - Scania R440" },
+                { id: 2, display: "DEF-5678 - Volvo FH" },
+                { id: 3, display: "GHI-9012 - Mercedes Actros" }
+            ].filter(v => v.display.toLowerCase().includes(searchTerm.toLowerCase()));
+            
+            resultsContainer.innerHTML = '';
+            const veiculosDisponiveis = veiculos.filter(v => !veiculosSelecionadosNovo.has(v.id));
+            
+            if (veiculosDisponiveis.length === 0) {
+                resultsContainer.innerHTML = '<div class="list-group-item text-muted">Nenhum veículo encontrado ou já adicionado</div>'; 
+                return;
+            }
+            
+            veiculosDisponiveis.forEach(veiculo => {
+                const item = document.createElement('a');
+                item.href = '#';
+                item.className = 'list-group-item list-group-item-action';
+                item.textContent = veiculo.display;
+                item.onclick = (e) => { 
+                    e.preventDefault(); 
+                    adicionarVeiculoParaRateioNovo(veiculo); 
+                    resultsContainer.innerHTML = ''; 
+                    event.target.value = ''; 
+                };
+                resultsContainer.appendChild(item);
+            });
+        } catch (error) { 
+            handleError(error); 
+        }
+    }
+
+    function adicionarVeiculoParaRateioNovo(veiculo) {
+        if (veiculosSelecionadosNovo.has(veiculo.id)) return;
+        const valorInicial = veiculosSelecionadosNovo.size === 0 ? valorTotalNovoLancamento : 0;
+        veiculosSelecionadosNovo.set(veiculo.id, { ...veiculo, valor: valorInicial });
+        renderizarVeiculosRateioNovo();
+    }
+
+    function removerVeiculoDoRateioNovo(veiculoId) {
+        veiculosSelecionadosNovo.delete(veiculoId);
+        renderizarVeiculosRateioNovo();
+    }
+
+    function renderizarVeiculosRateioNovo() {
+        const container = document.getElementById('veiculosRateioContainerNovo');
+        const emptyState = document.getElementById('rateioEmptyNovo');
+        const controles = document.getElementById('rateioControlesNovo');
+        
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        if (veiculosSelecionadosNovo.size === 0) {
+            container.innerHTML = emptyState.outerHTML;
+            controles.style.display = 'none';
+        } else {
+            controles.style.display = 'flex';
+            let index = 1;
+            veiculosSelecionadosNovo.forEach(veiculo => {
+                const percentual = valorTotalNovoLancamento > 0 ? ((veiculo.valor / valorTotalNovoLancamento) * 100) : 0;
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'veiculo-rateio-item';
+                itemDiv.innerHTML = `
+                    <div class="veiculo-header">
+                        <div class="veiculo-numero">${index}</div>
+                        <div class="veiculo-info"><span class="veiculo-nome">${veiculo.display}</span></div>
+                        <button type="button" class="btn-delete-veiculo" onclick="removerVeiculoDoRateioNovo(${veiculo.id})"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="veiculo-valores">
+                        <div class="valor-input-group"><label>Valor (R$)</label><input type="number" class="rateio-valor-input" data-id="${veiculo.id}" value="${(veiculo.valor || 0).toFixed(2)}" oninput="atualizarValorRateioNovo(${veiculo.id}, this.value)"></div>
+                        <div class="valor-input-group"><label>Percentual (%)</label><input type="number" class="rateio-percentual-input" data-id="${veiculo.id}" value="${percentual.toFixed(1)}" oninput="atualizarPercentualRateioNovo(${veiculo.id}, this.value)"></div
