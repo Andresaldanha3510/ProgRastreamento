@@ -601,6 +601,27 @@ class Romaneio(db.Model):
     @property
     def peso_total(self):
         return sum(item.peso_total_item for item in self.itens) if self.itens else 0.0
+    
+class RateioVeiculo(db.Model):
+    """Modelo para rateio de despesas entre veículos"""
+    __tablename__ = 'rateio_veiculos'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # CORREÇÃO APLICADA AQUI: de 'lancamentos_fluxo_caixa.id' para 'lancamento_fluxo_caixa.id'
+    lancamento_id = db.Column(db.Integer, db.ForeignKey('lancamento_fluxo_caixa.id'), nullable=False)
+    
+    # Esta linha você já corrigiu perfeitamente!
+    veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculo.id'), nullable=False)
+    
+    valor_rateado = db.Column(db.Numeric(10, 2), nullable=False)
+    percentual = db.Column(db.Numeric(5, 2), nullable=False)
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relacionamentos
+    lancamento = db.relationship('LancamentoFluxoCaixa', backref=db.backref('rateios', cascade="all, delete-orphan"))
+    veiculo = db.relationship('Veiculo', backref='rateios')
+
 
 class ItemRomaneio(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -879,6 +900,7 @@ class LancamentoFluxoCaixa(db.Model):
     data_lancamento = db.Column(db.DateTime, default=datetime.utcnow)
     data_vencimento = db.Column(db.Date, nullable=False, index=True)
     data_pagamento = db.Column(db.Date, nullable=True)
+    tem_rateio = db.Column(db.Boolean, nullable=False, server_default='false')
     
     # Status e controle
     status_pagamento = db.Column(db.String(20), default='PENDENTE', nullable=False, index=True)
@@ -888,6 +910,7 @@ class LancamentoFluxoCaixa(db.Model):
     fornecedor_cliente = db.Column(db.String(255), nullable=True)  # Nome do fornecedor/cliente
     documento_numero = db.Column(db.String(50), nullable=True)  # Número da nota, boleto, etc.
     observacoes = db.Column(db.Text, nullable=True)
+    meio_pagamento = db.Column(db.String(50), nullable=True)
     
     # Controle de parcelas
     parcela_numero = db.Column(db.Integer, default=1)
@@ -1141,109 +1164,75 @@ def api_salvar_lancamento():
         logger.info(f"Dados recebidos para lançamento: {data}")
         
         chave_acesso = data.get('chave_acesso')
-        # <-- NOVO: Identifica o tipo de lançamento solicitado pela interface
-        tipo_lancamento = data.get('tipo_lancamento', 'parcela') # Padrão para 'parcela' por segurança
-
-        if not chave_acesso:
-            return jsonify({'success': False, 'message': 'Chave de acesso é obrigatória.'}), 400
-
         nota = NFeImportada.query.filter_by(chave_acesso=chave_acesso, empresa_id=current_user.empresa_id).first()
         if not nota:
             return jsonify({'success': False, 'message': 'Nota fiscal não encontrada.'}), 404
         if nota.status == 'PROCESSADA':
             return jsonify({'success': False, 'message': 'Esta nota já foi processada.'}), 409
 
-        lancamentos_criados = 0
-
-        # --- LÓGICA CONDICIONAL ---
-        if tipo_lancamento == 'rateio':
-            # --- LÓGICA DE RATEIO ---
-            rateios = data.get('rateios', [])
-            data_vencimento_str = data.get('data_vencimento')
-
-            if not rateios:
-                return jsonify({'success': False, 'message': 'Dados de rateio não fornecidos.'}), 400
-            if not data_vencimento_str:
-                return jsonify({'success': False, 'message': 'Data de vencimento é obrigatória para o rateio.'}), 400
-
-            total_rateado = sum(float(r.get('valor', 0)) for r in rateios)
-            if abs(total_rateado - float(nota.valor_total)) > 0.01:
-                return jsonify({'success': False, 'message': 'A soma dos rateios (R$ {:.2f}) não corresponde ao valor da nota (R$ {:.2f}).'.format(total_rateado, float(nota.valor_total))}), 400
-            
-            data_vencimento_rateio = datetime.strptime(data_vencimento_str, '%Y-%m-%d').date()
-
-            for rateio in rateios:
-                veiculo = db.session.get(Veiculo, int(rateio['veiculo_id']))
-                if not veiculo: 
-                    logger.warning(f"Veículo com ID {rateio['veiculo_id']} não encontrado para rateio.")
-                    continue
-
-                novo_lancamento = LancamentoFluxoCaixa(
-                    empresa_id=current_user.empresa_id,
-                    tipo='DESPESA',
-                    descricao=f"Rateio NFe ({nota.emitente_nome}) p/ Veículo {veiculo.placa}",
-                    categoria=data.get('categoria', 'Rateio de Despesas'),
-                    valor_total=float(rateio['valor']),
-                    data_vencimento=data_vencimento_rateio,
-                    fornecedor_cliente=nota.emitente_nome,
-                    documento_numero=nota.chave_acesso,
-                    observacoes=f"Parte do rateio da NFe Chave: {chave_acesso}",
-                    veiculo_id=veiculo.id # <-- SALVANDO O ID DO VEÍCULO
-                )
-                db.session.add(novo_lancamento)
-                lancamentos_criados += 1
+        tem_rateio = data.get('tem_rateio', False)
+        parcelas = data.get('parcelas', [])
+        categoria = data.get('categoria', 'Fornecedores (NFe)')
         
-        else: # tipo_lancamento == 'parcela'
-            # --- LÓGICA ORIGINAL DE PARCELAMENTO ---
-            parcelas_array = data.get('parcelas', [])
-            tipo_movimento = data.get('tipo_movimento') # Receita ou Despesa
-            categoria = data.get('categoria', '')
+        if not parcelas:
+            return jsonify({'success': False, 'message': 'Os dados de parcelamento são obrigatórios.'}), 400
 
-            if not parcelas_array:
-                return jsonify({'success': False, 'message': 'Pelo menos uma parcela deve ser informada.'}), 400
-
-            # (Sua lógica de validação de parcelas continua aqui...)
-
-            if not categoria:
-                categoria = 'Vendas/Receitas (NFe)' if tipo_movimento == 'RECEITA' else 'Fornecedores (NFe)'
+        total_parcelas = len(parcelas)
+        numero_nota = nota.chave_acesso[-9:]
+        serie_numero = f"{numero_nota[:3]}-{numero_nota[3:]}"
+        
+        # Identificador único para agrupar as parcelas desta NFe
+        documento_pai = f"NFE-{serie_numero}-{uuid.uuid4().hex[:6]}"
+        
+        for i, parcela_info in enumerate(parcelas, 1):
+            valor_parcela = float(parcela_info.get('valor', 0))
+            data_vencimento = datetime.strptime(parcela_info.get('data_vencimento'), '%Y-%m-%d').date()
             
-            numero_nota = nota.chave_acesso[-9:]
-            serie_numero = f"{numero_nota[:3]}-{numero_nota[3:]}"
-            total_parcelas = len(parcelas_array)
-            
-            for i, p in enumerate(parcelas_array, 1):
-                valor_parcela = float(p.get('valor', 0))
-                data_vencimento = datetime.strptime(p.get('data_vencimento'), '%Y-%m-%d').date()
+            descricao_base = f"NFe {serie_numero} - {nota.emitente_nome}"
+            if total_parcelas > 1:
+                descricao_base += f" - Parcela {i}/{total_parcelas}"
+
+            novo_lancamento = LancamentoFluxoCaixa(
+                empresa_id=current_user.empresa_id,
+                tipo='DESPESA',
+                descricao=descricao_base,
+                categoria=categoria,
+                valor_total=valor_parcela,
+                data_vencimento=data_vencimento,
+                fornecedor_cliente=nota.emitente_nome,
+                # Usamos um identificador único para o grupo de parcelas
+                documento_numero=documento_pai,
+                observacoes=f"Chave de acesso: {chave_acesso}",
+                parcela_numero=i,
+                parcela_total=total_parcelas,
+                tem_rateio=tem_rateio
+            )
+            db.session.add(novo_lancamento)
+            db.session.flush() # Garante que o ID esteja disponível
+
+            if tem_rateio:
+                veiculos_rateio = data.get('veiculos', [])
+                if not veiculos_rateio:
+                    db.session.rollback()
+                    return jsonify({'success': False, 'message': 'Para rateio, os veículos são obrigatórios.'}), 400
                 
-                descricao = f"NFe {serie_numero} - {nota.emitente_nome}"
-                if total_parcelas > 1:
-                    descricao += f" - Parcela {i}/{total_parcelas}"
+                for veiculo_rateio in veiculos_rateio:
+                    percentual = float(veiculo_rateio.get('percentual', 0))
+                    # O valor rateado é o percentual sobre o VALOR DA PARCELA
+                    valor_rateado_para_parcela = valor_parcela * (percentual / 100)
 
-                novo_lancamento = LancamentoFluxoCaixa(
-                    empresa_id=current_user.empresa_id,
-                    tipo=tipo_movimento,
-                    descricao=descricao,
-                    categoria=categoria,
-                    valor_total=valor_parcela,
-                    data_vencimento=data_vencimento,
-                    fornecedor_cliente=nota.emitente_nome,
-                    documento_numero=f"{serie_numero}-{i:02d}" if total_parcelas > 1 else serie_numero,
-                    observacoes=f"NFe importada da SEFAZ - Chave: {chave_acesso}",
-                    parcela_numero=i,
-                    parcela_total=total_parcelas
-                )
-                db.session.add(novo_lancamento)
-                lancamentos_criados += 1
+                    novo_rateio_db = RateioVeiculo(
+                        lancamento_id=novo_lancamento.id,
+                        veiculo_id=int(veiculo_rateio['veiculo_id']),
+                        valor_rateado=valor_rateado_para_parcela,
+                        percentual=percentual
+                    )
+                    db.session.add(novo_rateio_db)
         
-        # --- FINALIZAÇÃO COMUM ---
-        if lancamentos_criados > 0:
-            nota.status = 'PROCESSADA'
-            db.session.commit()
-            message = f'Lançamento criado! {lancamentos_criados} registro(s) no fluxo de caixa.'
-            return jsonify({'success': True, 'message': message})
-        else:
-            db.session.rollback()
-            return jsonify({'success': False, 'message': 'Nenhum lançamento foi criado. Verifique os dados.'}), 400
+        nota.status = 'PROCESSADA'
+        db.session.commit()
+        message = f'Lançamento criado com sucesso! {total_parcelas} parcela(s) registrada(s) no fluxo de caixa.'
+        return jsonify({'success': True, 'message': message})
 
     except Exception as e:
         db.session.rollback()
@@ -1278,6 +1267,42 @@ def api_visualizar_xml(chave_acesso):
     except Exception as e:
         logger.error(f"Erro ao visualizar XML da NFe {chave_acesso}: {e}", exc_info=True)
         return jsonify({'success': False, 'message': f'Erro ao processar XML: {e}'}), 500
+
+
+@app.route('/api/fluxo_caixa/excluir_rateio', methods=['POST'])
+@login_required
+@master_required
+def api_excluir_rateio():
+    """API para excluir todos os rateios de um lançamento, convertendo-o em despesa geral."""
+    data = request.get_json()
+    item_id_str = data.get('item_id', '')
+    
+    if not item_id_str:
+        return jsonify({'success': False, 'message': 'ID do item é obrigatório'}), 400
+
+    try:
+        lancamento_id = int(item_id_str.replace('manual_', '').replace('nfe_', ''))
+        
+        lancamento = db.session.get(LancamentoFluxoCaixa, lancamento_id)
+        if not lancamento or lancamento.empresa_id != current_user.empresa_id:
+            return jsonify({'success': False, 'message': 'Lançamento não encontrado.'}), 404
+
+        if lancamento.status_pagamento == 'PAGO':
+            return jsonify({'success': False, 'message': 'Não é possível excluir o rateio de um lançamento já pago.'}), 400
+
+        # 1. Exclui todos os registros de rateio associados
+        RateioVeiculo.query.filter_by(lancamento_id=lancamento.id).delete()
+        
+        # 2. Atualiza o lançamento principal para não ter mais rateio
+        lancamento.tem_rateio = False
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Rateio excluído com sucesso! O lançamento agora é uma despesa geral.'})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao excluir rateio do lançamento {item_id_str}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Erro interno: {str(e)}'}), 500
 
 @app.route('/fiscal/xml/<string:chave_acesso>')
 @login_required
@@ -4814,67 +4839,145 @@ def processar_nfe_api():
     return jsonify({'success': True, 'viagens': viagens_processadas, 'message': mensagem_sucesso})
 
 def buscar_lancamento_consolidado_por_id(item_id, empresa_id):
-    """
-    Busca um lançamento de qualquer tipo (manual ou NFe) pelo seu ID consolidado
-    e retorna um dicionário com os dados formatados.
-    """
-    hoje = date.today()
-    dados_formatados = None
-
-    if item_id.startswith('manual_'):
-        lancamento_id = int(item_id.replace('manual_', ''))
-        lancamento = db.session.get(LancamentoFluxoCaixa, lancamento_id)
-        if lancamento and lancamento.empresa_id == empresa_id:
-            dados_formatados = {
+    """Busca e formata dados de um lançamento específico"""
+    try:
+        if item_id.startswith('manual_'):
+            lancamento_id = int(item_id.replace('manual_', ''))
+            lancamento = LancamentoFluxoCaixa.query.filter_by(
+                id=lancamento_id, 
+                empresa_id=empresa_id
+            ).first()
+            
+            if not lancamento:
+                return None
+            
+            # Verificar valores de parcela para evitar None
+            parcela_numero = getattr(lancamento, 'parcela_numero', 1) or 1
+            parcela_total = getattr(lancamento, 'parcela_total', 1) or 1
+            
+            # Verificar campos de data disponíveis
+            data_criacao_field = getattr(lancamento, 'data_criacao', None) or \
+                               getattr(lancamento, 'created_at', None) or \
+                               getattr(lancamento, 'data_cadastro', None) or \
+                               getattr(lancamento, 'data_lancamento', None)
+            
+            data_atualizacao_field = getattr(lancamento, 'data_atualizacao', None) or \
+                                   getattr(lancamento, 'updated_at', None) or \
+                                   getattr(lancamento, 'data_modificacao', None)
+            
+            # Formatar dados do lançamento manual
+            dados_lancamento = {
                 'id': f"manual_{lancamento.id}",
                 'tipo_origem': 'MANUAL',
                 'tipo_movimento': lancamento.tipo,
-                'data_vencimento': lancamento.data_vencimento.strftime('%d/%m/%Y'),
-                'data_pagamento': lancamento.data_pagamento.strftime('%d/%m/%Y') if lancamento.data_pagamento else '-',
-                'data_emissao': '-', # Lançamentos manuais não têm data de emissão neste modelo
                 'descricao': lancamento.descricao,
-                'categoria': lancamento.categoria or 'Sem categoria',
-                'fornecedor_cliente': lancamento.fornecedor_cliente,
-                'documento': lancamento.documento_numero,
-                'valor': lancamento.valor_total,
-                'valor_formatado': f"{lancamento.valor_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
-                'status': lancamento.status_pagamento,
-                'parcela': f"{lancamento.parcela_numero}/{lancamento.parcela_total}" if lancamento.parcela_total > 1 else None,
-                'observacoes': lancamento.observacoes,
-                'meio_pagamento': None, # Adicione se tiver este campo no modelo
-                'data_criacao': lancamento.data_lancamento.strftime('%d/%m/%Y %H:%M'),
-                'data_atualizacao': lancamento.data_lancamento.strftime('%d/%m/%Y %H:%M') # Simplificado
+                'categoria': getattr(lancamento, 'categoria', None),
+                'valor': float(lancamento.valor_total),
+                'valor_formatado': f"{lancamento.valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+                'data_emissao': data_criacao_field.strftime('%d/%m/%Y') if data_criacao_field else None,
+                'data_vencimento': lancamento.data_vencimento.strftime('%d/%m/%Y'),
+                'data_pagamento': lancamento.data_pagamento.strftime('%d/%m/%Y') if lancamento.data_pagamento else None,
+                'data_criacao': data_criacao_field.strftime('%d/%m/%Y %H:%M') if data_criacao_field else None,
+                'data_atualizacao': data_atualizacao_field.strftime('%d/%m/%Y %H:%M') if data_atualizacao_field else None,
+                'fornecedor_cliente': getattr(lancamento, 'fornecedor_cliente', None),
+                'documento': getattr(lancamento, 'documento_numero', None),
+                'status': getattr(lancamento, 'status_pagamento', 'PENDENTE'),
+                'meio_pagamento': getattr(lancamento, 'meio_pagamento', None),
+                'parcela': f"{parcela_numero}/{parcela_total}" if parcela_total > 1 else None,
+                'observacoes': getattr(lancamento, 'observacoes', None),
+                'tem_rateio': getattr(lancamento, 'tem_rateio', False)
             }
-
-    # Nota: O seu modelo `LancamentoNotaFiscal` foi renomeado para `LancamentoFluxoCaixa` na sua última modificação.
-    # A lógica abaixo assume que lançamentos de NFe agora estão na tabela `lancamento_fluxo_caixa`
-    # e podem ser identificados pela descrição ou por um campo específico, se houver.
-    # Se você tiver um modelo separado para NFe, ajuste a lógica de busca aqui.
-
-    return dados_formatados
-
-
-# ADICIONE ESTA ROTA COMPLETA NO SEU app.py
+            
+        elif item_id.startswith('nfe_'):
+            lancamento_id = int(item_id.replace('nfe_', ''))
+            lancamento = LancamentoNotaFiscal.query.filter_by(
+                id=lancamento_id, 
+                empresa_id=empresa_id
+            ).first()
+            
+            if not lancamento:
+                return None
+            
+            # Extrair número da NFe da chave de acesso (posições 25-33)
+            numero_nfe = lancamento.chave_acesso[25:34] if len(lancamento.chave_acesso) >= 34 else lancamento.chave_acesso[-9:]
+            
+            # Verificar valores de parcela para evitar None
+            parcela_numero = getattr(lancamento, 'parcela_numero', 1) or 1
+            parcela_total = getattr(lancamento, 'parcela_total', 1) or 1
+            
+            # Formatar dados do lançamento NFe
+            dados_lancamento = {
+                'id': f"nfe_{lancamento.id}",
+                'tipo_origem': 'NFE',
+                'tipo_movimento': 'DESPESA',
+                'descricao': f"NFe {numero_nfe} - {lancamento.emitente_nome}",
+                'categoria': 'Fornecedores (NFe)',
+                'valor': float(lancamento.valor_total),
+                'valor_formatado': f"{lancamento.valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+                'data_emissao': lancamento.data_emissao.strftime('%d/%m/%Y') if lancamento.data_emissao else None,
+                'data_vencimento': lancamento.data_vencimento.strftime('%d/%m/%Y'),
+                'data_pagamento': lancamento.data_pagamento.strftime('%d/%m/%Y') if lancamento.data_pagamento else None,
+                'data_criacao': lancamento.data_lancamento.strftime('%d/%m/%Y %H:%M') if lancamento.data_lancamento else None,
+                'data_atualizacao': None,  # Campo não existe no modelo
+                'fornecedor_cliente': lancamento.emitente_nome,
+                'documento': lancamento.chave_acesso,
+                'status': lancamento.status_pagamento,
+                'meio_pagamento': None,  # Campo não existe no modelo
+                'parcela': f"{parcela_numero}/{parcela_total}" if parcela_total > 1 else None,
+                'observacoes': getattr(lancamento, 'observacoes', None),
+                'tem_rateio': getattr(lancamento, 'tem_rateio', False)
+            }
+        else:
+            return None
+            
+        return dados_lancamento
+        
+    except Exception as e:
+        logger.error(f"Erro ao buscar lançamento consolidado: {e}", exc_info=True)
+        return None
+    
 @app.route('/api/fluxo_caixa/detalhes/<string:item_id>')
 @login_required
 def api_detalhes_lancamento(item_id):
-    """
-    API para buscar os detalhes de um lançamento específico do fluxo de caixa.
-    """
+    """ API para buscar os detalhes de um lançamento específico do fluxo de caixa (versão corrigida). """
     try:
-        # Usa a função auxiliar para buscar e formatar os dados
-        dados_lancamento = buscar_lancamento_consolidado_por_id(item_id, current_user.empresa_id)
-
-        if not dados_lancamento:
-            return jsonify({'success': False, 'message': 'Lançamento não encontrado.'}), 404
+        lancamento_id = int(item_id.replace('manual_', ''))
+        lancamento = db.session.get(LancamentoFluxoCaixa, lancamento_id)
         
-        # Retorna os dados formatados em JSON
+        if not lancamento or lancamento.empresa_id != current_user.empresa_id:
+            return jsonify({'success': False, 'message': 'Lançamento não encontrado.'}), 404
+
+        nfe_original = None
+        is_nfe = lancamento.documento_numero and lancamento.documento_numero.startswith('NFE-')
+        if is_nfe:
+            chave_acesso_base = lancamento.documento_numero.split('-')[1]
+            nfe_original = NFeImportada.query.filter_by(chave_acesso=chave_acesso_base, empresa_id=current_user.empresa_id).first()
+
+        dados_lancamento = {
+            'id': f"manual_{lancamento.id}",
+            'tipo_origem': 'NFE' if is_nfe else 'MANUAL',
+            'tipo_movimento': lancamento.tipo,
+            'descricao': lancamento.descricao,
+            'categoria': lancamento.categoria,
+            'valor': float(lancamento.valor_total),
+            'valor_formatado': f"{lancamento.valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+            'data_emissao': nfe_original.data_emissao.strftime('%d/%m/%Y') if nfe_original else lancamento.data_lancamento.strftime('%d/%m/%Y'),
+            'data_vencimento': lancamento.data_vencimento.strftime('%d/%m/%Y'),
+            'data_pagamento': lancamento.data_pagamento.strftime('%d/%m/%Y') if lancamento.data_pagamento else '-',
+            'fornecedor_cliente': lancamento.fornecedor_cliente,
+            'documento': nfe_original.chave_acesso if nfe_original else lancamento.documento_numero,
+            'status': lancamento.status_pagamento,
+            'meio_pagamento': lancamento.meio_pagamento,
+            'parcela': f"{lancamento.parcela_numero}/{lancamento.parcela_total}" if lancamento.parcela_total and lancamento.parcela_total > 1 else None,
+            'observacoes': lancamento.observacoes,
+            'tem_rateio': lancamento.tem_rateio
+        }
+        
         return jsonify({'success': True, 'dados': dados_lancamento})
 
     except Exception as e:
         logger.error(f"Erro ao buscar detalhes do lançamento {item_id}: {e}", exc_info=True)
-        return jsonify({'success': False, 'message': 'Erro interno ao buscar detalhes.'}), 500
-
+        return jsonify({'success': False, 'message': f'Erro interno ao buscar detalhes: {str(e)}'}), 500
 
 @app.route('/viagem/importar_nfe')
 @login_required
@@ -5217,6 +5320,416 @@ def api_excluir_lancamento_fluxo():
         db.session.rollback()
         logger.error(f"Erro ao excluir lançamento: {e}", exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500
+    
+
+@app.route('/api/fluxo_caixa/salvar_rateio', methods=['POST'])
+@login_required
+@master_required
+def api_salvar_rateio():
+    data = request.get_json()
+    item_id_str = data.get('item_id', '')
+    lancamento_id_clicado = int(item_id_str.replace('manual_', '').replace('nfe_', ''))
+    veiculos_data = data.get('veiculos', [])
+    
+    lancamento_clicado = db.session.get(LancamentoFluxoCaixa, lancamento_id_clicado)
+    if not lancamento_clicado or lancamento_clicado.empresa_id != current_user.empresa_id:
+        return jsonify({'success': False, 'message': 'Lançamento não encontrado.'}), 404
+
+    # Encontrar todos os lançamentos do mesmo grupo
+    lancamentos_do_grupo = []
+    if lancamento_clicado.documento_numero and lancamento_clicado.documento_numero.startswith('NFE-'):
+        lancamentos_do_grupo = LancamentoFluxoCaixa.query.filter_by(
+            documento_numero=lancamento_clicado.documento_numero,
+            empresa_id=current_user.empresa_id
+        ).all()
+    else:
+        lancamentos_do_grupo.append(lancamento_clicado)
+        
+    try:
+        # Itera sobre cada lançamento (parcela) do grupo
+        for lancamento in lancamentos_do_grupo:
+            # Exclui o rateio antigo para esta parcela específica
+            RateioVeiculo.query.filter_by(lancamento_id=lancamento.id).delete()
+
+            if veiculos_data: # Se há novos dados de rateio, cria-os
+                for veiculo in veiculos_data:
+                    percentual = float(veiculo['percentual'])
+                    valor_rateado_parcela = lancamento.valor_total * (percentual / 100)
+                    
+                    novo_rateio = RateioVeiculo(
+                        lancamento_id=lancamento.id,
+                        veiculo_id=int(veiculo['veiculo_id']),
+                        valor_rateado=valor_rateado_parcela,
+                        percentual=percentual
+                    )
+                    db.session.add(novo_rateio)
+                lancamento.tem_rateio = True
+            else: # Se a lista de veículos está vazia, significa que o rateio foi removido
+                lancamento.tem_rateio = False
+
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Rateio salvo com sucesso para todas as parcelas!'})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao salvar rateio para o grupo do lançamento {lancamento_id_clicado}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Erro interno: {str(e)}'}), 500
+    
+@app.route('/api/fluxo_caixa/novo_lancamento_completo', methods=['POST'])
+@login_required
+@master_required
+def api_novo_lancamento_completo():
+    """
+    API robusta para criar um novo lançamento manual, com suporte a múltiplas
+    parcelas e rateio de despesa por veículos.
+    """
+    data = request.get_json()
+    try:
+        # --- Validações Essenciais ---
+        if not all(k in data for k in ['tipo', 'descricao', 'valor_total', 'parcelas']):
+            return jsonify({'success': False, 'message': 'Dados essenciais estão faltando.'}), 400
+
+        parcelas_info = data.get('parcelas', [])
+        if not parcelas_info:
+             return jsonify({'success': False, 'message': 'Pelo menos uma parcela é necessária.'}), 400
+
+        valor_total_form = float(data['valor_total'])
+        if abs(sum(float(p['valor']) for p in parcelas_info) - valor_total_form) > 0.01:
+            return jsonify({'success': False, 'message': 'A soma das parcelas não confere com o valor total.'}), 400
+
+        tem_rateio = data.get('tem_rateio', False)
+        veiculos_rateio = data.get('veiculos', [])
+        if tem_rateio and not veiculos_rateio:
+            return jsonify({'success': False, 'message': 'Para rateio, os veículos são obrigatórios.'}), 400
+
+        # --- Lógica de Criação ---
+        # Cria um ID de grupo para vincular as parcelas, se houver mais de uma
+        grupo_doc_id = f"MANUAL-{uuid.uuid4().hex[:8]}" if len(parcelas_info) > 1 else None
+
+        for i, parcela in enumerate(parcelas_info, 1):
+            novo_lancamento = LancamentoFluxoCaixa(
+                empresa_id=current_user.empresa_id,
+                tipo=data['tipo'],
+                descricao=f"{data['descricao']} ({i}/{len(parcelas_info)})" if len(parcelas_info) > 1 else data['descricao'],
+                categoria=data.get('categoria'),
+                valor_total=float(parcela['valor']),
+                data_vencimento=datetime.strptime(parcela['data_vencimento'], '%Y-%m-%d').date(),
+                fornecedor_cliente=data.get('fornecedor_cliente'),
+                documento_numero=grupo_doc_id or data.get('documento_numero'),
+                observacoes=data.get('observacoes'),
+                parcela_numero=i,
+                parcela_total=len(parcelas_info),
+                tem_rateio=tem_rateio
+            )
+            db.session.add(novo_lancamento)
+            db.session.flush() # Garante que o ID do lançamento esteja disponível para o rateio
+
+            if tem_rateio:
+                for veiculo_info in veiculos_rateio:
+                    percentual = float(veiculo_info.get('percentual', 0))
+                    # O valor rateado é o percentual sobre o VALOR DA PARCELA
+                    valor_rateado_para_parcela = novo_lancamento.valor_total * (percentual / 100)
+
+                    novo_rateio_db = RateioVeiculo(
+                        lancamento_id=novo_lancamento.id,
+                        veiculo_id=int(veiculo_info['veiculo_id']),
+                        valor_rateado=valor_rateado_para_parcela,
+                        percentual=percentual
+                    )
+                    db.session.add(novo_rateio_db)
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': f'Lançamento criado com sucesso! {len(parcelas_info)} parcela(s) registrada(s).'})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao criar lançamento completo via API: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Erro interno do servidor: {str(e)}'}), 500
+
+
+@app.route('/api/fluxo_caixa/rateio/<string:item_id>')
+@login_required
+def api_buscar_rateio(item_id):
+    try:
+        lancamento_id_real = int(item_id.replace('manual_', '').replace('nfe_', ''))
+        lancamento_clicado = db.session.get(LancamentoFluxoCaixa, lancamento_id_real)
+
+        if not lancamento_clicado or lancamento_clicado.empresa_id != current_user.empresa_id:
+            return jsonify({'success': False, 'message': 'Lançamento não encontrado.'}), 404
+
+        if lancamento_clicado.tipo != 'DESPESA':
+            return jsonify({'success': False, 'message': 'Rateio só é aplicável a despesas.'}), 400
+
+        # Lógica para encontrar todos os lançamentos irmãos (parcelas)
+        lancamentos_do_grupo = []
+        if lancamento_clicado.documento_numero and lancamento_clicado.documento_numero.startswith('NFE-'):
+            # Se for NFe, busca pelo documento_numero que agrupa as parcelas
+            lancamentos_do_grupo = LancamentoFluxoCaixa.query.filter_by(
+                documento_numero=lancamento_clicado.documento_numero,
+                empresa_id=current_user.empresa_id
+            ).all()
+        else:
+            # Se for manual ou NFe antiga sem o grupo, trata como lançamento único
+            lancamentos_do_grupo.append(lancamento_clicado)
+
+        valor_total_grupo = sum(l.valor_total for l in lancamentos_do_grupo)
+
+        # Busca os dados de rateio do primeiro lançamento do grupo que os tiver
+        primeiro_lancamento_com_rateio = next((l for l in lancamentos_do_grupo if l.tem_rateio), None)
+
+        veiculos_data = []
+        if primeiro_lancamento_com_rateio:
+            rateios_db = RateioVeiculo.query.filter_by(lancamento_id=primeiro_lancamento_com_rateio.id).all()
+            for r in rateios_db:
+                # O percentual é o mesmo para todas as parcelas, pegamos do primeiro
+                percentual = float(r.percentual)
+                # O valor total do rateio é o percentual sobre o valor TOTAL do grupo
+                valor_total_rateado = valor_total_grupo * (percentual / 100)
+                
+                veiculos_data.append({
+                    'veiculo_id': r.veiculo_id,
+                    'veiculo_nome': f"{r.veiculo.placa} - {r.veiculo.modelo}",
+                    'valor': valor_total_rateado,
+                    'percentual': percentual
+                })
+        
+        dados_formatados = {
+            'id': f"manual_{lancamento_clicado.id}", # Sempre retorna o ID clicado para referência
+            'descricao': lancamento_clicado.descricao.split(' - Parcela')[0], # Descrição base
+            'valor_total': valor_total_grupo,
+            'categoria': lancamento_clicado.categoria,
+            'rateio_veiculos': veiculos_data
+        }
+        
+        return jsonify({'success': True, 'dados': dados_formatados})
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar dados de rateio para {item_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Erro interno: {str(e)}'}), 500
+
+
+@app.route('/api/fluxo_caixa/novo_lancamento_rateio', methods=['POST'])
+@login_required  
+@master_required
+def api_novo_lancamento_com_rateio():
+    """API para criar novo lançamento (com ou sem rateio)"""
+    try:
+        data = request.get_json()
+        
+        # Dados básicos
+        tipo_movimento = data.get('tipo_movimento', 'DESPESA')
+        descricao = data.get('descricao')
+        categoria = data.get('categoria')
+        valor = float(data.get('valor', 0))
+        data_vencimento = datetime.strptime(data.get('data_vencimento'), '%Y-%m-%d').date()
+        
+        # Dados opcionais
+        data_emissao = data.get('data_emissao')
+        if data_emissao:
+            data_emissao = datetime.strptime(data_emissao, '%Y-%m-%d').date()
+            
+        fornecedor_cliente = data.get('fornecedor_cliente', '')
+        documento = data.get('documento', '')
+        observacoes = data.get('observacoes', '')
+        
+        # Status baseado em "marcar como pago"
+        pago_agora = data.get('marcar_pago_agora', False)
+        status = 'PAGO' if pago_agora else 'PENDENTE'
+        
+        # Dados de pagamento
+        forma_pagamento = data.get('forma_pagamento') if pago_agora else None
+        data_pagamento = None
+        if pago_agora and data.get('data_pagamento'):
+            data_pagamento = datetime.strptime(data.get('data_pagamento'), '%Y-%m-%d').date()
+            
+        # Verificar parcelas
+        parcelado = data.get('parcelado', False)
+        parcelas_data = data.get('parcelas', [])
+        
+        if parcelado and parcelas_data:
+            # Criar múltiplas parcelas
+            for i, parcela in enumerate(parcelas_data, 1):
+                novo_lancamento = LancamentoFluxoCaixa(
+                    empresa_id=current_user.empresa_id,
+                    tipo=tipo_movimento,  # ou tipo_movimento dependendo do seu modelo
+                    descricao=f"{descricao} - Parcela {i}/{len(parcelas_data)}",
+                    categoria=categoria,
+                    valor_total=float(parcela.get('valor', 0)),
+                    data_emissao=data_emissao,
+                    data_vencimento=datetime.strptime(parcela.get('data_vencimento'), '%Y-%m-%d').date(),
+                    data_pagamento=data_pagamento,
+                    fornecedor_cliente=fornecedor_cliente,
+                    documento_numero=documento,
+                    status=status,
+                    meio_pagamento=forma_pagamento,
+                    tipo_origem='MANUAL',
+                    observacoes=observacoes,
+                    parcela=f"{i}/{len(parcelas_data)}"
+                )
+                db.session.add(novo_lancamento)
+        else:
+            # Criar lançamento único
+            novo_lancamento = LancamentoFluxoCaixa(
+                empresa_id=current_user.empresa_id,
+                tipo=tipo_movimento,
+                descricao=descricao,
+                categoria=categoria,
+                valor_total=valor,
+                data_emissao=data_emissao,
+                data_vencimento=data_vencimento,
+                data_pagamento=data_pagamento,
+                fornecedor_cliente=fornecedor_cliente,
+                documento_numero=documento,
+                status=status,
+                meio_pagamento=forma_pagamento,
+                tipo_origem='MANUAL',
+                observacoes=observacoes
+            )
+            db.session.add(novo_lancamento)
+        
+        db.session.flush()
+        
+        # Processar rateio se aplicável
+        tem_rateio = data.get('tem_rateio', False)
+        veiculos_rateio = data.get('veiculos', [])
+        
+        if tem_rateio and veiculos_rateio:
+            # Aplicar rateio em todos os lançamentos criados
+            lancamentos = [novo_lancamento] if not parcelado else db.session.query(LancamentoFluxoCaixa).filter(
+                LancamentoFluxoCaixa.empresa_id == current_user.empresa_id,
+                LancamentoFluxoCaixa.descricao.like(f"{descricao} - Parcela%")
+            ).all()
+            
+            for lancamento in lancamentos:
+                for veiculo in veiculos_rateio:
+                    valor_rateado = lancamento.valor_total * (float(veiculo['percentual']) / 100)
+                    
+                    rateio = RateioVeiculo(
+                        lancamento_id=lancamento.id,
+                        veiculo_id=int(veiculo['veiculo_id']),
+                        valor_rateado=valor_rateado,
+                        percentual=float(veiculo['percentual'])
+                    )
+                    db.session.add(rateio)
+                    
+                lancamento.tem_rateio = True
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Lançamento criado com sucesso!'})
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao criar lançamento: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Erro: {str(e)}'}), 500
+
+@app.route('/api/veiculos/search')
+@login_required
+def api_buscar_veiculos():
+    """API para buscar veículos por termo de pesquisa"""
+    try:
+        term = request.args.get('term', '').strip()
+        if len(term) < 2:
+            return jsonify([])
+        
+        veiculos = Veiculo.query.filter(
+            Veiculo.empresa_id == current_user.empresa_id,
+            Veiculo.ativo == True,
+            db.or_(
+                Veiculo.placa.ilike(f'%{term}%'),
+                Veiculo.modelo.ilike(f'%{term}%'),
+                Veiculo.marca.ilike(f'%{term}%')
+            )
+        ).limit(10).all()
+        
+        resultado = []
+        for veiculo in veiculos:
+            resultado.append({
+                'id': veiculo.id,
+                'display': f"{veiculo.placa} - {veiculo.marca} {veiculo.modelo}"
+            })
+        
+        return jsonify(resultado)
+        
+    except Exception as e:
+        logger.error(f"Erro ao buscar veículos: {e}", exc_info=True)
+        return jsonify([])
+
+@app.route('/api/fluxo_caixa/exportar_relatorio_rateio')
+@login_required
+def api_exportar_relatorio_rateio():
+    """API para exportar relatório de rateio em Excel"""
+    try:
+        # Aplicar filtros da tela atual
+        data_inicio = request.args.get('data_inicio')
+        data_fim = request.args.get('data_fim')
+        categoria_filtro = request.args.get('categoria')
+        
+        # Query base
+        query = db.session.query(LancamentoFluxoCaixa, RateioVeiculo, Veiculo).join(
+            RateioVeiculo, LancamentoFluxoCaixa.id == RateioVeiculo.lancamento_id
+        ).join(
+            Veiculo, RateioVeiculo.veiculo_id == Veiculo.id
+        ).filter(
+            LancamentoFluxoCaixa.empresa_id == current_user.empresa_id,
+            LancamentoFluxoCaixa.tem_rateio == True
+        )
+        
+        # Aplicar filtros
+        if data_inicio:
+            query = query.filter(LancamentoFluxoCaixa.data_vencimento >= datetime.strptime(data_inicio, '%Y-%m-%d').date())
+        if data_fim:
+            query = query.filter(LancamentoFluxoCaixa.data_vencimento <= datetime.strptime(data_fim, '%Y-%m-%d').date())
+        if categoria_filtro:
+            query = query.filter(LancamentoFluxoCaixa.categoria == categoria_filtro)
+        
+        dados = query.all()
+        
+        # Criar Excel
+        output = BytesIO()
+        workbook = xlsxwriter.Workbook(output)
+        worksheet = workbook.add_worksheet('Relatório de Rateio')
+        
+        # Estilos
+        header_format = workbook.add_format({
+            'bold': True, 'bg_color': '#2e7d32', 'font_color': 'white'
+        })
+        money_format = workbook.add_format({'num_format': 'R$ #,##0.00'})
+        percent_format = workbook.add_format({'num_format': '0.0%'})
+        
+        # Cabeçalhos
+        headers = [
+            'Data Vencimento', 'Descrição', 'Categoria', 'Valor Total',
+            'Veículo', 'Placa', 'Valor Rateado', 'Percentual', 'Status'
+        ]
+        
+        for col, header in enumerate(headers):
+            worksheet.write(0, col, header, header_format)
+        
+        # Dados
+        for row, (lancamento, rateio, veiculo) in enumerate(dados, 1):
+            worksheet.write(row, 0, lancamento.data_vencimento.strftime('%d/%m/%Y'))
+            worksheet.write(row, 1, lancamento.descricao)
+            worksheet.write(row, 2, lancamento.categoria)
+            worksheet.write(row, 3, float(lancamento.valor_total), money_format)
+            worksheet.write(row, 4, f"{veiculo.marca} {veiculo.modelo}")
+            worksheet.write(row, 5, veiculo.placa)
+            worksheet.write(row, 6, float(rateio.valor_rateado), money_format)
+            worksheet.write(row, 7, float(rateio.percentual)/100, percent_format)
+            worksheet.write(row, 8, lancamento.status_pagamento)
+        
+        workbook.close()
+        output.seek(0)
+        
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=f'relatorio_rateio_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx',
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        
+    except Exception as e:
+        logger.error(f"Erro ao exportar relatório de rateio: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/fluxo_caixa/buscar_dados/<string:item_id>')
 @login_required
@@ -5242,7 +5755,8 @@ def api_buscar_dados_lancamento(item_id):
                 'documento_numero': lancamento.documento_numero,
                 'observacoes': lancamento.observacoes,
                 'status': lancamento.status_pagamento,
-                'pode_editar': lancamento.status_pagamento != 'PAGO'
+                'pode_editar': lancamento.status_pagamento != 'PAGO',
+                'tem_rateio': getattr(lancamento, 'tem_rateio', False)
             }
             
         elif item_id.startswith('nfe_'):
@@ -5262,83 +5776,64 @@ def api_buscar_dados_lancamento(item_id):
 @login_required
 @master_required
 def api_estornar_pagamento():
-    """API para estornar um pagamento já realizado"""
     data = request.get_json()
-    item_id = data.get('item_id')
-    motivo = data.get('motivo', '')
+    item_id_str = data.get('item_id')
     
-    if not item_id:
+    if not item_id_str:
         return jsonify({'success': False, 'message': 'ID do item é obrigatório'}), 400
-    
-    try:
-        if item_id.startswith('manual_'):
-            lancamento_id = int(item_id.replace('manual_', ''))
-            lancamento = LancamentoFluxoCaixa.query.filter_by(
-                id=lancamento_id, 
-                empresa_id=current_user.empresa_id
-            ).first_or_404()
-            
-            if lancamento.status_pagamento != 'PAGO':
-                return jsonify({'success': False, 'message': 'Este lançamento não está marcado como pago'}), 400
-            
+        
+    # Lida com ambos os tipos de lançamento
+    if item_id_str.startswith('manual_'):
+        lancamento_id = int(item_id_str.replace('manual_', ''))
+        lancamento = db.session.get(LancamentoFluxoCaixa, lancamento_id)
+        if lancamento and lancamento.empresa_id == current_user.empresa_id:
             lancamento.status_pagamento = 'PENDENTE'
             lancamento.data_pagamento = None
-            if motivo:
-                lancamento.observacoes = f"{lancamento.observacoes or ''}\n[ESTORNO] {motivo}"
-            
-        elif item_id.startswith('nfe_'):
-            lancamento_id = int(item_id.replace('nfe_', ''))
-            lancamento = LancamentoNotaFiscal.query.filter_by(
-                id=lancamento_id, 
-                empresa_id=current_user.empresa_id
-            ).first_or_404()
-            
-            if lancamento.status_pagamento != 'Pago':
-                return jsonify({'success': False, 'message': 'Este lançamento não está marcado como pago'}), 400
-            
+            lancamento.meio_pagamento = None
+    elif item_id_str.startswith('nfe_'):
+        lancamento_id = int(item_id_str.replace('nfe_', ''))
+        lancamento = db.session.get(LancamentoNotaFiscal, lancamento_id)
+        if lancamento and lancamento.empresa_id == current_user.empresa_id:
             lancamento.status_pagamento = 'A Pagar'
             lancamento.data_pagamento = None
-            if motivo:
-                lancamento.observacoes = f"{lancamento.observacoes or ''}\n[ESTORNO] {motivo}"
-            
-        else:
-            return jsonify({'success': False, 'message': 'Formato de ID inválido'}), 400
+    else:
+        return jsonify({'success': False, 'message': 'Tipo de lançamento inválido.'}), 400
         
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Pagamento estornado com sucesso!'})
-        
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Erro ao estornar pagamento: {e}", exc_info=True)
-        return jsonify({'success': False, 'message': str(e)}), 500
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Pagamento estornado com sucesso!'})
     
 @app.route('/api/fluxo_caixa/salvar_edicao', methods=['POST'])
 @login_required
 @master_required
 def api_salvar_edicao_lancamento():
-    """API para salvar edições via modal"""
+    """API para salvar edições de um lançamento manual a partir do modal (recebe JSON)."""
     data = request.get_json()
     lancamento_id = data.get('lancamento_id')
     
     if not lancamento_id:
-        return jsonify({'success': False, 'message': 'ID do lançamento é obrigatório'}), 400
+        return jsonify({'success': False, 'message': 'ID do lançamento é obrigatório.'}), 400
     
+    lancamento = db.session.get(LancamentoFluxoCaixa, lancamento_id)
+    
+    if not lancamento or lancamento.empresa_id != current_user.empresa_id:
+        return jsonify({'success': False, 'message': 'Lançamento não encontrado.'}), 404
+        
+    if lancamento.status_pagamento == 'PAGO':
+        return jsonify({'success': False, 'message': 'Não é possível editar lançamentos pagos.'}), 400
+
     try:
-        lancamento = LancamentoFluxoCaixa.query.filter_by(
-            id=lancamento_id, 
-            empresa_id=current_user.empresa_id
-        ).first_or_404()
-        
-        # Verificar se pode ser editado
-        if lancamento.status_pagamento == 'PAGO':
-            return jsonify({'success': False, 'message': 'Não é possível editar lançamentos já pagos'}), 400
-        
-        # Atualizar dados
-        lancamento.tipo = data.get('tipo')
-        lancamento.descricao = data.get('descricao')
+        # Se o lançamento já tem um rateio, impede a mudança para "Receita".
+        if lancamento.tem_rateio and data['tipo'] == 'RECEITA':
+            return jsonify({
+                'success': False, 
+                'message': 'Não é possível alterar o tipo para "Receita" em um lançamento que já possui um rateio de despesa.'
+            }), 400
+
+        lancamento.tipo = data['tipo']
+        lancamento.descricao = data['descricao']
         lancamento.categoria = data.get('categoria')
-        lancamento.valor_total = float(data.get('valor_total', 0))
-        lancamento.data_vencimento = datetime.strptime(data.get('data_vencimento'), '%Y-%m-%d').date()
+        lancamento.valor_total = float(data['valor_total'])
+        lancamento.data_vencimento = datetime.strptime(data['data_vencimento'], '%Y-%m-%d').date()
         lancamento.fornecedor_cliente = data.get('fornecedor_cliente')
         lancamento.documento_numero = data.get('documento_numero')
         lancamento.observacoes = data.get('observacoes')
@@ -5349,103 +5844,52 @@ def api_salvar_edicao_lancamento():
     except Exception as e:
         db.session.rollback()
         logger.error(f"Erro ao salvar edição via API: {e}", exc_info=True)
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': f'Erro interno: {str(e)}'}), 500
 
 @app.route('/api/fluxo_caixa/duplicar', methods=['POST'])
 @login_required
 @master_required
 def api_duplicar_lancamento():
-    """API para duplicar um lançamento existente"""
     data = request.get_json()
-    item_id = data.get('item_id')
+    item_id = int(data.get('item_id').replace('manual_', ''))
+    original = db.session.get(LancamentoFluxoCaixa, item_id)
     
-    if not item_id or not item_id.startswith('manual_'):
-        return jsonify({'success': False, 'message': 'Apenas lançamentos manuais podem ser duplicados'}), 400
-    
-    try:
-        lancamento_id = int(item_id.replace('manual_', ''))
-        lancamento_original = LancamentoFluxoCaixa.query.filter_by(
-            id=lancamento_id, 
-            empresa_id=current_user.empresa_id
-        ).first_or_404()
+    if not original or original.empresa_id != current_user.empresa_id:
+        return jsonify({'success': False, 'message': 'Lançamento original não encontrado.'}), 404
         
-        # Criar nova cópia
-        nova_data_vencimento = data.get('nova_data_vencimento')
-        if nova_data_vencimento:
-            data_vencimento = datetime.strptime(nova_data_vencimento, '%Y-%m-%d').date()
-        else:
-            # Se não especificar, duplica para próximo mês
-            data_vencimento = lancamento_original.data_vencimento + timedelta(days=30)
-        
-        novo_lancamento = LancamentoFluxoCaixa(
-            empresa_id=current_user.empresa_id,
-            tipo=lancamento_original.tipo,
-            descricao=f"{lancamento_original.descricao} (Cópia)",
-            categoria=lancamento_original.categoria,
-            valor_total=lancamento_original.valor_total,
-            data_vencimento=data_vencimento,
-            fornecedor_cliente=lancamento_original.fornecedor_cliente,
-            documento_numero=None,  # Não duplicar número do documento
-            observacoes=f"Duplicado do lançamento #{lancamento_original.id}",
-            parcela_numero=1,
-            parcela_total=1
-        )
-        
-        db.session.add(novo_lancamento)
-        db.session.commit()
-        
-        return jsonify({
-            'success': True, 
-            'message': 'Lançamento duplicado com sucesso!',
-            'novo_id': novo_lancamento.id
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Erro ao duplicar lançamento: {e}", exc_info=True)
-        return jsonify({'success': False, 'message': str(e)}), 500
+    novo_lancamento = LancamentoFluxoCaixa(
+        empresa_id=original.empresa_id,
+        tipo=original.tipo,
+        descricao=f"{original.descricao} (Cópia)",
+        categoria=original.categoria,
+        valor_total=original.valor_total,
+        data_vencimento=datetime.strptime(data['nova_data_vencimento'], '%Y-%m-%d').date(),
+        fornecedor_cliente=original.fornecedor_cliente,
+        documento_numero=original.documento_numero,
+        observacoes=f"Cópia do lançamento ID {original.id}",
+        parcela_numero=1,
+        parcela_total=1
+    )
+    db.session.add(novo_lancamento)
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Lançamento duplicado com sucesso!'})
 
 @app.route('/api/fluxo_caixa/alterar_categoria_massa', methods=['POST'])
 @login_required
 @master_required
-def api_alterar_categoria_massa():
-    """API para alterar categoria de múltiplos lançamentos de uma vez"""
+def api_alterar_categoria_em_massa():
     data = request.get_json()
-    item_ids = data.get('item_ids', [])
-    nova_categoria = data.get('nova_categoria', '').strip()
+    item_ids = [int(i.replace('manual_', '')) for i in data.get('item_ids', [])]
+    nova_categoria = data.get('nova_categoria')
     
-    if not item_ids:
-        return jsonify({'success': False, 'message': 'Nenhum lançamento selecionado'}), 400
+    atualizados = LancamentoFluxoCaixa.query.filter(
+        LancamentoFluxoCaixa.id.in_(item_ids),
+        LancamentoFluxoCaixa.empresa_id == current_user.empresa_id
+    ).update({'categoria': nova_categoria}, synchronize_session=False)
     
-    if not nova_categoria:
-        return jsonify({'success': False, 'message': 'Nova categoria é obrigatória'}), 400
-    
-    try:
-        atualizados = 0
-        
-        for item_id in item_ids:
-            if item_id.startswith('manual_'):
-                lancamento_id = int(item_id.replace('manual_', ''))
-                lancamento = LancamentoFluxoCaixa.query.filter_by(
-                    id=lancamento_id, 
-                    empresa_id=current_user.empresa_id
-                ).first()
-                
-                if lancamento and lancamento.status_pagamento != 'PAGO':
-                    lancamento.categoria = nova_categoria
-                    atualizados += 1
-        
-        db.session.commit()
-        
-        return jsonify({
-            'success': True, 
-            'message': f'{atualizados} lançamento(s) atualizado(s) com a nova categoria'
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Erro na alteração em massa: {e}", exc_info=True)
-        return jsonify({'success': False, 'message': str(e)}), 500
+    db.session.commit()
+    return jsonify({'success': True, 'message': f'{atualizados} item(s) tiveram a categoria alterada.'})
+
 
 @app.route('/api/fluxo_caixa/dashboard_resumo')
 @login_required 
@@ -8704,15 +9148,18 @@ def secret_password_reset(secret_key):
 @login_required
 @master_required
 def fluxo_caixa():
-    """Página principal do fluxo de caixa"""
+    """Página principal do fluxo de caixa, com filtros avançados e consolidação de dados."""
     hoje = date.today()
     
-    # Filtros da URL
+    # Coleta de todos os filtros da URL
     data_inicio = request.args.get('data_inicio', hoje.strftime('%Y-%m-%d'))
     data_fim = request.args.get('data_fim', (hoje + timedelta(days=30)).strftime('%Y-%m-%d'))
-    visualizacao = request.args.get('visualizacao', 'periodo')  # 'dia', 'mes', 'periodo'
+    data_emissao_inicio = request.args.get('data_emissao_inicio', '')
+    data_emissao_fim = request.args.get('data_emissao_fim', '')
     categoria_filtro = request.args.get('categoria', '')
     status_filtro = request.args.get('status', '')
+    meio_pagamento_filtro = request.args.get('meio_pagamento', '')
+    tipo_filtro = request.args.get('tipo', '')
     
     try:
         data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d').date()
@@ -8720,75 +9167,93 @@ def fluxo_caixa():
     except ValueError:
         data_inicio_obj = hoje
         data_fim_obj = hoje + timedelta(days=30)
-    
-    # Buscar lançamentos manuais
+
+    # Query base para lançamentos manuais
     query_manuais = LancamentoFluxoCaixa.query.filter(
         LancamentoFluxoCaixa.empresa_id == current_user.empresa_id,
-        LancamentoFluxoCaixa.data_vencimento >= data_inicio_obj,
-        LancamentoFluxoCaixa.data_vencimento <= data_fim_obj
+        LancamentoFluxoCaixa.data_vencimento.between(data_inicio_obj, data_fim_obj)
     )
-    
-    # Buscar lançamentos de NFe (contas a pagar)
-    query_nfe = LancamentoNotaFiscal.query.filter(
-        LancamentoNotaFiscal.empresa_id == current_user.empresa_id,
-        LancamentoNotaFiscal.data_vencimento >= data_inicio_obj,
-        LancamentoNotaFiscal.data_vencimento <= data_fim_obj
+
+    # Query base para lançamentos de NFe
+    query_nfe = LancamentoFluxoCaixa.query.filter(
+        LancamentoFluxoCaixa.empresa_id == current_user.empresa_id,
+        LancamentoFluxoCaixa.documento_numero.like('NFE-%'),
+        LancamentoFluxoCaixa.data_vencimento.between(data_inicio_obj, data_fim_obj)
     )
-    
-    # Aplicar filtros se especificados
+
+    # Aplicação centralizada dos filtros
+    if data_emissao_inicio:
+        query_manuais = query_manuais.filter(LancamentoFluxoCaixa.data_lancamento >= datetime.strptime(data_emissao_inicio, '%Y-%m-%d'))
+        query_nfe = query_nfe.filter(LancamentoFluxoCaixa.data_lancamento >= datetime.strptime(data_emissao_inicio, '%Y-%m-%d'))
+    if data_emissao_fim:
+        query_manuais = query_manuais.filter(LancamentoFluxoCaixa.data_lancamento <= datetime.strptime(data_emissao_fim, '%Y-%m-%d'))
+        query_nfe = query_nfe.filter(LancamentoFluxoCaixa.data_lancamento <= datetime.strptime(data_emissao_fim, '%Y-%m-%d'))
+
     if categoria_filtro:
         query_manuais = query_manuais.filter(LancamentoFluxoCaixa.categoria.ilike(f'%{categoria_filtro}%'))
-    
+        if categoria_filtro != 'Fornecedores (NFe)':
+            query_nfe = query_nfe.filter(1 == 0) # Exclui NFe se a categoria não for a específica dela
+
     if status_filtro:
-        query_manuais = query_manuais.filter(LancamentoFluxoCaixa.status_pagamento == status_filtro)
-        query_nfe = query_nfe.filter(LancamentoNotaFiscal.status_pagamento == status_filtro)
+        status_pagos = ['PAGO', 'Pago']
+        if status_filtro == 'PAGO':
+            query_manuais = query_manuais.filter(LancamentoFluxoCaixa.status_pagamento.in_(status_pagos))
+            query_nfe = query_nfe.filter(LancamentoFluxoCaixa.status_pagamento.in_(status_pagos))
+        else: # PENDENTE, A Pagar, VENCIDO
+            query_manuais = query_manuais.filter(LancamentoFluxoCaixa.status_pagamento.notin_(status_pagos))
+            query_nfe = query_nfe.filter(LancamentoFluxoCaixa.status_pagamento.notin_(status_pagos))
+
+    if tipo_filtro:
+        query_manuais = query_manuais.filter(LancamentoFluxoCaixa.tipo == tipo_filtro)
+        if tipo_filtro == 'RECEITA':
+            query_nfe = query_nfe.filter(1 == 0) # NFe são sempre despesas
     
-    lancamentos_manuais = query_manuais.order_by(LancamentoFluxoCaixa.data_vencimento).all()
-    lancamentos_nfe = query_nfe.order_by(LancamentoNotaFiscal.data_vencimento).all()
-    
+    if meio_pagamento_filtro:
+        query_manuais = query_manuais.filter(LancamentoFluxoCaixa.meio_pagamento == meio_pagamento_filtro)
+        query_nfe = query_nfe.filter(LancamentoFluxoCaixa.meio_pagamento == meio_pagamento_filtro)
+
+
+    lancamentos_manuais_filtrados = query_manuais.all()
+    lancamentos_nfe_filtrados = query_nfe.all()
+
     # Consolidar todos os lançamentos
-    fluxo_consolidado = consolidar_fluxo_caixa(lancamentos_manuais, lancamentos_nfe, data_inicio_obj, data_fim_obj)
+    fluxo_consolidado = consolidar_fluxo_caixa(lancamentos_manuais_filtrados, lancamentos_nfe_filtrados, data_inicio_obj, data_fim_obj)
     
     # Calcular totais e saldos
     totais = calcular_totais_fluxo(fluxo_consolidado)
     
-    # Buscar categorias para filtro
-    categorias_manuais = db.session.query(LancamentoFluxoCaixa.categoria).filter(
-        LancamentoFluxoCaixa.empresa_id == current_user.empresa_id,
-        LancamentoFluxoCaixa.categoria.isnot(None)
-    ).distinct().all()
-    
-    categorias = [cat[0] for cat in categorias_manuais if cat[0]] + ['Fornecedores (NFe)']
+    # Buscar categorias para o dropdown de filtro
+    categorias = sorted(set([
+        cat[0] for cat in db.session.query(LancamentoFluxoCaixa.categoria).filter(
+            LancamentoFluxoCaixa.empresa_id == current_user.empresa_id,
+            LancamentoFluxoCaixa.categoria.isnot(None),
+            LancamentoFluxoCaixa.categoria != ''
+        ).distinct().all()
+    ] + ['Fornecedores (NFe)']))
     
     return render_template('fluxo_caixa.html',
                            fluxo_consolidado=fluxo_consolidado,
                            totais=totais,
-                           categorias=sorted(set(categorias)),
+                           categorias=categorias,
                            data_inicio=data_inicio,
                            data_fim=data_fim,
-                           visualizacao=visualizacao,
+                           data_emissao_inicio=data_emissao_inicio,
+                           data_emissao_fim=data_emissao_fim,
                            categoria_filtro=categoria_filtro,
                            status_filtro=status_filtro,
+                           meio_pagamento_filtro=meio_pagamento_filtro,
+                           tipo_filtro=tipo_filtro,
                            hoje=hoje)
-
-def consolidar_fluxo_caixa(lancamentos_manuais, lancamentos_nfe, data_inicio, data_fim):
-    """Consolida todos os lançamentos em uma estrutura unificada"""
+def consolidar_fluxo_caixa(lancamentos_manuais, lancamentos_nfe_do_fluxo, data_inicio, data_fim):
+    """Consolida todos os lançamentos em uma estrutura unificada (versão corrigida)"""
     fluxo = []
 
     def formatar_brl(valor):
-        if valor is None:
-            return "0,00"
+        if valor is None: return "0,00"
         return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
     # Processar lançamentos manuais
     for lancamento in lancamentos_manuais:
-        
-        # --- INÍCIO DA MODIFICAÇÃO ---
-        rateio_info = None
-        if lancamento.veiculo_id and lancamento.veiculo:
-            rateio_info = f"Rateado p/ {lancamento.veiculo.placa}"
-        # --- FIM DA MODIFICAÇÃO ---
-
         fluxo.append({
             'id': f"manual_{lancamento.id}",
             'tipo_origem': 'MANUAL',
@@ -8806,39 +9271,37 @@ def consolidar_fluxo_caixa(lancamentos_manuais, lancamentos_nfe, data_inicio, da
             'meio_pagamento': getattr(lancamento, 'meio_pagamento', None),
             'parcela': f"{lancamento.parcela_numero}/{lancamento.parcela_total}" if lancamento.parcela_total and lancamento.parcela_total > 1 else None,
             'observacoes': lancamento.observacoes,
-            'is_vencido': lancamento.is_vencido,
-            'rateio_info': rateio_info,  # <-- NOVA INFORMAÇÃO SENDO ENVIADA
+            'is_vencido': (lancamento.data_vencimento < date.today()) and lancamento.status_pagamento == 'PENDENTE',
+            'tem_rateio': lancamento.tem_rateio,
             'objeto': lancamento
         })
 
     # Processar lançamentos de NFe
-    for lancamento in lancamentos_nfe:
-        # A lógica para NFe continua a mesma, pois o rateio cria lançamentos manuais
+    for lancamento in lancamentos_nfe_do_fluxo:
         fluxo.append({
-            'id': f"nfe_{lancamento.id}",
+            'id': f"manual_{lancamento.id}", # O ID é sempre do LancamentoFluxoCaixa
             'tipo_origem': 'NFE',
-            'tipo_movimento': 'DESPESA', # Lançamento de NFe importada é sempre despesa no seu modelo
+            'tipo_movimento': 'DESPESA',
             'data_vencimento': lancamento.data_vencimento,
-            'data_emissao': lancamento.data_emissao,
+            'data_emissao': lancamento.data_lancamento, # Usar a data do lançamento no fluxo
             'data_pagamento': lancamento.data_pagamento,
-            'descricao': f"NFe - {lancamento.emitente_nome}",
+            'descricao': lancamento.descricao,
             'categoria': 'Fornecedores (NFe)',
-            'fornecedor_cliente': lancamento.emitente_nome,
-            'documento': lancamento.chave_acesso[-8:],
+            'fornecedor_cliente': lancamento.fornecedor_cliente,
+            'documento': lancamento.documento_numero,
             'valor': lancamento.valor_total,
             'valor_formatado': formatar_brl(lancamento.valor_total),
             'status': lancamento.status_pagamento,
             'meio_pagamento': getattr(lancamento, 'meio_pagamento', None),
-            'parcela': f"{getattr(lancamento, 'parcela_numero', 1)}/{getattr(lancamento, 'parcela_total', 1)}" if getattr(lancamento, 'parcela_total', 1) > 1 else None,
-            'observacoes': getattr(lancamento, 'observacoes', None),
-            'is_vencido': (lancamento.data_vencimento < date.today() if lancamento.data_vencimento else False) and lancamento.status_pagamento == 'A Pagar',
-            'rateio_info': None, # Lançamentos de NFe puros não têm rateio
+            'parcela': f"{lancamento.parcela_numero}/{lancamento.parcela_total}" if lancamento.parcela_total and lancamento.parcela_total > 1 else None,
+            'observacoes': lancamento.observacoes,
+            'is_vencido': (lancamento.data_vencimento < date.today()) and lancamento.status_pagamento in ['PENDENTE', 'A Pagar'],
+            'tem_rateio': lancamento.tem_rateio,
             'objeto': lancamento
         })
 
     fluxo.sort(key=lambda x: x.get('data_vencimento') or date.max)
     return fluxo
-
 
 def calcular_totais_fluxo(fluxo_consolidado):
     """Calcula totais, saldos e estatísticas do fluxo"""
