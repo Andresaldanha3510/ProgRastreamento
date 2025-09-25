@@ -233,9 +233,40 @@ class Motorista(db.Model):
     @property
     def validade_mopp(self):
         return self.mopp_vencimento
-    
 
+# Em app.py
+
+# Em app.py
+
+class UnidadeNegocio(db.Model):
+    """Representa uma empresa, filial ou centro de custo para lançamentos financeiros."""
+    __tablename__ = 'unidade_negocio'
+    id = db.Column(db.Integer, primary_key=True)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
     
+    nome = db.Column(db.String(150), nullable=False)
+    razao_social = db.Column(db.String(255), nullable=True)
+    cnpj = db.Column(db.String(14), unique=True, nullable=True)
+    is_matriz = db.Column(db.Boolean, default=False, nullable=False)
+    
+    lancamentos = db.relationship('LancamentoFluxoCaixa', back_populates='unidade_negocio', lazy='dynamic')
+    
+    __table_args__ = (db.UniqueConstraint('empresa_id', 'nome', name='_empresa_nome_uc'),)
+
+    def __repr__(self):
+        return f'<UnidadeNegocio {self.nome}>'
+
+    # ESTE MÉTODO É A SOLUÇÃO
+    def to_dict(self):
+        """Converte o objeto UnidadeNegocio para um dicionário serializável."""
+        return {
+            'id': self.id,
+            'empresa_id': self.empresa_id,
+            'nome': self.nome,
+            'razao_social': self.razao_social,
+            'cnpj': self.cnpj,
+            'is_matriz': self.is_matriz
+        }
 
 class ConfiguracaoBorracharia(db.Model):
     __tablename__ = 'configuracao_borracharia'
@@ -890,6 +921,9 @@ class LancamentoFluxoCaixa(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
     
+    # --- CAMPO DE LIGAÇÃO COM O BANCO ---
+    unidade_negocio_id = db.Column(db.Integer, db.ForeignKey('unidade_negocio.id'), nullable=False, index=True)
+    
     # Dados básicos do lançamento
     tipo = db.Column(db.String(10), nullable=False, index=True)  # 'RECEITA' ou 'DESPESA'
     descricao = db.Column(db.String(255), nullable=False)
@@ -904,7 +938,6 @@ class LancamentoFluxoCaixa(db.Model):
     
     # Status e controle
     status_pagamento = db.Column(db.String(20), default='PENDENTE', nullable=False, index=True)
-    # Status: PENDENTE, PAGO, CANCELADO, VENCIDO
     
     # Dados opcionais
     fornecedor_cliente = db.Column(db.String(255), nullable=True)  # Nome do fornecedor/cliente
@@ -917,18 +950,12 @@ class LancamentoFluxoCaixa(db.Model):
     parcela_total = db.Column(db.Integer, default=1)
     lancamento_pai_id = db.Column(db.Integer, db.ForeignKey('lancamento_fluxo_caixa.id'), nullable=True)
     
-    # --- INÍCIO DA MODIFICAÇÃO ---
-    # Novo campo para o rateio por veículo
     veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculo.id'), nullable=True, index=True)
-    # --- FIM DA MODIFICAÇÃO ---
     
-    # Relacionamentos
+    # --- RELACIONAMENTOS (AQUI ESTÁ A CORREÇÃO) ---
+    unidade_negocio = db.relationship('UnidadeNegocio', back_populates='lancamentos')
     parcelas = db.relationship('LancamentoFluxoCaixa', remote_side=[id], backref='lancamento_pai')
-    
-    # --- INÍCIO DA MODIFICAÇÃO ---
-    # Relacionamento para facilitar o acesso aos dados do veículo
     veiculo = db.relationship('Veiculo', backref='lancamentos_financeiros')
-    # --- FIM DA MODIFICAÇÃO ---
     
     # Anexos de comprovantes
     anexos_urls = db.Column(db.String(2048), nullable=True)  # URLs separadas por vírgula
@@ -941,7 +968,6 @@ class LancamentoFluxoCaixa(db.Model):
         """Verifica se o lançamento está vencido"""
         return (self.data_vencimento < date.today() and 
                 self.status_pagamento == 'PENDENTE')
-
     
 class LancamentoNotaFiscal(db.Model):
     __tablename__ = 'lancamento_nota_fiscal'
@@ -1238,6 +1264,98 @@ def api_salvar_lancamento():
         db.session.rollback()
         logger.error(f"Erro ao salvar lançamento NFe: {e}", exc_info=True)
         return jsonify({'success': False, 'message': f'Erro interno: {str(e)}'}), 500
+    
+# Em app.py
+
+@app.route('/financeiro/unidades_negocio')
+@login_required
+@master_required
+def unidades_negocio_page():
+    """Página para gerenciar as unidades de negócio."""
+    unidades_objetos = UnidadeNegocio.query.filter_by(
+        empresa_id=current_user.empresa_id
+    ).order_by(
+        UnidadeNegocio.is_matriz.desc(), UnidadeNegocio.nome
+    ).all()
+
+    
+    unidades_para_template = [unidade.to_dict() for unidade in unidades_objetos]
+    
+    # Agora passamos a lista de dicionários para o template
+    return render_template(
+        'unidades_negocio.html', 
+        unidades=unidades_para_template, 
+        active_page='unidades_negocio'
+    )
+@app.route('/api/financeiro/unidade_negocio/salvar', methods=['POST'])
+@login_required
+@master_required
+def api_salvar_unidade_negocio():
+    """API para criar ou editar uma unidade de negócio."""
+    data = request.json
+    unidade_id = data.get('id')
+    
+    try:
+        # Lógica de Edição
+        if unidade_id:
+            unidade = UnidadeNegocio.query.get_or_404(unidade_id)
+            if unidade.empresa_id != current_user.empresa_id:
+                return jsonify({'success': False, 'message': 'Acesso negado.'}), 403
+        # Lógica de Criação
+        else:
+            unidade = UnidadeNegocio(empresa_id=current_user.empresa_id)
+            db.session.add(unidade)
+
+        unidade.nome = data.get('nome')
+        unidade.razao_social = data.get('razao_social')
+        unidade.cnpj = re.sub(r'\D', '', data.get('cnpj', ''))
+        unidade.is_matriz = data.get('is_matriz', False)
+
+        # Garante que só exista uma matriz por empresa
+        if unidade.is_matriz:
+            UnidadeNegocio.query.filter(
+                UnidadeNegocio.empresa_id == current_user.empresa_id,
+                UnidadeNegocio.id != unidade.id
+            ).update({'is_matriz': False})
+
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Unidade de negócio salva com sucesso!'})
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Já existe uma unidade com este nome ou CNPJ.'}), 409
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao salvar unidade de negócio: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+    
+@app.template_filter('format_cnpj')
+def format_cnpj(value):
+    if not value or len(value) != 14:
+        return value
+    return f"{value[:2]}.{value[2:5]}.{value[5:8]}/{value[8:12]}-{value[12:]}"
+
+@app.route('/api/financeiro/unidade_negocio/excluir/<int:id>', methods=['DELETE'])
+@login_required
+@master_required
+def api_excluir_unidade_negocio(id):
+    """API para excluir uma unidade de negócio."""
+    unidade = UnidadeNegocio.query.get_or_404(id)
+    if unidade.empresa_id != current_user.empresa_id:
+        return jsonify({'success': False, 'message': 'Acesso negado.'}), 403
+    
+    if unidade.is_matriz:
+        return jsonify({'success': False, 'message': 'Não é possível excluir a unidade matriz.'}), 400
+        
+    if LancamentoFluxoCaixa.query.filter_by(unidade_negocio_id=id).first():
+        return jsonify({'success': False, 'message': 'Não é possível excluir, pois existem lançamentos associados a esta unidade.'}), 409
+
+    try:
+        db.session.delete(unidade)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Unidade excluída com sucesso.'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/fiscal/visualizar_xml/<string:chave_acesso>')
 @login_required
@@ -9161,7 +9279,7 @@ def fluxo_caixa():
     """Página principal do fluxo de caixa, com filtros avançados e consolidação de dados."""
     hoje = date.today()
     
-    # Coleta de todos os filtros da URL
+    # Coleta de todos os filtros da URL, incluindo o novo filtro de unidade de negócio
     data_inicio = request.args.get('data_inicio', hoje.strftime('%Y-%m-%d'))
     data_fim = request.args.get('data_fim', (hoje + timedelta(days=30)).strftime('%Y-%m-%d'))
     data_emissao_inicio = request.args.get('data_emissao_inicio', '')
@@ -9170,6 +9288,8 @@ def fluxo_caixa():
     status_filtro = request.args.get('status', '')
     meio_pagamento_filtro = request.args.get('meio_pagamento', '')
     tipo_filtro = request.args.get('tipo', '')
+    # --- NOVO FILTRO ADICIONADO AQUI ---
+    unidade_negocio_filtro_id = request.args.get('unidade_negocio_id', type=int)
     
     try:
         data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d').date()
@@ -9178,15 +9298,13 @@ def fluxo_caixa():
         data_inicio_obj = hoje
         data_fim_obj = hoje + timedelta(days=30)
 
-    # --- INÍCIO DA CORREÇÃO: Query Unificada ---
-    # A query base agora é uma só, buscando todos os lançamentos da empresa no período de vencimento.
+    # A query base já filtra pela empresa e pelo período de vencimento
     query = LancamentoFluxoCaixa.query.filter(
         LancamentoFluxoCaixa.empresa_id == current_user.empresa_id,
         LancamentoFluxoCaixa.data_vencimento.between(data_inicio_obj, data_fim_obj)
     )
-    # --- FIM DA CORREÇÃO ---
 
-    # Aplicação centralizada dos filtros na query única
+    # Aplicação centralizada de todos os filtros
     if data_emissao_inicio:
         query = query.filter(LancamentoFluxoCaixa.data_lancamento >= datetime.strptime(data_emissao_inicio, '%Y-%m-%d'))
     if data_emissao_fim:
@@ -9203,18 +9321,20 @@ def fluxo_caixa():
         query = query.filter(LancamentoFluxoCaixa.tipo == tipo_filtro)
     if meio_pagamento_filtro:
         query = query.filter(LancamentoFluxoCaixa.meio_pagamento == meio_pagamento_filtro)
+    
+    # --- APLICAÇÃO DO NOVO FILTRO NA QUERY ---
+    if unidade_negocio_filtro_id:
+        query = query.filter(LancamentoFluxoCaixa.unidade_negocio_id == unidade_negocio_filtro_id)
 
     lancamentos_filtrados = query.all()
 
-    # --- CORREÇÃO: A consolidação agora recebe apenas uma lista ---
-    # A função consolidar_fluxo_caixa foi ajustada para aceitar uma única lista,
-    # pois não há mais necessidade de separar NFe de manuais aqui.
+    # Consolida os lançamentos (sua função existente)
     fluxo_consolidado = consolidar_fluxo_caixa_unificado(lancamentos_filtrados)
     
-    # Calcular totais e saldos (esta parte continua igual)
+    # Calcula totais e saldos (sua função existente)
     totais = calcular_totais_fluxo(fluxo_consolidado)
     
-    # Buscar categorias para o dropdown de filtro (esta parte continua igual)
+    # Busca categorias para o dropdown de filtro (lógica existente)
     categorias = sorted(set([
         cat[0] for cat in db.session.query(LancamentoFluxoCaixa.categoria).filter(
             LancamentoFluxoCaixa.empresa_id == current_user.empresa_id,
@@ -9222,6 +9342,9 @@ def fluxo_caixa():
             LancamentoFluxoCaixa.categoria != ''
         ).distinct().all()
     ] + ['Fornecedores (NFe)']))
+
+    # --- BUSCA A LISTA DE UNIDADES PARA ENVIAR AO TEMPLATE ---
+    unidades_negocio = UnidadeNegocio.query.filter_by(empresa_id=current_user.empresa_id).order_by(UnidadeNegocio.nome).all()
     
     return render_template('fluxo_caixa.html',
                            fluxo_consolidado=fluxo_consolidado,
@@ -9235,7 +9358,10 @@ def fluxo_caixa():
                            status_filtro=status_filtro,
                            meio_pagamento_filtro=meio_pagamento_filtro,
                            tipo_filtro=tipo_filtro,
-                           hoje=hoje)
+                           hoje=hoje,
+                           # --- NOVAS VARIÁVEIS ENVIADAS PARA O TEMPLATE ---
+                           unidades_negocio=unidades_negocio,
+                           unidade_negocio_filtro_id=unidade_negocio_filtro_id)
 
 def consolidar_fluxo_caixa_unificado(lancamentos):
     """Consolida lançamentos de uma única lista em uma estrutura unificada."""
