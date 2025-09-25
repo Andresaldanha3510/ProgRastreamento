@@ -192,6 +192,8 @@
                     </button>
                     <div x-show="openSection === 'financeiro'" x-collapse class="pl-6 pt-2 space-y-1">
                         <a href="{{ url_for('fluxo_caixa') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Fluxo de Caixa</a>
+                        
+                        <a href="{{ url_for('unidades_negocio_page') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Unidades de Negócio</a>
                         <a href="{{ url_for('importar_notas_fiscais') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Importar NFe (SEFAZ)</a>
                         <a href="{{ url_for('consultar_cobrancas') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Cobranças</a>
                         <a href="{{ url_for('folha_pagamento_dashboard') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors font-semibold">Folha de Pagamento</a>
@@ -289,6 +291,8 @@
                         <h4 class="font-semibold mb-2 text-white">Financeiro</h4>
                         <ul class="space-y-2">
                             <li><a href="{{ url_for('fluxo_caixa') }}" class="block p-2 rounded hover:bg-white/10 transition">Fluxo de Caixa</a></li>
+
+                            <li><a href="{{ url_for('unidades_negocio_page') }}" class="block p-2 rounded hover:bg-white/10 transition">Unidades de Negócio</a></li>
                             <li><a href="{{ url_for('importar_notas_fiscais') }}" class="block p-2 rounded hover:bg-white/10 transition">Importar NFe (SEFAZ)</a></li>
                             <li><a href="{{ url_for('consultar_cobrancas') }}" class="block p-2 rounded hover:bg-white/10 transition">Cobranças</a></li>
                             <li><a href="{{ url_for('folha_pagamento_dashboard') }}" class="block p-2 rounded hover:bg-white/10 transition font-semibold">Folha de Pagamento</a></li>
@@ -341,9 +345,15 @@
                     { title: 'Consultar Veículos', href: "{{ url_for('consultar_veiculos') }}", tags: ['consulta', 'ver', 'lista'] },
                     { title: 'Consultar Viagens', href: "{{ url_for('consultar_viagens') }}", tags: ['consulta', 'ver', 'lista'] },
                     { title: 'Criar Viagem', href: "{{ url_for('iniciar_viagem_page') }}", tags: ['operações', 'novo', 'iniciar'] },
-                    // ▼▼▼ LINK ADICIONADO À BUSCA ▼▼▼
                     { title: 'Importar Viagem (NF-e)', href: "{{ url_for('importar_nfe_page') }}", tags: ['operações', 'viagem', 'nfe', 'xml'] },
                     { title: 'Fluxo de Caixa', href: "{{ url_for('fluxo_caixa') }}", tags: ['financeiro', 'caixa', 'contas', 'pagar', 'receber', 'despesas', 'receitas'] },
+                    
+                    // ==========================================================
+                    // ▼▼▼ AQUI ESTÁ A ALTERAÇÃO NA BUSCA ▼▼▼
+                    // ==========================================================
+                    { title: 'Unidades de Negócio', href: "{{ url_for('unidades_negocio_page') }}", tags: ['financeiro', 'empresa', 'filial', 'matriz', 'cadastro'] },
+                    // ==========================================================
+
                     { title: 'Importar Notas Fiscais (SEFAZ)', href: "{{ url_for('importar_notas_fiscais') }}", tags: ['financeiro', 'fiscal', 'nfe', 'sefaz', 'xml', 'importar'] },
                     { title: 'Cobranças', href: "{{ url_for('consultar_cobrancas') }}", tags: ['financeiro', 'dinheiro', 'cobrança', 'cliente', 'receber'] },
                     { title: 'Folha de Pagamento', href: "{{ url_for('folha_pagamento_dashboard') }}", tags: ['financeiro', 'salário', 'motorista', 'pagamento', 'rh'] },

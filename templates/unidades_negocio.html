@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Unidades de Negócio - TrackBras{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg p-6 shadow-lg">
+        <h1 class="text-3xl font-bold flex items-center gap-3"><i class="fas fa-building"></i> Unidades de Negócio</h1>
+        <p class="text-blue-100 mt-2">Gerencie suas empresas, filiais ou centros de custo.</p>
+    </div>
+
+    <div class="nfe-container">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold text-gray-700">Unidades Cadastradas</h2>
+            <button class="btn-green" onclick="abrirModal()"><i class="fas fa-plus"></i> Nova Unidade</button>
+        </div>
+        
+        <div class="nfe-table-container">
+            <table class="nfe-table">
+                <thead>
+                    <tr>
+                        <th>Nome da Unidade</th>
+                        <th>CNPJ</th>
+                        <th>Tipo</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for unidade in unidades %}
+                    <tr>
+                        <td class="font-semibold">{{ unidade.nome }}</td>
+                        <td>{{ unidade.cnpj | format_cnpj if unidade.cnpj else '-' }}</td>
+                        <td>
+                            {% if unidade.is_matriz %}
+                                <span class="status-badge processado"><i class="fas fa-star"></i> Matriz</span>
+                            {% else %}
+                                <span class="status-badge novo">Filial</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="btn-table btn-view" onclick="abrirModal({{ unidade | tojson }})"><i class="fas fa-edit"></i> Editar</button>
+                            {% if not unidade.is_matriz %}
+                                <button class="btn-table btn-delete" onclick="excluirUnidade({{ unidade.id }})"><i class="fas fa-trash"></i> Excluir</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="unidadeModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2 class="modal-title" id="modalTitle"><i class="fas fa-building"></i> Nova Unidade de Negócio</h2>
+            <span class="close" onclick="fecharModal()">&times;</span>
+        </div>
+        <form id="unidadeForm" onsubmit="salvarUnidade(event)">
+            <div class="modal-body">
+                <input type="hidden" id="unidadeId">
+                <div class="form-group">
+                    <label class="form-label" for="unidadeNome">Nome da Unidade *</label>
+                    <input type="text" id="unidadeNome" class="form-control" placeholder="Ex: Filial Curitiba" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="unidadeRazaoSocial">Razão Social</label>
+                    <input type="text" id="unidadeRazaoSocial" class="form-control" placeholder="Razão Social completa">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="unidadeCnpj">CNPJ</label>
+                    <input type="text" id="unidadeCnpj" class="form-control" placeholder="00.000.000/0000-00">
+                </div>
+                <div class="form-group">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="unidadeIsMatriz" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        <label for="unidadeIsMatriz" class="ml-2 block text-sm text-gray-900">Marcar como Matriz (principal)</label>
+                    </div>
+                    <small class="text-gray-500">Apenas uma unidade pode ser a matriz. Marcar esta desmarcará a anterior.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="fecharModal()">Cancelar</button>
+                <button type="submit" class="btn-green">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const modal = document.getElementById('unidadeModal');
+    const form = document.getElementById('unidadeForm');
+
+    function abrirModal(unidade = null) {
+        form.reset();
+        document.getElementById('modalTitle').textContent = unidade ? 'Editar Unidade de Negócio' : 'Nova Unidade de Negócio';
+        document.getElementById('unidadeId').value = unidade ? unidade.id : '';
+        document.getElementById('unidadeNome').value = unidade ? unidade.nome : '';
+        document.getElementById('unidadeRazaoSocial').value = unidade ? unidade.razao_social : '';
+        document.getElementById('unidadeCnpj').value = unidade ? unidade.cnpj : '';
+        document.getElementById('unidadeIsMatriz').checked = unidade ? unidade.is_matriz : false;
+        modal.style.display = 'block';
+    }
+
+    function fecharModal() {
+        modal.style.display = 'none';
+    }
+
+    async function salvarUnidade(event) {
+        event.preventDefault();
+        const payload = {
+            id: document.getElementById('unidadeId').value || null,
+            nome: document.getElementById('unidadeNome').value,
+            razao_social: document.getElementById('unidadeRazaoSocial').value,
+            cnpj: document.getElementById('unidadeCnpj').value,
+            is_matriz: document.getElementById('unidadeIsMatriz').checked
+        };
+        
+        const response = await fetch('/api/financeiro/unidade_negocio/salvar', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        
+        const result = await response.json();
+        showNotification(result.message, result.success ? 'success' : 'error');
+        if (result.success) {
+            setTimeout(() => window.location.reload(), 1500);
+        }
+    }
+
+    async function excluirUnidade(id) {
+        if (!confirm('Tem certeza que deseja excluir esta unidade? Esta ação não pode ser desfeita.')) return;
+        
+        const response = await fetch(`/api/financeiro/unidade_negocio/excluir/${id}`, { method: 'DELETE' });
+        const result = await response.json();
+        showNotification(result.message, result.success ? 'success' : 'error');
+        if (result.success) {
+            setTimeout(() => window.location.reload(), 1500);
+        }
+    }
+
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            fecharModal();
+        }
+    }
+</script>
+{% endblock %}
