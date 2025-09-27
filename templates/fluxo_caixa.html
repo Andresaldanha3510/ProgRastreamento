@@ -1355,6 +1355,11 @@
                 </div>
 
                 <div class="form-group">
+                    <label class="form-label">Data Fim</label>
+                    <input type="date" name="data_fim" class="form-control" value="{{ data_fim }}">
+                </div>
+
+                <div class="form-group">
                     <label class="form-label">Unidade de Negócio</label>
                     <select name="unidade_negocio_id" class="form-select">
                         <option value="">Todas as Unidades</option>
@@ -1367,10 +1372,7 @@
                     </select>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Data Fim</label>
-                    <input type="date" name="data_fim" class="form-control" value="{{ data_fim }}">
-                </div>
+
                 <div class="form-group">
                     <label class="form-label">Data Emissão Início</label>
                     <input type="date" name="data_emissao_inicio" class="form-control"
@@ -1474,8 +1476,7 @@
                         <th>Descrição</th>
                         <th>Fornecedor/Cliente</th>
                         <th>Unidade</th>
-                        <th>Categoria</th>
-                        <th>Categoria</th>
+                        <th>Categoria</th>                        
                         <th>Valor</th>
                         <th>Status</th>
                         <th>Ações</th>
@@ -1995,7 +1996,7 @@
                 <div id="rateioInfoLancamento"
                     style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;"></div>
                 <div class="form-group">
-                    <label class="form-label">Buscar Veículos (Placa ou Modelo)</label>
+                    <label class="form-label">Buscar Veículos (Placa ou Modelo) para despesas não relacionadas a veiculos (ADMIN)</label>
                     <div class="search-box">
                         <input type="text" id="rateioVeiculoSearchInput" placeholder="Digite para buscar..."
                             autocomplete="off" class="form-control">
@@ -2483,6 +2484,28 @@
         showNotification('Erro de rede ou servidor. Tente novamente.', 'error');
         console.error('Fetch Error:', error);
     }
+
+    // ▼▼▼ COLE AS DUAS NOVAS FUNÇÕES AQUI NESTE ESPAÇO ▼▼▼
+
+    // Função para tratar respostas de ações DENTRO de um modal
+    function handleModalResponse(response) {
+        return response.json().then(data => {
+            // Chama a função de notificação correta, que exibe DENTRO do modal
+            showModalNotification(data.message, data.success ? 'success' : 'error');
+            if (data.success) {
+                // Recarrega la página después de un éxito para ver el nuevo lanzamiento
+                setTimeout(() => window.location.reload(), 1500);
+            }
+        });
+    }
+
+    // Função para tratar erros de ações DENTRO de um modal
+    function handleModalError(error) {
+        // Chama a função de notificação correta, que exibe DENTRO do modal
+        showModalNotification('Erro de rede ou servidor. Tente novamente.', 'error');
+        console.error('Fetch Error:', error);
+    }
+
 
     function handleFormSubmit(url, isMassa = false) {
         return function (e) {
