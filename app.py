@@ -38,6 +38,10 @@ from flask_socketio import emit, join_room, leave_room
 from xhtml2pdf import pisa
 from extensions import db, CTeEmitido
 from flask_mail import Message
+from collections import defaultdict
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill
+from openpyxl.utils import get_column_letter
 
 
 
@@ -613,6 +617,20 @@ class Cobranca(db.Model):
     def __repr__(self):
         return f'<Cobranca {self.id} - Cliente {self.cliente.nome_razao_social}>'
 
+class CentroCusto(db.Model):
+    __tablename__ = 'centro_custo'
+    id = db.Column(db.Integer, primary_key=True)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
+    nome = db.Column(db.String(150), nullable=False)
+
+    __table_args__ = (db.UniqueConstraint('empresa_id', 'nome', name='_empresa_nome_cc_uc'),)
+
+    def to_dict(self):
+        return {'id': self.id, 'nome': self.nome}
+
+    def __repr__(self):
+        return f'<CentroCusto {self.nome}>'
+
 class Romaneio(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     data_emissao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -680,6 +698,8 @@ class Veiculo(db.Model):
     ano_modelo = db.Column(db.Integer, nullable=True)
     cor = db.Column(db.String(50), nullable=True)
     combustivel = db.Column(db.String(50), nullable=True)
+    is_administrativo = db.Column(db.Boolean, default=False, nullable=False, index=True)
+
 
     renavam = db.Column(db.String(11), nullable=True, unique=True)
     chassi = db.Column(db.String(17), nullable=True, unique=True)
@@ -929,6 +949,8 @@ class LancamentoFluxoCaixa(db.Model):
     descricao = db.Column(db.String(255), nullable=False)
     categoria = db.Column(db.String(100), nullable=True)  # Ex: Combustível, Manutenção, Frete, etc.
     valor_total = db.Column(db.Float, nullable=False)
+    centro_custo_id = db.Column(db.Integer, db.ForeignKey('centro_custo.id'), nullable=True, index=True)
+    centro_custo = db.relationship('CentroCusto', backref='lancamentos')
     
     # Controle de datas
     data_lancamento = db.Column(db.DateTime, default=datetime.utcnow)
@@ -1130,30 +1152,70 @@ class Viagem(db.Model):
             return -self.custo_real_completo
         return self.valor_recebido - self.custo_real_completo
     
-@app.route('/api/veiculos/search')
+@app.route('/api/rateio/search')
 @login_required
-def search_veiculos_api():
-    """API para buscar veículos por placa ou modelo para o rateio."""
-    search_term = request.args.get('term', '').strip()
-    if len(search_term) < 2:
+def api_search_rateio_destinos():
+    """Busca unificada por veículos e centros de custo."""
+    term = request.args.get('term', '').strip()
+    if len(term) < 2:
         return jsonify([])
 
-    query = Veiculo.query.filter(
+    # Busca Veículos
+    veiculos = Veiculo.query.filter(
         Veiculo.empresa_id == current_user.empresa_id,
         or_(
-            Veiculo.placa.ilike(f'%{search_term}%'),
-            Veiculo.modelo.ilike(f'%{search_term}%')
+            Veiculo.placa.ilike(f'%{term}%'),
+            Veiculo.modelo.ilike(f'%{term}%')
         )
-    ).limit(10)
+    ).limit(5).all()
     
-    veiculos = [{
-        "id": v.id,
-        "placa": v.placa,
-        "modelo": v.modelo,
-        "display": f"{v.placa} - {v.modelo or 'Modelo não informado'}"
-    } for v in query.all()]
+    # Busca Centros de Custo
+    centros_custo = CentroCusto.query.filter(
+        CentroCusto.empresa_id == current_user.empresa_id,
+        CentroCusto.nome.ilike(f'%{term}%')
+    ).limit(5).all()
+
+    resultados = []
+    for v in veiculos:
+        resultados.append({
+            'id': v.id,
+            'nome': f"{v.placa} - {v.modelo}",
+            'tipo': 'veiculo',
+            'icone': 'fas fa-truck'
+        })
+    for cc in centros_custo:
+        resultados.append({
+            'id': cc.id,
+            'nome': cc.nome,
+            'tipo': 'centro_custo',
+            'icone': 'fas fa-folder'
+        })
     
-    return jsonify(veiculos)
+    return jsonify(resultados)
+
+@app.route('/api/centro_custo/criar', methods=['POST'])
+@login_required
+def api_criar_centro_custo():
+    """Cria um novo centro de custo na hora."""
+    data = request.json
+    nome = data.get('nome', '').strip()
+    if not nome:
+        return jsonify({'success': False, 'message': 'Nome é obrigatório'}), 400
+
+    try:
+        # Verifica se já existe para evitar duplicatas
+        existente = CentroCusto.query.filter_by(empresa_id=current_user.empresa_id, nome=nome).first()
+        if existente:
+            return jsonify({'success': True, 'centro_custo': existente.to_dict()})
+
+        novo_cc = CentroCusto(empresa_id=current_user.empresa_id, nome=nome)
+        db.session.add(novo_cc)
+        db.session.commit()
+        return jsonify({'success': True, 'centro_custo': novo_cc.to_dict()}), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
     
 
 def get_distancia_total_periodo(veiculo_id, dias=365):
@@ -1180,8 +1242,6 @@ def get_distancia_total_periodo(veiculo_id, dias=365):
         logger.error(f"Erro ao calcular distância total para veículo {veiculo_id}: {e}", exc_info=True)
         return 0.0
     
-# Em app.py, substitua a rota /api/fiscal/salvar_lancamento existente por esta
-
 @app.route('/api/fiscal/salvar_lancamento', methods=['POST'])
 @login_required
 def api_salvar_lancamento():
@@ -1200,33 +1260,40 @@ def api_salvar_lancamento():
         parcelas = data.get('parcelas', [])
         categoria = data.get('categoria', 'Fornecedores (NFe)')
         
+        unidade_negocio_id = data.get('unidade_negocio_id')
+        if not unidade_negocio_id:
+            return jsonify({'success': False, 'message': 'A Unidade de Negócio é obrigatória.'}), 400
+
         if not parcelas:
             return jsonify({'success': False, 'message': 'Os dados de parcelamento são obrigatórios.'}), 400
 
         total_parcelas = len(parcelas)
-        numero_nota = nota.chave_acesso[-9:]
-        serie_numero = f"{numero_nota[:3]}-{numero_nota[3:]}"
+        
+        # --- LINHA CORRIGIDA AQUI ---
+        # Extrai o número da NF-e (9 dígitos) da posição correta (25 a 34) da chave de acesso
+        numero_nota = nota.chave_acesso[25:34]
+        # O resto do código permanece igual, usando a variável 'numero_nota' corrigida
         
         # Identificador único para agrupar as parcelas desta NFe
-        documento_pai = f"NFE-{serie_numero}-{uuid.uuid4().hex[:6]}"
+        documento_pai = f"NFE-{numero_nota}-{uuid.uuid4().hex[:6]}"
         
         for i, parcela_info in enumerate(parcelas, 1):
             valor_parcela = float(parcela_info.get('valor', 0))
             data_vencimento = datetime.strptime(parcela_info.get('data_vencimento'), '%Y-%m-%d').date()
             
-            descricao_base = f"NFe {serie_numero} - {nota.emitente_nome}"
+            descricao_base = f"NFe {numero_nota} - {nota.emitente_nome}"
             if total_parcelas > 1:
                 descricao_base += f" - Parcela {i}/{total_parcelas}"
 
             novo_lancamento = LancamentoFluxoCaixa(
                 empresa_id=current_user.empresa_id,
+                unidade_negocio_id=unidade_negocio_id,
                 tipo='DESPESA',
                 descricao=descricao_base,
                 categoria=categoria,
                 valor_total=valor_parcela,
                 data_vencimento=data_vencimento,
                 fornecedor_cliente=nota.emitente_nome,
-                # Usamos um identificador único para o grupo de parcelas
                 documento_numero=documento_pai,
                 observacoes=f"Chave de acesso: {chave_acesso}",
                 parcela_numero=i,
@@ -1234,7 +1301,7 @@ def api_salvar_lancamento():
                 tem_rateio=tem_rateio
             )
             db.session.add(novo_lancamento)
-            db.session.flush() # Garante que o ID esteja disponível
+            db.session.flush()
 
             if tem_rateio:
                 veiculos_rateio = data.get('veiculos', [])
@@ -1244,7 +1311,6 @@ def api_salvar_lancamento():
                 
                 for veiculo_rateio in veiculos_rateio:
                     percentual = float(veiculo_rateio.get('percentual', 0))
-                    # O valor rateado é o percentual sobre o VALOR DA PARCELA
                     valor_rateado_para_parcela = valor_parcela * (percentual / 100)
 
                     novo_rateio_db = RateioVeiculo(
@@ -1264,8 +1330,6 @@ def api_salvar_lancamento():
         db.session.rollback()
         logger.error(f"Erro ao salvar lançamento NFe: {e}", exc_info=True)
         return jsonify({'success': False, 'message': f'Erro interno: {str(e)}'}), 500
-    
-# Em app.py
 
 @app.route('/financeiro/unidades_negocio')
 @login_required
@@ -1278,15 +1342,16 @@ def unidades_negocio_page():
         UnidadeNegocio.is_matriz.desc(), UnidadeNegocio.nome
     ).all()
 
-    
+    # Convertendo a lista de objetos para uma lista de dicionários
     unidades_para_template = [unidade.to_dict() for unidade in unidades_objetos]
     
-    # Agora passamos a lista de dicionários para o template
+    # Enviando a lista de dicionários para o template
     return render_template(
         'unidades_negocio.html', 
-        unidades=unidades_para_template, 
+        unidades=unidades_para_template,
         active_page='unidades_negocio'
     )
+
 @app.route('/api/financeiro/unidade_negocio/salvar', methods=['POST'])
 @login_required
 @master_required
@@ -1296,13 +1361,11 @@ def api_salvar_unidade_negocio():
     unidade_id = data.get('id')
     
     try:
-        # Lógica de Edição
-        if unidade_id:
+        if unidade_id: # Edição
             unidade = UnidadeNegocio.query.get_or_404(unidade_id)
             if unidade.empresa_id != current_user.empresa_id:
                 return jsonify({'success': False, 'message': 'Acesso negado.'}), 403
-        # Lógica de Criação
-        else:
+        else: # Criação
             unidade = UnidadeNegocio(empresa_id=current_user.empresa_id)
             db.session.add(unidade)
 
@@ -1311,7 +1374,6 @@ def api_salvar_unidade_negocio():
         unidade.cnpj = re.sub(r'\D', '', data.get('cnpj', ''))
         unidade.is_matriz = data.get('is_matriz', False)
 
-        # Garante que só exista uma matriz por empresa
         if unidade.is_matriz:
             UnidadeNegocio.query.filter(
                 UnidadeNegocio.empresa_id == current_user.empresa_id,
@@ -1319,7 +1381,14 @@ def api_salvar_unidade_negocio():
             ).update({'is_matriz': False})
 
         db.session.commit()
-        return jsonify({'success': True, 'message': 'Unidade de negócio salva com sucesso!'})
+
+    
+        return jsonify({
+            'success': True, 
+            'message': 'Unidade de negócio salva com sucesso!',
+            'unidade': unidade.to_dict()
+        })
+
     except IntegrityError:
         db.session.rollback()
         return jsonify({'success': False, 'message': 'Já existe uma unidade com este nome ou CNPJ.'}), 409
@@ -3033,7 +3102,7 @@ def editar_viagem_page(viagem_id):
     motoristas = Motorista.query.filter_by(empresa_id=current_user.empresa_id).order_by(Motorista.nome).all()
 
     # LINHA A SER CORRIGIDA:
-    veiculos_disponiveis = Veiculo.query.filter_by(status='Disponível', empresa_id=current_user.empresa_id).all() #
+    veiculos_disponiveis = Veiculo.query.filter_by(status='Disponível', empresa_id=current_user.empresa_id, is_administrativo=False).all()
     veiculo_atual = db.session.get(Veiculo, viagem.veiculo_id)
     if veiculo_atual and veiculo_atual not in veiculos_disponiveis:
         veiculos_disponiveis.insert(0, veiculo_atual)
@@ -4827,7 +4896,7 @@ def cadastrar_veiculo():
 @login_required
 def consultar_veiculos():
     search_query = request.args.get('search', '').strip()
-    query = Veiculo.query.filter_by(empresa_id=current_user.empresa_id)
+    query = Veiculo.query.filter_by(empresa_id=current_user.empresa_id, is_administrativo=False)
     
     if search_query:
         search_filter = f"%{search_query}%"
@@ -5112,15 +5181,16 @@ def api_detalhes_lancamento(item_id):
 def importar_nfe_page():
     """Renderiza a nova página de importação."""
     motoristas = Motorista.query.filter_by(empresa_id=current_user.empresa_id, situacao='NORMAL / LIBERADO').order_by(Motorista.nome).all()
-    veiculos = Veiculo.query.filter_by(status='Disponível', empresa_id=current_user.empresa_id).order_by(Veiculo.placa).all()
+    veiculos = Veiculo.query.filter_by(status='Disponível', empresa_id=current_user.empresa_id, is_administrativo=False).order_by(Veiculo.placa).all()
     return render_template('importar_nfe.html', motoristas=motoristas, veiculos=veiculos)
 
 @app.route('/iniciar_viagem', methods=['GET'])
 @login_required
 def iniciar_viagem_page():
     """Apenas renderiza a página do formulário de iniciar viagem."""
+    
     motoristas = Motorista.query.filter_by(empresa_id=current_user.empresa_id).order_by(Motorista.nome).all()
-    veiculos = Veiculo.query.filter_by(status='Disponível', empresa_id=current_user.empresa_id).order_by(Veiculo.placa).all()
+    veiculos = Veiculo.query.filter_by(status='Disponível', empresa_id=current_user.empresa_id, is_administrativo=False).order_by(Veiculo.placa).all()
     # A lógica de POST foi movida para uma rota de API separada.
     return render_template('iniciar_viagem.html', motoristas=motoristas, veiculos=veiculos, ORS_API_KEY=OPENROUTESERVICE_API_KEY)
 
@@ -5308,18 +5378,20 @@ def excluir_viagem(viagem_id):
 def importar_notas_fiscais():
     """Página e ação de importação de notas fiscais"""
     if request.method == 'GET':
-        # Obter status dos certificados para exibir na página
         from sefaz_service import get_status_consulta_sefaz
         status = get_status_consulta_sefaz(current_user.empresa_id)
         
-        # Buscar notas importadas (usando múltiplos certificados)
         notas_importadas = NFeImportada.query.filter_by(
             empresa_id=current_user.empresa_id
         ).order_by(NFeImportada.data_emissao.desc()).all()
+
+        # Linha com a indentação corrigida
+        unidades_negocio = UnidadeNegocio.query.filter_by(empresa_id=current_user.empresa_id).order_by(UnidadeNegocio.nome).all()
         
         return render_template('importar_notas_fiscais.html', 
                              notas=notas_importadas,
-                             status_certificados=status)
+                             status_certificados=status,
+                             unidades_negocio=unidades_negocio)
     
     elif request.method == 'POST':
         try:
@@ -5389,66 +5461,80 @@ def editar_lancamento_fluxo(lancamento_id):
     
     return render_template('editar_lancamento_fluxo.html', lancamento=lancamento)
 
+# Em app.py, substitua a função /api/fluxo_caixa/excluir por esta versão corrigida
+
 @app.route('/api/fluxo_caixa/excluir', methods=['POST'])
 @login_required
 @master_required
 def api_excluir_lancamento_fluxo():
-    """API para excluir lançamento do fluxo de caixa"""
+    """API para excluir lançamento, garantindo que a NFe original e os rateios sejam tratados corretamente."""
     data = request.get_json()
     item_id = data.get('item_id')
     
-    if not item_id:
-        return jsonify({'success': False, 'message': 'ID do item é obrigatório'}), 400
+    if not item_id or not item_id.startswith('manual_'):
+        return jsonify({'success': False, 'message': 'ID do item inválido ou não é um lançamento manual.'}), 400
     
     try:
-        # Identificar se é lançamento manual ou NFe
-        if item_id.startswith('manual_'):
-            lancamento_id = int(item_id.replace('manual_', ''))
-            lancamento = LancamentoFluxoCaixa.query.filter_by(
-                id=lancamento_id, 
+        lancamento_id = int(item_id.replace('manual_', ''))
+        lancamento_clicado = LancamentoFluxoCaixa.query.filter_by(
+            id=lancamento_id, 
+            empresa_id=current_user.empresa_id
+        ).first_or_404()
+
+        if lancamento_clicado.status_pagamento == 'PAGO':
+            return jsonify({'success': False, 'message': 'Não é possível excluir lançamentos já pagos.'}), 400
+
+        # --- INÍCIO DA LÓGICA CORRIGIDA ---
+        
+        # 1. Identifica se o lançamento veio de uma NF-e e encontra todas as suas parcelas
+        is_nfe_related = lancamento_clicado.documento_numero and lancamento_clicado.documento_numero.startswith('NFE-')
+        
+        lancamentos_para_excluir = []
+        if is_nfe_related:
+            lancamentos_para_excluir = LancamentoFluxoCaixa.query.filter_by(
+                documento_numero=lancamento_clicado.documento_numero,
                 empresa_id=current_user.empresa_id
-            ).first_or_404()
-            
-            # Verificar se pode ser excluído
-            if lancamento.status_pagamento == 'PAGO':
-                return jsonify({'success': False, 'message': 'Não é possível excluir lançamentos já pagos'}), 400
-            
-            # Se é um lançamento parcelado, excluir todas as parcelas filhas
-            if lancamento.parcela_numero == 0 and lancamento.status_pagamento == 'PARCELADO':
-                LancamentoFluxoCaixa.query.filter_by(lancamento_pai_id=lancamento.id).delete()
-            
-            db.session.delete(lancamento)
-            tipo_texto = "receita" if lancamento.tipo == 'RECEITA' else "despesa"
-            
-        elif item_id.startswith('nfe_'):
-            lancamento_id = int(item_id.replace('nfe_', ''))
-            lancamento = LancamentoNotaFiscal.query.filter_by(
-                id=lancamento_id, 
-                empresa_id=current_user.empresa_id
-            ).first_or_404()
-            
-            # Verificar se pode ser excluído
-            if lancamento.status_pagamento == 'Pago':
-                return jsonify({'success': False, 'message': 'Não é possível excluir lançamentos de NFe já pagos'}), 400
-            
-            # Marcar a NFe original como não processada para permitir reprocessamento
-            if lancamento.nfe_original:
-                lancamento.nfe_original.status = 'IMPORTADA'
-            
-            db.session.delete(lancamento)
-            tipo_texto = "conta a pagar (NFe)"
-            
+            ).all()
         else:
-            return jsonify({'success': False, 'message': 'Formato de ID inválido'}), 400
-        
+            lancamentos_para_excluir.append(lancamento_clicado)
+
+        # 2. Coleta os IDs de todos os lançamentos que serão excluídos
+        ids_para_excluir = [lanc.id for lanc in lancamentos_para_excluir]
+
+        if ids_para_excluir:
+            # 3. (A CORREÇÃO) Exclui PRIMEIRO os registros 'filhos' (rateios)
+            RateioVeiculo.query.filter(
+                RateioVeiculo.lancamento_id.in_(ids_para_excluir)
+            ).delete(synchronize_session=False)
+
+            # 4. Agora exclui os registros 'pai' (os próprios lançamentos)
+            LancamentoFluxoCaixa.query.filter(
+                LancamentoFluxoCaixa.id.in_(ids_para_excluir)
+            ).delete(synchronize_session=False)
+
+        # 5. Se era de uma NF-e, reabilita a nota original
+        chave_acesso = None
+        if is_nfe_related and lancamento_clicado.observacoes and 'Chave de acesso: ' in lancamento_clicado.observacoes:
+            chave_acesso = lancamento_clicado.observacoes.split('Chave de acesso: ')[1]
+            nfe_original = NFeImportada.query.filter_by(
+                chave_acesso=chave_acesso,
+                empresa_id=current_user.empresa_id
+            ).first()
+            if nfe_original:
+                nfe_original.status = 'IMPORTADA'
+        # --- FIM DA LÓGICA CORRIGIDA ---
+
         db.session.commit()
-        return jsonify({'success': True, 'message': f'Lançamento de {tipo_texto} excluído com sucesso!'})
         
+        if is_nfe_related:
+            return jsonify({'success': True, 'message': 'Lançamento(s) e seu rateio foram excluídos! A nota fiscal foi reabilitada.'})
+        else:
+            return jsonify({'success': True, 'message': 'Lançamento manual e seu rateio foram excluídos com sucesso!'})
+
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Erro ao excluir lançamento: {e}", exc_info=True)
+        logger.error(f"Erro ao excluir lançamento {item_id}: {e}", exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500
-    
 
 @app.route('/api/fluxo_caixa/salvar_rateio', methods=['POST'])
 @login_required
@@ -5503,78 +5589,64 @@ def api_salvar_rateio():
         logger.error(f"Erro ao salvar rateio para o grupo do lançamento {lancamento_id_clicado}: {e}", exc_info=True)
         return jsonify({'success': False, 'message': f'Erro interno: {str(e)}'}), 500
     
+# Em app.py, encontre e substitua esta rota
+
 @app.route('/api/fluxo_caixa/novo_lancamento_completo', methods=['POST'])
 @login_required
 @master_required
 def api_novo_lancamento_completo():
     """
-    API robusta para criar um novo lançamento manual, com suporte a múltiplas
-    parcelas e rateio de despesa por veículos.
+    API final para criar lançamentos, com suporte a rateio híbrido para múltiplos
+    veículos e/ou centros de custo.
     """
     data = request.get_json()
     try:
-        # --- Validações Essenciais ---
-        if not all(k in data for k in ['tipo', 'descricao', 'valor_total', 'parcelas']):
-            return jsonify({'success': False, 'message': 'Dados essenciais estão faltando.'}), 400
+        valor_total_nota = float(data['valor_total'])
+        rateios = data.get('rateios', []) # A lista de alocações
 
-        parcelas_info = data.get('parcelas', [])
-        if not parcelas_info:
-             return jsonify({'success': False, 'message': 'Pelo menos uma parcela é necessária.'}), 400
+        soma_rateios = sum(float(r.get('valor', 0)) for r in rateios)
+        if abs(soma_rateios - valor_total_nota) > 0.01:
+            return jsonify({'success': False, 'message': 'A soma do rateio não confere com o valor total.'}), 400
 
-        valor_total_form = float(data['valor_total'])
-        soma_parcelas = sum(float(p['valor']) for p in parcelas_info)
-        if abs(soma_parcelas - valor_total_form) > 0.01:
-            return jsonify({'success': False, 'message': f'A soma das parcelas (R$ {soma_parcelas:.2f}) não confere com o valor total (R$ {valor_total_form:.2f}).'}), 400
+        # Gera um ID único para agrupar todos os lançamentos
+        grupo_id = str(uuid.uuid4())
 
-        tem_rateio = data.get('tem_rateio', False)
-        veiculos_rateio = data.get('veiculos', [])
-        if tem_rateio and not veiculos_rateio:
-            return jsonify({'success': False, 'message': 'Para rateio, os veículos são obrigatórios.'}), 400
+        for rateio_info in rateios:
+            valor_rateio = float(rateio_info['valor'])
+            tipo_rateio = rateio_info['tipo']
+            id_rateio = int(rateio_info['id'])
 
-        # --- Lógica de Criação ---
-        # Cria um ID de grupo para vincular as parcelas, se houver mais de uma
-        grupo_doc_id = f"MANUAL-{uuid.uuid4().hex[:8]}" if len(parcelas_info) > 1 else None
+            if valor_rateio > 0:
+                lancamento = LancamentoFluxoCaixa(
+                    empresa_id=current_user.empresa_id,
+                    unidade_negocio_id=data.get('unidade_negocio_id'),
+                    tipo=data['tipo'],
+                    descricao=f"{data['descricao']} ({rateio_info['nome']})", # Descrição mais específica
+                    categoria=data.get('categoria'),
+                    valor_total=valor_rateio,
+                    data_vencimento=datetime.strptime(data['parcelas'][0]['data_vencimento'], '%Y-%m-%d').date(),
+                    fornecedor_cliente=data.get('fornecedor_cliente'),
+                    documento_numero=data.get('documento_numero'),
+                    observacoes=data.get('observacoes'),
+                    parcela_numero=1,
+                    parcela_total=1,
+                    grupo_despesa_id=grupo_id
+                )
+                
+                if tipo_rateio == 'veiculo':
+                    lancamento.veiculo_id = id_rateio
+                elif tipo_rateio == 'centro_custo':
+                    lancamento.centro_custo_id = id_rateio
 
-        for i, parcela in enumerate(parcelas_info, 1):
-            novo_lancamento = LancamentoFluxoCaixa(
-                empresa_id=current_user.empresa_id,
-                tipo=data['tipo'],
-                descricao=f"{data['descricao']} ({i}/{len(parcelas_info)})" if len(parcelas_info) > 1 else data['descricao'],
-                categoria=data.get('categoria'),
-                valor_total=float(parcela['valor']),
-                data_vencimento=datetime.strptime(parcela['data_vencimento'], '%Y-%m-%d').date(),
-                fornecedor_cliente=data.get('fornecedor_cliente'),
-                documento_numero=grupo_doc_id or data.get('documento_numero'),
-                observacoes=data.get('observacoes'),
-                parcela_numero=i,
-                parcela_total=len(parcelas_info),
-                tem_rateio=tem_rateio
-            )
-            db.session.add(novo_lancamento)
-            db.session.flush() # Garante que o ID do lançamento esteja disponível para o rateio
+                db.session.add(lancamento)
 
-            if tem_rateio:
-                for veiculo_info in veiculos_rateio:
-                    percentual = float(veiculo_info.get('percentual', 0))
-                    # O valor rateado é o percentual sobre o VALOR DA PARCELA
-                    valor_rateado_para_parcela = novo_lancamento.valor_total * (percentual / 100)
-
-                    novo_rateio_db = RateioVeiculo(
-                        lancamento_id=novo_lancamento.id,
-                        veiculo_id=int(veiculo_info['veiculo_id']),
-                        valor_rateado=valor_rateado_para_parcela,
-                        percentual=percentual
-                    )
-                    db.session.add(novo_rateio_db)
-        
         db.session.commit()
-        return jsonify({'success': True, 'message': f'Lançamento criado com sucesso! {len(parcelas_info)} parcela(s) registrada(s).'})
+        return jsonify({'success': True, 'message': f'{len(rateios)} lançamento(s) de rateio criado(s) com sucesso!'})
 
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Erro ao criar lançamento completo via API: {e}", exc_info=True)
-        return jsonify({'success': False, 'message': f'Erro interno do servidor: {str(e)}'}), 500
-
+        logger.error(f"Erro ao criar lançamento com rateio: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Erro interno: {str(e)}'}), 500
 
 @app.route('/api/fluxo_caixa/rateio/<string:item_id>')
 @login_required
@@ -5761,7 +5833,8 @@ def api_buscar_veiculos():
         
         veiculos = Veiculo.query.filter(
             Veiculo.empresa_id == current_user.empresa_id,
-            Veiculo.ativo == True,
+            # A linha "Veiculo.ativo == True," que causava o erro foi removida.
+            # Também removemos o filtro is_administrativo daqui para que o caminhão fantasma apareça na busca.
             db.or_(
                 Veiculo.placa.ilike(f'%{term}%'),
                 Veiculo.modelo.ilike(f'%{term}%'),
@@ -6226,110 +6299,171 @@ def preparar_cte_de_viagem_nova(viagem_id):
 @login_required
 @master_required
 def api_exportar_fluxo_excel():
-    """Exportar fluxo de caixa para Excel com filtros aplicados"""
+    """
+    Exporta um relatório financeiro detalhado para Excel, com abas por unidade de negócio,
+    resumo consolidado e formatação aprimorada para contabilidade.
+    """
     try:
-        # Aplicar os mesmos filtros da tela principal
+        # 1. Coleta e validação dos filtros da URL
         hoje = date.today()
-        data_inicio = request.args.get('data_inicio', hoje.strftime('%Y-%m-%d'))
-        data_fim = request.args.get('data_fim', (hoje + timedelta(days=30)).strftime('%Y-%m-%d'))
-        categoria_filtro = request.args.get('categoria', '')
-        status_filtro = request.args.get('status', '')
+        data_inicio_str = request.args.get('data_inicio', hoje.strftime('%Y-%m-%d'))
+        data_fim_str = request.args.get('data_fim', (hoje + timedelta(days=30)).strftime('%Y-%m-%d'))
+        unidade_negocio_filtro_id = request.args.get('unidade_negocio_id', type=int)
         
-        data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d').date()
-        data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d').date()
-        
-        # Buscar dados
-        query_manuais = LancamentoFluxoCaixa.query.filter(
+        data_inicio_obj = datetime.strptime(data_inicio_str, '%Y-%m-%d').date()
+        data_fim_obj = datetime.strptime(data_fim_str, '%Y-%m-%d').date()
+
+        # 2. Query otimizada para buscar todos os dados necessários de uma só vez
+        query = LancamentoFluxoCaixa.query.options(
+            db.joinedload(LancamentoFluxoCaixa.unidade_negocio),
+            db.joinedload(LancamentoFluxoCaixa.rateios).joinedload(RateioVeiculo.veiculo),
+            db.joinedload(LancamentoFluxoCaixa.centro_custo)
+        ).filter(
             LancamentoFluxoCaixa.empresa_id == current_user.empresa_id,
-            LancamentoFluxoCaixa.data_vencimento >= data_inicio_obj,
-            LancamentoFluxoCaixa.data_vencimento <= data_fim_obj
+            LancamentoFluxoCaixa.data_vencimento.between(data_inicio_obj, data_fim_obj)
         )
-        
-        query_nfe = LancamentoNotaFiscal.query.filter(
-            LancamentoNotaFiscal.empresa_id == current_user.empresa_id,
-            LancamentoNotaFiscal.data_vencimento >= data_inicio_obj,
-            LancamentoNotaFiscal.data_vencimento <= data_fim_obj
-        )
-        
-        if categoria_filtro:
-            query_manuais = query_manuais.filter(LancamentoFluxoCaixa.categoria.ilike(f'%{categoria_filtro}%'))
-        
-        if status_filtro:
-            query_manuais = query_manuais.filter(LancamentoFluxoCaixa.status_pagamento == status_filtro)
-            query_nfe = query_nfe.filter(LancamentoNotaFiscal.status_pagamento == status_filtro)
-        
-        lancamentos_manuais = query_manuais.order_by(LancamentoFluxoCaixa.data_vencimento).all()
-        lancamentos_nfe = query_nfe.order_by(LancamentoNotaFiscal.data_vencimento).all()
-        
-        # Criar Excel
+
+        # Aplica filtros adicionais
+        if unidade_negocio_filtro_id:
+            query = query.filter(LancamentoFluxoCaixa.unidade_negocio_id == unidade_negocio_filtro_id)
+        # (Adicione outros filtros como categoria, status, etc., aqui se necessário)
+
+        lancamentos = query.order_by(LancamentoFluxoCaixa.unidade_negocio_id, LancamentoFluxoCaixa.data_vencimento).all()
+
+        # 3. Organiza os dados por Unidade de Negócio
+        dados_por_unidade = defaultdict(list)
+        for lanc in lancamentos:
+            unidade_nome = lanc.unidade_negocio.nome if lanc.unidade_negocio else "Sem Unidade"
+            dados_por_unidade[unidade_nome].append(lanc)
+
+        # 4. Cria o arquivo Excel em memória
         output = io.BytesIO()
         workbook = Workbook()
+        workbook.remove(workbook.active)  # Remove a planilha padrão
+
+        # 5. Define estilos de formatação para a planilha
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="2E7D32", end_color="2E7D32", fill_type="solid")
+        currency_format = 'R$ #,##0.00'
+        summary_font = Font(bold=True)
         
-        # Aba principal - Fluxo Consolidado
-        sheet = workbook.active
-        sheet.title = "Fluxo de Caixa"
-        
-        headers = [
-            "Data Vencimento", "Tipo Movimento", "Origem", "Descrição", 
-            "Categoria", "Fornecedor/Cliente", "Documento", "Valor", 
-            "Status", "Data Pagamento", "Observações"
-        ]
-        sheet.append(headers)
-        
-        # Consolidar e adicionar dados
-        fluxo_consolidado = consolidar_fluxo_caixa(lancamentos_manuais, lancamentos_nfe, data_inicio_obj, data_fim_obj)
-        
-        for item in fluxo_consolidado:
-            row = [
-                item['data_vencimento'].strftime('%d/%m/%Y'),
-                item['tipo_movimento'],
-                item['tipo_origem'],
-                item['descricao'],
-                item['categoria'],
-                item['fornecedor_cliente'] or '',
-                item['documento'] or '',
-                item['valor'],
-                item['status'],
-                item['data_pagamento'].strftime('%d/%m/%Y') if item['data_pagamento'] else '',
-                item['observacoes'] or ''
+        # 6. Função auxiliar para criar uma planilha (aba)
+        def create_sheet(sheet_name, data):
+            sheet = workbook.create_sheet(title=sheet_name)
+            
+            headers = [
+                "Data Venc.", "Data Lanç.", "Data Pag.", "Unidade de Negócio", "Tipo", "Descrição",
+                "Categoria", "Fornecedor/Cliente", "Nº Documento", "Chave Acesso NFe",
+                "Valor", "Status", "Meio Pag.", "Parcela", "Rateado?", "Alocação do Rateio", "Obs."
             ]
-            sheet.append(row)
-        
-        # Aba de resumo por categoria
-        sheet_resumo = workbook.create_sheet("Resumo por Categoria")
-        sheet_resumo.append(["Categoria", "Total Receitas", "Total Despesas", "Saldo"])
-        
-        resumo_categorias = defaultdict(lambda: {'receitas': 0, 'despesas': 0})
-        
-        for item in fluxo_consolidado:
-            categoria = item['categoria']
-            if item['tipo_movimento'] == 'RECEITA':
-                resumo_categorias[categoria]['receitas'] += item['valor']
-            else:
-                resumo_categorias[categoria]['despesas'] += item['valor']
-        
-        for categoria, valores in resumo_categorias.items():
-            saldo = valores['receitas'] - valores['despesas']
-            sheet_resumo.append([categoria, valores['receitas'], valores['despesas'], saldo])
-        
-        # Salvar arquivo
+            sheet.append(headers)
+            
+            # Aplica estilo ao cabeçalho
+            for cell in sheet[1]:
+                cell.font = header_font
+                cell.fill = header_fill
+
+            total_receitas = 0
+            total_despesas = 0
+
+            # Preenche os dados
+            for lanc in data:
+                is_nfe = lanc.documento_numero and lanc.documento_numero.startswith('NFE-')
+                chave_acesso = lanc.observacoes.split('Chave de acesso: ')[1] if is_nfe and 'Chave de acesso: ' in lanc.observacoes else ''
+                
+                alocacao_rateio = ""
+                if lanc.tem_rateio:
+                    if lanc.rateios:
+                        alocacao_rateio = ", ".join([r.veiculo.placa for r in lanc.rateios if r.veiculo])
+                    elif lanc.centro_custo:
+                        alocacao_rateio = lanc.centro_custo.nome
+
+                row = [
+                    lanc.data_vencimento,
+                    lanc.data_lancamento,
+                    lanc.data_pagamento,
+                    lanc.unidade_negocio.nome if lanc.unidade_negocio else "N/A",
+                    lanc.tipo,
+                    lanc.descricao,
+                    lanc.categoria,
+                    lanc.fornecedor_cliente,
+                    lanc.documento_numero,
+                    chave_acesso,
+                    lanc.valor_total,
+                    lanc.status_pagamento,
+                    lanc.meio_pagamento,
+                    f"{lanc.parcela_numero}/{lanc.parcela_total}" if lanc.parcela_total > 1 else "1/1",
+                    "Sim" if lanc.tem_rateio else "Não",
+                    alocacao_rateio,
+                    lanc.observacoes
+                ]
+                sheet.append(row)
+
+                # Formata a célula de valor
+                sheet.cell(row=sheet.max_row, column=11).number_format = currency_format
+
+                # Soma para o resumo
+                if lanc.tipo == 'RECEITA':
+                    total_receitas += lanc.valor_total
+                else:
+                    total_despesas += lanc.valor_total
+            
+            # Adiciona a linha de resumo no final
+            sheet.append([]) # Linha em branco
+            summary_row_start = sheet.max_row + 1
+            sheet.cell(row=summary_row_start, column=10, value="TOTAL RECEITAS:").font = summary_font
+            sheet.cell(row=summary_row_start, column=11, value=total_receitas).number_format = currency_format
+            sheet.cell(row=summary_row_start, column=11).font = summary_font
+
+            sheet.cell(row=summary_row_start + 1, column=10, value="TOTAL DESPESAS:").font = summary_font
+            sheet.cell(row=summary_row_start + 1, column=11, value=total_despesas).number_format = currency_format
+            sheet.cell(row=summary_row_start + 1, column=11).font = summary_font
+            
+            sheet.cell(row=summary_row_start + 2, column=10, value="SALDO:").font = summary_font
+            sheet.cell(row=summary_row_start + 2, column=11, value=(total_receitas - total_despesas)).number_format = currency_format
+            sheet.cell(row=summary_row_start + 2, column=11).font = summary_font
+
+
+            # Ajusta a largura das colunas
+            for col_idx, column_cells in enumerate(sheet.columns, 1):
+                max_length = 0
+                column = get_column_letter(col_idx)
+                for cell in column_cells:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = (max_length + 2) * 1.2
+                sheet.column_dimensions[column].width = adjusted_width
+
+        # 7. Gera as planilhas
+        if not unidade_negocio_filtro_id and len(dados_por_unidade) > 1:
+            create_sheet("Resumo Geral Consolidado", lancamentos)
+
+        for unidade, dados_unidade in sorted(dados_por_unidade.items()):
+            # Limita o nome da aba para 31 caracteres, que é o limite do Excel
+            safe_sheet_name = unidade[:31]
+            create_sheet(safe_sheet_name, dados_unidade)
+
+        # 8. Salva o arquivo e envia como resposta
         workbook.save(output)
         output.seek(0)
         
-        nome_arquivo = f"fluxo_caixa_{data_inicio_obj.strftime('%Y%m%d')}_{data_fim_obj.strftime('%Y%m%d')}.xlsx"
+        filename = f"Relatorio_Financeiro_{data_inicio_obj.strftime('%d%m%Y')}_a_{data_fim_obj.strftime('%d%m%Y')}.xlsx"
         
         return send_file(
             output,
             as_attachment=True,
-            download_name=nome_arquivo,
+            download_name=filename,
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
         
     except Exception as e:
-        logger.error(f"Erro ao exportar fluxo para Excel: {e}", exc_info=True)
-        flash('Erro ao exportar relatório.', 'error')
-        return redirect(url_for('fluxo_caixa'))
-
+        logger.error(f"Erro ao exportar relatório detalhado de fluxo de caixa: {e}", exc_info=True)
+        flash('Ocorreu um erro inesperado ao gerar o relatório Excel.', 'error')
+        return redirect(url_for('fluxo_caixa', **request.args))
+    
 @app.route('/api/fluxo_caixa/reprocessar_nfe/<string:chave_acesso>', methods=['POST'])
 @login_required
 @master_required
@@ -7118,7 +7252,7 @@ def consultar_viagens():
 
     # Busca os dados para os dropdowns de filtro
     motoristas_filtro = Motorista.query.filter_by(empresa_id=current_user.empresa_id).order_by(Motorista.nome).all()
-    veiculos_filtro = Veiculo.query.filter_by(empresa_id=current_user.empresa_id).order_by(Veiculo.placa).all()
+    veiculos_filtro = Veiculo.query.filter_by(empresa_id=current_user.empresa_id, is_administrativo=False).order_by(Veiculo.placa).all()
     
     return render_template(
         'consultar_viagens.html',
@@ -9093,6 +9227,163 @@ def handle_atualizar_localizacao_socket(data):
     except Exception as e:
         logger.error(f"Erro ao salvar localização via socket: {e}", exc_info=True)
         db.session.rollback()
+
+@app.route('/relatorios/rentabilidade_veiculo')
+@login_required
+@master_required
+def relatorio_rentabilidade_veiculo():
+    """ Rota para o novo Dashboard de Rentabilidade de Veículos. """
+    try:
+        # 1. Obter filtros da URL
+        hoje = date.today()
+        data_inicio_str = request.args.get('data_inicio', hoje.replace(day=1).strftime('%Y-%m-%d'))
+        data_fim_str = request.args.get('data_fim', hoje.strftime('%Y-%m-%d'))
+        veiculo_id_filtro = request.args.get('veiculo_id', type=int)
+
+        data_inicio = datetime.strptime(data_inicio_str, '%Y-%m-%d').date()
+        data_fim = datetime.strptime(data_fim_str, '%Y-%m-%d').date()
+
+        # 2. Query base para veículos da empresa
+        veiculos_query = Veiculo.query.filter(Veiculo.empresa_id == current_user.empresa_id)
+        if veiculo_id_filtro:
+            veiculos_query = veiculos_query.filter(Veiculo.id == veiculo_id_filtro)
+        
+        veiculos = veiculos_query.all()
+        veiculos_para_filtro = Veiculo.query.filter(Veiculo.empresa_id == current_user.empresa_id).order_by(Veiculo.placa).all()
+
+        # 3. Estruturas para consolidar dados
+        relatorio_detalhado = []
+        custos_por_categoria = defaultdict(float)
+        receita_total = 0.0
+        km_total = 0.0
+        pagamento_motoristas_total = 0.0  # ← NOVO: Separar pagamentos aos motoristas
+        
+        # Para gráfico de evolução mensal
+        evolucao_mensal = defaultdict(lambda: {'receitas': 0.0, 'custos': 0.0, 'pagamentos': 0.0})
+
+        for veiculo in veiculos:
+            # A. RECEITAS (das viagens no período)
+            viagens_periodo = Viagem.query.filter(
+                Viagem.veiculo_id == veiculo.id,
+                Viagem.data_inicio.between(data_inicio, data_fim)
+            ).all()
+
+            for viagem in viagens_periodo:
+                valor_recebido = float(viagem.valor_recebido or 0.0)
+                receita_total += valor_recebido
+                km_total += float(viagem.distancia_percorrida or 0.0)
+                
+                # Para evolução mensal
+                mes_ano = viagem.data_inicio.strftime('%Y-%m')
+                evolucao_mensal[mes_ano]['receitas'] += valor_recebido
+                
+                # B. PAGAMENTOS AOS MOTORISTAS (frete variável)
+                if viagem.custo_motorista_variavel and viagem.custo_motorista_variavel > 0:
+                    custo = float(viagem.custo_motorista_variavel)
+                    pagamento_motoristas_total += custo  # ← Somar no total de pagamentos
+                    
+                    relatorio_detalhado.append({
+                        "data": viagem.data_inicio.date(), 
+                        "veiculo": f"{veiculo.placa} - {veiculo.modelo}",
+                        "origem": "Pagamento Motorista", 
+                        "fornecedor": viagem.motorista_formal.nome if viagem.motorista_formal else "N/A",
+                        "nota": f"Viagem #{viagem.id}", 
+                        "descricao": f"Frete por {viagem.peso_toneladas or 0} TN",
+                        "valor": custo
+                    })
+                    custos_por_categoria['Pagamento Motoristas'] += custo
+                    evolucao_mensal[mes_ano]['pagamentos'] += custo
+
+                # C. SALÁRIO FIXO (proporcional à viagem)
+                if viagem.motorista_formal and viagem.duracao_segundos and viagem.motorista_formal.salario_base:
+                    salario = float(viagem.motorista_formal.salario_base)
+                    custo_hora = salario / 220  # 220 horas úteis/mês
+                    custo_salario_viagem = (viagem.duracao_segundos / 3600) * custo_hora
+                    pagamento_motoristas_total += custo_salario_viagem  # ← Somar no total de pagamentos
+                    
+                    relatorio_detalhado.append({
+                        "data": viagem.data_inicio.date(), 
+                        "veiculo": f"{veiculo.placa} - {veiculo.modelo}",
+                        "origem": "Salário Motorista", 
+                        "fornecedor": viagem.motorista_formal.nome,
+                        "nota": f"Viagem #{viagem.id}", 
+                        "descricao": f"Salário proporcional da viagem",
+                        "valor": custo_salario_viagem
+                    })
+                    custos_por_categoria['Salário Motoristas'] += custo_salario_viagem
+                    evolucao_mensal[mes_ano]['pagamentos'] += custo_salario_viagem
+
+            # D. CUSTOS DE RATEIO (do Fluxo de Caixa)
+            rateios_periodo = RateioVeiculo.query.join(LancamentoFluxoCaixa).filter(
+                RateioVeiculo.veiculo_id == veiculo.id,
+                LancamentoFluxoCaixa.data_vencimento.between(data_inicio, data_fim)
+            ).all()
+
+            for rateio in rateios_periodo:
+                lancamento = rateio.lancamento
+                valor_rateado_float = float(rateio.valor_rateado)  # ← Conversão para float
+                
+                relatorio_detalhado.append({
+                    "data": lancamento.data_vencimento, 
+                    "veiculo": f"{veiculo.placa} - {veiculo.modelo}",
+                    "origem": lancamento.categoria or "Outros", 
+                    "fornecedor": lancamento.fornecedor_cliente or "N/A",
+                    "nota": lancamento.documento_numero or "N/A", 
+                    "descricao": f"{lancamento.descricao}",
+                    "valor": valor_rateado_float
+                })
+                custos_por_categoria[lancamento.categoria or 'Outros'] += valor_rateado_float
+                
+                # Para evolução mensal
+                mes_ano = lancamento.data_vencimento.strftime('%Y-%m')
+                evolucao_mensal[mes_ano]['custos'] += valor_rateado_float
+        
+        # 4. Calcular KPIs
+        custo_total = sum(item['valor'] for item in relatorio_detalhado)
+        lucro_liquido = receita_total - custo_total
+        
+        kpis = {
+            "receita_total": receita_total, 
+            "custo_total": custo_total,
+            "pagamento_motoristas": pagamento_motoristas_total,  # ← NOVO KPI
+            "lucro_liquido": lucro_liquido,
+            "custo_km": (custo_total / km_total) if km_total > 0 else 0.0,
+            "receita_km": (receita_total / km_total) if km_total > 0 else 0.0,
+            "margem_lucro": (lucro_liquido / receita_total * 100) if receita_total > 0 else 0.0
+        }
+
+        # 5. Preparar dados para gráfico de evolução mensal
+        meses_ordenados = sorted(evolucao_mensal.keys())
+        grafico_evolucao = {
+            "labels": [datetime.strptime(mes, '%Y-%m').strftime('%b/%y') for mes in meses_ordenados],
+            "receitas": [evolucao_mensal[mes]['receitas'] for mes in meses_ordenados],
+            "custos": [evolucao_mensal[mes]['custos'] for mes in meses_ordenados],
+            "pagamentos": [evolucao_mensal[mes]['pagamentos'] for mes in meses_ordenados]
+        }
+
+        # Ordenar relatório por data
+        relatorio_detalhado.sort(key=lambda x: x['data'], reverse=True)
+
+        return render_template(
+            'relatorios/rentabilidade_veiculo.html',
+            kpis=kpis,
+            relatorio=relatorio_detalhado,
+            grafico_custos={
+                "labels": list(custos_por_categoria.keys()),
+                "data": list(custos_por_categoria.values())
+            },
+            grafico_evolucao=grafico_evolucao,  # ← NOVO: dados para evolução mensal
+            veiculos_filtro=veiculos_para_filtro,
+            filtros={
+                "data_inicio": data_inicio_str,
+                "data_fim": data_fim_str,
+                "veiculo_id": veiculo_id_filtro
+            }
+        )
+    except Exception as e:
+        logger.error(f"Erro ao gerar relatório de rentabilidade: {e}", exc_info=True)
+        flash(f"Ocorreu um erro inesperado ao gerar o relatório: {e}", "error")
+        return redirect(url_for('painel'))
 
 @app.route('/api/veiculo/<int:veiculo_id>/despesas_consolidadas')
 @login_required
