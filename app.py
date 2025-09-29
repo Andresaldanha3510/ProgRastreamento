@@ -16,7 +16,6 @@ import boto3
 from werkzeug.utils import secure_filename
 import io
 from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_, and_, func, extract, UniqueConstraint, LargeBinary
 from flask_login import UserMixin, login_user, logout_user, login_required, current_user
@@ -40,8 +39,9 @@ from extensions import db, CTeEmitido
 from flask_mail import Message
 from collections import defaultdict
 from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment, PatternFill
+from openpyxl.styles import Font, PatternFill, Alignment, NamedStyle
 from openpyxl.utils import get_column_letter
+
 
 
 
@@ -110,7 +110,7 @@ app.config.update(
     CLOUDFLARE_R2_ACCESS_KEY=os.getenv('CLOUDFLARE_R2_ACCESS_KEY'),
     CLOUDFLARE_R2_SECRET_KEY=os.getenv('CLOUDFLARE_R2_SECRET_KEY'),
     CLOUDFLARE_R2_BUCKET=os.getenv('CLOUDFLARE_R2_BUCKET'),
-    CLOUDFLARE_R2_PUBLIC_URL=os.getenv('CLOUDFLARE_R2_PUBLIC_URL'),
+    CLOUDFLARE_R2_PUBLIC_URL=(lambda url: url.split('=', 1)[-1])(os.getenv('CLOUDFLARE_R2_PUBLIC_URL', '')),
     SEFAZ_AMBIENTE=os.getenv('SEFAZ_AMBIENTE', 'PRODUCAO'),
     NFE_API_URL=os.getenv('NFE_API_URL'),
 )
@@ -1059,6 +1059,7 @@ class Viagem(db.Model):
     localizacoes = db.relationship('Localizacao', backref='viagem', lazy=True, cascade="all, delete-orphan")
     peso_toneladas = db.Column(db.Float, nullable=True)
     custo_motorista_variavel = db.Column(db.Float, nullable=True) 
+    material_transportado = db.Column(db.String(150), nullable=True)
 
 
     
@@ -2349,35 +2350,69 @@ def cadastrar_cliente():
     if request.method == 'POST':
         try:
             cpf_cnpj = re.sub(r'\D', '', request.form.get('cpf_cnpj', ''))
-            # CORREÇÃO: Impede cadastro de CPF/CNPJ duplicado na mesma empresa.
             if Cliente.query.filter_by(cpf_cnpj=cpf_cnpj, empresa_id=current_user.empresa_id).first():
                 flash('Erro: Este CPF/CNPJ já está cadastrado para um cliente em sua empresa.', 'error')
                 return redirect(url_for('cadastrar_cliente'))
 
+            # <<< INÍCIO DA LÓGICA DE UPLOAD >>>
+            anexos_urls = []
+            files = request.files.getlist('anexos') # O 'name' do input no HTML é 'anexos'
+
+            if files and any(f and f.filename for f in files):
+                s3_client = boto3.client(
+                    's3',
+                    endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+                    aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+                    aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
+                    region_name='auto'
+                )
+                bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
+                public_url_base = app.config['CLOUDFLARE_R2_PUBLIC_URL']
+
+                for file in files:
+                    if file and file.filename:
+                        filename = secure_filename(file.filename)
+                        s3_path = f"clientes/{cpf_cnpj}/{uuid.uuid4()}-{filename}"
+                        
+                        s3_client.upload_fileobj(
+                            file, bucket_name, s3_path,
+                            ExtraArgs={'ContentType': file.content_type or 'application/octet-stream'}
+                        )
+                        anexos_urls.append(f"{public_url_base}/{s3_path}")
+            # <<< FIM DA LÓGICA DE UPLOAD >>>
+
             novo_cliente = Cliente(
                 pessoa_tipo=request.form.get('pessoa_tipo'),
                 nome_razao_social=request.form.get('nome_razao_social'),
+                nome_fantasia=request.form.get('nome_fantasia'),
                 cpf_cnpj=cpf_cnpj,
-                email=request.form.get('email'),
-                telefone=re.sub(r'\D', '', request.form.get('telefone', '')),
+                inscricao_estadual=request.form.get('inscricao_estadual'),
                 cep=re.sub(r'\D', '', request.form.get('cep', '')),
                 logradouro=request.form.get('logradouro'),
                 numero=request.form.get('numero'),
+                complemento=request.form.get('complemento'),
                 bairro=request.form.get('bairro'),
                 cidade=request.form.get('cidade'),
                 estado=request.form.get('estado'),
+                email=request.form.get('email'),
+                telefone=re.sub(r'\D', '', request.form.get('telefone', '')),
+                contato_principal=request.form.get('contato_principal'),
+                anexos=','.join(anexos_urls) if anexos_urls else None, # Salva as URLs no banco
                 cadastrado_por_id=current_user.id,
-                empresa_id=current_user.empresa_id # ESSENCIAL
+                empresa_id=current_user.empresa_id
             )
+            
             db.session.add(novo_cliente)
             db.session.commit()
             flash('Cliente cadastrado com sucesso!', 'success')
             return redirect(url_for('consultar_clientes'))
+
         except Exception as e:
             db.session.rollback()
+            logger.error(f"Erro ao cadastrar cliente: {e}", exc_info=True)
             flash(f'Ocorreu um erro ao cadastrar o cliente: {e}', 'error')
+    
     return render_template('cadastrar_cliente.html', active_page='cadastrar_cliente')
-
 @app.route('/consultar_clientes')
 @login_required
 def consultar_clientes():
@@ -4186,6 +4221,154 @@ def consultar_motoristas():
     
     return render_template('consultar_motoristas.html', **contexto)
 
+@app.route('/relatorios/rentabilidade/exportar_excel')
+@login_required
+@master_required
+def exportar_rentabilidade_excel():
+    try:
+        # 1. Obter os mesmos filtros da página do dashboard
+        data_inicio_str = request.args.get('data_inicio')
+        data_fim_str = request.args.get('data_fim')
+        veiculo_id_filtro = request.args.get('veiculo_id', type=int)
+
+        data_inicio = datetime.strptime(data_inicio_str, '%Y-%m-%d').date()
+        data_fim = datetime.strptime(data_fim_str, '%Y-%m-%d').date()
+
+        # 2. Buscar TODOS os dados de rentabilidade (lógica similar à do dashboard)
+        # A diferença é que não vamos filtrar por veículo aqui, faremos isso na organização dos dados
+        viagens_periodo = Viagem.query.filter(
+            Viagem.empresa_id == current_user.empresa_id,
+            Viagem.data_inicio.between(data_inicio, data_fim)
+        ).options(db.joinedload(Viagem.veiculo)).all()
+
+        veiculo_ids_com_viagem = [v.veiculo_id for v in viagens_periodo]
+        
+        # Se um veículo específico foi filtrado, usamos apenas ele
+        if veiculo_id_filtro:
+             veiculo_ids_com_viagem = [veiculo_id_filtro]
+
+        # Busca todos os custos do período para os veículos que tiveram viagens
+        all_costs = []
+        # ... (A mesma lógica de busca de custos da função 'relatorio_rentabilidade_veiculo' viria aqui)
+        # Para simplificar, vamos replicar a busca de custos aqui dentro
+        # CUSTOS DIRETOS
+        for viagem in viagens_periodo:
+            if viagem.veiculo_id not in veiculo_ids_com_viagem: continue
+            if viagem.abastecimentos:
+                for abast in viagem.abastecimentos:
+                    all_costs.append({'veiculo_placa': viagem.veiculo.placa, 'data': abast.data_abastecimento.date(), 'categoria': 'Combustível', 'descricao': f"{abast.litros:.2f}L @ R${abast.preco_por_litro:.2f}/L", 'valor': float(abast.custo_total or 0)})
+            if viagem.custo_viagem:
+                if viagem.custo_viagem.pedagios: all_costs.append({'veiculo_placa': viagem.veiculo.placa, 'data': viagem.data_inicio.date(), 'categoria': 'Pedágio', 'descricao': 'Custo com pedágios', 'valor': float(viagem.custo_viagem.pedagios)})
+                if viagem.custo_viagem.alimentacao: all_costs.append({'veiculo_placa': viagem.veiculo.placa, 'data': viagem.data_inicio.date(), 'categoria': 'Alimentação', 'descricao': 'Custo com alimentação', 'valor': float(viagem.custo_viagem.alimentacao)})
+        # CUSTOS DE RATEIO E FOLHA
+        rateios = RateioVeiculo.query.join(LancamentoFluxoCaixa).filter(RateioVeiculo.veiculo_id.in_(veiculo_ids_com_viagem), LancamentoFluxoCaixa.data_pagamento.between(data_inicio, data_fim)).all()
+        for r in rateios: all_costs.append({'veiculo_placa': r.veiculo.placa, 'data': r.lancamento.data_pagamento, 'categoria': r.lancamento.categoria, 'descricao': r.lancamento.descricao, 'valor': float(r.valor_rateado)})
+        
+        folhas_pagas = FolhaPagamento.query.join(Viagem, FolhaPagamento.motorista_id == Viagem.motorista_id).filter(Viagem.veiculo_id.in_(veiculo_ids_com_viagem), FolhaPagamento.data_pagamento.between(data_inicio, data_fim)).distinct().all()
+        for f in folhas_pagas:
+            viagens_do_motorista_no_periodo = Viagem.query.filter(Viagem.motorista_id==f.motorista_id, Viagem.veiculo_id.in_(veiculo_ids_com_viagem), Viagem.data_inicio.between(data_inicio, data_fim)).all()
+            if not viagens_do_motorista_no_periodo: continue
+            placa_associada = viagens_do_motorista_no_periodo[0].veiculo.placa # Simplificação: associa ao primeiro veículo que ele dirigiu
+            if f.salario_base_registro > 0: all_costs.append({'veiculo_placa': placa_associada, 'data': f.data_pagamento.date(), 'categoria': 'Pagamento Pessoal', 'descricao': f'Salário Base - {f.motorista.nome}', 'valor': float(f.salario_base_registro)})
+            for item in f.itens.filter_by(tipo='Provento'): all_costs.append({'veiculo_placa': placa_associada, 'data': f.data_pagamento.date(), 'categoria': 'Pagamento Pessoal', 'descricao': f'{item.descricao} - {f.motorista.nome}', 'valor': float(item.valor)})
+
+        # 3. Organizar dados por veículo
+        dados_por_veiculo = defaultdict(lambda: {'receitas': [], 'custos': []})
+        for viagem in viagens_periodo:
+            if viagem.veiculo:
+                dados_por_veiculo[viagem.veiculo.placa]['receitas'].append(viagem)
+        for cost in all_costs:
+            dados_por_veiculo[cost['veiculo_placa']]['custos'].append(cost)
+
+        # 4. Gerar o arquivo Excel
+        output = io.BytesIO()
+        workbook = Workbook()
+        workbook.remove(workbook.active) # Remove a planilha padrão
+
+        # Estilos
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="2E7D32", end_color="2E7D32", fill_type="solid")
+        currency_style = NamedStyle(name='currency_style', number_format='R$ #,##0.00')
+        
+        # 5. Criar uma aba para cada veículo
+        resumo_geral = []
+        for placa, dados in sorted(dados_por_veiculo.items()):
+            sheet = workbook.create_sheet(title=placa)
+            
+            # Cabeçalho de Receitas
+            sheet.append(["Receitas (Fretes)"])
+            sheet.cell(row=sheet.max_row, column=1).font = Font(bold=True, size=14)
+            sheet.append(["Data", "Cliente", "Destino", "Material", "Peso (TN)", "Valor (R$)"])
+            for cell in sheet[sheet.max_row]: cell.font = header_font; cell.fill = header_fill
+            
+            total_receitas_veiculo = 0
+            for r in dados['receitas']:
+                sheet.append([r.data_inicio.date(), r.cliente, r.endereco_destino, r.material_transportado or 'N/A', r.peso_toneladas or 0, r.valor_recebido or 0])
+                sheet.cell(row=sheet.max_row, column=6).style = currency_style
+                total_receitas_veiculo += r.valor_recebido or 0
+            
+            sheet.append([]) # Linha em branco
+            
+            # Cabeçalho de Custos
+            sheet.append(["Custos e Pagamentos"])
+            sheet.cell(row=sheet.max_row, column=1).font = Font(bold=True, size=14)
+            sheet.append(["Data Pag.", "Categoria", "Descrição", "Valor (R$)"])
+            for cell in sheet[sheet.max_row]: cell.font = header_font; cell.fill = header_fill
+
+            total_custos_veiculo = 0
+            for c in sorted(dados['custos'], key=lambda x: x['data']):
+                sheet.append([c['data'], c['categoria'], c['descricao'], c['valor']])
+                sheet.cell(row=sheet.max_row, column=4).style = currency_style
+                total_custos_veiculo += c['valor']
+            
+            sheet.append([]) # Linha em branco
+
+            # Resumo do Veículo
+            lucro_veiculo = total_receitas_veiculo - total_custos_veiculo
+            sheet.append(["", "", "Total Receitas:", total_receitas_veiculo])
+            sheet.append(["", "", "Total Custos:", total_custos_veiculo])
+            sheet.append(["", "", "Lucro Líquido:", lucro_veiculo])
+            for i in range(3):
+                sheet.cell(row=sheet.max_row - i, column=3).font = Font(bold=True)
+                sheet.cell(row=sheet.max_row - i, column=4).style = currency_style
+            
+            resumo_geral.append({'placa': placa, 'receita': total_receitas_veiculo, 'custo': total_custos_veiculo, 'lucro': lucro_veiculo})
+
+            # Ajustar largura das colunas
+            for col_idx, column_cells in enumerate(sheet.columns, 1):
+                sheet.column_dimensions[get_column_letter(col_idx)].width = 20
+
+        # 6. Criar a aba de Resumo Geral
+        sheet_resumo = workbook.create_sheet(title="Resumo Geral")
+        sheet_resumo.append(["Veículo", "Total Receitas (R$)", "Total Custos (R$)", "Lucro Líquido (R$)"])
+        for cell in sheet_resumo[1]: cell.font = header_font; cell.fill = header_fill
+        
+        grand_total_receita = 0
+        grand_total_custo = 0
+        for resumo in resumo_geral:
+            sheet_resumo.append([resumo['placa'], resumo['receita'], resumo['custo'], resumo['lucro']])
+            grand_total_receita += resumo['receita']
+            grand_total_custo += resumo['custo']
+            for col in range(2, 5): sheet_resumo.cell(row=sheet_resumo.max_row, column=col).style = currency_style
+        
+        sheet_resumo.append([])
+        sheet_resumo.append(["TOTAL GERAL", grand_total_receita, grand_total_custo, grand_total_receita - grand_total_custo])
+        for cell in sheet_resumo[sheet_resumo.max_row]: cell.font = Font(bold=True, size=12)
+        for col in range(2, 5): sheet_resumo.cell(row=sheet_resumo.max_row, column=col).style = currency_style
+        for col_idx, column_cells in enumerate(sheet_resumo.columns, 1): sheet_resumo.column_dimensions[get_column_letter(col_idx)].width = 25
+
+        # 7. Salvar e enviar o arquivo
+        workbook.save(output)
+        output.seek(0)
+        
+        filename = f"Relatorio_Rentabilidade_{data_inicio_str}_a_{data_fim_str}.xlsx"
+        return send_file(output, as_attachment=True, download_name=filename, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    except Exception as e:
+        logger.error(f"Erro ao exportar rentabilidade para Excel: {e}", exc_info=True)
+        flash("Ocorreu um erro ao gerar o relatório Excel.", "error")
+        return redirect(url_for('relatorio_rentabilidade_veiculo', **request.args))
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -4451,6 +4634,66 @@ def relatorio_financeiro_dre():
         logger.error(f"Erro ao gerar relatório DRE: {e}", exc_info=True)
         flash("Ocorreu um erro ao gerar o relatório DRE.", "error")
         return redirect(url_for('relatorios'))
+    
+
+@app.cli.command("limpar-db-links")
+def limpar_links_anexos_command():
+    """
+    Limpa TODAS as colunas de anexos e fotos no banco de dados.
+    """
+    if not click.confirm(
+        click.style(
+            "ATENÇÃO: Você está prestes a apagar todas as referências (links) a anexos "
+            "e fotos no banco de dados. Isso complementa a limpeza dos arquivos. "
+            "Deseja continuar?",
+            fg='yellow', bold=True
+        ),
+        default=False
+    ):
+        click.echo("Operação cancelada.")
+        return
+
+    try:
+        click.echo("Iniciando limpeza dos links no banco de dados...")
+        
+        # Mapeamento das tabelas e colunas a serem limpas
+        modelos_e_colunas = {
+            'Cliente': ['anexos'],
+            'Motorista': ['anexos', 'foto'],
+            'Veiculo': ['fotos_urls'],
+            'CustoViagem': ['anexos'],
+            'Abastecimento': ['anexo_comprovante'],
+            'DespesaVeiculo': ['anexos'],
+            'ManutencaoItem': [] # Manutenção não parece ter anexo direto no item, mas verificamos
+        }
+        
+        total_afetado = 0
+        
+        # Itera sobre cada modelo e limpa as colunas especificadas
+        for nome_modelo, colunas in modelos_e_colunas.items():
+            modelo = globals()[nome_modelo] # Acessa a classe do modelo pelo nome
+            
+            for coluna in colunas:
+                # O método update() é muito eficiente para operações em massa
+                registros_afetados = db.session.query(modelo).filter(
+                    getattr(modelo, coluna).isnot(None)
+                ).update({coluna: None}, synchronize_session=False)
+                
+                if registros_afetados > 0:
+                    click.echo(f"  -> Limpando coluna '{coluna}' da tabela '{nome_modelo}': {registros_afetados} registro(s) atualizado(s).")
+                    total_afetado += registros_afetados
+
+        db.session.commit()
+        
+        if total_afetado > 0:
+            click.secho(f"\nOperação concluída! {total_afetado} referências de anexos foram removidas do banco de dados.", fg='green', bold=True)
+        else:
+            click.secho("\nOperação concluída! Nenhum link de anexo foi encontrado no banco de dados para ser limpo.", fg='green')
+
+    except Exception as e:
+        db.session.rollback()
+        click.secho(f"\nOcorreu um erro: {e}", fg='red', bold=True)
+        logger.error(f"Erro ao limpar links do banco de dados: {e}", exc_info=True)
     
 @app.route('/adicionar_anexo/motorista/<int:motorista_id>', methods=['POST'])
 @login_required
@@ -6985,20 +7228,15 @@ def api_buscar_dados_nota(chave_acesso):
 @app.route('/salvar_custo_viagem', methods=['POST'])
 @login_required
 def salvar_custo_viagem():
-    # --- INÍCIO DA CORREÇÃO ---
-    # 1. Pega o ID da viagem que vem escondido no formulário
     viagem_id = request.form.get('viagem_id', type=int)
     if not viagem_id:
         return jsonify({'success': False, 'message': 'ID da viagem não foi fornecido.'}), 400
 
-    # 2. Garante que a viagem pertence à empresa do usuário logado
     viagem = Viagem.query.filter_by(id=viagem_id, empresa_id=current_user.empresa_id).first()
     if not viagem:
         return jsonify({'success': False, 'message': 'Viagem não encontrada ou acesso negado.'}), 404
-    # --- FIM DA CORREÇÃO ---
     
     try:
-        # LÓGICA DE 'UPDATE OR CREATE' (ATUALIZAR OU CRIAR)
         custo = CustoViagem.query.filter_by(viagem_id=viagem_id).first()
         if not custo:
             custo = CustoViagem(viagem_id=viagem_id)
@@ -7010,18 +7248,35 @@ def salvar_custo_viagem():
         custo.outros = float(request.form.get('outros') or 0)
         custo.descricao_outros = request.form.get('descricao_outros', '').strip()
         
-        # Lógica para salvar anexos (se houver)
+        # <<< INÍCIO DA CORREÇÃO >>>
+        
         urls_anexos = custo.anexos.split(',') if custo.anexos else []
         if 'anexos_despesa' in request.files:
+            # Pega as configurações corretas do app
+            s3_client = boto3.client(
+                's3',
+                endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+                aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+                aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
+                region_name='auto'
+            )
+            bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
+            public_url_base = app.config['CLOUDFLARE_R2_PUBLIC_URL']
+            
             for anexo in request.files.getlist('anexos_despesa'):
                 if anexo and anexo.filename != '':
-                    filename = f"custos/{viagem_id}/{uuid.uuid4()}_{secure_filename(anexo.filename)}"
-                    s3_client.upload_fileobj(anexo, R2_BUCKET_NAME, filename, ExtraArgs={'ContentType': anexo.content_type})
-                    urls_anexos.append(f"{R2_PUBLIC_URL}/{filename}")
-        if urls_anexos:
-            custo.anexos = ",".join(urls_anexos)
+                    filename = secure_filename(anexo.filename)
+                    # Corrigido o caminho para 'custos_viagem' e o separador para '-'
+                    s3_path = f"custos_viagem/{viagem_id}/{uuid.uuid4()}-{filename}"
+                    
+                    s3_client.upload_fileobj(anexo, bucket_name, s3_path, ExtraArgs={'ContentType': anexo.content_type})
+                    urls_anexos.append(f"{public_url_base}/{s3_path}")
 
-        # Atualiza o custo total na viagem principal para consistência
+        if urls_anexos:
+            custo.anexos = ",".join(filter(None, urls_anexos))
+
+        # <<< FIM DA CORREÇÃO >>>
+
         custo_total_geral = (custo.pedagios or 0) + (custo.alimentacao or 0) + (custo.hospedagem or 0) + (custo.outros or 0)
         viagem.custo = custo_total_geral
 
@@ -7032,7 +7287,7 @@ def salvar_custo_viagem():
         db.session.rollback()
         logger.error(f"Erro ao salvar custo da viagem {viagem_id}: {str(e)}")
         return jsonify({'success': False, 'message': f'Erro interno do servidor: {str(e)}'}), 500
-
+    
 @app.route('/excluir_anexo_custo', methods=['POST'])
 @login_required
 def excluir_anexo_custo():
@@ -7472,7 +7727,13 @@ def get_viagem_abastecimentos(viagem_id):
 @login_required
 def oficina():
     """ Rota principal do dashboard da oficina. """
-    todos_veiculos_obj = Veiculo.query.filter_by(empresa_id=current_user.empresa_id).order_by(Veiculo.modelo).all()
+    
+    # <<< CORREÇÃO APLICADA AQUI >>>
+    # Adicionado o filtro is_administrativo=False para não listar o veículo ADM01 na oficina
+    todos_veiculos_obj = Veiculo.query.filter_by(
+        empresa_id=current_user.empresa_id,
+        is_administrativo=False
+    ).order_by(Veiculo.modelo).all()
     
     alertas = []
     veiculos_data = []
@@ -9228,6 +9489,97 @@ def handle_atualizar_localizacao_socket(data):
         logger.error(f"Erro ao salvar localização via socket: {e}", exc_info=True)
         db.session.rollback()
 
+@app.route('/central_documentos')
+@login_required
+def central_documentos():
+    """ Exibe uma central com todos os documentos anexados no sistema. """
+    search_query = request.args.get('search', '').strip().lower()
+    
+    documentos_consolidados = []
+    
+    # 1. Documentos dos Clientes
+    clientes_com_anexos = Cliente.query.filter(
+        Cliente.empresa_id == current_user.empresa_id,
+        Cliente.anexos.isnot(None),
+        Cliente.anexos != ''
+    ).all()
+    for cliente in clientes_com_anexos:
+        urls = cliente.anexos.split(',')
+        for url in urls:
+            documentos_consolidados.append({
+                'tipo': 'Cliente',
+                'nome_entidade': cliente.nome_razao_social,
+                'id_entidade': cliente.id,
+                'url': url,
+                'nome_arquivo': url.split('/')[-1]
+            })
+
+    # 2. Documentos dos Motoristas
+    motoristas_com_anexos = Motorista.query.filter(
+        Motorista.empresa_id == current_user.empresa_id,
+        Motorista.anexos.isnot(None),
+        Motorista.anexos != ''
+    ).all()
+    for motorista in motoristas_com_anexos:
+        urls = motorista.anexos.split(',')
+        for url in urls:
+            documentos_consolidados.append({
+                'tipo': 'Motorista',
+                'nome_entidade': motorista.nome,
+                'id_entidade': motorista.id,
+                'url': url,
+                'nome_arquivo': url.split('/')[-1]
+            })
+
+    # 3. Anexos de Custos de Viagem
+    custos_com_anexos = CustoViagem.query.join(Viagem).filter(
+        Viagem.empresa_id == current_user.empresa_id,
+        CustoViagem.anexos.isnot(None),
+        CustoViagem.anexos != ''
+    ).options(db.joinedload(CustoViagem.viagem).joinedload(Viagem.veiculo)).all()
+    for custo in custos_com_anexos:
+        urls = custo.anexos.split(',')
+        for url in urls:
+            documentos_consolidados.append({
+                'tipo': 'Viagem',
+                'nome_entidade': f"Viagem #{custo.viagem_id} ({custo.viagem.veiculo.placa if custo.viagem.veiculo else 'N/A'})",
+                'id_entidade': custo.viagem_id,
+                'url': url,
+                'nome_arquivo': url.split('/')[-1]
+            })
+
+    # 4. Anexos de Abastecimentos
+    abastecimentos_com_anexos = Abastecimento.query.join(Viagem).filter(
+        Viagem.empresa_id == current_user.empresa_id,
+        Abastecimento.anexo_comprovante.isnot(None),
+        Abastecimento.anexo_comprovante != ''
+    ).options(db.joinedload(Abastecimento.viagem).joinedload(Viagem.veiculo)).all()
+    for abast in abastecimentos_com_anexos:
+        url = abast.anexo_comprovante
+        documentos_consolidados.append({
+            'tipo': 'Viagem',
+            'nome_entidade': f"Viagem #{abast.viagem_id} ({abast.viagem.veiculo.placa if abast.viagem.veiculo else 'N/A'})",
+            'id_entidade': abast.viagem_id,
+            'url': url,
+            'nome_arquivo': f"ComprovanteAbast_{url.split('/')[-1]}"
+        })
+
+    # Filtrar resultados se houver uma busca
+    documentos_finais = []
+    if search_query:
+        for doc in documentos_consolidados:
+            if search_query in doc['tipo'].lower() or \
+               search_query in doc['nome_entidade'].lower() or \
+               search_query in doc['nome_arquivo'].lower():
+                documentos_finais.append(doc)
+    else:
+        documentos_finais = documentos_consolidados
+
+    return render_template('central_documentos.html', 
+                           documentos=documentos_finais, 
+                           search_query=search_query,
+                           active_page='central_documentos')
+
 @app.route('/relatorios/rentabilidade_veiculo')
 @login_required
 @master_required
@@ -9237,154 +9589,166 @@ def relatorio_rentabilidade_veiculo():
         # 1. Obter filtros da URL
         hoje = date.today()
         data_inicio_str = request.args.get('data_inicio', hoje.replace(day=1).strftime('%Y-%m-%d'))
-        data_fim_str = request.args.get('data_fim', hoje.strftime('%Y-%m-%d'))
+        proximo_mes = hoje.replace(day=28) + timedelta(days=4)
+        ultimo_dia_mes = proximo_mes - timedelta(days=proximo_mes.day)
+        data_fim_str = request.args.get('data_fim', ultimo_dia_mes.strftime('%Y-%m-%d'))
         veiculo_id_filtro = request.args.get('veiculo_id', type=int)
-
         data_inicio = datetime.strptime(data_inicio_str, '%Y-%m-%d').date()
         data_fim = datetime.strptime(data_fim_str, '%Y-%m-%d').date()
 
-        # 2. Query base para veículos da empresa
+        # 2. Query base para veículos
         veiculos_query = Veiculo.query.filter(Veiculo.empresa_id == current_user.empresa_id)
         if veiculo_id_filtro:
             veiculos_query = veiculos_query.filter(Veiculo.id == veiculo_id_filtro)
-        
         veiculos = veiculos_query.all()
-        veiculos_para_filtro = Veiculo.query.filter(Veiculo.empresa_id == current_user.empresa_id).order_by(Veiculo.placa).all()
 
-        # 3. Estruturas para consolidar dados
-        relatorio_detalhado = []
+        # <<< CORREÇÃO APLICADA AQUI >>>
+        # Adicionado o filtro is_administrativo=False para não listar o veículo ADM01 no menu
+        veiculos_para_filtro = Veiculo.query.filter_by(
+            empresa_id=current_user.empresa_id,
+            is_administrativo=False
+        ).order_by(Veiculo.placa).all()
+
+        # 3. Estruturas de dados
+        relatorio_custos_detalhado = []
         custos_por_categoria = defaultdict(float)
-        receita_total = 0.0
+        receitas_total = 0.0
         km_total = 0.0
-        pagamento_motoristas_total = 0.0  # ← NOVO: Separar pagamentos aos motoristas
+        viagens_com_receita = []
+        evolucao_mensal = defaultdict(lambda: {'receitas': 0.0, 'custos': 0.0})
+        veiculo_ids = [v.id for v in veiculos]
+
+        # A. RECEITAS E VIAGENS
+        viagens_periodo = Viagem.query.filter(
+            Viagem.veiculo_id.in_(veiculo_ids),
+            Viagem.data_inicio.between(data_inicio, data_fim)
+        ).options(db.joinedload(Viagem.abastecimentos), db.joinedload(Viagem.custo_viagem)).order_by(Viagem.data_inicio.asc()).all()
+
+        for viagem in viagens_periodo:
+            valor_recebido = float(viagem.valor_recebido or 0.0)
+            receitas_total += valor_recebido
+            km_total += float(viagem.distancia_percorrida or 0.0)
+            viagens_com_receita.append(viagem)
+            mes_ano = viagem.data_inicio.strftime('%Y-%m')
+            evolucao_mensal[mes_ano]['receitas'] += valor_recebido
+            # B.1. CUSTOS DIRETOS DA VIAGEM
+            for abast in viagem.abastecimentos:
+                relatorio_custos_detalhado.append({"data": abast.data_abastecimento.date(), "veiculo": f"{viagem.veiculo.placa}", "categoria": "Combustível", "fornecedor_motorista": viagem.motorista_formal.nome if viagem.motorista_formal else "N/A", "documento": f"Viagem #{viagem.id}", "descricao": f"{abast.litros:.2f}L @ R${abast.preco_por_litro:.2f}/L", "valor": float(abast.custo_total or 0), "viagem_obj": viagem})
+            if viagem.custo_viagem:
+                if viagem.custo_viagem.pedagios: relatorio_custos_detalhado.append({"data": viagem.data_inicio.date(), "veiculo": f"{viagem.veiculo.placa}", "categoria": "Pedágio", "fornecedor_motorista": "N/A", "documento": f"Viagem #{viagem.id}", "descricao": "Custo com pedágios", "valor": float(viagem.custo_viagem.pedagios), "viagem_obj": viagem})
+                if viagem.custo_viagem.alimentacao: relatorio_custos_detalhado.append({"data": viagem.data_inicio.date(), "veiculo": f"{viagem.veiculo.placa}", "categoria": "Alimentação", "fornecedor_motorista": "N/A", "documento": f"Viagem #{viagem.id}", "descricao": "Custo com alimentação", "valor": float(viagem.custo_viagem.alimentacao), "viagem_obj": viagem})
         
-        # Para gráfico de evolução mensal
-        evolucao_mensal = defaultdict(lambda: {'receitas': 0.0, 'custos': 0.0, 'pagamentos': 0.0})
-
-        for veiculo in veiculos:
-            # A. RECEITAS (das viagens no período)
-            viagens_periodo = Viagem.query.filter(
-                Viagem.veiculo_id == veiculo.id,
-                Viagem.data_inicio.between(data_inicio, data_fim)
-            ).all()
-
-            for viagem in viagens_periodo:
-                valor_recebido = float(viagem.valor_recebido or 0.0)
-                receita_total += valor_recebido
-                km_total += float(viagem.distancia_percorrida or 0.0)
-                
-                # Para evolução mensal
-                mes_ano = viagem.data_inicio.strftime('%Y-%m')
-                evolucao_mensal[mes_ano]['receitas'] += valor_recebido
-                
-                # B. PAGAMENTOS AOS MOTORISTAS (frete variável)
-                if viagem.custo_motorista_variavel and viagem.custo_motorista_variavel > 0:
-                    custo = float(viagem.custo_motorista_variavel)
-                    pagamento_motoristas_total += custo  # ← Somar no total de pagamentos
-                    
-                    relatorio_detalhado.append({
-                        "data": viagem.data_inicio.date(), 
-                        "veiculo": f"{veiculo.placa} - {veiculo.modelo}",
-                        "origem": "Pagamento Motorista", 
-                        "fornecedor": viagem.motorista_formal.nome if viagem.motorista_formal else "N/A",
-                        "nota": f"Viagem #{viagem.id}", 
-                        "descricao": f"Frete por {viagem.peso_toneladas or 0} TN",
-                        "valor": custo
-                    })
-                    custos_por_categoria['Pagamento Motoristas'] += custo
-                    evolucao_mensal[mes_ano]['pagamentos'] += custo
-
-                # C. SALÁRIO FIXO (proporcional à viagem)
-                if viagem.motorista_formal and viagem.duracao_segundos and viagem.motorista_formal.salario_base:
-                    salario = float(viagem.motorista_formal.salario_base)
-                    custo_hora = salario / 220  # 220 horas úteis/mês
-                    custo_salario_viagem = (viagem.duracao_segundos / 3600) * custo_hora
-                    pagamento_motoristas_total += custo_salario_viagem  # ← Somar no total de pagamentos
-                    
-                    relatorio_detalhado.append({
-                        "data": viagem.data_inicio.date(), 
-                        "veiculo": f"{veiculo.placa} - {veiculo.modelo}",
-                        "origem": "Salário Motorista", 
-                        "fornecedor": viagem.motorista_formal.nome,
-                        "nota": f"Viagem #{viagem.id}", 
-                        "descricao": f"Salário proporcional da viagem",
-                        "valor": custo_salario_viagem
-                    })
-                    custos_por_categoria['Salário Motoristas'] += custo_salario_viagem
-                    evolucao_mensal[mes_ano]['pagamentos'] += custo_salario_viagem
-
-            # D. CUSTOS DE RATEIO (do Fluxo de Caixa)
-            rateios_periodo = RateioVeiculo.query.join(LancamentoFluxoCaixa).filter(
-                RateioVeiculo.veiculo_id == veiculo.id,
-                LancamentoFluxoCaixa.data_vencimento.between(data_inicio, data_fim)
-            ).all()
-
+        # B.2. CUSTOS DE RATEIO
+        if veiculo_id_filtro:
+            rateios_periodo = RateioVeiculo.query.join(LancamentoFluxoCaixa).filter(RateioVeiculo.veiculo_id == veiculo_id_filtro, LancamentoFluxoCaixa.data_pagamento.between(data_inicio, data_fim)).all()
             for rateio in rateios_periodo:
-                lancamento = rateio.lancamento
-                valor_rateado_float = float(rateio.valor_rateado)  # ← Conversão para float
-                
-                relatorio_detalhado.append({
-                    "data": lancamento.data_vencimento, 
-                    "veiculo": f"{veiculo.placa} - {veiculo.modelo}",
-                    "origem": lancamento.categoria or "Outros", 
-                    "fornecedor": lancamento.fornecedor_cliente or "N/A",
-                    "nota": lancamento.documento_numero or "N/A", 
-                    "descricao": f"{lancamento.descricao}",
-                    "valor": valor_rateado_float
-                })
-                custos_por_categoria[lancamento.categoria or 'Outros'] += valor_rateado_float
-                
-                # Para evolução mensal
-                mes_ano = lancamento.data_vencimento.strftime('%Y-%m')
-                evolucao_mensal[mes_ano]['custos'] += valor_rateado_float
+                relatorio_custos_detalhado.append({"data": rateio.lancamento.data_pagamento, "veiculo": f"{rateio.veiculo.placa}", "categoria": rateio.lancamento.categoria or "Outros", "fornecedor_motorista": rateio.lancamento.fornecedor_cliente or "N/A", "documento": rateio.lancamento.documento_numero or "N/A", "descricao": rateio.lancamento.descricao, "valor": float(rateio.valor_rateado), "viagem_obj": None})
         
+        # C. PAGAMENTOS DA FOLHA
+        motoristas_ids = [m_id[0] for m_id in db.session.query(Viagem.motorista_id).filter(Viagem.veiculo_id.in_(veiculo_ids), Viagem.data_inicio.between(data_inicio, data_fim)).distinct().all() if m_id[0]]
+        if motoristas_ids:
+            folhas_pagas = FolhaPagamento.query.filter(FolhaPagamento.motorista_id.in_(motoristas_ids), FolhaPagamento.data_pagamento.between(data_inicio, data_fim)).all()
+            for folha in folhas_pagas:
+                if not veiculo_id_filtro and folha.salario_base_registro > 0:
+                    relatorio_custos_detalhado.append({"data": folha.data_pagamento.date(), "veiculo": "Custo Administrativo", "categoria": "Pagamento Pessoal", "fornecedor_motorista": folha.motorista.nome, "documento": f"Folha {folha.mes_referencia}/{folha.ano_referencia}", "descricao": "Salário Base", "valor": float(folha.salario_base_registro), "viagem_obj": None})
+                for item in folha.itens.filter_by(tipo='Provento'):
+                    viagem_associada = db.session.get(Viagem, item.viagem_id) if item.viagem_id else None
+                    if viagem_associada:
+                        relatorio_custos_detalhado.append({"data": folha.data_pagamento.date(), "veiculo": viagem_associada.veiculo.placa, "categoria": "Pagamento Pessoal", "fornecedor_motorista": folha.motorista.nome, "documento": f"Folha {folha.mes_referencia}/{folha.ano_referencia}", "descricao": item.descricao, "valor": float(item.valor), "viagem_obj": viagem_associada})
+                    elif not veiculo_id_filtro:
+                        relatorio_custos_detalhado.append({"data": folha.data_pagamento.date(), "veiculo": "Custo Administrativo", "categoria": "Pagamento Pessoal", "fornecedor_motorista": folha.motorista.nome, "documento": f"Folha {folha.mes_referencia}/{folha.ano_referencia}", "descricao": item.descricao, "valor": float(item.valor), "viagem_obj": None})
+
+        # Re-calcular totais com base no `relatorio_custos_detalhado` final
+        for custo in relatorio_custos_detalhado:
+            custos_por_categoria[custo['categoria']] += custo['valor']
+            mes_ano = custo['data'].strftime('%Y-%m')
+            evolucao_mensal[mes_ano]['custos'] += custo['valor']
+
         # 4. Calcular KPIs
-        custo_total = sum(item['valor'] for item in relatorio_detalhado)
-        lucro_liquido = receita_total - custo_total
-        
-        kpis = {
-            "receita_total": receita_total, 
-            "custo_total": custo_total,
-            "pagamento_motoristas": pagamento_motoristas_total,  # ← NOVO KPI
-            "lucro_liquido": lucro_liquido,
-            "custo_km": (custo_total / km_total) if km_total > 0 else 0.0,
-            "receita_km": (receita_total / km_total) if km_total > 0 else 0.0,
-            "margem_lucro": (lucro_liquido / receita_total * 100) if receita_total > 0 else 0.0
-        }
+        custo_total = sum(item['valor'] for item in relatorio_custos_detalhado)
+        lucro_liquido = receitas_total - custo_total
+        kpis = {"receita_total": receitas_total, "custo_total": custo_total, "pagamento_motoristas": custos_por_categoria.get('Pagamento Pessoal', 0.0), "lucro_liquido": lucro_liquido, "custo_km": (custo_total / km_total) if km_total > 0 else 0.0, "receita_km": (receitas_total / km_total) if km_total > 0 else 0.0, "margem_lucro": (lucro_liquido / receitas_total * 100) if receitas_total > 0 else 0.0}
 
-        # 5. Preparar dados para gráfico de evolução mensal
+        # 5. Preparar dados para gráficos e template
         meses_ordenados = sorted(evolucao_mensal.keys())
-        grafico_evolucao = {
-            "labels": [datetime.strptime(mes, '%Y-%m').strftime('%b/%y') for mes in meses_ordenados],
-            "receitas": [evolucao_mensal[mes]['receitas'] for mes in meses_ordenados],
-            "custos": [evolucao_mensal[mes]['custos'] for mes in meses_ordenados],
-            "pagamentos": [evolucao_mensal[mes]['pagamentos'] for mes in meses_ordenados]
-        }
+        grafico_evolucao = {"labels": [datetime.strptime(mes, '%Y-%m').strftime('%b/%y') for mes in meses_ordenados], "receitas": [evolucao_mensal[mes]['receitas'] for mes in meses_ordenados], "custos": [evolucao_mensal[mes]['custos'] for mes in meses_ordenados]}
+        relatorio_custos_detalhado.sort(key=lambda x: x['data'], reverse=True)
 
-        # Ordenar relatório por data
-        relatorio_detalhado.sort(key=lambda x: x['data'], reverse=True)
-
-        return render_template(
-            'relatorios/rentabilidade_veiculo.html',
-            kpis=kpis,
-            relatorio=relatorio_detalhado,
-            grafico_custos={
-                "labels": list(custos_por_categoria.keys()),
-                "data": list(custos_por_categoria.values())
-            },
-            grafico_evolucao=grafico_evolucao,  # ← NOVO: dados para evolução mensal
-            veiculos_filtro=veiculos_para_filtro,
-            filtros={
-                "data_inicio": data_inicio_str,
-                "data_fim": data_fim_str,
-                "veiculo_id": veiculo_id_filtro
-            }
-        )
+        return render_template('relatorios/rentabilidade_veiculo.html', kpis=kpis, receitas=viagens_com_receita, custos=relatorio_custos_detalhado, grafico_custos={"labels": list(custos_por_categoria.keys()), "data": list(custos_por_categoria.values())}, grafico_evolucao=grafico_evolucao, veiculos_filtro=veiculos_para_filtro, filtros={"data_inicio": data_inicio_str, "data_fim": data_fim_str, "veiculo_id": veiculo_id_filtro})
     except Exception as e:
         logger.error(f"Erro ao gerar relatório de rentabilidade: {e}", exc_info=True)
         flash(f"Ocorreu um erro inesperado ao gerar o relatório: {e}", "error")
         return redirect(url_for('painel'))
 
+@app.route('/api/viagem/<int:viagem_id>/detalhes_rentabilidade')
+@login_required
+def api_detalhes_viagem_rentabilidade(viagem_id):
+    """API para buscar todos os detalhes de uma viagem para o modal de rentabilidade."""
+    try:
+        viagem = Viagem.query.filter_by(
+            id=viagem_id, empresa_id=current_user.empresa_id
+        ).options(
+            db.joinedload(Viagem.motorista_formal),
+            db.joinedload(Viagem.veiculo),
+            db.joinedload(Viagem.custo_viagem),
+            db.joinedload(Viagem.abastecimentos),
+            db.joinedload(Viagem.destinos)
+        ).first_or_404()
+
+        custo_combustivel = sum(a.custo_total for a in viagem.abastecimentos)
+        custo_pedagios = viagem.custo_viagem.pedagios if viagem.custo_viagem else 0.0
+        custo_alimentacao = viagem.custo_viagem.alimentacao if viagem.custo_viagem else 0.0
+        custo_outros = viagem.custo_viagem.outros if viagem.custo_viagem else 0.0
+        custo_total_viagem = custo_combustivel + custo_pedagios + custo_alimentacao + custo_outros
+        pagamento_motorista = viagem.custo_motorista_variavel or 0.0
+
+        material = "N/A"
+        if hasattr(viagem, 'material_transportado') and viagem.material_transportado:
+            material = viagem.material_transportado
+        elif viagem.observacoes:
+            try:
+                if 'Material:' in viagem.observacoes.split('|')[0]:
+                    material = viagem.observacoes.split('|')[0].replace('Material:', '').strip()
+                else:
+                    material = viagem.observacoes
+            except:
+                material = viagem.observacoes
+
+        # <<< A LÓGICA QUE FALTAVA FOI ADICIONADA AQUI >>>
+        # Usa a distância percorrida (real) se for maior que zero, senão, usa a distância estimada da rota.
+        distancia_a_exibir = viagem.distancia_percorrida if viagem.distancia_percorrida and viagem.distancia_percorrida > 0 else viagem.distancia_km
+        
+        dados_viagem = {
+            'id': viagem.id,
+            'cliente': viagem.cliente,
+            'data_inicio': viagem.data_inicio.strftime('%d/%m/%Y'),
+            'origem': viagem.endereco_saida,
+            'destino_final': viagem.endereco_destino,
+            'destinos_intermediarios': [d.endereco for d in sorted(viagem.destinos, key=lambda x: x.ordem)[:-1]],
+            'distancia_real': f"{distancia_a_exibir or 0.0:.1f} km", # Agora a variável existe
+            'peso_total': f"{viagem.peso_toneladas or 0.0:.3f} TN",
+            'material': material,
+            'motorista': viagem.motorista_formal.nome if viagem.motorista_formal else "N/A",
+            'veiculo': f"{viagem.veiculo.placa} - {viagem.veiculo.modelo}" if viagem.veiculo else "N/A",
+            'financeiro': {
+                'receita_bruta': f"R$ {viagem.valor_recebido or 0.0:,.2f}",
+                'pagamento_motorista': f"R$ {pagamento_motorista:,.2f}",
+                'custo_combustivel': f"R$ {custo_combustivel:,.2f}",
+                'custo_pedagios': f"R$ {custo_pedagios:,.2f}",
+                'custo_alimentacao': f"R$ {custo_alimentacao:,.2f}",
+                'custo_outros': f"R$ {custo_outros:,.2f}",
+                'custo_operacional_total': f"R$ {custo_total_viagem:,.2f}",
+                'lucro_bruto_operacional': f"R$ {(viagem.valor_recebido or 0.0) - custo_total_viagem - pagamento_motorista:,.2f}"
+            }
+        }
+        for key, value in dados_viagem['financeiro'].items():
+            dados_viagem['financeiro'][key] = value.replace(",", "X").replace(".", ",").replace("X", ".")
+            
+        return jsonify({'success': True, 'viagem': dados_viagem})
+    except Exception as e:
+        logger.error(f"Erro ao buscar detalhes da viagem {viagem_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+    
 @app.route('/api/veiculo/<int:veiculo_id>/despesas_consolidadas')
 @login_required
 def get_veiculo_despesas_consolidadas(veiculo_id):

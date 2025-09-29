@@ -219,7 +219,7 @@ class CertificadoNSU(db.Model):
         db.Index('idx_cert_nsu_cnpj', 'certificado_id', 'cnpj_consultado'),
     )
     
-    certificado = db.relationship('CertificadoDigital', backref='nsus_cnpj')
+    certificado = db.relationship('CertificadoDigital', backref=db.backref('nsus_cnpj', cascade="all, delete-orphan"))
 
 
 class NFeImportada(db.Model):
