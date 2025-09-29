@@ -1,0 +1,384 @@
+{% extends "base.html" %} {% block title %}Central de Documentos{% endblock %}
+{% block styles %}
+<style>
+  /* Mantendo a identidade visual do site */
+  .header-card {
+    background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+    color: white;
+  }
+
+  .doc-card {
+    background-color: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  .doc-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(46, 125, 50, 0.15);
+    border-color: #2e7d32;
+  }
+
+  .doc-icon {
+    border-radius: 0.5rem;
+    width: 3.5rem;
+    height: 3.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+  }
+
+  .doc-card:hover .doc-icon {
+    transform: scale(1.1);
+  }
+
+  .icon-cliente {
+    background-color: #e3f2fd;
+    color: #1976d2;
+  }
+
+  .icon-motorista {
+    background-color: #fff3e0;
+    color: #f57c00;
+  }
+
+  .icon-viagem {
+    background-color: #e8f5e8;
+    color: #2e7d32;
+  }
+
+  .search-card {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .search-input {
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    transition: all 0.2s ease;
+  }
+
+  .search-input:focus {
+    border-color: #2e7d32;
+    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+  }
+
+  .btn-search {
+    background-color: #2e7d32;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .btn-search:hover {
+    background-color: #1b5e20;
+    transform: translateY(-1px);
+  }
+
+  .btn-download {
+    background-color: #2e7d32;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    width: 100%;
+  }
+
+  .btn-download:hover {
+    background-color: #1b5e20;
+    transform: translateY(-1px);
+  }
+
+  .stats-card {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 0.5rem;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .doc-type-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .badge-cliente {
+    background-color: #e3f2fd;
+    color: #1976d2;
+  }
+
+  .badge-motorista {
+    background-color: #fff3e0;
+    color: #f57c00;
+  }
+
+  .badge-viagem {
+    background-color: #e8f5e8;
+    color: #2e7d32;
+  }
+
+  .empty-state {
+    background: #f9fafb;
+    border: 2px dashed #d1d5db;
+    border-radius: 0.5rem;
+  }
+
+  .file-name {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+  }
+
+  .fade-in {
+    animation: fadeInUp 0.5s ease-out forwards;
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  @keyframes fadeInUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .stagger-1 {
+    animation-delay: 0.1s;
+  }
+  .stagger-2 {
+    animation-delay: 0.2s;
+  }
+  .stagger-3 {
+    animation-delay: 0.3s;
+  }
+  .stagger-4 {
+    animation-delay: 0.4s;
+  }
+  .stagger-5 {
+    animation-delay: 0.5s;
+  }
+  .stagger-6 {
+    animation-delay: 0.6s;
+  }
+
+  /* Responsividade */
+  @media (max-width: 768px) {
+    .header-card {
+      padding: 1.5rem;
+    }
+
+    .doc-card {
+      margin-bottom: 1rem;
+    }
+
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>
+{% endblock %} {% block content %}
+<!-- Header Section -->
+<div class="header-card rounded-lg shadow-md p-6 mb-6">
+  <div
+    class="flex flex-col lg:flex-row justify-between items-start lg:items-center"
+  >
+    <div class="flex-1">
+      <div class="flex items-center mb-2">
+        <i class="fas fa-folder-open text-3xl mr-3"></i>
+        <h1 class="text-3xl font-bold">Central de Documentos</h1>
+      </div>
+      <p class="text-lg opacity-90 mb-4">
+        Encontre todos os anexos do sistema em um só lugar
+      </p>
+
+      <!-- Estatísticas -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 stats-grid">
+        <div class="stats-card p-4 text-center">
+          <div class="text-2xl font-bold">{{ documentos|length }}</div>
+          <div class="text-sm opacity-80">Total</div>
+        </div>
+        <div class="stats-card p-4 text-center">
+          <div class="text-2xl font-bold">
+            {{ documentos|selectattr('tipo', 'equalto', 'Cliente')|list|length
+            }}
+          </div>
+          <div class="text-sm opacity-80">Clientes</div>
+        </div>
+        <div class="stats-card p-4 text-center">
+          <div class="text-2xl font-bold">
+            {{ documentos|selectattr('tipo', 'equalto', 'Motorista')|list|length
+            }}
+          </div>
+          <div class="text-sm opacity-80">Motoristas</div>
+        </div>
+        <div class="stats-card p-4 text-center">
+          <div class="text-2xl font-bold">
+            {{ documentos|selectattr('tipo', 'equalto', 'Viagem')|list|length }}
+          </div>
+          <div class="text-sm opacity-80">Viagens</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Search Section -->
+<div class="search-card p-6 mb-6">
+  <form method="GET">
+    <div class="flex flex-col md:flex-row gap-4">
+      <div class="flex-1">
+        <label
+          for="search"
+          class="block text-sm font-semibold text-gray-700 mb-2"
+        >
+          <i class="fas fa-search mr-2"></i>Buscar Documentos
+        </label>
+        <div class="relative">
+          <i
+            class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+          ></i>
+          <input
+            type="search"
+            name="search"
+            id="search"
+            value="{{ search_query }}"
+            placeholder="Digite o nome do cliente, veículo, viagem ou arquivo..."
+            class="search-input w-full pl-10 pr-4 py-3"
+          />
+        </div>
+      </div>
+      <div class="md:w-auto">
+        <label class="block text-sm font-semibold text-gray-700 mb-2"
+          >&nbsp;</label
+        >
+        <button type="submit" class="btn-search w-full md:w-auto">
+          <i class="fas fa-search mr-2"></i>Buscar
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Documents Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  {% for doc in documentos %}
+  <div class="doc-card p-5 fade-in stagger-{{ loop.index % 6 + 1 }}">
+    <div class="flex items-start gap-4">
+      <div class="doc-icon icon-{{ doc.tipo|lower }}">
+        {% if doc.tipo == 'Cliente' %}
+        <i class="fas fa-building fa-lg"></i>
+        {% elif doc.tipo == 'Motorista' %}
+        <i class="fas fa-id-card fa-lg"></i>
+        {% elif doc.tipo == 'Viagem' %}
+        <i class="fas fa-route fa-lg"></i>
+        {% else %}
+        <i class="fas fa-file-alt fa-lg"></i>
+        {% endif %}
+      </div>
+
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between mb-3">
+          <span class="doc-type-badge badge-{{ doc.tipo|lower }}">
+            {{ doc.tipo }}
+          </span>
+        </div>
+
+        <h3
+          class="font-semibold text-lg text-gray-800 mb-2 truncate"
+          title="{{ doc.nome_entidade }}"
+        >
+          {{ doc.nome_entidade }}
+        </h3>
+
+        <div class="file-name mb-4">
+          <p class="text-sm text-gray-600 flex items-center">
+            <i class="fas fa-paperclip mr-2 text-gray-400 flex-shrink-0"></i>
+            <span class="truncate" title="{{ doc.nome_arquivo }}"
+              >{{ doc.nome_arquivo }}</span
+            >
+          </p>
+        </div>
+
+        <a
+          href="{{ doc.url }}"
+          download
+          class="btn-download flex items-center justify-center"
+          onclick="handleDownload(this)"
+        >
+          <i class="fas fa-download mr-2"></i>
+          Baixar Documento
+        </a>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-span-full">
+    <div class="empty-state text-center py-16">
+      <div class="mb-4">
+        <i class="fas fa-folder-open text-6xl text-gray-300"></i>
+      </div>
+      <h3 class="text-xl font-semibold text-gray-700 mb-2">
+        Nenhum documento encontrado
+      </h3>
+      <p class="text-gray-500 mb-4">
+        {% if search_query %} Nenhum anexo corresponde à sua busca por "{{
+        search_query }}". {% else %} Nenhum documento foi encontrado no sistema.
+        {% endif %}
+      </p>
+      {% if search_query %}
+      <a
+        href="{{ url_for('central_documentos') }}"
+        class="btn-search inline-block"
+      >
+        <i class="fas fa-times mr-2"></i>Limpar Busca
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+  function handleDownload(button) {
+    // Feedback visual durante download
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Baixando...';
+    button.style.opacity = "0.8";
+
+    setTimeout(() => {
+      button.innerHTML = originalContent;
+      button.style.opacity = "1";
+    }, 1500);
+  }
+
+  // Animações de entrada
+  document.addEventListener("DOMContentLoaded", function () {
+    const cards = document.querySelectorAll(".fade-in");
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.style.animationPlayState = "running";
+        }
+      });
+    });
+
+    cards.forEach((card) => {
+      card.style.animationPlayState = "paused";
+      observer.observe(card);
+    });
+  });
+</script>
+{% endblock %}

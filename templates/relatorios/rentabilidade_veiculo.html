@@ -4,723 +4,753 @@
 {% block styles %}
 {{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <style>
-    .kpi-card {
-        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-        border-radius: 1rem;
-        padding: 1.5rem;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        border: 1px solid rgba(0,0,0,0.05);
-        text-align: center;
+    .kpi-card { 
+        background: #fff; 
+        border-radius: 0.75rem; 
+        padding: 1.25rem; 
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); 
+        text-align: center; 
+        border-left: 5px solid #2e7d32; 
         transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
     }
-
-    .kpi-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, #2e7d32, #1b5e20);
-    }
-
     .kpi-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        box-shadow: 0 8px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     }
-
-    .kpi-value {
-        font-size: 1.75rem;
-        font-weight: 800;
-        color: #1e293b;
-        line-height: 1.2;
-        margin-bottom: 0.5rem;
+    .kpi-value { 
+        font-size: 1.875rem; 
+        font-weight: 700; 
+        color: #1f2937; 
+        font-family: 'Inter', sans-serif;
     }
-
-    .kpi-label {
-        font-size: 0.75rem;
-        color: #64748b;
+    .kpi-label { 
+        font-size: 0.875rem; 
+        color: #6b7280; 
         font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
     }
-
-    .kpi-icon {
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
-        opacity: 0.2;
-        font-size: 1.25rem;
-    }
-
     .profit { color: #2e7d32 !important; }
     .loss { color: #dc2626 !important; }
-    .neutral { color: #ea580c !important; }
-
-    .btn-custom-primary {
-        background: linear-gradient(135deg, #2e7d32, #1b5e20);
-        color: white;
+    
+    .btn-custom-primary { 
+        background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+        color: white; 
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1.5rem;
         font-weight: 600;
-        padding: 0.75rem 1rem;
-        border-radius: 0.5rem;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
-        border: none;
-        cursor: pointer;
-        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
     }
-
-    .btn-custom-primary:hover {
+    .btn-custom-primary:hover { 
+        background: linear-gradient(135deg, #1b5e20 0%, #0d4e14 100%);
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+        box-shadow: 0 4px 8px rgba(46, 125, 50, 0.3);
         color: white;
-        text-decoration: none;
     }
-
-    .btn-custom-secondary {
-        background: linear-gradient(135deg, #1976d2, #1565c0);
-        color: white;
+    
+    .btn-excel { 
+        background: linear-gradient(135deg, #107c41 0%, #0e6637 100%);
+        color: white; 
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1.5rem;
         font-weight: 600;
-        padding: 0.75rem 1rem;
-        border-radius: 0.5rem;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
-        border: none;
-        cursor: pointer;
-        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(16, 124, 65, 0.2);
     }
-
-    .btn-custom-secondary:hover {
+    .btn-excel:hover { 
+        background: linear-gradient(135deg, #0e6637 0%, #0c5530 100%);
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+        box-shadow: 0 4px 8px rgba(16, 124, 65, 0.3);
         color: white;
-        text-decoration: none;
     }
-
-    .loading {
-        display: none;
+    
+    .tab-button { 
+        padding: 0.75rem 1.5rem; 
+        cursor: pointer; 
+        background-color: #f8fafc; 
+        color: #64748b; 
+        border-radius: 0.5rem 0.5rem 0 0; 
+        border: 2px solid transparent; 
+        border-bottom: 2px solid #e2e8f0; 
+        transition: all 0.3s ease; 
+        font-weight: 600;
+        font-family: 'Inter', sans-serif;
     }
-
-    .loading.active {
-        display: inline-block;
-        animation: spin 1s linear infinite;
+    .tab-button:hover {
+        background-color: #f1f5f9;
+        color: #475569;
     }
-
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+    .tab-button.active { 
+        background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+        color: #ffffff; 
+        border-color: #2e7d32; 
+        border-bottom-color: #ffffff; 
+        font-weight: 700;
+        box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
     }
-
-    .chart-container {
-        position: relative;
-        height: 400px;
-        padding: 1rem;
+    
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    
+    .desc-principal { 
+        font-weight: 600; 
+        color: #374151; 
+        font-family: 'Inter', sans-serif;
     }
-
-    .export-options {
-        position: relative;
+    .desc-detalhes { 
+        font-size: 0.8rem; 
+        color: #6b7280; 
+        margin-top: 0.25rem; 
+        display: block; 
+        font-weight: 400;
     }
-
-    .export-dropdown {
-        position: absolute;
-        top: 100%;
-        right: 0;
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 0.5rem;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        z-index: 1000;
-        min-width: 200px;
-        display: none;
+    .viagem-ref { 
+        font-weight: 600; 
+        color: #2e7d32; 
     }
-
-    .export-dropdown.active {
-        display: block;
+    
+    .clickable-row { 
+        cursor: pointer; 
+        transition: all 0.2s ease;
     }
-
-    .export-option {
-        display: block;
-        width: 100%;
-        text-align: left;
-        padding: 0.75rem 1rem;
-        border: none;
-        background: none;
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-        text-decoration: none;
-        color: #374151;
+    .clickable-row:hover { 
+        background: linear-gradient(90deg, rgba(46, 125, 50, 0.05) 0%, rgba(46, 125, 50, 0.1) 100%);
+        transform: scale(1.005);
     }
-
-    .export-option:hover {
-        background-color: #f9fafb;
-        text-decoration: none;
-        color: #374151;
+    
+    .modal-overlay { 
+        position: fixed; 
+        top: 0; 
+        left: 0; 
+        right: 0; 
+        bottom: 0; 
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        z-index: 1000; 
+        backdrop-filter: blur(4px);
     }
-
-    .badge-categoria {
-        display: inline-flex;
+    .modal-content { 
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 1rem; 
+        box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04); 
+        width: 90%; 
+        max-width: 800px; 
+        max-height: 90vh; 
+        display: flex; 
+        flex-direction: column;
+        border: 1px solid rgba(46, 125, 50, 0.1);
+    }
+    .modal-header { 
+        padding: 1.5rem 2rem; 
+        border-bottom: 2px solid #e5e7eb; 
+        display: flex; 
+        justify-content: space-between; 
         align-items: center;
-        padding: 0.25rem 0.75rem;
-        border-radius: 9999px;
+        background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+        color: white;
+        border-radius: 1rem 1rem 0 0;
+    }
+    .modal-body { 
+        padding: 2rem; 
+        overflow-y: auto; 
+    }
+    .modal-loader { 
+        border: 4px solid #f3f3f3; 
+        border-top: 4px solid #2e7d32; 
+        border-radius: 50%; 
+        width: 50px; 
+        height: 50px; 
+        animation: spin 1s linear infinite; 
+        margin: 4rem auto; 
+    }
+    @keyframes spin { 
+        0% { transform: rotate(0deg); } 
+        100% { transform: rotate(360deg); } 
+    }
+
+    .form-input, .form-select {
+        border: 2px solid #e2e8f0;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        font-family: 'Inter', sans-serif;
+        transition: all 0.3s ease;
+        background-color: #ffffff;
+    }
+    .form-input:focus, .form-select:focus {
+        border-color: #2e7d32;
+        box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+        outline: none;
+    }
+
+    .card-enhanced {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border: 1px solid rgba(46, 125, 50, 0.1);
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        transition: all 0.3s ease;
+    }
+    .card-enhanced:hover {
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    }
+
+    .table-header {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        color: #475569;
+        font-weight: 600;
+        text-transform: uppercase;
         font-size: 0.75rem;
-        font-weight: 500;
+        letter-spacing: 0.025em;
     }
 
-    .badge-combustivel { background-color: #fef2f2; color: #dc2626; }
-    .badge-manutencao { background-color: #fffbeb; color: #d97706; }
-    .badge-pedagio { background-color: #eff6ff; color: #2563eb; }
-    .badge-motorista { background-color: #f0fdf4; color: #16a34a; }
-    .badge-seguro { background-color: #faf5ff; color: #9333ea; }
-    .badge-outros { background-color: #f1f5f9; color: #64748b; }
+    .close-button {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.5rem;
+        font-weight: 700;
+        transition: all 0.2s ease;
+    }
+    .close-button:hover {
+        color: #ffffff;
+        transform: scale(1.1);
+    }
 
+    /* Responsive improvements */
     @media (max-width: 768px) {
-        .kpi-value { font-size: 1.25rem; }
+        .grid-responsive {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .kpi-value {
+            font-size: 1.5rem;
+        }
+        .modal-content {
+            width: 95%;
+            margin: 1rem;
+        }
+        .modal-body {
+            padding: 1rem;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Header -->
-<div class="bg-white rounded-lg shadow-md p-6 mb-6">
-    <div class="flex justify-between items-start">
-        <div>
+<div x-data="{ modalAberto: false, carregando: false, viagem: null }">
+
+    <!-- Header Section -->
+    <div class="card-enhanced p-6 mb-6">
+        <div class="flex items-center gap-3 mb-2">
+            <div class="w-3 h-8 bg-gradient-to-b from-[#2e7d32] to-[#1b5e20] rounded-full"></div>
             <h1 class="text-3xl font-bold text-gray-800">Dashboard de Rentabilidade</h1>
-            <p class="text-gray-600 mt-1">Análise completa de custos, receitas e pagamentos da sua frota</p>
         </div>
-        <div class="flex items-center gap-3">
-            <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-            <span class="text-sm text-gray-600">Sistema Online</span>
+        <p class="text-gray-600 text-lg">Análise completa de fretes, despesas e pagamentos da sua frota.</p>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="card-enhanced p-6 mb-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <i class="fas fa-filter text-[#2e7d32]"></i>
+            Filtros de Período
+        </h2>
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Data Início</label>
+                <input type="date" name="data_inicio" value="{{ filtros.data_inicio }}" class="form-input w-full">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Data Fim</label>
+                <input type="date" name="data_fim" value="{{ filtros.data_fim }}" class="form-input w-full">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Veículo</label>
+                <select name="veiculo_id" class="form-select w-full">
+                    <option value="">Todos os Veículos</option>
+                    {% for v in veiculos_filtro %}
+                    <option value="{{ v.id }}" {% if v.id == filtros.veiculo_id %}selected{% endif %}>{{ v.placa }} - {{ v.modelo }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn-custom-primary w-full flex items-center justify-center gap-2">
+                <i class="fas fa-search"></i>
+                Aplicar Filtros
+            </button>
+            <a href="{{ url_for('exportar_rentabilidade_excel', data_inicio=filtros.data_inicio, data_fim=filtros.data_fim, veiculo_id=filtros.veiculo_id) }}" 
+               class="btn-excel w-full flex items-center justify-center gap-2 text-decoration-none">
+                <i class="fas fa-file-excel"></i>
+                Exportar Excel
+            </a>
+        </form>
+    </div>
+    
+    <!-- KPIs Section -->
+    <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 grid-responsive">
+        <div class="kpi-card" style="border-color: #2563eb;">
+            <div class="kpi-value text-blue-600">R$ {{ "%.2f"|format(kpis.receita_total or 0)|replace('.', ',') }}</div>
+            <div class="kpi-label">Receita Bruta (Fretes)</div>
+        </div>
+        <div class="kpi-card" style="border-color: #d97706;">
+            <div class="kpi-value text-amber-600">R$ {{ "%.2f"|format(kpis.custo_total or 0)|replace('.', ',') }}</div>
+            <div class="kpi-label">Custo Total</div>
+        </div>
+        <div class="kpi-card" style="border-color: #9333ea;">
+            <div class="kpi-value text-purple-600">R$ {{ "%.2f"|format(kpis.pagamento_motoristas or 0)|replace('.', ',') }}</div>
+            <div class="kpi-label">Total Pago a Motoristas</div>
+        </div>
+        <div class="kpi-card" style="border-color: #2e7d32;">
+            <div class="kpi-value {{ 'profit' if (kpis.lucro_liquido or 0) >= 0 else 'loss' }}">
+                R$ {{ "%.2f"|format(kpis.lucro_liquido or 0)|replace('.', ',') }}
+            </div>
+            <div class="kpi-label">Lucro Líquido</div>
         </div>
     </div>
-</div>
 
-<!-- Filtros -->
-<div class="bg-white rounded-lg shadow-md p-6 mb-6">
-    <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-        <i class="fas fa-filter text-green-600 mr-2"></i>
-        Filtros de Análise
-    </h2>
-    <form method="GET" id="filterForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-                <i class="fas fa-calendar-alt mr-1"></i>
-                Data Início
-            </label>
-            <input type="date" name="data_inicio" value="{{ filtros.data_inicio }}" class="form-input mt-1">
-        </div>
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-                <i class="fas fa-calendar-alt mr-1"></i>
-                Data Fim
-            </label>
-            <input type="date" name="data_fim" value="{{ filtros.data_fim }}" class="form-input mt-1">
-        </div>
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-                <i class="fas fa-car mr-1"></i>
-                Veículo
-            </label>
-            <select name="veiculo_id" class="form-select mt-1">
-                <option value="">Todos os Veículos</option>
-                {% for v in veiculos_filtro %}
-                <option value="{{ v.id }}" {% if v.id == filtros.veiculo_id %}selected{% endif %}>
-                    {{ v.placa }} - {{ v.modelo }}
-                </option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="flex gap-2">
-            <button type="submit" class="btn-custom-primary flex-1">
-                <i class="fas fa-search loading"></i>
-                <span>Filtrar</span>
-            </button>
-            <div class="export-options">
-                <button type="button" class="btn-custom-secondary" onclick="toggleExportDropdown()">
-                    <i class="fas fa-download"></i>
-                    <i class="fas fa-chevron-down ml-1"></i>
+    <!-- Tabs Section -->
+    <div class="mb-6">
+        <div class="border-b-2 border-gray-200">
+            <nav class="-mb-0.5 flex space-x-1" aria-label="Tabs">
+                <button class="tab-button active" onclick="openTab(event, 'receitas')">
+                    <i class="fas fa-arrow-up text-white mr-2"></i>
+                    Receitas (Fretes)
                 </button>
-                <div class="export-dropdown" id="exportDropdown">
-                    <button type="button" class="export-option" onclick="exportarExcel()">
-                        <i class="fas fa-file-excel text-green-600 mr-2"></i>
-                        Exportar Excel
-                    </button>
-                    <button type="button" class="export-option" onclick="exportarPDF()">
-                        <i class="fas fa-file-pdf text-red-600 mr-2"></i>
-                        Exportar PDF
-                    </button>
-                    <button type="button" class="export-option" onclick="exportarCSV()">
-                        <i class="fas fa-file-csv text-blue-600 mr-2"></i>
-                        Exportar CSV
-                    </button>
+                <button class="tab-button" onclick="openTab(event, 'custos')">
+                    <i class="fas fa-arrow-down mr-2"></i>
+                    Custos e Pagamentos
+                </button>
+                <button class="tab-button" onclick="openTab(event, 'graficos')">
+                    <i class="fas fa-chart-bar mr-2"></i>
+                    Gráficos
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Receitas Tab -->
+    <div id="receitas" class="tab-content active">
+        <div class="card-enhanced p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                <i class="fas fa-money-bill-wave text-[#2e7d32]"></i>
+                Detalhamento de Fretes
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y-2 divide-gray-200">
+                    <thead class="table-header">
+                        <tr>
+                            <th class="px-6 py-4 text-left font-semibold">Data</th>
+                            <th class="px-6 py-4 text-left font-semibold">Descrição da Receita</th>
+                            <th class="px-6 py-4 text-right font-semibold">Valor (R$)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for viagem in receitas %}
+                        <tr class="clickable-row" @click="abrirModalViagem({{ viagem.id }}, $data)" 
+                            title="Clique para ver detalhes da viagem">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {{ viagem.data_inicio.strftime('%d/%m/%Y') }}
+                            </td>
+                            <td class="px-6 py-4 text-sm">
+                                <p class="desc-principal">Viagem para {{ viagem.cliente }} ({{ viagem.endereco_destino }})</p>
+                                <span class="desc-detalhes">
+                                    Veículo: <strong>{{ viagem.veiculo.placa if viagem.veiculo else 'N/A' }}</strong> | 
+                                    Em {{ viagem.data_inicio.strftime('%d/%m/%Y') }}, transportando {{ viagem.material_transportado or 'N/A' }} 
+                                    ({{ viagem.peso_toneladas or '0.0' }} TN).
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-[#2e7d32]">
+                                R$ {{ "%.2f"|format(viagem.valor_recebido)|replace('.', ',') }}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center py-8 text-gray-500 font-medium">
+                                <i class="fas fa-inbox text-3xl mb-2 block text-gray-300"></i>
+                                Nenhuma receita no período selecionado.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custos Tab -->
+    <div id="custos" class="tab-content">
+        <div class="card-enhanced p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                <i class="fas fa-receipt text-red-600"></i>
+                Detalhamento de Custos e Pagamentos
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y-2 divide-gray-200">
+                    <thead class="table-header">
+                        <tr>
+                            <th class="px-6 py-4 text-left font-semibold">Data Pag.</th>
+                            <th class="px-6 py-4 text-left font-semibold">Descrição</th>
+                            <th class="px-6 py-4 text-right font-semibold">Valor (R$)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for item in custos %}
+                        <tr {% if item.viagem_obj %} class="clickable-row" @click="abrirModalViagem({{ item.viagem_obj.id }}, $data)" 
+                            title="Clique para ver detalhes da viagem" {% endif %}>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {{ item.data.strftime('%d/%m/%Y') }}
+                            </td>
+                            <td class="px-6 py-4 text-sm">
+                                {% if item.viagem_obj %}
+                                    <p class="desc-principal">{{ item.categoria }} da Viagem para <strong>{{ item.viagem_obj.cliente }}</strong></p>
+                                    <span class="desc-detalhes">
+                                        Veículo: <strong>{{ item.viagem_obj.veiculo.placa }}</strong> | Destino: {{ item.viagem_obj.endereco_destino }}
+                                        {% if item.categoria == 'Pagamento Pessoal' %}
+                                            | Pago a: <strong>{{ item.fornecedor_motorista }}</strong>
+                                        {% endif %}
+                                    </span>
+                                {% else %}
+                                    <p class="desc-principal">
+                                        {{ item.categoria }}
+                                        {% if item.fornecedor_motorista and item.fornecedor_motorista != 'N/A' %}
+                                            para <strong>{{ item.fornecedor_motorista }}</strong>
+                                        {% endif %}
+                                    </p>
+                                    <span class="desc-detalhes">{{ item.descricao }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-red-600">
+                                R$ {{ "%.2f"|format(item.valor)|replace('.', ',') }}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center py-8 text-gray-500 font-medium">
+                                <i class="fas fa-inbox text-3xl mb-2 block text-gray-300"></i>
+                                Nenhum custo no período selecionado.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráficos Tab -->
+    <div id="graficos" class="tab-content">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="card-enhanced p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                    <i class="fas fa-chart-pie text-[#2e7d32]"></i>
+                    Composição de Custos
+                </h2>
+                <div style="height: 400px;">
+                    <canvas id="custosChart"></canvas>
+                </div>
+            </div>
+            <div class="card-enhanced p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                    <i class="fas fa-chart-line text-[#2e7d32]"></i>
+                    Evolução Mensal
+                </h2>
+                <div style="height: 400px;">
+                    <canvas id="evolucaoChart"></canvas>
                 </div>
             </div>
         </div>
-    </form>
-</div>
-
-<!-- KPIs -->
-<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 mb-6">
-    <div class="kpi-card">
-        <i class="fas fa-coins kpi-icon text-green-500"></i>
-        <div class="kpi-value">R$ {{ "%.2f"|format(kpis.receita_total or 0)|replace('.', ',') }}</div>
-        <div class="kpi-label">Receita Total</div>
-    </div>
-    <div class="kpi-card">
-        <i class="fas fa-calculator kpi-icon text-red-500"></i>
-        <div class="kpi-value">R$ {{ "%.2f"|format(kpis.custo_total or 0)|replace('.', ',') }}</div>
-        <div class="kpi-label">Custo Total</div>
-    </div>
-    <div class="kpi-card">
-        <i class="fas fa-user-tie kpi-icon text-blue-500"></i>
-        <div class="kpi-value">R$ {{ "%.2f"|format(kpis.pagamento_motoristas or 0)|replace('.', ',') }}</div>
-        <div class="kpi-label">Pago Motoristas</div>
-    </div>
-    <div class="kpi-card">
-        <i class="fas fa-chart-line kpi-icon text-green-500"></i>
-        <div class="kpi-value {{ 'profit' if (kpis.lucro_liquido or 0) >= 0 else 'loss' }}">
-            R$ {{ "%.2f"|format(kpis.lucro_liquido or 0)|replace('.', ',') }}
-        </div>
-        <div class="kpi-label">Lucro Líquido</div>
-    </div>
-    <div class="kpi-card">
-        <i class="fas fa-percentage kpi-icon text-green-500"></i>
-        <div class="kpi-value {{ 'profit' if (kpis.margem_lucro or 0) >= 0 else 'loss' }}">
-            {{ "%.1f"|format(kpis.margem_lucro or 0)|replace('.', ',') }}%
-        </div>
-        <div class="kpi-label">Margem</div>
-    </div>
-    <div class="kpi-card">
-        <i class="fas fa-route kpi-icon text-blue-500"></i>
-        <div class="kpi-value">R$ {{ "%.2f"|format(kpis.receita_km or 0)|replace('.', ',') }}</div>
-        <div class="kpi-label">Receita / KM</div>
-    </div>
-    <div class="kpi-card">
-        <i class="fas fa-gas-pump kpi-icon text-orange-500"></i>
-        <div class="kpi-value">R$ {{ "%.2f"|format(kpis.custo_km or 0)|replace('.', ',') }}</div>
-        <div class="kpi-label">Custo / KM</div>
-    </div>
-</div>
-
-<!-- Gráficos -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-    <!-- Composição de Custos -->
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-            <i class="fas fa-chart-pie text-green-600 mr-2"></i>
-            Composição de Custos
-        </h2>
-        <div class="chart-container">
-            <canvas id="custosChart"></canvas>
-        </div>
     </div>
 
-    <!-- Evolução Mensal -->
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-            <i class="fas fa-chart-line text-blue-600 mr-2"></i>
-            Evolução Mensal
-        </h2>
-        <div class="chart-container">
-            <canvas id="evolucaoChart"></canvas>
-        </div>
-    </div>
-</div>
-
-<!-- Tabela Detalhada -->
-<div class="bg-white rounded-lg shadow-md p-6">
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-        <h2 class="text-xl font-bold text-gray-800 flex items-center">
-            <i class="fas fa-table text-purple-600 mr-2"></i>
-            Extrato Detalhado de Custos e Pagamentos
-        </h2>
-        <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <input type="text" placeholder="Buscar..." class="form-input w-full sm:w-64" id="searchInput">
-            <select class="form-select w-full sm:w-40" id="categoryFilter">
-                <option value="">Todas as categorias</option>
-                <option value="combustivel">Combustível</option>
-                <option value="manutencao">Manutenção</option>
-                <option value="pedagio">Pedágio</option>
-                <option value="motorista">Pagamento Motorista</option>
-                <option value="seguro">Seguro</option>
-            </select>
-        </div>
-    </div>
-    
-    <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200 responsive-table" id="costTable">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable(0)">
-                        Data <i class="fas fa-sort ml-1"></i>
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable(1)">
-                        Veículo <i class="fas fa-sort ml-1"></i>
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable(2)">
-                        Categoria <i class="fas fa-sort ml-1"></i>
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable(3)">
-                        Fornecedor/Motorista <i class="fas fa-sort ml-1"></i>
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Nº Nota/Recibo
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Descrição
-                    </th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable(6)">
-                        Valor (R$) <i class="fas fa-sort ml-1"></i>
-                    </th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200" id="tableBody">
-                {% for item in relatorio %}
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-label="Data">
-                        {{ item.data.strftime('%d/%m/%Y') }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap" data-label="Veículo">
-                        <div class="flex items-center">
-                            <i class="fas fa-truck text-blue-500 mr-2"></i>
-                            <span class="text-sm font-medium text-gray-900">{{ item.veiculo }}</span>
+    <!-- Modal -->
+    <div x-show="modalAberto" class="modal-overlay" x-on:click.self="modalAberto = false" 
+         x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" 
+         x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200" 
+         x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+        <div class="modal-content" x-show="modalAberto" 
+             x-transition:enter="ease-out duration-300" 
+             x-transition:enter-start="opacity-0 scale-95" 
+             x-transition:enter-end="opacity-100 scale-100" 
+             x-transition:leave="ease-in duration-200" 
+             x-transition:leave-start="opacity-100 scale-100" 
+             x-transition:leave-end="opacity-0 scale-95">
+            <div class="modal-header">
+                <h2 class="text-xl font-bold flex items-center gap-3" 
+                    x-text="carregando ? 'Carregando detalhes...' : 'Detalhes da Viagem #' + (viagem ? viagem.id : '')">
+                </h2>
+                <button @click="modalAberto = false" class="close-button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div x-show="carregando" class="modal-loader"></div>
+                <div x-show="!carregando && viagem" style="display: none;">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                        <div>
+                            <h3 class="font-bold text-lg mb-4 pb-2 border-b-2 border-[#2e7d32] text-gray-700 flex items-center gap-2">
+                                <i class="fas fa-info-circle text-[#2e7d32]"></i>
+                                Informações da Viagem
+                            </h3>
+                            <div class="space-y-3">
+                                <p><strong class="text-gray-700">Cliente:</strong> <span x-text="viagem.cliente" class="text-gray-900"></span></p>
+                                <p><strong class="text-gray-700">Data:</strong> <span x-text="viagem.data_inicio" class="text-gray-900"></span></p>
+                                <p><strong class="text-gray-700">Origem:</strong> <span x-text="viagem.origem" class="text-gray-900"></span></p>
+                                <p><strong class="text-gray-700">Destino Final:</strong> <span x-text="viagem.destino_final" class="text-gray-900"></span></p>
+                                <p><strong class="text-gray-700">Distância:</strong> <span x-text="viagem.distancia_real" class="text-gray-900"></span></p>
+                                <p><strong class="text-gray-700">Carga:</strong> <span x-text="viagem.material" class="text-gray-900"></span> (<span x-text="viagem.peso_total" class="text-gray-900"></span>)</p>
+                                <p><strong class="text-gray-700">Motorista:</strong> <span x-text="viagem.motorista" class="text-gray-900"></span></p>
+                                <p><strong class="text-gray-700">Veículo:</strong> <span x-text="viagem.veiculo" class="text-gray-900"></span></p>
+                            </div>
                         </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap" data-label="Categoria">
-                        <span class="badge-categoria badge-{{ item.origem|lower }}">
-                            {{ item.origem }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-label="Fornecedor/Motorista">
-                        {{ item.fornecedor }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Nº Nota/Recibo">
-                        {{ item.nota or '-' }}
-                    </td>
-                    <td class="px-6 py-4 text-sm text-gray-900" data-label="Descrição">
-                        {{ item.descricao }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-red-600" data-label="Valor (R$)">
-                        R$ {{ "%.2f"|format(item.valor)|replace('.', ',') }}
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="7" class="text-center py-10 text-gray-500">
-                        Nenhum custo encontrado para o período e filtros selecionados.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    
-    <!-- Paginação -->
-    {% if relatorio %}
-    <div class="flex items-center justify-between mt-4">
-        <div class="text-sm text-gray-700">
-            Mostrando {{ relatorio|length }} resultado(s)
+                        <div>
+                            <h3 class="font-bold text-lg mb-4 pb-2 border-b-2 border-[#2e7d32] text-gray-700 flex items-center gap-2">
+                                <i class="fas fa-calculator text-[#2e7d32]"></i>
+                                Resumo Financeiro
+                            </h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center p-2 bg-blue-50 rounded">
+                                    <span class="text-gray-700 font-medium">Receita Bruta:</span> 
+                                    <strong class="text-blue-600" x-text="viagem.financeiro.receita_bruta"></strong>
+                                </div>
+                                <div class="flex justify-between items-center p-2 bg-red-50 rounded">
+                                    <span class="text-gray-700 font-medium">Pagamento Motorista:</span> 
+                                    <span class="text-red-600 font-semibold" x-text="'- ' + viagem.financeiro.pagamento_motorista"></span>
+                                </div>
+                                <div class="flex justify-between items-center p-2 bg-red-50 rounded">
+                                    <span class="text-gray-700 font-medium">Custo Combustível:</span> 
+                                    <span class="text-red-600 font-semibold" x-text="'- ' + viagem.financeiro.custo_combustivel"></span>
+                                </div>
+                                <div class="flex justify-between items-center p-2 bg-red-50 rounded">
+                                    <span class="text-gray-700 font-medium">Custo Pedágios:</span> 
+                                    <span class="text-red-600 font-semibold" x-text="'- ' + viagem.financeiro.custo_pedagios"></span>
+                                </div>
+                                <div class="flex justify-between items-center p-2 bg-red-50 rounded">
+                                    <span class="text-gray-700 font-medium">Custo Alimentação:</span> 
+                                    <span class="text-red-600 font-semibold" x-text="'- ' + viagem.financeiro.custo_alimentacao"></span>
+                                </div>
+                                <div class="flex justify-between items-center p-2 bg-red-50 rounded">
+                                    <span class="text-gray-700 font-medium">Outros Custos:</span> 
+                                    <span class="text-red-600 font-semibold" x-text="'- ' + viagem.financeiro.custo_outros"></span>
+                                </div>
+                                <hr class="my-4 border-2 border-gray-200">
+                                <div class="flex justify-between items-center p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border-2 border-gray-200">
+                                    <span class="text-gray-800 font-bold text-lg flex items-center gap-2">
+                                        <i class="fas fa-chart-line"></i>
+                                        Lucro Operacional:
+                                    </span> 
+                                    <span class="font-bold text-xl" 
+                                          :class="(viagem.financeiro.lucro_bruto_operacional.includes('-') || viagem.financeiro.lucro_bruto_operacional.includes('(')) ? 'text-red-600' : 'text-[#2e7d32]'" 
+                                          x-text="viagem.financeiro.lucro_bruto_operacional"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    {% endif %}
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Dados dos gráficos vindos do backend
-    const custosData = {{ grafico_custos|tojson if grafico_custos else '{"labels": [], "data": []}' }};
-    const evolucaoData = {{ grafico_evolucao|tojson if grafico_evolucao else '{"labels": [], "receitas": [], "custos": [], "pagamentos": []}' }};
-
-    // Cores para os gráficos
-    const chartColors = [
-        'rgba(239, 68, 68, 0.8)',   // Red
-        'rgba(34, 197, 94, 0.8)',   // Green
-        'rgba(245, 158, 11, 0.8)',  // Amber
-        'rgba(59, 130, 246, 0.8)',  // Blue
-        'rgba(139, 92, 246, 0.8)',  // Violet
-        'rgba(236, 72, 153, 0.8)',  // Pink
-        'rgba(156, 163, 175, 0.8)'  // Gray
-    ];
-
-    // Gráfico de Composição de Custos
-    if (custosData.labels && custosData.labels.length > 0) {
-        const custosCtx = document.getElementById('custosChart').getContext('2d');
-        new Chart(custosCtx, {
-            type: 'doughnut',
-            data: {
-                labels: custosData.labels,
-                datasets: [{
-                    data: custosData.data,
-                    backgroundColor: chartColors.slice(0, custosData.labels.length),
-                    borderColor: '#fff',
-                    borderWidth: 3,
-                    hoverBorderWidth: 5
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: {
-                            padding: 15,
-                            font: { size: 11 }
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        titleColor: '#fff',
-                        bodyColor: '#fff',
-                        callbacks: {
-                            label: function(context) {
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
-                                const value = new Intl.NumberFormat('pt-BR', { 
-                                    style: 'currency', 
-                                    currency: 'BRL' 
-                                }).format(context.parsed);
-                                return `${context.label}: ${value} (${percentage}%)`;
-                            }
-                        }
-                    }
-                },
-                animation: {
-                    animateRotate: true,
-                    duration: 1000
-                }
-            }
-        });
+    function openTab(event, tabName) { 
+        let i, tabcontent, tablinks; 
+        tabcontent = document.getElementsByClassName("tab-content"); 
+        for (i = 0; i < tabcontent.length; i++) { 
+            tabcontent[i].style.display = "none"; 
+            tabcontent[i].classList.remove("active"); 
+        } 
+        tablinks = document.getElementsByClassName("tab-button"); 
+        for (i = 0; i < tablinks.length; i++) { 
+            tablinks[i].classList.remove("active"); 
+        } 
+        document.getElementById(tabName).style.display = "block"; 
+        document.getElementById(tabName).classList.add("active"); 
+        event.currentTarget.classList.add("active"); 
     }
 
-    // Gráfico de Evolução Mensal
-    if (evolucaoData.labels && evolucaoData.labels.length > 0) {
-        const evolucaoCtx = document.getElementById('evolucaoChart').getContext('2d');
-        const datasets = [];
+    async function abrirModalViagem(viagemId, alpineData) { 
+        if (!viagemId) return; 
+        alpineData.carregando = true; 
+        alpineData.modalAberto = true; 
+        alpineData.viagem = null; 
         
-        if (evolucaoData.receitas) {
-            datasets.push({
-                label: 'Receitas',
-                data: evolucaoData.receitas,
-                borderColor: 'rgba(34, 197, 94, 1)',
-                backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                borderWidth: 3,
-                fill: true,
-                tension: 0.4
-            });
-        }
-        
-        if (evolucaoData.custos) {
-            datasets.push({
-                label: 'Custos Operacionais',
-                data: evolucaoData.custos,
-                borderColor: 'rgba(239, 68, 68, 1)',
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                borderWidth: 3,
-                fill: true,
-                tension: 0.4
-            });
-        }
-        
-        if (evolucaoData.pagamentos) {
-            datasets.push({
-                label: 'Pagamentos Motoristas',
-                data: evolucaoData.pagamentos,
-                borderColor: 'rgba(59, 130, 246, 1)',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                borderWidth: 3,
-                fill: true,
-                tension: 0.4
-            });
-        }
+        try { 
+            const response = await fetch(`/api/viagem/${viagemId}/detalhes_rentabilidade`); 
+            if (!response.ok) throw new Error('Falha ao buscar dados da viagem.'); 
+            const result = await response.json(); 
+            if (result.success) { 
+                alpineData.viagem = result.viagem; 
+            } else { 
+                alert(result.message); 
+                alpineData.modalAberto = false; 
+            } 
+        } catch (error) { 
+            console.error('Erro:', error); 
+            alert('Não foi possível carregar os detalhes da viagem.'); 
+            alpineData.modalAberto = false; 
+        } finally { 
+            alpineData.carregando = false; 
+        } 
+    }
 
-        new Chart(evolucaoCtx, {
-            type: 'line',
-            data: {
-                labels: evolucaoData.labels,
-                datasets: datasets
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: {
-                            padding: 15,
-                            font: { size: 11 }
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        titleColor: '#fff',
-                        bodyColor: '#fff',
-                        callbacks: {
-                            label: function(context) {
-                                const value = new Intl.NumberFormat('pt-BR', { 
-                                    style: 'currency', 
-                                    currency: 'BRL' 
-                                }).format(context.parsed.y);
-                                return `${context.dataset.label}: ${value}`;
+    document.addEventListener('DOMContentLoaded', function() { 
+        const custosData = {{ grafico_custos|tojson|safe }}; 
+        const evolucaoData = {{ grafico_evolucao|tojson|safe }}; 
+        
+        // Chart colors matching the green theme
+        const chartColors = {
+            primary: '#2e7d32',
+            secondary: '#1b5e20',
+            success: '#16a34a',
+            warning: '#d97706',
+            error: '#dc2626',
+            info: '#2563eb',
+            purple: '#9333ea',
+            gray: '#6b7280'
+        };
+
+        if (custosData.labels && custosData.labels.length > 0) { 
+            new Chart(document.getElementById('custosChart').getContext('2d'), { 
+                type: 'doughnut', 
+                data: { 
+                    labels: custosData.labels, 
+                    datasets: [{ 
+                        data: custosData.data, 
+                        backgroundColor: [
+                            chartColors.error,
+                            chartColors.warning, 
+                            chartColors.info, 
+                            chartColors.purple, 
+                            chartColors.success, 
+                            chartColors.gray
+                        ], 
+                        borderColor: '#fff', 
+                        borderWidth: 3,
+                        hoverBorderWidth: 4
+                    }] 
+                }, 
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                font: {
+                                    family: 'Inter',
+                                    size: 12,
+                                    weight: '600'
+                                }
                             }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
                         },
-                        ticks: {
-                            callback: function(value) {
-                                return new Intl.NumberFormat('pt-BR', { 
-                                    style: 'currency', 
-                                    currency: 'BRL',
-                                    minimumFractionDigits: 0
-                                }).format(value);
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: {
+                                family: 'Inter',
+                                size: 14,
+                                weight: '600'
+                            },
+                            bodyFont: {
+                                family: 'Inter',
+                                size: 12
+                            }
+                        }
+                    }
+                } 
+            }); 
+        } 
+        
+        if (evolucaoData.labels && evolucaoData.labels.length > 0) { 
+            new Chart(document.getElementById('evolucaoChart').getContext('2d'), { 
+                type: 'line', 
+                data: { 
+                    labels: evolucaoData.labels, 
+                    datasets: [ 
+                        { 
+                            label: 'Receitas', 
+                            data: evolucaoData.receitas, 
+                            borderColor: chartColors.success, 
+                            backgroundColor: 'rgba(22, 163, 74, 0.1)', 
+                            fill: true, 
+                            tension: 0.4,
+                            pointBackgroundColor: chartColors.success,
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        }, 
+                        { 
+                            label: 'Custos Totais', 
+                            data: evolucaoData.custos, 
+                            borderColor: chartColors.error, 
+                            backgroundColor: 'rgba(220, 38, 38, 0.1)', 
+                            fill: true, 
+                            tension: 0.4,
+                            pointBackgroundColor: chartColors.error,
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        } 
+                    ] 
+                }, 
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                padding: 20,
+                                font: {
+                                    family: 'Inter',
+                                    size: 12,
+                                    weight: '600'
+                                },
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: {
+                                family: 'Inter',
+                                size: 14,
+                                weight: '600'
+                            },
+                            bodyFont: {
+                                family: 'Inter',
+                                size: 12
                             }
                         }
                     },
-                    x: {
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                font: {
+                                    family: 'Inter',
+                                    size: 11
+                                }
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                font: {
+                                    family: 'Inter',
+                                    size: 11
+                                }
+                            }
                         }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
                     }
-                },
-                animation: {
-                    duration: 1500,
-                    easing: 'easeInOutQuart'
-                }
-            }
-        });
-    }
-});
-
-// Funcionalidades interativas
-function toggleExportDropdown() {
-    const dropdown = document.getElementById('exportDropdown');
-    dropdown.classList.toggle('active');
-}
-
-function exportarExcel() {
-    const table = document.getElementById('costTable');
-    const ws = XLSX.utils.table_to_sheet(table);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Rentabilidade');
-    XLSX.writeFile(wb, 'rentabilidade_veiculo.xlsx');
-    toggleExportDropdown();
-}
-
-function exportarPDF() {
-    window.print();
-    toggleExportDropdown();
-}
-
-function exportarCSV() {
-    const table = document.getElementById('costTable');
-    const ws = XLSX.utils.table_to_sheet(table);
-    const csv = XLSX.utils.sheet_to_csv(ws);
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'rentabilidade_veiculo.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
-    toggleExportDropdown();
-}
-
-// Filtro de busca na tabela
-document.getElementById('searchInput').addEventListener('input', function(e) {
-    const searchTerm = e.target.value.toLowerCase();
-    const tableRows = document.querySelectorAll('#tableBody tr');
-    
-    tableRows.forEach(row => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchTerm) ? '' : 'none';
+                } 
+            }); 
+        } 
     });
-});
-
-// Filtro por categoria
-document.getElementById('categoryFilter').addEventListener('change', function(e) {
-    const filterValue = e.target.value.toLowerCase();
-    const tableRows = document.querySelectorAll('#tableBody tr');
-    
-    tableRows.forEach(row => {
-        if (!filterValue) {
-            row.style.display = '';
-        } else {
-            const categoryCell = row.cells[2];
-            if (categoryCell) {
-                const categoryText = categoryCell.textContent.toLowerCase();
-                row.style.display = categoryText.includes(filterValue) ? '' : 'none';
-            }
-        }
-    });
-});
-
-// Ordenação da tabela
-let sortDirection = {};
-function sortTable(columnIndex) {
-    const table = document.getElementById('costTable');
-    const tbody = table.querySelector('tbody');
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-    
-    if (rows.length === 0) return;
-    
-    const currentDirection = sortDirection[columnIndex] || 'asc';
-    const newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
-    sortDirection[columnIndex] = newDirection;
-    
-    rows.sort((a, b) => {
-        let aValue = a.cells[columnIndex].textContent.trim();
-        let bValue = b.cells[columnIndex].textContent.trim();
-        
-        // Tratamento especial para valores monetários
-        if (columnIndex === 6) {
-            aValue = parseFloat(aValue.replace('R$ ', '').replace(',', '.'));
-            bValue = parseFloat(bValue.replace('R$ ', '').replace(',', '.'));
-        }
-        
-        if (newDirection === 'asc') {
-            return aValue > bValue ? 1 : -1;
-        } else {
-            return aValue < bValue ? 1 : -1;
-        }
-    });
-    
-    // Reordenar as linhas na tabela
-    rows.forEach(row => tbody.appendChild(row));
-}
-
-// Fechar dropdown ao clicar fora
-document.addEventListener('click', function(e) {
-    const exportOptions = document.querySelector('.export-options');
-    const dropdown = document.getElementById('exportDropdown');
-    
-    if (exportOptions && !exportOptions.contains(e.target)) {
-        dropdown.classList.remove('active');
-    }
-});
-
-// Animação de loading no formulário
-document.getElementById('filterForm').addEventListener('submit', function(e) {
-    const loadingIcon = document.querySelector('.loading');
-    if (loadingIcon) {
-        loadingIcon.classList.add('active');
-    }
-});
 </script>
 {% endblock %}
