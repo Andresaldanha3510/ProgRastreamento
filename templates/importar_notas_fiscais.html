@@ -21,6 +21,8 @@ endblock %} {% block styles %}
     --blue-100: #dbeafe;
   }
 
+  
+
   .nfe-container {
     background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
     border-radius: 16px;
@@ -45,11 +47,9 @@ endblock %} {% block styles %}
   }
 
   .btn-green {
-    background: linear-gradient(
-      135deg,
-      var(--primary-green) 0%,
-      var(--primary-green-dark) 100%
-    );
+    background: linear-gradient(135deg,
+        var(--primary-green) 0%,
+        var(--primary-green-dark) 100%);
     color: white;
     padding: 12px 24px;
     border: none;
@@ -75,11 +75,9 @@ endblock %} {% block styles %}
   }
 
   .btn-secondary {
-    background: linear-gradient(
-      135deg,
-      var(--gray-600) 0%,
-      var(--gray-700) 100%
-    );
+    background: linear-gradient(135deg,
+        var(--gray-600) 0%,
+        var(--gray-700) 100%);
     color: white;
     padding: 10px 20px;
     border: none;
@@ -259,11 +257,9 @@ endblock %} {% block styles %}
 
   .progress-fill {
     height: 100%;
-    background: linear-gradient(
-      135deg,
-      var(--primary-green) 0%,
-      var(--primary-green-light) 100%
-    );
+    background: linear-gradient(135deg,
+        var(--primary-green) 0%,
+        var(--primary-green-light) 100%);
     width: 0%;
     transition: width 0.3s ease;
   }
@@ -299,6 +295,7 @@ endblock %} {% block styles %}
       transform: translateY(-50px);
       opacity: 0;
     }
+
     to {
       transform: translateY(0);
       opacity: 1;
@@ -306,11 +303,9 @@ endblock %} {% block styles %}
   }
 
   .modal-header {
-    background: linear-gradient(
-      135deg,
-      var(--primary-green-dark) 0%,
-      var(--primary-green) 100%
-    );
+    background: linear-gradient(135deg,
+        var(--primary-green-dark) 0%,
+        var(--primary-green) 100%);
     color: white;
     padding: 1.5rem 2rem;
     display: flex;
@@ -430,21 +425,19 @@ endblock %} {% block styles %}
     color: var(--red-600);
   }
 
-  .radio-option input[type="radio"]:checked + .radio-label {
+  .radio-option input[type="radio"]:checked+.radio-label {
     border-color: var(--primary-green);
-    background: linear-gradient(
-      135deg,
-      var(--primary-green) 0%,
-      var(--primary-green-light) 100%
-    );
+    background: linear-gradient(135deg,
+        var(--primary-green) 0%,
+        var(--primary-green-light) 100%);
     color: white;
   }
 
-  .radio-option input[type="radio"]:checked + .radio-label i {
+  .radio-option input[type="radio"]:checked+.radio-label i {
     color: white;
   }
 
-  .radio-option input[type="radio"]:checked + .radio-label small {
+  .radio-option input[type="radio"]:checked+.radio-label small {
     color: rgba(255, 255, 255, 0.9);
   }
 
@@ -550,6 +543,7 @@ endblock %} {% block styles %}
   }
 
   @keyframes shake {
+
     0%,
     20%,
     40%,
@@ -557,15 +551,18 @@ endblock %} {% block styles %}
     80% {
       transform: translateX(0);
     }
+
     10%,
     30%,
     50%,
     70% {
       transform: translateX(-5px);
     }
+
     90% {
       transform: translateX(5px);
     }
+
     100% {
       transform: translateX(0);
     }
@@ -674,6 +671,7 @@ endblock %} {% block styles %}
       opacity: 0;
       transform: translateY(20px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -688,9 +686,11 @@ endblock %} {% block styles %}
     0% {
       box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.7);
     }
+
     70% {
       box-shadow: 0 0 0 10px rgba(46, 125, 50, 0);
     }
+
     100% {
       box-shadow: 0 0 0 0 rgba(46, 125, 50, 0);
     }
@@ -711,11 +711,9 @@ endblock %} {% block styles %}
   }
 
   .nfe-table th {
-    background: linear-gradient(
-      135deg,
-      var(--primary-green-dark) 0%,
-      var(--primary-green) 100%
-    );
+    background: linear-gradient(135deg,
+        var(--primary-green-dark) 0%,
+        var(--primary-green) 100%);
     color: white;
     padding: 1rem;
     text-align: left;
@@ -756,11 +754,9 @@ endblock %} {% block styles %}
   }
 
   .status-badge.processado {
-    background: linear-gradient(
-      135deg,
-      var(--primary-green) 0%,
-      var(--primary-green-light) 100%
-    );
+    background: linear-gradient(135deg,
+        var(--primary-green) 0%,
+        var(--primary-green-light) 100%);
     color: white;
   }
 
@@ -1138,11 +1134,11 @@ endblock %} {% block styles %}
     }
   }
 </style>
-{% endblock %} {% block content %}
+{% endblock %}
+
+{% block content %}
 <div class="space-y-6">
-  <div
-    class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 shadow-lg"
-  >
+  <div class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 shadow-lg">
     <h1 class="text-3xl font-bold flex items-center gap-3">
       <i class="fas fa-file-invoice"></i>
       Importação de Notas Fiscais SEFAZ
@@ -1162,9 +1158,7 @@ endblock %} {% block styles %}
 
     <div class="stats-grid">
       <div class="stat-card">
-        <span class="stat-number" id="totalNotas"
-          >{{ notas|length if notas else 0 }}</span
-        >
+        <span class="stat-number" id="totalNotas">{{ notas|length if notas else 0 }}</span>
         <span class="stat-label">Notas Importadas</span>
       </div>
       <div class="stat-card">
@@ -1215,13 +1209,8 @@ endblock %} {% block styles %}
       <div class="flex-1 min-w-0">
         <label class="form-label">Chave de Acesso (44 dígitos)</label>
         <div class="search-box">
-          <input
-            type="text"
-            id="chaveAcessoInput"
-            placeholder="Digite ou escaneie a chave de acesso da NFe..."
-            class="chave-input"
-            maxlength="44"
-          />
+          <input type="text" id="chaveAcessoInput" placeholder="Digite ou escaneie a chave de acesso da NFe..."
+            class="chave-input" maxlength="44" />
           <i class="fas fa-key"></i>
         </div>
       </div>
@@ -1239,6 +1228,28 @@ endblock %} {% block styles %}
     </div>
   </div>
 
+  <div class="nfe-container">
+    <div class="section-header">
+      <i class="fas fa-folder-open"></i>
+      Importar Arquivos XML
+    </div>
+    <div class="flex gap-4 flex-wrap items-end mb-4">
+      <div class="flex-1 min-w-0">
+        <label for="xmlFilesInput" class="form-label">Selecione os arquivos XML</label>
+        <input type="file" id="xmlFilesInput" class="form-control" multiple accept=".xml">
+      </div>
+      <button class="btn-green" id="btnImportarXmls">
+        <i class="fas fa-upload"></i>
+        <span class="loading-spinner" id="loadingImportarXml"></span>
+        Importar Arquivos Selecionados
+      </button>
+    </div>
+    <div class="text-sm text-gray-600">
+      <i class="fas fa-info-circle"></i>
+      Selecione um ou mais arquivos .xml da sua pasta. O sistema irá verificar e adicionar apenas as notas que ainda não
+      foram importadas.
+    </div>
+  </div>
   <div class="search-section">
     <div class="section-header">
       <i class="fas fa-filter"></i>
@@ -1247,12 +1258,7 @@ endblock %} {% block styles %}
 
     <div class="search-controls">
       <div class="search-box">
-        <input
-          type="text"
-          id="searchInput"
-          placeholder="Buscar por CNPJ, nome, chave..."
-          class="search-input"
-        />
+        <input type="text" id="searchInput" placeholder="Buscar por CNPJ, nome, chave..." class="search-input" />
         <i class="fas fa-search"></i>
       </div>
 
@@ -1270,26 +1276,12 @@ endblock %} {% block styles %}
       </select>
 
       <div class="flex items-center gap-2">
-        <label for="startDateFilter" class="text-sm font-medium text-gray-600"
-          >De:</label
-        >
-        <input
-          type="date"
-          id="startDateFilter"
-          class="form-select"
-          style="padding: 8px"
-        />
+        <label for="startDateFilter" class="text-sm font-medium text-gray-600">De:</label>
+        <input type="date" id="startDateFilter" class="form-select" style="padding: 8px" />
       </div>
       <div class="flex items-center gap-2">
-        <label for="endDateFilter" class="text-sm font-medium text-gray-600"
-          >Até:</label
-        >
-        <input
-          type="date"
-          id="endDateFilter"
-          class="form-select"
-          style="padding: 8px"
-        />
+        <label for="endDateFilter" class="text-sm font-medium text-gray-600">Até:</label>
+        <input type="date" id="endDateFilter" class="form-select" style="padding: 8px" />
       </div>
 
       <button class="btn-secondary" id="btnLimparFiltros">
@@ -1306,9 +1298,7 @@ endblock %} {% block styles %}
     </div>
     <div class="flex flex-wrap gap-4 items-center">
       <div>
-        <label for="tipoExportacao" class="form-label"
-          >Tipo de Exportação</label
-        >
+        <label for="tipoExportacao" class="form-label">Tipo de Exportação</label>
         <select id="tipoExportacao" class="form-select">
           <option value="todas">Exportar seleção atual</option>
           <option value="processadas">
@@ -1333,10 +1323,7 @@ endblock %} {% block styles %}
     <div class="section-header">
       <i class="fas fa-list"></i>
       Notas Fiscais Importadas
-      <span
-        id="contadorNotas"
-        class="text-base font-normal text-gray-600"
-      ></span>
+      <span id="contadorNotas" class="text-base font-normal text-gray-600"></span>
     </div>
 
     <div id="nfeContainer">
@@ -1399,7 +1386,6 @@ endblock %} {% block styles %}
   </div>
 </div>
 
-<!-- Modal de Lançamento -->
 <div id="modalLancamento" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -1424,20 +1410,10 @@ endblock %} {% block styles %}
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="unidadeNegocioLancamento"
-          >Unidade de Negócio *</label
-        >
+        <label class="form-label" for="unidadeNegocioLancamento">Unidade de Negócio *</label>
         <select id="unidadeNegocioLancamento" class="form-control" required>
           {% for unidade in unidades_negocio %}
-          <option
-            value="{{ unidade.id }}"
-            {%
-            if
-            unidade.is_matriz
-            %}selected{%
-            endif
-            %}
-          >
+          <option value="{{ unidade.id }}" {% if unidade.is_matriz %}selected{% endif %}>
             {{ unidade.nome }} {% if unidade.is_matriz %}(Matriz){% endif %}
           </option>
           {% endfor %}
@@ -1445,41 +1421,25 @@ endblock %} {% block styles %}
       </div>
       <div class="form-group">
         <label class="form-label">Parcelamento do Pagamento</label>
-        <div
-          style="
+        <div style="
             display: grid;
             grid-template-columns: 1fr auto;
             gap: 1rem;
             align-items: end;
             margin-bottom: 1rem;
-          "
-        >
+          ">
           <div>
-            <label
-              for="quantidadeParcelas"
-              style="font-size: 0.875rem; color: var(--gray-600)"
-              >Quantidade de Parcelas</label
-            >
-            <input
-              type="number"
-              id="quantidadeParcelas"
-              min="1"
-              max="36"
-              value="1"
-              class="form-control"
-              style="padding: 8px 12px"
-            />
+            <label for="quantidadeParcelas" style="font-size: 0.875rem; color: var(--gray-600)">Quantidade de
+              Parcelas</label>
+            <input type="number" id="quantidadeParcelas" min="1" max="36" value="1" class="form-control"
+              style="padding: 8px 12px" />
           </div>
           <button type="button" id="btnGerarParcelas" class="btn-secondary">
             <i class="fas fa-calendar-alt"></i> Gerar Parcelas
           </button>
         </div>
 
-        <div
-          class="parcelamento-container"
-          id="parcelamentoContainer"
-          style="display: none"
-        >
+        <div class="parcelamento-container" id="parcelamentoContainer" style="display: none">
           <div class="parcelamento-header">
             <i class="fas fa-calendar-check"></i>
             <span>Cronograma de Pagamento</span>
@@ -1493,15 +1453,11 @@ endblock %} {% block styles %}
               </div>
               <div class="totalizacao-item">
                 <span class="totalizacao-label">Total das Parcelas</span>
-                <span class="totalizacao-valor" id="totalParcelas"
-                  >R$ 0,00</span
-                >
+                <span class="totalizacao-valor" id="totalParcelas">R$ 0,00</span>
               </div>
               <div class="totalizacao-item">
                 <span class="totalizacao-label">Diferença</span>
-                <span class="totalizacao-valor" id="diferencaValor"
-                  >R$ 0,00</span
-                >
+                <span class="totalizacao-valor" id="diferencaValor">R$ 0,00</span>
               </div>
             </div>
           </div>
@@ -1519,13 +1475,7 @@ endblock %} {% block styles %}
         <label class="form-label">Rateio da Despesa</label>
         <div class="tipo-movimento-container">
           <div class="radio-option">
-            <input
-              type="radio"
-              id="semRateio"
-              name="tipo_rateio"
-              value="sem_rateio"
-              checked
-            />
+            <input type="radio" id="semRateio" name="tipo_rateio" value="sem_rateio" checked />
             <label for="semRateio" class="radio-label despesa">
               <i class="fas fa-file-invoice-dollar"></i>
               <span>Despesa Geral</span>
@@ -1533,12 +1483,7 @@ endblock %} {% block styles %}
             </label>
           </div>
           <div class="radio-option">
-            <input
-              type="radio"
-              id="comRateio"
-              name="tipo_rateio"
-              value="com_rateio"
-            />
+            <input type="radio" id="comRateio" name="tipo_rateio" value="com_rateio" />
             <label for="comRateio" class="radio-label despesa">
               <i class="fas fa-truck-moving"></i>
               <span>Ratear por Veículo</span>
@@ -1550,25 +1495,16 @@ endblock %} {% block styles %}
 
       <div id="containerRateio" style="display: none">
         <div class="form-group">
-          <label class="form-label"
-            >Buscar Veículos (Placa ou Modelo) para despesas não relacionadas a
-            veiculos (ADMIN)</label
-          >
+          <label class="form-label">Buscar Veículos (Placa ou Modelo) para despesas não relacionadas a
+            veiculos (ADMIN)</label>
           <div class="search-box">
-            <input
-              type="text"
-              id="veiculoSearchInput"
-              placeholder="Digite para buscar e adicionar múltiplos veículos..."
-              autocomplete="off"
-              class="form-control"
-            />
+            <input type="text" id="veiculoSearchInput"
+              placeholder="Digite para buscar e adicionar múltiplos veículos..." autocomplete="off"
+              class="form-control" />
             <i class="fas fa-search" style="right: 15px; left: auto"></i>
           </div>
-          <div
-            id="veiculoSearchResults"
-            class="list-group mt-2 position-absolute bg-white shadow-lg rounded"
-            style="z-index: 1001; width: calc(100% - 4rem)"
-          ></div>
+          <div id="veiculoSearchResults" class="list-group mt-2 position-absolute bg-white shadow-lg rounded"
+            style="z-index: 1001; width: calc(100% - 4rem)"></div>
           <div class="text-sm text-gray-600 mt-2">
             <i class="fas fa-info-circle"></i>
             Você pode adicionar quantos veículos precisar para dividir o custo
@@ -1581,38 +1517,23 @@ endblock %} {% block styles %}
             <i class="fas fa-list-ul"></i>
             <span>Veículos para Rateio</span>
             <div class="ml-auto" id="rateioControles" style="display: none">
-              <button
-                type="button"
-                class="btn-secondary"
-                style="padding: 6px 12px; font-size: 0.75rem"
-                onclick="distribuirIgualmente()"
-              >
+              <button type="button" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem"
+                onclick="distribuirIgualmente()">
                 <i class="fas fa-equals"></i> Dividir Igual
               </button>
-              <button
-                type="button"
-                class="btn-secondary"
-                style="padding: 6px 12px; font-size: 0.75rem"
-                onclick="ajustarAutomaticamente()"
-              >
+              <button type="button" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem"
+                onclick="ajustarAutomaticamente()">
                 <i class="fas fa-magic"></i> Ajustar Auto
               </button>
-              <button
-                type="button"
-                class="btn-secondary"
-                style="padding: 6px 12px; font-size: 0.75rem"
-                onclick="limparRateio()"
-              >
+              <button type="button" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem"
+                onclick="limparRateio()">
                 <i class="fas fa-trash"></i> Limpar
               </button>
             </div>
           </div>
           <div id="veiculosRateioContainer" class="mt-3">
             <div class="text-center text-gray-500 my-4" id="rateioEmpty">
-              <i
-                class="fas fa-truck"
-                style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.3"
-              ></i>
+              <i class="fas fa-truck" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.3"></i>
               <p>Nenhum veículo selecionado</p>
               <small>Use a busca acima para adicionar veículos ao rateio</small>
             </div>
@@ -1621,40 +1542,24 @@ endblock %} {% block styles %}
             <div class="totalizacao-content">
               <div class="totalizacao-item">
                 <span class="totalizacao-label">Valor da Nota</span>
-                <span class="totalizacao-valor" id="rateioValorNota"
-                  >R$ 0,00</span
-                >
+                <span class="totalizacao-valor" id="rateioValorNota">R$ 0,00</span>
               </div>
               <div class="totalizacao-item">
                 <span class="totalizacao-label">Total Rateado</span>
-                <span class="totalizacao-valor" id="rateioTotalAlocado"
-                  >R$ 0,00</span
-                >
+                <span class="totalizacao-valor" id="rateioTotalAlocado">R$ 0,00</span>
               </div>
               <div class="totalizacao-item">
                 <span class="totalizacao-label">Diferença</span>
-                <span class="totalizacao-valor" id="rateioDiferenca"
-                  >R$ 0,00</span
-                >
+                <span class="totalizacao-valor" id="rateioDiferenca">R$ 0,00</span>
               </div>
             </div>
             <div class="mt-3" id="rateioStatusContainer">
-              <div
-                class="progress-bar"
-                id="rateioProgressBar"
-                style="display: block; height: 6px"
-              >
-                <div
-                  class="progress-fill"
-                  id="rateioProgressFill"
-                  style="width: 0%"
-                ></div>
+              <div class="progress-bar" id="rateioProgressBar" style="display: block; height: 6px">
+                <div class="progress-fill" id="rateioProgressFill" style="width: 0%"></div>
               </div>
               <div class="text-center mt-2" id="rateioStatus">
-                <small class="text-gray-600"
-                  >Adicione veículos e distribua os valores para confirmar o
-                  lançamento</small
-                >
+                <small class="text-gray-600">Adicione veículos e distribua os valores para confirmar o
+                  lançamento</small>
               </div>
             </div>
           </div>
@@ -1676,157 +1581,220 @@ endblock %} {% block styles %}
 </div>
 
 <script>
-    // Variáveis globais
-    let notasData = [];
-    let notasFiltradas = [];
-    let currentPage = 1;
-    let itemsPerPage = 50;
-    let empresasDisponiveis = new Set();
-    let valorTotalNota = 0;
-    let veiculosSelecionados = new Map();
+  // Variáveis globais
+  let notasData = [];
+  let notasFiltradas = [];
+  let currentPage = 1;
+  let itemsPerPage = 50;
+  let empresasDisponiveis = new Set();
+  let valorTotalNota = 0;
+  let veiculosSelecionados = new Map();
 
-    // Inicialização
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM carregado, iniciando aplicação...');
-        carregarNotasDoHTML();
-        configurarEventos();
-        configurarFiltros();
-        atualizarEstatisticas();
-        popularFiltroEmpresas();
-        renderizarTabela();
-        console.log('Aplicação inicializada com sucesso');
+  // Inicialização
+  document.addEventListener('DOMContentLoaded', function () {
+    console.log('DOM carregado, iniciando aplicação...');
+    carregarNotasDoHTML();
+    configurarEventos();
+    configurarFiltros();
+    atualizarEstatisticas();
+    popularFiltroEmpresas();
+    renderizarTabela();
+    console.log('Aplicação inicializada com sucesso');
+  });
+
+  function popularFiltroEmpresas() {
+    const empresaSelect = document.getElementById('empresaFilter');
+    empresasDisponiveis.clear();
+
+    notasData.forEach(nota => {
+      if (nota.cnpj_consultado) {
+        empresasDisponiveis.add(nota.cnpj_consultado);
+      }
     });
 
-    function popularFiltroEmpresas() {
-        const empresaSelect = document.getElementById('empresaFilter');
-        empresasDisponiveis.clear();
-
-        notasData.forEach(nota => {
-            if (nota.cnpj_consultado) {
-                empresasDisponiveis.add(nota.cnpj_consultado);
-            }
-        });
-
-        while (empresaSelect.children.length > 1) {
-            empresaSelect.removeChild(empresaSelect.lastChild);
-        }
-
-        const empresasOrdenadas = Array.from(empresasDisponiveis).sort();
-        empresasOrdenadas.forEach(cnpj => {
-            const option = document.createElement('option');
-            option.value = cnpj;
-            option.textContent = `${formatarCNPJ(cnpj)} (${contarNotasPorEmpresa(cnpj)} notas)`;
-            empresaSelect.appendChild(option);
-        });
-
-        document.getElementById('totalEmpresas').textContent = empresasDisponiveis.size;
+    while (empresaSelect.children.length > 1) {
+      empresaSelect.removeChild(empresaSelect.lastChild);
     }
 
-    function contarNotasPorEmpresa(cnpj) {
-        return notasData.filter(nota => nota.cnpj_consultado === cnpj).length;
-    }
+    const empresasOrdenadas = Array.from(empresasDisponiveis).sort();
+    empresasOrdenadas.forEach(cnpj => {
+      const option = document.createElement('option');
+      option.value = cnpj;
+      option.textContent = `${formatarCNPJ(cnpj)} (${contarNotasPorEmpresa(cnpj)} notas)`;
+      empresaSelect.appendChild(option);
+    });
 
-    function carregarNotasDoHTML() {
-        notasData = [
-            {% for nota in notas %}
-            {
-                "chave_acesso": "{{ nota.chave_acesso }}",
-                "emitente_nome": "{{ nota.emitente_nome }}",
-                "emitente_cnpj": "{{ nota.emitente_cnpj }}",
-                "valor_total": {{ nota.valor_total }},
-                "data_emissao": "{{ nota.data_emissao.isoformat() }}",
-                "nsu": "{{ nota.nsu }}",
-                "status": "{{ nota.status }}",
-                "cnpj_consultado": "{{ nota.cnpj_consultado or '' }}"
-            }{% if not loop.last %},{% endif %}
-            {% endfor %}
+    document.getElementById('totalEmpresas').textContent = empresasDisponiveis.size;
+  }
+
+  function contarNotasPorEmpresa(cnpj) {
+    return notasData.filter(nota => nota.cnpj_consultado === cnpj).length;
+  }
+
+  function carregarNotasDoHTML() {
+    notasData = [
+      {% for nota in notas %}
+  {
+    "chave_acesso": "{{ nota.chave_acesso }}",
+      "emitente_nome": "{{ nota.emitente_nome }}",
+        "emitente_cnpj": "{{ nota.emitente_cnpj }}",
+          "valor_total": {{ nota.valor_total }},
+    "data_emissao": "{{ nota.data_emissao.isoformat() }}",
+      "nsu": "{{ nota.nsu }}",
+        "status": "{{ nota.status }}",
+          "cnpj_consultado": "{{ nota.cnpj_consultado or '' }}"
+  } {% if not loop.last %}, {% endif %}
+  {% endfor %}
         ];
 
-        notasFiltradas = [...notasData];
-        renderizarContador();
-        console.log('Notas carregadas:', notasData.length);
+  notasFiltradas = [...notasData];
+  renderizarContador();
+  console.log('Notas carregadas:', notasData.length);
     }
 
-    function configurarEventos() {
-        console.log('Configurando eventos...');
+  async function importarArquivosXML() {
+    const input = document.getElementById('xmlFilesInput');
+    const files = input.files;
 
-        document.getElementById('btnConsultarSefaz').addEventListener('click', consultarSefaz);
-        document.getElementById('btnLancarRapido').addEventListener('click', lancarRapido);
-        document.getElementById('btnSalvarLancamento').addEventListener('click', salvarLancamento);
-        document.getElementById('chaveAcessoInput').addEventListener('input', formatarChaveAcesso);
-        document.getElementById('btnLimparFiltros').addEventListener('click', limparFiltros);
-        document.getElementById('itemsPerPage').addEventListener('change', alterarItensPorPagina);
-        document.getElementById('btnPrevPage').addEventListener('click', paginaAnterior);
-        document.getElementById('btnNextPage').addEventListener('click', proximaPagina);
-        document.getElementById('btnExportarDocumentos').addEventListener('click', exportarDocumentos);
-        document.getElementById('semRateio').addEventListener('change', toggleRateio);
-        document.getElementById('comRateio').addEventListener('change', toggleRateio);
-        document.getElementById('veiculoSearchInput').addEventListener('input', buscarVeiculos);
-        document.getElementById('btnGerarParcelas').addEventListener('click', gerarParcelas);
-
-        document.getElementById('quantidadeParcelas').addEventListener('input', function() {
-            if (this.value > 36) this.value = 36;
-            if (this.value < 1) this.value = 1;
-        });
-
-        console.log('Eventos configurados');
+    if (files.length === 0) {
+      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Por favor, selecione pelo menos um arquivo XML.');
+      return;
     }
 
-    function toggleRateio() {
-        const tipoSelecionado = document.querySelector('input[name="tipo_rateio"]:checked').value;
-        const containerRateio = document.getElementById('containerRateio');
+    const btn = document.getElementById('btnImportarXmls');
+    const loading = document.getElementById('loadingImportarXml');
+    btn.disabled = true;
+    loading.style.display = 'inline-block';
 
-        if (tipoSelecionado === 'com_rateio') {
-            containerRateio.style.display = 'block';
-            document.getElementById('rateioValorNota').textContent = formatarMoeda(valorTotalNota);
-        } else {
-            containerRateio.style.display = 'none';
-            // Limpar veículos selecionados ao desabilitar rateio
-            veiculosSelecionados.clear();
-            document.getElementById('veiculoSearchInput').value = '';
-            document.getElementById('veiculoSearchResults').innerHTML = '';
+    const formData = new FormData();
+    for (const file of files) {
+      formData.append('xml_files', file);
+    }
+
+    try {
+      const response = await fetch('/api/fiscal/importar_xmls', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> ${result.message}`);
+
+        if (result.novas_notas && result.novas_notas.length > 0) {
+          // Adiciona as novas notas ao array de dados local
+          notasData.unshift(...result.novas_notas);
+
+          // --- INÍCIO DA CORREÇÃO ---
+          // Limpa os filtros para garantir que a nova nota seja visível
+          limparFiltros();
+          // --- FIM DA CORREÇÃO ---
+
+          // O restante do código já faz o necessário (atualizar estatísticas e renderizar)
+          // A função limparFiltros() já chama aplicarFiltros(), que por sua vez renderiza a tabela.
+          // Portanto, não precisamos chamar aplicarFiltros() novamente aqui.
+
+          // Apenas atualizamos os outros componentes que não são atualizados pelo filtro
+          popularFiltroEmpresas();
+          atualizarEstatisticas();
         }
+      } else {
+        mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> ${result.message}`);
+      }
+
+    } catch (error) {
+      console.error('Erro ao importar XMLs:', error);
+      mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro de conexão ao importar arquivos.`);
+    } finally {
+      btn.disabled = false;
+      loading.style.display = 'none';
+      input.value = ''; // Limpa o campo de seleção de arquivos
+    }
+  }
+
+
+  function configurarEventos() {
+    console.log('Configurando eventos...');
+
+    document.getElementById('btnConsultarSefaz').addEventListener('click', consultarSefaz);
+    document.getElementById('btnLancarRapido').addEventListener('click', lancarRapido);
+    document.getElementById('btnImportarXmls').addEventListener('click', importarArquivosXML); // <-- NOVA LINHA
+    document.getElementById('btnSalvarLancamento').addEventListener('click', salvarLancamento);
+    document.getElementById('chaveAcessoInput').addEventListener('input', formatarChaveAcesso);
+    document.getElementById('btnLimparFiltros').addEventListener('click', limparFiltros);
+    document.getElementById('itemsPerPage').addEventListener('change', alterarItensPorPagina);
+    document.getElementById('btnPrevPage').addEventListener('click', paginaAnterior);
+    document.getElementById('btnNextPage').addEventListener('click', proximaPagina);
+    document.getElementById('btnExportarDocumentos').addEventListener('click', exportarDocumentos);
+    document.getElementById('semRateio').addEventListener('change', toggleRateio);
+    document.getElementById('comRateio').addEventListener('change', toggleRateio);
+    document.getElementById('veiculoSearchInput').addEventListener('input', buscarVeiculos);
+    document.getElementById('btnGerarParcelas').addEventListener('click', gerarParcelas);
+
+    document.getElementById('quantidadeParcelas').addEventListener('input', function () {
+      if (this.value > 36) this.value = 36;
+      if (this.value < 1) this.value = 1;
+    });
+
+    console.log('Eventos configurados');
+  }
+
+  function toggleRateio() {
+    const tipoSelecionado = document.querySelector('input[name="tipo_rateio"]:checked').value;
+    const containerRateio = document.getElementById('containerRateio');
+
+    if (tipoSelecionado === 'com_rateio') {
+      containerRateio.style.display = 'block';
+      document.getElementById('rateioValorNota').textContent = formatarMoeda(valorTotalNota);
+    } else {
+      containerRateio.style.display = 'none';
+      // Limpar veículos selecionados ao desabilitar rateio
+      veiculosSelecionados.clear();
+      document.getElementById('veiculoSearchInput').value = '';
+      document.getElementById('veiculoSearchResults').innerHTML = '';
+    }
+  }
+
+  function configurarFiltros() {
+    document.getElementById('searchInput').addEventListener('input', aplicarFiltros);
+    document.getElementById('statusFilter').addEventListener('change', aplicarFiltros);
+    document.getElementById('empresaFilter').addEventListener('change', aplicarFiltros);
+    document.getElementById('startDateFilter').addEventListener('change', aplicarFiltros);
+    document.getElementById('endDateFilter').addEventListener('change', aplicarFiltros);
+  }
+
+  // Função para gerar parcelas customizadas
+  function gerarParcelas() {
+    const quantidadeParcelas = parseInt(document.getElementById('quantidadeParcelas').value);
+    const parcelamentoContainer = document.getElementById('parcelamentoContainer');
+    const parcelasContainer = document.getElementById('parcelasContainer');
+
+    if (!quantidadeParcelas || quantidadeParcelas < 1 || quantidadeParcelas > 36) {
+      mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Quantidade de parcelas deve ser entre 1 e 36');
+      return;
     }
 
-    function configurarFiltros() {
-        document.getElementById('searchInput').addEventListener('input', aplicarFiltros);
-        document.getElementById('statusFilter').addEventListener('change', aplicarFiltros);
-        document.getElementById('empresaFilter').addEventListener('change', aplicarFiltros);
-        document.getElementById('startDateFilter').addEventListener('change', aplicarFiltros);
-        document.getElementById('endDateFilter').addEventListener('change', aplicarFiltros);
-    }
+    // Mostrar container de parcelamento
+    parcelamentoContainer.style.display = 'block';
 
-    // Função para gerar parcelas customizadas
-    function gerarParcelas() {
-        const quantidadeParcelas = parseInt(document.getElementById('quantidadeParcelas').value);
-        const parcelamentoContainer = document.getElementById('parcelamentoContainer');
-        const parcelasContainer = document.getElementById('parcelasContainer');
+    // Limpar parcelas existentes
+    parcelasContainer.innerHTML = '';
 
-        if (!quantidadeParcelas || quantidadeParcelas < 1 || quantidadeParcelas > 36) {
-            mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Quantidade de parcelas deve ser entre 1 e 36');
-            return;
-        }
+    // Calcular valor por parcela
+    const valorPorParcela = valorTotalNota / quantidadeParcelas;
 
-        // Mostrar container de parcelamento
-        parcelamentoContainer.style.display = 'block';
+    // Gerar campos para cada parcela
+    for (let i = 1; i <= quantidadeParcelas; i++) {
+      const parcelaDiv = document.createElement('div');
+      parcelaDiv.className = 'parcela-item fade-in';
 
-        // Limpar parcelas existentes
-        parcelasContainer.innerHTML = '';
+      // Calcular data de vencimento (primeira parcela = 30 dias, demais = +30 dias cada)
+      const hoje = new Date();
+      const dataVencimento = new Date(hoje.getTime() + (i * 30 * 24 * 60 * 60 * 1000));
+      const dataFormatada = dataVencimento.toISOString().split('T')[0];
 
-        // Calcular valor por parcela
-        const valorPorParcela = valorTotalNota / quantidadeParcelas;
-
-        // Gerar campos para cada parcela
-        for (let i = 1; i <= quantidadeParcelas; i++) {
-            const parcelaDiv = document.createElement('div');
-            parcelaDiv.className = 'parcela-item fade-in';
-
-            // Calcular data de vencimento (primeira parcela = 30 dias, demais = +30 dias cada)
-            const hoje = new Date();
-            const dataVencimento = new Date(hoje.getTime() + (i * 30 * 24 * 60 * 60 * 1000));
-            const dataFormatada = dataVencimento.toISOString().split('T')[0];
-
-            parcelaDiv.innerHTML = `
+      parcelaDiv.innerHTML = `
                 <div class="parcela-numero">${i}</div>
                 <div class="parcela-input-group">
                     <label>Data de Vencimento</label>
@@ -1838,177 +1806,177 @@ endblock %} {% block styles %}
                 </div>
             `;
 
-            parcelasContainer.appendChild(parcelaDiv);
-        }
-
-        // Atualizar totalização
-        atualizarTotalizacao();
-        validarParcelas();
+      parcelasContainer.appendChild(parcelaDiv);
     }
 
-    async function buscarVeiculos(event) {
-        const searchTerm = event.target.value;
-        const resultsContainer = document.getElementById('veiculoSearchResults');
+    // Atualizar totalização
+    atualizarTotalizacao();
+    validarParcelas();
+  }
 
-        if (searchTerm.length < 2) {
-            resultsContainer.innerHTML = '';
-            return;
-        }
+  async function buscarVeiculos(event) {
+    const searchTerm = event.target.value;
+    const resultsContainer = document.getElementById('veiculoSearchResults');
 
-        try {
-            const response = await fetch(`/api/veiculos/search?term=${searchTerm}`);
-            const veiculos = await response.json();
+    if (searchTerm.length < 2) {
+      resultsContainer.innerHTML = '';
+      return;
+    }
 
-            resultsContainer.innerHTML = '';
+    try {
+      const response = await fetch(`/api/veiculos/search?term=${searchTerm}`);
+      const veiculos = await response.json();
 
-            const veiculosDisponiveis = veiculos.filter(v => !veiculosSelecionados.has(v.id));
+      resultsContainer.innerHTML = '';
 
-            if (veiculosDisponiveis.length === 0) {
-                resultsContainer.innerHTML = '<div class="p-2 text-gray-500 text-sm">Nenhum veículo encontrado ou todos já foram adicionados</div>';
-                return;
-            }
+      const veiculosDisponiveis = veiculos.filter(v => !veiculosSelecionados.has(v.id));
 
-            veiculosDisponiveis.forEach(veiculo => {
-                const item = document.createElement('a');
-                item.href = '#';
-                item.className = 'list-group-item list-group-item-action p-2 border-bottom d-flex justify-content-between align-items-center';
-                item.innerHTML = `
+      if (veiculosDisponiveis.length === 0) {
+        resultsContainer.innerHTML = '<div class="p-2 text-gray-500 text-sm">Nenhum veículo encontrado ou todos já foram adicionados</div>';
+        return;
+      }
+
+      veiculosDisponiveis.forEach(veiculo => {
+        const item = document.createElement('a');
+        item.href = '#';
+        item.className = 'list-group-item list-group-item-action p-2 border-bottom d-flex justify-content-between align-items-center';
+        item.innerHTML = `
                     <span>${veiculo.display}</span>
                     <small class="text-green-600"><i class="fas fa-plus"></i> Adicionar</small>
                 `;
-                item.onclick = (e) => {
-                    e.preventDefault();
-                    adicionarVeiculoParaRateio(veiculo);
-                    resultsContainer.innerHTML = '';
-                    event.target.value = '';
-                    event.target.focus();
-                };
-                resultsContainer.appendChild(item);
-            });
-        } catch (error) {
-            console.error("Erro ao buscar veículos:", error);
-            // Em caso de erro, usar dados mock
-            const veiculosMock = [
-                { id: 1, display: "ABC-1234 - Volvo FH 540" },
-                { id: 2, display: "DEF-5678 - Scania R450" },
-                { id: 3, display: "GHI-9012 - Mercedes Actros" },
-                { id: 4, display: "JKL-3456 - Ford Cargo 816" },
-                { id: 5, display: "MNO-7890 - Iveco Daily" }
-            ];
+        item.onclick = (e) => {
+          e.preventDefault();
+          adicionarVeiculoParaRateio(veiculo);
+          resultsContainer.innerHTML = '';
+          event.target.value = '';
+          event.target.focus();
+        };
+        resultsContainer.appendChild(item);
+      });
+    } catch (error) {
+      console.error("Erro ao buscar veículos:", error);
+      // Em caso de erro, usar dados mock
+      const veiculosMock = [
+        { id: 1, display: "ABC-1234 - Volvo FH 540" },
+        { id: 2, display: "DEF-5678 - Scania R450" },
+        { id: 3, display: "GHI-9012 - Mercedes Actros" },
+        { id: 4, display: "JKL-3456 - Ford Cargo 816" },
+        { id: 5, display: "MNO-7890 - Iveco Daily" }
+      ];
 
-            resultsContainer.innerHTML = '';
-            const veiculosEncontrados = veiculosMock.filter(v =>
-                v.display.toLowerCase().includes(searchTerm.toLowerCase()) &&
-                !veiculosSelecionados.has(v.id)
-            );
+      resultsContainer.innerHTML = '';
+      const veiculosEncontrados = veiculosMock.filter(v =>
+        v.display.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !veiculosSelecionados.has(v.id)
+      );
 
-            if (veiculosEncontrados.length === 0) {
-                resultsContainer.innerHTML = '<div class="p-2 text-gray-500 text-sm">Nenhum veículo encontrado ou todos já foram adicionados</div>';
-                return;
-            }
+      if (veiculosEncontrados.length === 0) {
+        resultsContainer.innerHTML = '<div class="p-2 text-gray-500 text-sm">Nenhum veículo encontrado ou todos já foram adicionados</div>';
+        return;
+      }
 
-            veiculosEncontrados.forEach(veiculo => {
-                const item = document.createElement('a');
-                item.href = '#';
-                item.className = 'list-group-item list-group-item-action p-2 border-bottom d-flex justify-content-between align-items-center';
-                item.innerHTML = `
+      veiculosEncontrados.forEach(veiculo => {
+        const item = document.createElement('a');
+        item.href = '#';
+        item.className = 'list-group-item list-group-item-action p-2 border-bottom d-flex justify-content-between align-items-center';
+        item.innerHTML = `
                     <span>${veiculo.display}</span>
                     <small class="text-green-600"><i class="fas fa-plus"></i> Adicionar</small>
                 `;
-                item.onclick = (e) => {
-                    e.preventDefault();
-                    adicionarVeiculoParaRateio(veiculo);
-                    resultsContainer.innerHTML = '';
-                    event.target.value = '';
-                    event.target.focus();
-                };
-                resultsContainer.appendChild(item);
-            });
-        }
+        item.onclick = (e) => {
+          e.preventDefault();
+          adicionarVeiculoParaRateio(veiculo);
+          resultsContainer.innerHTML = '';
+          event.target.value = '';
+          event.target.focus();
+        };
+        resultsContainer.appendChild(item);
+      });
+    }
+  }
+
+  function adicionarVeiculoParaRateio(veiculo) {
+    if (veiculosSelecionados.has(veiculo.id)) {
+      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Este veículo já foi adicionado ao rateio');
+      return;
     }
 
-    function adicionarVeiculoParaRateio(veiculo) {
-        if (veiculosSelecionados.has(veiculo.id)) {
-            mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Este veículo já foi adicionado ao rateio');
-            return;
+    // Se é o primeiro veículo, atribui o valor total
+    // Se não é o primeiro, inicia com valor 0 para distribuição manual
+    const valorInicial = veiculosSelecionados.size === 0 ? valorTotalNota : 0;
+
+    veiculosSelecionados.set(veiculo.id, { ...veiculo, valor: valorInicial });
+    renderizarVeiculosRateio();
+
+    const quantidade = veiculosSelecionados.size;
+
+    if (quantidade === 1) {
+      mostrarNotificacao('success', `<i class="fas fa-truck"></i> Primeiro veículo adicionado com valor total da nota`);
+      setTimeout(() => {
+        mostrarNotificacao('info', '<i class="fas fa-lightbulb"></i> Dica: Adicione mais veículos para ratear a despesa entre eles');
+      }, 2000);
+    } else {
+      mostrarNotificacao('success', `<i class="fas fa-truck"></i> Veículo adicionado! Total: ${quantidade} veículo${quantidade > 1 ? 's' : ''} no rateio`);
+
+      // Sugestão de distribuição automática
+      setTimeout(() => {
+        const totalAtual = Array.from(veiculosSelecionados.values()).reduce((sum, v) => sum + v.valor, 0);
+        if (Math.abs(totalAtual - valorTotalNota) > 0.01) {
+          mostrarNotificacao('info', '<i class="fas fa-magic"></i> Use "Dividir Igual" ou "Ajustar Auto" para distribuir automaticamente');
         }
-
-        // Se é o primeiro veículo, atribui o valor total
-        // Se não é o primeiro, inicia com valor 0 para distribuição manual
-        const valorInicial = veiculosSelecionados.size === 0 ? valorTotalNota : 0;
-
-        veiculosSelecionados.set(veiculo.id, { ...veiculo, valor: valorInicial });
-        renderizarVeiculosRateio();
-
-        const quantidade = veiculosSelecionados.size;
-
-        if (quantidade === 1) {
-            mostrarNotificacao('success', `<i class="fas fa-truck"></i> Primeiro veículo adicionado com valor total da nota`);
-            setTimeout(() => {
-                mostrarNotificacao('info', '<i class="fas fa-lightbulb"></i> Dica: Adicione mais veículos para ratear a despesa entre eles');
-            }, 2000);
-        } else {
-            mostrarNotificacao('success', `<i class="fas fa-truck"></i> Veículo adicionado! Total: ${quantidade} veículo${quantidade > 1 ? 's' : ''} no rateio`);
-
-            // Sugestão de distribuição automática
-            setTimeout(() => {
-                const totalAtual = Array.from(veiculosSelecionados.values()).reduce((sum, v) => sum + v.valor, 0);
-                if (Math.abs(totalAtual - valorTotalNota) > 0.01) {
-                    mostrarNotificacao('info', '<i class="fas fa-magic"></i> Use "Dividir Igual" ou "Ajustar Auto" para distribuir automaticamente');
-                }
-            }, 1500);
-        }
+      }, 1500);
     }
+  }
 
-    function removerVeiculoDoRateio(veiculoId) {
-        const veiculo = veiculosSelecionados.get(veiculoId);
-        if (!veiculo) return;
+  function removerVeiculoDoRateio(veiculoId) {
+    const veiculo = veiculosSelecionados.get(veiculoId);
+    if (!veiculo) return;
 
-        if (confirm(`Remover "${veiculo.display}" do rateio?`)) {
-            veiculosSelecionados.delete(veiculoId);
-            renderizarVeiculosRateio();
+    if (confirm(`Remover "${veiculo.display}" do rateio?`)) {
+      veiculosSelecionados.delete(veiculoId);
+      renderizarVeiculosRateio();
 
-            const quantidade = veiculosSelecionados.size;
-            mostrarNotificacao('info', `<i class="fas fa-trash"></i> Veículo removido. ${quantidade} veículo${quantidade !== 1 ? 's' : ''} restante${quantidade !== 1 ? 's' : ''}`);
-        }
+      const quantidade = veiculosSelecionados.size;
+      mostrarNotificacao('info', `<i class="fas fa-trash"></i> Veículo removido. ${quantidade} veículo${quantidade !== 1 ? 's' : ''} restante${quantidade !== 1 ? 's' : ''}`);
     }
+  }
 
-    function renderizarVeiculosRateio() {
-        const container = document.getElementById('veiculosRateioContainer');
-        const emptyState = document.getElementById('rateioEmpty');
-        const controles = document.getElementById('rateioControles');
+  function renderizarVeiculosRateio() {
+    const container = document.getElementById('veiculosRateioContainer');
+    const emptyState = document.getElementById('rateioEmpty');
+    const controles = document.getElementById('rateioControles');
 
-        // Salvar valores atuais dos inputs antes de recriar o DOM
-        const valoresAtuais = new Map();
-        document.querySelectorAll('.rateio-valor-input').forEach(input => {
-            const veiculoId = parseInt(input.dataset.id);
-            valoresAtuais.set(veiculoId, parseFloat(input.value) || 0);
-        });
+    // Salvar valores atuais dos inputs antes de recriar o DOM
+    const valoresAtuais = new Map();
+    document.querySelectorAll('.rateio-valor-input').forEach(input => {
+      const veiculoId = parseInt(input.dataset.id);
+      valoresAtuais.set(veiculoId, parseFloat(input.value) || 0);
+    });
 
-        // Atualizar valores no Map com os valores reais dos inputs
-        valoresAtuais.forEach((valor, veiculoId) => {
-            if (veiculosSelecionados.has(veiculoId)) {
-                veiculosSelecionados.get(veiculoId).valor = valor;
-            }
-        });
+    // Atualizar valores no Map com os valores reais dos inputs
+    valoresAtuais.forEach((valor, veiculoId) => {
+      if (veiculosSelecionados.has(veiculoId)) {
+        veiculosSelecionados.get(veiculoId).valor = valor;
+      }
+    });
 
-        container.innerHTML = '';
+    container.innerHTML = '';
 
-        if (veiculosSelecionados.size === 0) {
-            if (emptyState) {
-                container.appendChild(emptyState.cloneNode(true));
-            }
-            controles.style.display = 'none';
-        } else {
-            controles.style.display = 'flex';
+    if (veiculosSelecionados.size === 0) {
+      if (emptyState) {
+        container.appendChild(emptyState.cloneNode(true));
+      }
+      controles.style.display = 'none';
+    } else {
+      controles.style.display = 'flex';
 
-            let index = 1;
-            veiculosSelecionados.forEach(veiculo => {
-                const percentual = valorTotalNota > 0 ? ((veiculo.valor / valorTotalNota) * 100) : 0;
+      let index = 1;
+      veiculosSelecionados.forEach(veiculo => {
+        const percentual = valorTotalNota > 0 ? ((veiculo.valor / valorTotalNota) * 100) : 0;
 
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'veiculo-rateio-item fade-in';
-                itemDiv.innerHTML = `
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'veiculo-rateio-item fade-in';
+        itemDiv.innerHTML = `
                     <div class="veiculo-header">
                         <div class="veiculo-numero">${index}</div>
                         <div class="veiculo-info">
@@ -2048,385 +2016,385 @@ endblock %} {% block styles %}
                         </div>
                     </div>
                 `;
-                container.appendChild(itemDiv);
-                index++;
-            });
+        container.appendChild(itemDiv);
+        index++;
+      });
+    }
+    atualizarTotalRateio();
+  }
+
+  function atualizarValorRateio(veiculoId, valor) {
+    const veiculo = veiculosSelecionados.get(veiculoId);
+    if (veiculo) {
+      veiculo.valor = Math.max(0, Math.min(parseFloat(valor) || 0, valorTotalNota));
+
+      // Atualizar campo de percentual correspondente SEM re-renderizar
+      const percentualInput = document.querySelector(`input.rateio-percentual-input[data-id="${veiculoId}"]`);
+      if (percentualInput && valorTotalNota > 0) {
+        const novoPercentual = (veiculo.valor / valorTotalNota) * 100;
+        percentualInput.value = novoPercentual.toFixed(1);
+
+        // Atualizar badge de percentual
+        const percentualBadge = document.getElementById(`percentual-${veiculoId}`);
+        if (percentualBadge) {
+          percentualBadge.textContent = novoPercentual.toFixed(1) + '%';
         }
-        atualizarTotalRateio();
+      }
+
+      atualizarTotalRateio();
+    }
+  }
+
+  function atualizarPercentualRateio(veiculoId, percentual) {
+    const veiculo = veiculosSelecionados.get(veiculoId);
+    if (veiculo && valorTotalNota > 0) {
+      const percentualLimitado = Math.max(0, Math.min(parseFloat(percentual) || 0, 100));
+      veiculo.valor = (percentualLimitado / 100) * valorTotalNota;
+
+      // Atualizar campo de valor correspondente SEM re-renderizar
+      const valorInput = document.querySelector(`input.rateio-valor-input[data-id="${veiculoId}"]`);
+      if (valorInput) {
+        valorInput.value = veiculo.valor.toFixed(2);
+      }
+
+      // Atualizar badge de percentual
+      const percentualBadge = document.getElementById(`percentual-${veiculoId}`);
+      if (percentualBadge) {
+        percentualBadge.textContent = percentualLimitado.toFixed(1) + '%';
+      }
+
+      atualizarTotalRateio();
+    }
+  }
+
+  function validarValorMinimo(input) {
+    if (parseFloat(input.value) < 0) {
+      input.value = "0.00";
+      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Valor não pode ser negativo');
+    }
+    if (parseFloat(input.value) > valorTotalNota) {
+      input.value = valorTotalNota.toFixed(2);
+      mostrarNotificacao('info', `<i class="fas fa-info-circle"></i> Valor não pode exceder ${formatarMoeda(valorTotalNota)}`);
+    }
+  }
+
+  function validarPercentualMinimo(input) {
+    if (parseFloat(input.value) < 0) {
+      input.value = "0.0";
+      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Percentual não pode ser negativo');
+    }
+    if (parseFloat(input.value) > 100) {
+      input.value = "100.0";
+      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Percentual não pode exceder 100%');
+    }
+  }
+
+  function distribuirIgualmente() {
+    if (veiculosSelecionados.size === 0) {
+      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Adicione pelo menos um veículo antes de distribuir os valores');
+      return;
     }
 
-    function atualizarValorRateio(veiculoId, valor) {
-        const veiculo = veiculosSelecionados.get(veiculoId);
-        if (veiculo) {
-            veiculo.valor = Math.max(0, Math.min(parseFloat(valor) || 0, valorTotalNota));
+    const valorPorVeiculo = valorTotalNota / veiculosSelecionados.size;
 
-            // Atualizar campo de percentual correspondente SEM re-renderizar
-            const percentualInput = document.querySelector(`input.rateio-percentual-input[data-id="${veiculoId}"]`);
-            if (percentualInput && valorTotalNota > 0) {
-                const novoPercentual = (veiculo.valor / valorTotalNota) * 100;
-                percentualInput.value = novoPercentual.toFixed(1);
+    veiculosSelecionados.forEach(veiculo => {
+      veiculo.valor = valorPorVeiculo;
+    });
 
-                // Atualizar badge de percentual
-                const percentualBadge = document.getElementById(`percentual-${veiculoId}`);
-                if (percentualBadge) {
-                    percentualBadge.textContent = novoPercentual.toFixed(1) + '%';
-                }
-            }
+    // Atualizar todos os inputs na tela
+    document.querySelectorAll('.rateio-valor-input').forEach(input => {
+      const veiculoId = parseInt(input.dataset.id);
+      if (veiculosSelecionados.has(veiculoId)) {
+        input.value = valorPorVeiculo.toFixed(2);
+      }
+    });
 
-            atualizarTotalRateio();
-        }
+    document.querySelectorAll('.rateio-percentual-input').forEach(input => {
+      const veiculoId = parseInt(input.dataset.id);
+      if (veiculosSelecionados.has(veiculoId)) {
+        input.value = (100 / veiculosSelecionados.size).toFixed(1);
+      }
+    });
+
+    atualizarTotalRateio();
+    mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> Valor distribuído igualmente: ${formatarMoeda(valorPorVeiculo)} por veículo (${(100 / veiculosSelecionados.size).toFixed(1)}% cada)`);
+  }
+
+  function ajustarAutomaticamente() {
+    if (veiculosSelecionados.size === 0) {
+      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Adicione veículos primeiro');
+      return;
     }
 
-    function atualizarPercentualRateio(veiculoId, percentual) {
-        const veiculo = veiculosSelecionados.get(veiculoId);
-        if (veiculo && valorTotalNota > 0) {
-            const percentualLimitado = Math.max(0, Math.min(parseFloat(percentual) || 0, 100));
-            veiculo.valor = (percentualLimitado / 100) * valorTotalNota;
+    // Calcular total atual
+    let totalAtual = 0;
+    veiculosSelecionados.forEach(v => totalAtual += v.valor);
 
-            // Atualizar campo de valor correspondente SEM re-renderizar
-            const valorInput = document.querySelector(`input.rateio-valor-input[data-id="${veiculoId}"]`);
-            if (valorInput) {
-                valorInput.value = veiculo.valor.toFixed(2);
-            }
-
-            // Atualizar badge de percentual
-            const percentualBadge = document.getElementById(`percentual-${veiculoId}`);
-            if (percentualBadge) {
-                percentualBadge.textContent = percentualLimitado.toFixed(1) + '%';
-            }
-
-            atualizarTotalRateio();
-        }
+    if (totalAtual === 0) {
+      distribuirIgualmente();
+      return;
     }
 
-    function validarValorMinimo(input) {
-        if (parseFloat(input.value) < 0) {
-            input.value = "0.00";
-            mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Valor não pode ser negativo');
-        }
-        if (parseFloat(input.value) > valorTotalNota) {
-            input.value = valorTotalNota.toFixed(2);
-            mostrarNotificacao('info', `<i class="fas fa-info-circle"></i> Valor não pode exceder ${formatarMoeda(valorTotalNota)}`);
-        }
+    // Calcular diferença
+    const diferenca = valorTotalNota - totalAtual;
+
+    if (Math.abs(diferenca) <= 0.01) {
+      mostrarNotificacao('success', '<i class="fas fa-check-circle"></i> Valores já estão corretos!');
+      return;
     }
 
-    function validarPercentualMinimo(input) {
-        if (parseFloat(input.value) < 0) {
-            input.value = "0.0";
-            mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Percentual não pode ser negativo');
-        }
-        if (parseFloat(input.value) > 100) {
-            input.value = "100.0";
-            mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Percentual não pode exceder 100%');
-        }
+    // Distribuir a diferença proporcionalmente
+    veiculosSelecionados.forEach(veiculo => {
+      if (totalAtual > 0) {
+        const proporcao = veiculo.valor / totalAtual;
+        veiculo.valor = veiculo.valor + (diferenca * proporcao);
+      } else {
+        veiculo.valor = valorTotalNota / veiculosSelecionados.size;
+      }
+      // Garantir que não seja negativo
+      veiculo.valor = Math.max(0, veiculo.valor);
+    });
+
+    // Atualizar inputs
+    renderizarVeiculosRateio();
+
+    mostrarNotificacao('success', `<i class="fas fa-magic"></i> Valores ajustados automaticamente! Diferença de ${formatarMoeda(Math.abs(diferenca))} distribuída proporcionalmente`);
+  }
+
+  function limparRateio() {
+    if (veiculosSelecionados.size === 0) {
+      return;
     }
 
-    function distribuirIgualmente() {
-        if (veiculosSelecionados.size === 0) {
-            mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Adicione pelo menos um veículo antes de distribuir os valores');
-            return;
-        }
+    if (confirm(`Tem certeza que deseja remover todos os ${veiculosSelecionados.size} veículo(s) do rateio?`)) {
+      veiculosSelecionados.clear();
+      renderizarVeiculosRateio();
+      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Todos os veículos foram removidos do rateio');
+    }
+  }
 
-        const valorPorVeiculo = valorTotalNota / veiculosSelecionados.size;
+  function atualizarValorRateio(veiculoId, valor) {
+    const veiculo = veiculosSelecionados.get(veiculoId);
+    if (veiculo) {
+      veiculo.valor = parseFloat(valor) || 0;
+      atualizarTotalRateio();
+    }
+  }
 
-        veiculosSelecionados.forEach(veiculo => {
-            veiculo.valor = valorPorVeiculo;
-        });
+  function atualizarTotalRateio() {
+    let total = 0;
+    const quantidadeVeiculos = veiculosSelecionados.size;
 
-        // Atualizar todos os inputs na tela
-        document.querySelectorAll('.rateio-valor-input').forEach(input => {
-            const veiculoId = parseInt(input.dataset.id);
-            if (veiculosSelecionados.has(veiculoId)) {
-                input.value = valorPorVeiculo.toFixed(2);
-            }
-        });
+    veiculosSelecionados.forEach(v => total += v.valor);
+    const diferenca = total - valorTotalNota;
+    const percentualCompleto = valorTotalNota > 0 ? (total / valorTotalNota) * 100 : 0;
 
-        document.querySelectorAll('.rateio-percentual-input').forEach(input => {
-            const veiculoId = parseInt(input.dataset.id);
-            if (veiculosSelecionados.has(veiculoId)) {
-                input.value = (100 / veiculosSelecionados.size).toFixed(1);
-            }
-        });
+    // Atualizar valores na totalização
+    document.getElementById('rateioTotalAlocado').textContent = formatarMoeda(total);
+    const diferencaEl = document.getElementById('rateioDiferenca');
+    const statusEl = document.getElementById('rateioStatus');
+    const progressBar = document.getElementById('rateioProgressFill');
 
-        atualizarTotalRateio();
-        mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> Valor distribuído igualmente: ${formatarMoeda(valorPorVeiculo)} por veículo (${(100/veiculosSelecionados.size).toFixed(1)}% cada)`);
+    diferencaEl.textContent = formatarMoeda(Math.abs(diferenca));
+
+    // Atualizar barra de progresso
+    progressBar.style.width = Math.min(percentualCompleto, 100) + '%';
+
+    // Alterar cor da barra baseado no status
+    if (Math.abs(diferenca) <= 0.01) {
+      progressBar.style.background = 'linear-gradient(135deg, var(--green-600) 0%, var(--primary-green-light) 100%)';
+    } else if (diferenca < 0) {
+      progressBar.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'; // Amarelo/laranja
+    } else {
+      progressBar.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'; // Vermelho
     }
 
-    function ajustarAutomaticamente() {
-        if (veiculosSelecionados.size === 0) {
-            mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Adicione veículos primeiro');
-            return;
-        }
+    // Atualizar percentuais individuais
+    veiculosSelecionados.forEach(veiculo => {
+      const percentualEl = document.getElementById(`percentual-${veiculo.id}`);
+      if (percentualEl && valorTotalNota > 0) {
+        const percentual = (veiculo.valor / valorTotalNota) * 100;
+        percentualEl.textContent = percentual.toFixed(1) + '%';
+      }
+    });
 
-        // Calcular total atual
-        let totalAtual = 0;
-        veiculosSelecionados.forEach(v => totalAtual += v.valor);
-
-        if (totalAtual === 0) {
-            distribuirIgualmente();
-            return;
-        }
-
-        // Calcular diferença
-        const diferenca = valorTotalNota - totalAtual;
-
-        if (Math.abs(diferenca) <= 0.01) {
-            mostrarNotificacao('success', '<i class="fas fa-check-circle"></i> Valores já estão corretos!');
-            return;
-        }
-
-        // Distribuir a diferença proporcionalmente
-        veiculosSelecionados.forEach(veiculo => {
-            if (totalAtual > 0) {
-                const proporcao = veiculo.valor / totalAtual;
-                veiculo.valor = veiculo.valor + (diferenca * proporcao);
-            } else {
-                veiculo.valor = valorTotalNota / veiculosSelecionados.size;
-            }
-            // Garantir que não seja negativo
-            veiculo.valor = Math.max(0, veiculo.valor);
-        });
-
-        // Atualizar inputs
-        renderizarVeiculosRateio();
-
-        mostrarNotificacao('success', `<i class="fas fa-magic"></i> Valores ajustados automaticamente! Diferença de ${formatarMoeda(Math.abs(diferenca))} distribuída proporcionalmente`);
-    }
-
-    function limparRateio() {
-        if (veiculosSelecionados.size === 0) {
-            return;
-        }
-
-        if (confirm(`Tem certeza que deseja remover todos os ${veiculosSelecionados.size} veículo(s) do rateio?`)) {
-            veiculosSelecionados.clear();
-            renderizarVeiculosRateio();
-            mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Todos os veículos foram removidos do rateio');
-        }
-    }
-
-    function atualizarValorRateio(veiculoId, valor) {
-        const veiculo = veiculosSelecionados.get(veiculoId);
-        if (veiculo) {
-            veiculo.valor = parseFloat(valor) || 0;
-            atualizarTotalRateio();
-        }
-    }
-
-    function atualizarTotalRateio() {
-        let total = 0;
-        const quantidadeVeiculos = veiculosSelecionados.size;
-
-        veiculosSelecionados.forEach(v => total += v.valor);
-        const diferenca = total - valorTotalNota;
-        const percentualCompleto = valorTotalNota > 0 ? (total / valorTotalNota) * 100 : 0;
-
-        // Atualizar valores na totalização
-        document.getElementById('rateioTotalAlocado').textContent = formatarMoeda(total);
-        const diferencaEl = document.getElementById('rateioDiferenca');
-        const statusEl = document.getElementById('rateioStatus');
-        const progressBar = document.getElementById('rateioProgressFill');
-
-        diferencaEl.textContent = formatarMoeda(Math.abs(diferenca));
-
-        // Atualizar barra de progresso
-        progressBar.style.width = Math.min(percentualCompleto, 100) + '%';
-
-        // Alterar cor da barra baseado no status
-        if (Math.abs(diferenca) <= 0.01) {
-            progressBar.style.background = 'linear-gradient(135deg, var(--green-600) 0%, var(--primary-green-light) 100%)';
-        } else if (diferenca < 0) {
-            progressBar.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'; // Amarelo/laranja
-        } else {
-            progressBar.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'; // Vermelho
-        }
-
-        // Atualizar percentuais individuais
-        veiculosSelecionados.forEach(veiculo => {
-            const percentualEl = document.getElementById(`percentual-${veiculo.id}`);
-            if (percentualEl && valorTotalNota > 0) {
-                const percentual = (veiculo.valor / valorTotalNota) * 100;
-                percentualEl.textContent = percentual.toFixed(1) + '%';
-            }
-        });
-
-        if (quantidadeVeiculos === 0) {
-            statusEl.innerHTML = '<small class="text-gray-600">Adicione veículos e distribua os valores para confirmar o lançamento</small>';
-            document.getElementById('btnSalvarLancamento').disabled = true;
-        } else if (Math.abs(diferenca) <= 0.01) {
-            diferencaEl.className = 'totalizacao-valor totalizacao-ok';
-            statusEl.innerHTML = `
+    if (quantidadeVeiculos === 0) {
+      statusEl.innerHTML = '<small class="text-gray-600">Adicione veículos e distribua os valores para confirmar o lançamento</small>';
+      document.getElementById('btnSalvarLancamento').disabled = true;
+    } else if (Math.abs(diferenca) <= 0.01) {
+      diferencaEl.className = 'totalizacao-valor totalizacao-ok';
+      statusEl.innerHTML = `
                 <small class="text-green-600">
                     <i class="fas fa-check-circle"></i>
                     Rateio correto entre ${quantidadeVeiculos} veículo(s) - 100% distribuído
                 </small>
             `;
-            document.getElementById('btnSalvarLancamento').disabled = false;
-        } else {
-            document.getElementById('btnSalvarLancamento').disabled = true;
+      document.getElementById('btnSalvarLancamento').disabled = false;
+    } else {
+      document.getElementById('btnSalvarLancamento').disabled = true;
 
-            if (diferenca > 0) {
-                diferencaEl.className = 'totalizacao-valor totalizacao-diferenca';
-                statusEl.innerHTML = `
+      if (diferenca > 0) {
+        diferencaEl.className = 'totalizacao-valor totalizacao-diferenca';
+        statusEl.innerHTML = `
                     <small class="text-red-600">
                         <i class="fas fa-exclamation-triangle"></i>
                         Valor rateado excede em ${formatarMoeda(diferenca)} (${percentualCompleto.toFixed(1)}%)
                         <button type="button" onclick="ajustarAutomaticamente()" class="ml-2 text-xs underline">Ajustar automaticamente</button>
                     </small>
                 `;
-            } else {
-                diferencaEl.className = 'totalizacao-valor totalizacao-diferenca';
-                const faltante = Math.abs(diferenca);
-                statusEl.innerHTML = `
+      } else {
+        diferencaEl.className = 'totalizacao-valor totalizacao-diferenca';
+        const faltante = Math.abs(diferenca);
+        statusEl.innerHTML = `
                     <small class="text-orange-600">
                         <i class="fas fa-exclamation-triangle"></i>
                         Faltam ${formatarMoeda(faltante)} para completar (${percentualCompleto.toFixed(1)}% distribuído)
                         <button type="button" onclick="ajustarAutomaticamente()" class="ml-2 text-xs underline">Completar automaticamente</button>
                     </small>
                 `;
-            }
-        }
+      }
+    }
+  }
+
+  // Função para validar parcelas
+  function validarParcelas() {
+    const parcelasValor = document.querySelectorAll('.parcela-valor');
+    const validationError = document.getElementById('validationError');
+    let totalParcelas = 0;
+
+    // Somar valores das parcelas
+    parcelasValor.forEach(input => {
+      const valor = parseFloat(input.value) || 0;
+      totalParcelas += valor;
+    });
+
+    // Atualizar totalização
+    atualizarTotalizacao();
+
+    // Verificar se valores batem
+    const diferenca = Math.abs(totalParcelas - valorTotalNota);
+    const tolerancia = 0.01; // Tolerância de 1 centavo
+
+    if (diferenca > tolerancia) {
+      validationError.classList.add('show');
+      document.getElementById('btnSalvarLancamento').disabled = true;
+      return false;
+    } else {
+      validationError.classList.remove('show');
+      document.getElementById('btnSalvarLancamento').disabled = false;
+      return true;
+    }
+  }
+
+  // Função para atualizar totalização
+  function atualizarTotalizacao() {
+    const parcelasValor = document.querySelectorAll('.parcela-valor');
+    let totalParcelas = 0;
+
+    parcelasValor.forEach(input => {
+      const valor = parseFloat(input.value) || 0;
+      totalParcelas += valor;
+    });
+
+    const diferenca = totalParcelas - valorTotalNota;
+
+    document.getElementById('valorNota').textContent = formatarMoeda(valorTotalNota);
+    document.getElementById('totalParcelas').textContent = formatarMoeda(totalParcelas);
+
+    const diferencaElement = document.getElementById('diferencaValor');
+    diferencaElement.textContent = formatarMoeda(Math.abs(diferenca));
+
+    if (Math.abs(diferenca) <= 0.01) {
+      diferencaElement.className = 'totalizacao-valor totalizacao-ok';
+    } else {
+      diferencaElement.className = 'totalizacao-valor totalizacao-diferenca';
+    }
+  }
+
+  function aplicarFiltros() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    const empresaFilter = document.getElementById('empresaFilter').value;
+    const startDate = document.getElementById('startDateFilter').value;
+    const endDate = document.getElementById('endDateFilter').value;
+
+    notasFiltradas = notasData.filter(nota => {
+      const matchSearch = !searchTerm ||
+        nota.emitente_nome.toLowerCase().includes(searchTerm) ||
+        nota.emitente_cnpj.includes(searchTerm) ||
+        nota.chave_acesso.includes(searchTerm);
+
+      const matchStatus = !statusFilter || nota.status === statusFilter;
+      const matchEmpresa = !empresaFilter || nota.cnpj_consultado === empresaFilter;
+
+      const notaDate = nota.data_emissao.split('T')[0];
+      const matchStartDate = !startDate || notaDate >= startDate;
+      const matchEndDate = !endDate || notaDate <= endDate;
+
+      return matchSearch && matchStatus && matchEmpresa && matchStartDate && matchEndDate;
+    });
+
+    currentPage = 1;
+    renderizarTabela();
+    renderizarContador();
+  }
+
+  function limparFiltros() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('empresaFilter').value = '';
+    document.getElementById('startDateFilter').value = '';
+    document.getElementById('endDateFilter').value = '';
+    aplicarFiltros();
+  }
+
+  function renderizarContador() {
+    const contador = document.getElementById('contadorNotas');
+    const total = notasFiltradas.length;
+    if (total > 0) {
+      contador.textContent = `(${total} ${total === 1 ? 'nota' : 'notas'})`;
+    } else {
+      contador.textContent = '(0 notas)';
+    }
+  }
+
+  function renderizarTabela() {
+    console.log('Renderizando tabela...');
+    const tbody = document.getElementById('nfeTableBody');
+    if (!tbody) {
+      console.log('tbody não encontrado');
+      return;
     }
 
-    // Função para validar parcelas
-    function validarParcelas() {
-        const parcelasValor = document.querySelectorAll('.parcela-valor');
-        const validationError = document.getElementById('validationError');
-        let totalParcelas = 0;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const notasPagina = notasFiltradas.slice(startIndex, endIndex);
 
-        // Somar valores das parcelas
-        parcelasValor.forEach(input => {
-            const valor = parseFloat(input.value) || 0;
-            totalParcelas += valor;
-        });
+    tbody.innerHTML = '';
 
-        // Atualizar totalização
-        atualizarTotalizacao();
+    const emptyState = document.getElementById('emptyState');
+    const tableContainer = document.getElementById('nfeTableContainer');
 
-        // Verificar se valores batem
-        const diferenca = Math.abs(totalParcelas - valorTotalNota);
-        const tolerancia = 0.01; // Tolerância de 1 centavo
-
-        if (diferenca > tolerancia) {
-            validationError.classList.add('show');
-            document.getElementById('btnSalvarLancamento').disabled = true;
-            return false;
-        } else {
-            validationError.classList.remove('show');
-            document.getElementById('btnSalvarLancamento').disabled = false;
-            return true;
-        }
+    if (notasFiltradas.length === 0) {
+      if (tableContainer) tableContainer.style.display = 'none';
+      if (emptyState) {
+        emptyState.style.display = 'block';
+        emptyState.querySelector('h3').textContent = 'Nenhuma nota encontrada para os filtros aplicados';
+        emptyState.querySelector('p').textContent = 'Tente ajustar sua busca ou limpar os filtros.';
+      }
+      return;
     }
 
-    // Função para atualizar totalização
-    function atualizarTotalizacao() {
-        const parcelasValor = document.querySelectorAll('.parcela-valor');
-        let totalParcelas = 0;
+    if (tableContainer) tableContainer.style.display = 'block';
+    if (emptyState) emptyState.style.display = 'none';
 
-        parcelasValor.forEach(input => {
-            const valor = parseFloat(input.value) || 0;
-            totalParcelas += valor;
-        });
+    notasPagina.forEach((nota, index) => {
+      const row = document.createElement('tr');
+      row.className = nota.status === 'PROCESSADA' ? 'processed' : '';
 
-        const diferenca = totalParcelas - valorTotalNota;
+      const empresaConsultada = nota.cnpj_consultado || 'N/A';
 
-        document.getElementById('valorNota').textContent = formatarMoeda(valorTotalNota);
-        document.getElementById('totalParcelas').textContent = formatarMoeda(totalParcelas);
-
-        const diferencaElement = document.getElementById('diferencaValor');
-        diferencaElement.textContent = formatarMoeda(Math.abs(diferenca));
-
-        if (Math.abs(diferenca) <= 0.01) {
-            diferencaElement.className = 'totalizacao-valor totalizacao-ok';
-        } else {
-            diferencaElement.className = 'totalizacao-valor totalizacao-diferenca';
-        }
-    }
-
-    function aplicarFiltros() {
-        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-        const statusFilter = document.getElementById('statusFilter').value;
-        const empresaFilter = document.getElementById('empresaFilter').value;
-        const startDate = document.getElementById('startDateFilter').value;
-        const endDate = document.getElementById('endDateFilter').value;
-
-        notasFiltradas = notasData.filter(nota => {
-            const matchSearch = !searchTerm ||
-                nota.emitente_nome.toLowerCase().includes(searchTerm) ||
-                nota.emitente_cnpj.includes(searchTerm) ||
-                nota.chave_acesso.includes(searchTerm);
-
-            const matchStatus = !statusFilter || nota.status === statusFilter;
-            const matchEmpresa = !empresaFilter || nota.cnpj_consultado === empresaFilter;
-
-            const notaDate = nota.data_emissao.split('T')[0];
-            const matchStartDate = !startDate || notaDate >= startDate;
-            const matchEndDate = !endDate || notaDate <= endDate;
-
-            return matchSearch && matchStatus && matchEmpresa && matchStartDate && matchEndDate;
-        });
-
-        currentPage = 1;
-        renderizarTabela();
-        renderizarContador();
-    }
-
-    function limparFiltros() {
-        document.getElementById('searchInput').value = '';
-        document.getElementById('statusFilter').value = '';
-        document.getElementById('empresaFilter').value = '';
-        document.getElementById('startDateFilter').value = '';
-        document.getElementById('endDateFilter').value = '';
-        aplicarFiltros();
-    }
-
-    function renderizarContador() {
-        const contador = document.getElementById('contadorNotas');
-        const total = notasFiltradas.length;
-        if (total > 0) {
-            contador.textContent = `(${total} ${total === 1 ? 'nota' : 'notas'})`;
-        } else {
-            contador.textContent = '(0 notas)';
-        }
-    }
-
-    function renderizarTabela() {
-        console.log('Renderizando tabela...');
-        const tbody = document.getElementById('nfeTableBody');
-        if (!tbody) {
-            console.log('tbody não encontrado');
-            return;
-        }
-
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        const notasPagina = notasFiltradas.slice(startIndex, endIndex);
-
-        tbody.innerHTML = '';
-
-        const emptyState = document.getElementById('emptyState');
-        const tableContainer = document.getElementById('nfeTableContainer');
-
-        if (notasFiltradas.length === 0) {
-            if(tableContainer) tableContainer.style.display = 'none';
-            if(emptyState) {
-                emptyState.style.display = 'block';
-                emptyState.querySelector('h3').textContent = 'Nenhuma nota encontrada para os filtros aplicados';
-                emptyState.querySelector('p').textContent = 'Tente ajustar sua busca ou limpar os filtros.';
-            }
-            return;
-        }
-
-        if(tableContainer) tableContainer.style.display = 'block';
-        if(emptyState) emptyState.style.display = 'none';
-
-        notasPagina.forEach((nota, index) => {
-            const row = document.createElement('tr');
-            row.className = nota.status === 'PROCESSADA' ? 'processed' : '';
-
-            const empresaConsultada = nota.cnpj_consultado || 'N/A';
-
-            row.innerHTML = `
+      row.innerHTML = `
                 <td>
                     <div class="empresa-badge">
                         <i class="fas fa-building"></i>
@@ -2464,301 +2432,301 @@ endblock %} {% block styles %}
                 </td>
             `;
 
-            tbody.appendChild(row);
-        });
+      tbody.appendChild(row);
+    });
 
-        // IMPORTANTE: Adicionar event listeners após criar os elementos
-        adicionarEventListenersTabela();
-        atualizarPaginacao();
-        console.log('Tabela renderizada com', notasPagina.length, 'linhas');
+    // IMPORTANTE: Adicionar event listeners após criar os elementos
+    adicionarEventListenersTabela();
+    atualizarPaginacao();
+    console.log('Tabela renderizada com', notasPagina.length, 'linhas');
+  }
+
+  // Nova função para adicionar event listeners aos botões da tabela
+  function adicionarEventListenersTabela() {
+    console.log('Adicionando event listeners aos botões...');
+
+    // Event listeners para botões de lançar
+    document.querySelectorAll('.btn-launch').forEach(button => {
+      button.addEventListener('click', function () {
+        const chaveAcesso = this.dataset.chave;
+        console.log('Clicou em lançar, chave:', chaveAcesso);
+        lancarNota(chaveAcesso);
+      });
+    });
+
+    // Event listeners para botões de visualizar XML
+    document.querySelectorAll('.btn-view').forEach(button => {
+      button.addEventListener('click', function () {
+        const chaveAcesso = this.dataset.chave;
+        console.log('Clicou em ver XML, chave:', chaveAcesso);
+        visualizarXML(chaveAcesso);
+      });
+    });
+
+    console.log('Event listeners adicionados:',
+      document.querySelectorAll('.btn-launch').length, 'botões de lançar,',
+      document.querySelectorAll('.btn-view').length, 'botões de visualizar');
+  }
+
+  function atualizarPaginacao() {
+    const totalItens = notasFiltradas.length;
+    const totalPaginas = Math.ceil(totalItens / itemsPerPage);
+
+    const startIndex = (currentPage - 1) * itemsPerPage + 1;
+    const endIndex = Math.min(currentPage * itemsPerPage, totalItens);
+
+    document.getElementById('paginationInfo').textContent =
+      `Mostrando ${startIndex} a ${endIndex} de ${totalItens} ${totalItens === 1 ? 'nota' : 'notas'}`;
+
+    const btnPrev = document.getElementById('btnPrevPage');
+    const btnNext = document.getElementById('btnNextPage');
+
+    btnPrev.classList.toggle('disabled', currentPage === 1);
+    btnNext.classList.toggle('disabled', currentPage >= totalPaginas);
+
+    const pageNumbers = document.getElementById('pageNumbers');
+    pageNumbers.innerHTML = '';
+
+    if (totalPaginas <= 7) {
+      for (let i = 1; i <= totalPaginas; i++) {
+        criarBotaoPagina(i, pageNumbers);
+      }
+    } else {
+      criarBotaoPagina(1, pageNumbers);
+
+      if (currentPage > 4) {
+        pageNumbers.appendChild(criarReticencias());
+      }
+
+      let startPage = Math.max(2, currentPage - 1);
+      let endPage = Math.min(totalPaginas - 1, currentPage + 1);
+
+      if (currentPage <= 3) {
+        startPage = 2;
+        endPage = 4;
+      }
+
+      if (currentPage >= totalPaginas - 2) {
+        startPage = totalPaginas - 3;
+        endPage = totalPaginas - 1;
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        criarBotaoPagina(i, pageNumbers);
+      }
+
+      if (currentPage < totalPaginas - 3) {
+        pageNumbers.appendChild(criarReticencias());
+      }
+
+      if (totalPaginas > 1) {
+        criarBotaoPagina(totalPaginas, pageNumbers);
+      }
     }
+  }
 
-    // Nova função para adicionar event listeners aos botões da tabela
-    function adicionarEventListenersTabela() {
-        console.log('Adicionando event listeners aos botões...');
+  function criarBotaoPagina(pageNum, container) {
+    const btn = document.createElement('button');
+    btn.className = `pagination-btn ${pageNum === currentPage ? 'active' : ''}`;
+    btn.textContent = pageNum;
+    btn.onclick = () => irParaPagina(pageNum);
+    container.appendChild(btn);
+  }
 
-        // Event listeners para botões de lançar
-        document.querySelectorAll('.btn-launch').forEach(button => {
-            button.addEventListener('click', function() {
-                const chaveAcesso = this.dataset.chave;
-                console.log('Clicou em lançar, chave:', chaveAcesso);
-                lancarNota(chaveAcesso);
-            });
-        });
+  function criarReticencias() {
+    const span = document.createElement('span');
+    span.textContent = '...';
+    span.style.padding = '8px';
+    span.style.color = 'var(--gray-600)';
+    return span;
+  }
 
-        // Event listeners para botões de visualizar XML
-        document.querySelectorAll('.btn-view').forEach(button => {
-            button.addEventListener('click', function() {
-                const chaveAcesso = this.dataset.chave;
-                console.log('Clicou em ver XML, chave:', chaveAcesso);
-                visualizarXML(chaveAcesso);
-            });
-        });
+  function irParaPagina(pageNum) {
+    currentPage = pageNum;
+    renderizarTabela();
+  }
 
-        console.log('Event listeners adicionados:',
-            document.querySelectorAll('.btn-launch').length, 'botões de lançar,',
-            document.querySelectorAll('.btn-view').length, 'botões de visualizar');
+  function paginaAnterior() {
+    if (currentPage > 1) {
+      currentPage--;
+      renderizarTabela();
     }
+  }
 
-    function atualizarPaginacao() {
-        const totalItens = notasFiltradas.length;
-        const totalPaginas = Math.ceil(totalItens / itemsPerPage);
+  function proximaPagina() {
+    const totalPaginas = Math.ceil(notasFiltradas.length / itemsPerPage);
+    if (currentPage < totalPaginas) {
+      currentPage++;
+      renderizarTabela();
+    }
+  }
 
-        const startIndex = (currentPage - 1) * itemsPerPage + 1;
-        const endIndex = Math.min(currentPage * itemsPerPage, totalItens);
+  function alterarItensPorPagina() {
+    itemsPerPage = parseInt(document.getElementById('itemsPerPage').value);
+    currentPage = 1;
+    renderizarTabela();
+  }
 
-        document.getElementById('paginationInfo').textContent =
-            `Mostrando ${startIndex} a ${endIndex} de ${totalItens} ${totalItens === 1 ? 'nota' : 'notas'}`;
+  function formatarChaveAcesso(event) {
+    let value = event.target.value.replace(/\D/g, '');
+    event.target.value = value;
 
-        const btnPrev = document.getElementById('btnPrevPage');
-        const btnNext = document.getElementById('btnNextPage');
+    const btnLancar = document.getElementById('btnLancarRapido');
+    if (value.length === 44) {
+      btnLancar.classList.add('pulse');
+    } else {
+      btnLancar.classList.remove('pulse');
+    }
+  }
 
-        btnPrev.classList.toggle('disabled', currentPage === 1);
-        btnNext.classList.toggle('disabled', currentPage >= totalPaginas);
+  async function consultarSefaz() {
+    const btn = document.getElementById('btnConsultarSefaz');
+    const loading = document.getElementById('loadingConsulta');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
 
-        const pageNumbers = document.getElementById('pageNumbers');
-        pageNumbers.innerHTML = '';
+    btn.disabled = true;
+    loading.style.display = 'inline-block';
+    progressBar.style.display = 'block';
 
-        if (totalPaginas <= 7) {
-            for (let i = 1; i <= totalPaginas; i++) {
-                criarBotaoPagina(i, pageNumbers);
-            }
-        } else {
-            criarBotaoPagina(1, pageNumbers);
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+      progress += Math.random() * 30;
+      if (progress > 90) progress = 90;
+      progressFill.style.width = progress + '%';
+    }, 500);
 
-            if (currentPage > 4) {
-                pageNumbers.appendChild(criarReticencias());
-            }
-
-            let startPage = Math.max(2, currentPage - 1);
-            let endPage = Math.min(totalPaginas - 1, currentPage + 1);
-
-            if (currentPage <= 3) {
-                startPage = 2;
-                endPage = 4;
-            }
-
-            if (currentPage >= totalPaginas - 2) {
-                startPage = totalPaginas - 3;
-                endPage = totalPaginas - 1;
-            }
-
-            for (let i = startPage; i <= endPage; i++) {
-                criarBotaoPagina(i, pageNumbers);
-            }
-
-            if (currentPage < totalPaginas - 3) {
-                pageNumbers.appendChild(criarReticencias());
-            }
-
-            if (totalPaginas > 1) {
-                criarBotaoPagina(totalPaginas, pageNumbers);
-            }
+    try {
+      const response = await fetch('/api/fiscal/consultar_sefaz', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         }
+      });
+
+      const result = await response.json();
+
+      clearInterval(progressInterval);
+      progressFill.style.width = '100%';
+
+      setTimeout(() => {
+        progressBar.style.display = 'none';
+        progressFill.style.width = '0%';
+      }, 1000);
+
+      if (result.success) {
+        mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> ${result.message}`);
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> ${result.message}`);
+      }
+    } catch (error) {
+      clearInterval(progressInterval);
+      progressBar.style.display = 'none';
+      mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro de conexão: ${error.message}`);
+    } finally {
+      btn.disabled = false;
+      loading.style.display = 'none';
+    }
+  }
+
+  async function lancarRapido() {
+    const chaveAcesso = document.getElementById('chaveAcessoInput').value.trim();
+
+    if (!chaveAcesso) {
+      mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Digite a chave de acesso da NFe');
+      return;
     }
 
-    function criarBotaoPagina(pageNum, container) {
-        const btn = document.createElement('button');
-        btn.className = `pagination-btn ${pageNum === currentPage ? 'active' : ''}`;
-        btn.textContent = pageNum;
-        btn.onclick = () => irParaPagina(pageNum);
-        container.appendChild(btn);
+    if (chaveAcesso.length !== 44) {
+      mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> A chave de acesso deve ter exatamente 44 dígitos');
+      return;
     }
 
-    function criarReticencias() {
-        const span = document.createElement('span');
-        span.textContent = '...';
-        span.style.padding = '8px';
-        span.style.color = 'var(--gray-600)';
-        return span;
+    // Mostrar que está processando
+    const btn = document.getElementById('btnLancarRapido');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando...';
+    btn.disabled = true;
+
+    try {
+      await buscarDadosNota(chaveAcesso);
+    } catch (error) {
+      console.error('Erro no lançamento rápido:', error);
+      mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro inesperado: ${error.message}`);
+    } finally {
+      // Restaurar botão
+      btn.innerHTML = originalText;
+      btn.disabled = false;
     }
+  }
 
-    function irParaPagina(pageNum) {
-        currentPage = pageNum;
-        renderizarTabela();
+  // CORRIGIDO: Função agora é async
+  async function buscarDadosNota(chaveAcesso) {
+    console.log('Buscando dados da nota:', chaveAcesso);
+
+    try {
+      const response = await fetch(`/api/fiscal/buscar_dados_nota/${chaveAcesso}`);
+      console.log('Response status:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('Result:', result);
+
+      if (result.success) {
+        abrirModalLancamento(result.nota, chaveAcesso);
+      } else {
+        mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Erro na requisição:', error);
+
+      // MELHORADO: Tratar qualquer tipo de erro de conexão, não só 404
+      console.log('API não disponível, usando dados mock para demonstração');
+
+      // Buscar dados da nota na lista local primeiro
+      const notaLocal = notasData.find(n => n.chave_acesso === chaveAcesso);
+
+      let dadosMock;
+      if (notaLocal) {
+        // Usar dados da nota local se disponível
+        dadosMock = {
+          chave_acesso: chaveAcesso,
+          emitente_nome: notaLocal.emitente_nome,
+          emitente_cnpj: notaLocal.emitente_cnpj,
+          valor_total: notaLocal.valor_total,
+          data_emissao: notaLocal.data_emissao
+        };
+      } else {
+        // Dados mock genéricos se não encontrar
+        dadosMock = {
+          chave_acesso: chaveAcesso,
+          emitente_nome: 'Empresa Exemplo LTDA',
+          emitente_cnpj: '12.345.678/0001-99',
+          valor_total: 1500.00,
+          data_emissao: new Date().toISOString()
+        };
+      }
+
+      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Usando modo demonstração (API não disponível)');
+      abrirModalLancamento(dadosMock, chaveAcesso);
     }
+  }
 
-    function paginaAnterior() {
-        if (currentPage > 1) {
-            currentPage--;
-            renderizarTabela();
-        }
-    }
+  function abrirModalLancamento(dadosNota, chaveAcesso) {
+    console.log('Abrindo modal para a nota:', dadosNota);
+    const modal = document.getElementById('modalLancamento');
+    const dadosContainer = document.getElementById('dadosNota');
 
-    function proximaPagina() {
-        const totalPaginas = Math.ceil(notasFiltradas.length / itemsPerPage);
-        if (currentPage < totalPaginas) {
-            currentPage++;
-            renderizarTabela();
-        }
-    }
+    // Armazenar valor total da nota globalmente
+    valorTotalNota = parseFloat(dadosNota.valor_total);
 
-    function alterarItensPorPagina() {
-        itemsPerPage = parseInt(document.getElementById('itemsPerPage').value);
-        currentPage = 1;
-        renderizarTabela();
-    }
-
-    function formatarChaveAcesso(event) {
-        let value = event.target.value.replace(/\D/g, '');
-        event.target.value = value;
-
-        const btnLancar = document.getElementById('btnLancarRapido');
-        if (value.length === 44) {
-            btnLancar.classList.add('pulse');
-        } else {
-            btnLancar.classList.remove('pulse');
-        }
-    }
-
-    async function consultarSefaz() {
-        const btn = document.getElementById('btnConsultarSefaz');
-        const loading = document.getElementById('loadingConsulta');
-        const progressBar = document.getElementById('progressBar');
-        const progressFill = document.getElementById('progressFill');
-
-        btn.disabled = true;
-        loading.style.display = 'inline-block';
-        progressBar.style.display = 'block';
-
-        let progress = 0;
-        const progressInterval = setInterval(() => {
-            progress += Math.random() * 30;
-            if (progress > 90) progress = 90;
-            progressFill.style.width = progress + '%';
-        }, 500);
-
-        try {
-            const response = await fetch('/api/fiscal/consultar_sefaz', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-
-            const result = await response.json();
-
-            clearInterval(progressInterval);
-            progressFill.style.width = '100%';
-
-            setTimeout(() => {
-                progressBar.style.display = 'none';
-                progressFill.style.width = '0%';
-            }, 1000);
-
-            if (result.success) {
-                mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> ${result.message}`);
-                setTimeout(() => {
-                    window.location.reload();
-                }, 2000);
-            } else {
-                mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> ${result.message}`);
-            }
-        } catch (error) {
-            clearInterval(progressInterval);
-            progressBar.style.display = 'none';
-            mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro de conexão: ${error.message}`);
-        } finally {
-            btn.disabled = false;
-            loading.style.display = 'none';
-        }
-    }
-
-    async function lancarRapido() {
-        const chaveAcesso = document.getElementById('chaveAcessoInput').value.trim();
-
-        if (!chaveAcesso) {
-            mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Digite a chave de acesso da NFe');
-            return;
-        }
-
-        if (chaveAcesso.length !== 44) {
-            mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> A chave de acesso deve ter exatamente 44 dígitos');
-            return;
-        }
-
-        // Mostrar que está processando
-        const btn = document.getElementById('btnLancarRapido');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando...';
-        btn.disabled = true;
-
-        try {
-            await buscarDadosNota(chaveAcesso);
-        } catch (error) {
-            console.error('Erro no lançamento rápido:', error);
-            mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro inesperado: ${error.message}`);
-        } finally {
-            // Restaurar botão
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
-    }
-
-    // CORRIGIDO: Função agora é async
-    async function buscarDadosNota(chaveAcesso) {
-        console.log('Buscando dados da nota:', chaveAcesso);
-
-        try {
-            const response = await fetch(`/api/fiscal/buscar_dados_nota/${chaveAcesso}`);
-            console.log('Response status:', response.status);
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const result = await response.json();
-            console.log('Result:', result);
-
-            if (result.success) {
-                abrirModalLancamento(result.nota, chaveAcesso);
-            } else {
-                mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> ${result.message}`);
-            }
-        } catch (error) {
-            console.error('Erro na requisição:', error);
-
-            // MELHORADO: Tratar qualquer tipo de erro de conexão, não só 404
-            console.log('API não disponível, usando dados mock para demonstração');
-
-            // Buscar dados da nota na lista local primeiro
-            const notaLocal = notasData.find(n => n.chave_acesso === chaveAcesso);
-
-            let dadosMock;
-            if (notaLocal) {
-                // Usar dados da nota local se disponível
-                dadosMock = {
-                    chave_acesso: chaveAcesso,
-                    emitente_nome: notaLocal.emitente_nome,
-                    emitente_cnpj: notaLocal.emitente_cnpj,
-                    valor_total: notaLocal.valor_total,
-                    data_emissao: notaLocal.data_emissao
-                };
-            } else {
-                // Dados mock genéricos se não encontrar
-                dadosMock = {
-                    chave_acesso: chaveAcesso,
-                    emitente_nome: 'Empresa Exemplo LTDA',
-                    emitente_cnpj: '12.345.678/0001-99',
-                    valor_total: 1500.00,
-                    data_emissao: new Date().toISOString()
-                };
-            }
-
-            mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Usando modo demonstração (API não disponível)');
-            abrirModalLancamento(dadosMock, chaveAcesso);
-        }
-    }
-
-    function abrirModalLancamento(dadosNota, chaveAcesso) {
-        console.log('Abrindo modal para a nota:', dadosNota);
-        const modal = document.getElementById('modalLancamento');
-        const dadosContainer = document.getElementById('dadosNota');
-
-        // Armazenar valor total da nota globalmente
-        valorTotalNota = parseFloat(dadosNota.valor_total);
-
-        dadosContainer.innerHTML = `
+    dadosContainer.innerHTML = `
             <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
                 <h4 style="color: #1b5e20; margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
                     <i class="fas fa-file-invoice"></i>
@@ -2789,376 +2757,382 @@ endblock %} {% block styles %}
             </div>
         `;
 
-        // Resetar formulário
-        document.getElementById('categoriaLancamento').value = 'Fornecedores (NFe)';
-        document.getElementById('quantidadeParcelas').value = '1';
-        document.getElementById('semRateio').checked = true;
+    // Resetar formulário
+    document.getElementById('categoriaLancamento').value = 'Fornecedores (NFe)';
+    document.getElementById('quantidadeParcelas').value = '1';
+    document.getElementById('semRateio').checked = true;
 
-        // Limpar containers
-        document.getElementById('parcelamentoContainer').style.display = 'none';
-        document.getElementById('parcelasContainer').innerHTML = '';
-        document.getElementById('containerRateio').style.display = 'none';
-        document.getElementById('validationError').classList.remove('show');
+    // Limpar containers
+    document.getElementById('parcelamentoContainer').style.display = 'none';
+    document.getElementById('parcelasContainer').innerHTML = '';
+    document.getElementById('containerRateio').style.display = 'none';
+    document.getElementById('validationError').classList.remove('show');
 
-        // Resetar rateio
-        veiculosSelecionados.clear();
-        document.getElementById('veiculoSearchInput').value = '';
-        document.getElementById('veiculoSearchResults').innerHTML = '';
+    // Resetar rateio
+    veiculosSelecionados.clear();
+    document.getElementById('veiculoSearchInput').value = '';
+    document.getElementById('veiculoSearchResults').innerHTML = '';
 
-        // Armazenar dados no modal
-        modal.dataset.chaveAcesso = chaveAcesso;
-        modal.dataset.dadosNota = JSON.stringify(dadosNota);
+    // Armazenar dados no modal
+    modal.dataset.chaveAcesso = chaveAcesso;
+    modal.dataset.dadosNota = JSON.stringify(dadosNota);
 
-        // Configurar rateio como desabilitado inicialmente
-        toggleRateio();
+    // Configurar rateio como desabilitado inicialmente
+    toggleRateio();
 
-        modal.style.display = 'block';
-        document.getElementById('chaveAcessoInput').value = '';
-    }
+    modal.style.display = 'block';
+    document.getElementById('chaveAcessoInput').value = '';
+  }
 
   async function salvarLancamento() {
-        const modal = document.getElementById('modalLancamento');
-        const chaveAcesso = modal.dataset.chaveAcesso;
-        const categoria = document.getElementById('categoriaLancamento').value;
-        const tipoRateio = document.querySelector('input[name="tipo_rateio"]:checked')?.value;
-        const btn = document.getElementById('btnSalvarLancamento');
-        const loading = document.getElementById('loadingSalvar');
+    const modal = document.getElementById('modalLancamento');
+    const chaveAcesso = modal.dataset.chaveAcesso;
+    const categoria = document.getElementById('categoriaLancamento').value;
+    const tipoRateio = document.querySelector('input[name="tipo_rateio"]:checked')?.value;
+    const btn = document.getElementById('btnSalvarLancamento');
+    const loading = document.getElementById('loadingSalvar');
 
-        // ▼▼▼ CORREÇÃO 2: Variável 'parcelas' movida para fora do try/catch ▼▼▼
-        let parcelas = [];
+    // ▼▼▼ CORREÇÃO 2: Variável 'parcelas' movida para fora do try/catch ▼▼▼
+    let parcelas = [];
 
-        if (!categoria) {
-            mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Selecione a categoria da despesa');
-            return;
-        }
-
-        const parcelasData = document.querySelectorAll('.parcela-data');
-        const parcelasValor = document.querySelectorAll('.parcela-valor');
-
-        if (parcelasData.length === 0) {
-            mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Configure as parcelas do pagamento');
-            return;
-        }
-
-        if (!validarParcelas()) {
-            mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> O valor total das parcelas não confere com o valor da nota');
-            return;
-        }
-
-        let datasValidas = true;
-        parcelasData.forEach(input => {
-            if (!input.value) datasValidas = false;
-        });
-
-        if (!datasValidas) {
-            mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Todas as parcelas devem ter data de vencimento');
-            return;
-        }
-
-        if (tipoRateio === 'com_rateio') {
-            if (veiculosSelecionados.size === 0) {
-                mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Selecione pelo menos um veículo para o rateio');
-                return;
-            }
-            let totalRateio = 0;
-            veiculosSelecionados.forEach(v => totalRateio += v.valor);
-            if (Math.abs(totalRateio - valorTotalNota) > 0.01) {
-                mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> O valor total do rateio não confere com o valor da nota');
-                return;
-            }
-        }
-
-        btn.disabled = true;
-        loading.style.display = 'inline-block';
-
-        try {
-            // Preencher o array de parcelas (agora declarado fora do try)
-            for (let i = 0; i < parcelasData.length; i++) {
-                parcelas.push({
-                    data_vencimento: parcelasData[i].value,
-                    valor: parseFloat(parcelasValor[i].value) || 0
-                });
-            }
-
-            // ▼▼▼ CORREÇÃO 1: Linha que define a variável 'unidadeNegocioId' ▼▼▼
-            const unidadeNegocioId = document.getElementById('unidadeNegocioLancamento').value;
-
-            let payload = {
-                chave_acesso: chaveAcesso,
-                categoria: categoria,
-                parcelas: parcelas,
-                tem_rateio: tipoRateio === 'com_rateio',
-                unidade_negocio_id: unidadeNegocioId
-            };
-
-            if (tipoRateio === 'com_rateio') {
-                payload.veiculos = Array.from(veiculosSelecionados.values()).map(v => ({
-                    veiculo_id: v.id,
-                    percentual: (v.valor / valorTotalNota) * 100
-                }));
-            }
-
-            const response = await fetch('/api/fiscal/salvar_lancamento', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            // Adicionamos esta verificação para tratar melhor os erros da API
-            if (!response.ok) {
-                const errorResult = await response.json();
-                throw new Error(errorResult.message || `Erro ${response.status}`);
-            }
-
-            const result = await response.json();
-
-            if (result.success) {
-                let mensagem = `<i class="fas fa-check-circle"></i> Lançamento criado com sucesso! `;
-                if (tipoRateio === 'com_rateio') {
-                    mensagem += `${parcelas.length} parcela(s) rateada(s) entre ${veiculosSelecionados.size} veículo(s).`;
-                } else {
-                    mensagem += `${parcelas.length} parcela(s) de pagamento gerada(s).`;
-                }
-                mostrarNotificacao('success', mensagem);
-                fecharModal();
-                setTimeout(() => { window.location.reload(); }, 2000);
-            } else {
-                // Esta parte agora será acionada pelo 'throw new Error' acima
-                mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> ${result.message}`);
-            }
-        } catch (error) {
-            // O bloco de simulação foi removido para mostrar o erro real da API
-            console.error('Erro ao salvar lançamento:', error);
-            mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro ao salvar: ${error.message}`);
-        } finally {
-            btn.disabled = false;
-            loading.style.display = 'none';
-        }
+    if (!categoria) {
+      mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Selecione a categoria da despesa');
+      return;
     }
 
+    const parcelasData = document.querySelectorAll('.parcela-data');
+    const parcelasValor = document.querySelectorAll('.parcela-valor');
 
-
-    function fecharModal() {
-        const modal = document.getElementById('modalLancamento');
-        modal.style.display = 'none';
-
-        // Limpar dados da nota
-        document.getElementById('dadosNota').innerHTML = '';
-
-        // Resetar formulário
-        document.getElementById('categoriaLancamento').value = 'Fornecedores (NFe)';
-        document.getElementById('quantidadeParcelas').value = '1';
-        document.getElementById('semRateio').checked = true;
-
-        // Limpar parcelamento
-        document.getElementById('parcelamentoContainer').style.display = 'none';
-        document.getElementById('parcelasContainer').innerHTML = '';
-        document.getElementById('validationError').classList.remove('show');
-
-        // Limpar rateio
-        document.getElementById('containerRateio').style.display = 'none';
-        veiculosSelecionados.clear();
-        document.getElementById('veiculoSearchInput').value = '';
-        document.getElementById('veiculoSearchResults').innerHTML = '';
-
-        // Resetar variáveis
-        valorTotalNota = 0;
-        delete modal.dataset.chaveAcesso;
-        delete modal.dataset.dadosNota;
-
-        // Reativar botão salvar
-        document.getElementById('btnSalvarLancamento').disabled = false;
+    if (parcelasData.length === 0) {
+      mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Configure as parcelas do pagamento');
+      return;
     }
 
-    // CORRIGIDO: Função agora é async
-    async function lancarNota(chaveAcesso) {
-        console.log('Clicou em lançar nota:', chaveAcesso);
-
-        // Validar chave de acesso
-        if (!chaveAcesso || chaveAcesso.length !== 44) {
-            mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Chave de acesso inválida');
-            return;
-        }
-
-        // Mostrar feedback visual
-        const btn = document.querySelector(`button[data-chave="${chaveAcesso}"]`);
-        if (btn) {
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
-            btn.disabled = true;
-
-            try {
-                await buscarDadosNota(chaveAcesso);
-            } catch (error) {
-                console.error('Erro ao lançar nota:', error);
-                mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro ao carregar dados da nota`);
-
-                // Fallback final - forçar abertura do modal com dados básicos
-                setTimeout(() => {
-                    mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Tentando com dados básicos...');
-                    const dadosBasicos = {
-                        chave_acesso: chaveAcesso,
-                        emitente_nome: 'Fornecedor da Nota',
-                        emitente_cnpj: '00.000.000/0000-00',
-                        valor_total: 1000.00,
-                        data_emissao: new Date().toISOString()
-                    };
-                    abrirModalLancamento(dadosBasicos, chaveAcesso);
-                }, 1000);
-            } finally {
-                // Restaurar botão
-                setTimeout(() => {
-                    if (btn) {
-                        btn.innerHTML = originalText;
-                        btn.disabled = false;
-                    }
-                }, 1000);
-            }
-        } else {
-            // Se não encontrou o botão, chamar diretamente
-            await buscarDadosNota(chaveAcesso);
-        }
+    if (!validarParcelas()) {
+      mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> O valor total das parcelas não confere com o valor da nota');
+      return;
     }
 
-    function visualizarXML(chaveAcesso) {
-        console.log('Visualizando XML:', chaveAcesso);
-        window.open(`/fiscal/xml/${chaveAcesso}`, '_blank');
-    }
-
-    function atualizarEstatisticas() {
-        // Estatísticas já renderizadas pelo Flask
-    }
-
-    async function exportarDocumentos() {
-        const btn = document.getElementById('btnExportarDocumentos');
-        const loading = document.getElementById('loadingExportar');
-        const tipoExportacao = document.getElementById('tipoExportacao').value;
-
-        let notasParaExportar = [];
-        if (tipoExportacao === 'processadas') {
-            notasParaExportar = notasFiltradas.filter(nota => nota.status === 'PROCESSADA');
-        } else {
-            notasParaExportar = [...notasFiltradas];
-        }
-
-        if (notasParaExportar.length === 0) {
-            mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Nenhuma nota para exportar com os critérios selecionados.');
-            return;
-        }
-
-        const chavesAcesso = notasParaExportar.map(nota => nota.chave_acesso);
-
-        btn.disabled = true;
-        loading.style.display = 'inline-block';
-
-        try {
-            const response = await fetch('/api/fiscal/exportar_documentos', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ chaves_acesso: chavesAcesso })
-            });
-
-            if (response.ok) {
-                const blob = await response.blob();
-                const downloadUrl = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = downloadUrl;
-
-                const disposition = response.headers.get('Content-Disposition');
-                let filename = 'Exportacao_Contabil.zip';
-                if (disposition && disposition.indexOf('attachment') !== -1) {
-                    const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-                    const matches = filenameRegex.exec(disposition);
-                    if (matches != null && matches[1]) {
-                        filename = matches[1].replace(/['"]/g, '');
-                    }
-                }
-                a.download = filename;
-
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(downloadUrl);
-                a.remove();
-
-                mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> Exportação de ${chavesAcesso.length} documento(s) concluída!`);
-            } else {
-                const result = await response.json();
-                mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> Erro na exportação: ${result.message}`);
-            }
-
-        } catch (error) {
-            mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro de conexão ao exportar: ${error.message}`);
-        } finally {
-            btn.disabled = false;
-            loading.style.display = 'none';
-        }
-    }
-
-    function mostrarNotificacao(tipo, mensagem) {
-        const container = document.getElementById('notifications');
-        const notification = document.createElement('div');
-
-        const tipoClasses = {
-            'success': 'bg-green-100 text-green-800 border border-green-200',
-            'error': 'bg-red-100 text-red-800 border border-red-200',
-            'info': 'bg-blue-100 text-blue-800 border border-blue-200'
-        };
-
-        notification.className = `${tipoClasses[tipo]} p-4 rounded-lg shadow-md mb-4 flex items-center gap-3 font-medium`;
-        notification.innerHTML = mensagem;
-        notification.style.animation = 'slideIn 0.3s ease-out';
-
-        container.appendChild(notification);
-
-        setTimeout(() => {
-            notification.style.animation = 'slideOut 0.3s ease-in forwards';
-            setTimeout(() => {
-                if (container.contains(notification)) {
-                    container.removeChild(notification);
-                }
-            }, 300);
-        }, 5000);
-    }
-
-    // Funções de formatação
-    function formatarCNPJ(cnpj) {
-        if (!cnpj) return '';
-        return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-    }
-
-    function formatarData(dataString) {
-        const data = new Date(dataString);
-        const dataCorrigida = new Date(data.valueOf() + data.getTimezoneOffset() * 60000);
-        return dataCorrigida.toLocaleDateString('pt-BR');
-    }
-
-    function formatarMoeda(valor) {
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        }).format(valor);
-    }
-
-    // Event listeners para modal
-    window.onclick = function(event) {
-        const modal = document.getElementById('modalLancamento');
-        if (event.target === modal) {
-            fecharModal();
-        }
-    }
-
-    document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape') {
-            fecharModal();
-        }
+    let datasValidas = true;
+    parcelasData.forEach(input => {
+      if (!input.value) datasValidas = false;
     });
 
-    // Adicionar estilos de animação
-    const style = document.createElement('style');
-    style.textContent = `
+    if (!datasValidas) {
+      mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Todas as parcelas devem ter data de vencimento');
+      return;
+    }
+
+    if (tipoRateio === 'com_rateio') {
+      if (veiculosSelecionados.size === 0) {
+        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Selecione pelo menos um veículo para o rateio');
+        return;
+      }
+      let totalRateio = 0;
+      veiculosSelecionados.forEach(v => totalRateio += v.valor);
+      if (Math.abs(totalRateio - valorTotalNota) > 0.01) {
+        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> O valor total do rateio não confere com o valor da nota');
+        return;
+      }
+    }
+
+    btn.disabled = true;
+    loading.style.display = 'inline-block';
+
+    try {
+      // Preencher o array de parcelas (agora declarado fora do try)
+      for (let i = 0; i < parcelasData.length; i++) {
+        parcelas.push({
+          data_vencimento: parcelasData[i].value,
+          valor: parseFloat(parcelasValor[i].value) || 0
+        });
+      }
+
+      // ▼▼▼ CORREÇÃO 1: Linha que define a variável 'unidadeNegocioId' ▼▼▼
+      const unidadeNegocioId = document.getElementById('unidadeNegocioLancamento').value;
+
+      let payload = {
+        chave_acesso: chaveAcesso,
+        categoria: categoria,
+        parcelas: parcelas,
+        tem_rateio: tipoRateio === 'com_rateio',
+        unidade_negocio_id: unidadeNegocioId
+      };
+
+      if (tipoRateio === 'com_rateio') {
+        payload.veiculos = Array.from(veiculosSelecionados.values()).map(v => ({
+          veiculo_id: v.id,
+          percentual: (v.valor / valorTotalNota) * 100
+        }));
+      }
+
+      const response = await fetch('/api/fiscal/salvar_lancamento', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      // Adicionamos esta verificação para tratar melhor os erros da API
+      if (!response.ok) {
+        const errorResult = await response.json();
+        throw new Error(errorResult.message || `Erro ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        let mensagem = `<i class="fas fa-check-circle"></i> Lançamento criado com sucesso! `;
+        if (tipoRateio === 'com_rateio') {
+          mensagem += `${parcelas.length} parcela(s) rateada(s) entre ${veiculosSelecionados.size} veículo(s).`;
+        } else {
+          mensagem += `${parcelas.length} parcela(s) de pagamento gerada(s).`;
+        }
+        mostrarNotificacao('success', mensagem);
+        fecharModal();
+        setTimeout(() => { window.location.reload(); }, 2000);
+      } else {
+        // Esta parte agora será acionada pelo 'throw new Error' acima
+        mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> ${result.message}`);
+      }
+    } catch (error) {
+      // O bloco de simulação foi removido para mostrar o erro real da API
+      console.error('Erro ao salvar lançamento:', error);
+      mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro ao salvar: ${error.message}`);
+    } finally {
+      btn.disabled = false;
+      loading.style.display = 'none';
+    }
+  }
+
+
+
+  function fecharModal() {
+    const modal = document.getElementById('modalLancamento');
+    modal.style.display = 'none';
+
+    // Limpar dados da nota
+    document.getElementById('dadosNota').innerHTML = '';
+
+    // Resetar formulário
+    document.getElementById('categoriaLancamento').value = 'Fornecedores (NFe)';
+    document.getElementById('quantidadeParcelas').value = '1';
+    document.getElementById('semRateio').checked = true;
+
+    // Limpar parcelamento
+    document.getElementById('parcelamentoContainer').style.display = 'none';
+    document.getElementById('parcelasContainer').innerHTML = '';
+    document.getElementById('validationError').classList.remove('show');
+
+    // Limpar rateio
+    document.getElementById('containerRateio').style.display = 'none';
+    veiculosSelecionados.clear();
+    document.getElementById('veiculoSearchInput').value = '';
+    document.getElementById('veiculoSearchResults').innerHTML = '';
+
+    // Resetar variáveis
+    valorTotalNota = 0;
+    delete modal.dataset.chaveAcesso;
+    delete modal.dataset.dadosNota;
+
+    // Reativar botão salvar
+    document.getElementById('btnSalvarLancamento').disabled = false;
+  }
+
+  // CORRIGIDO: Função agora é async
+  async function lancarNota(chaveAcesso) {
+    console.log('Clicou em lançar nota:', chaveAcesso);
+
+    // Validar chave de acesso
+    if (!chaveAcesso || chaveAcesso.length !== 44) {
+      mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Chave de acesso inválida');
+      return;
+    }
+
+    // Mostrar feedback visual
+    const btn = document.querySelector(`button[data-chave="${chaveAcesso}"]`);
+    if (btn) {
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
+      btn.disabled = true;
+
+      try {
+        await buscarDadosNota(chaveAcesso);
+      } catch (error) {
+        console.error('Erro ao lançar nota:', error);
+        mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro ao carregar dados da nota`);
+
+        // Fallback final - forçar abertura do modal com dados básicos
+        setTimeout(() => {
+          mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Tentando com dados básicos...');
+          const dadosBasicos = {
+            chave_acesso: chaveAcesso,
+            emitente_nome: 'Fornecedor da Nota',
+            emitente_cnpj: '00.000.000/0000-00',
+            valor_total: 1000.00,
+            data_emissao: new Date().toISOString()
+          };
+          abrirModalLancamento(dadosBasicos, chaveAcesso);
+        }, 1000);
+      } finally {
+        // Restaurar botão
+        setTimeout(() => {
+          if (btn) {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+          }
+        }, 1000);
+      }
+    } else {
+      // Se não encontrou o botão, chamar diretamente
+      await buscarDadosNota(chaveAcesso);
+    }
+  }
+
+  function visualizarXML(chaveAcesso) {
+    console.log('Visualizando XML:', chaveAcesso);
+    window.open(`/fiscal/xml/${chaveAcesso}`, '_blank');
+  }
+
+  function atualizarEstatisticas() {
+    const totalNotas = notasData.length;
+    const notasProcessadas = notasData.filter(n => n.status === 'PROCESSADA').length;
+    const valorTotal = notasData.reduce((sum, nota) => sum + parseFloat(nota.valor_total), 0);
+
+    document.getElementById('totalNotas').textContent = totalNotas;
+    document.getElementById('notasProcessadas').textContent = notasProcessadas;
+    document.getElementById('valorTotal').textContent = formatarMoeda(valorTotal);
+  }
+
+  async function exportarDocumentos() {
+    const btn = document.getElementById('btnExportarDocumentos');
+    const loading = document.getElementById('loadingExportar');
+    const tipoExportacao = document.getElementById('tipoExportacao').value;
+
+    let notasParaExportar = [];
+    if (tipoExportacao === 'processadas') {
+      notasParaExportar = notasFiltradas.filter(nota => nota.status === 'PROCESSADA');
+    } else {
+      notasParaExportar = [...notasFiltradas];
+    }
+
+    if (notasParaExportar.length === 0) {
+      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Nenhuma nota para exportar com os critérios selecionados.');
+      return;
+    }
+
+    const chavesAcesso = notasParaExportar.map(nota => nota.chave_acesso);
+
+    btn.disabled = true;
+    loading.style.display = 'inline-block';
+
+    try {
+      const response = await fetch('/api/fiscal/exportar_documentos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ chaves_acesso: chavesAcesso })
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = downloadUrl;
+
+        const disposition = response.headers.get('Content-Disposition');
+        let filename = 'Exportacao_Contabil.zip';
+        if (disposition && disposition.indexOf('attachment') !== -1) {
+          const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+          const matches = filenameRegex.exec(disposition);
+          if (matches != null && matches[1]) {
+            filename = matches[1].replace(/['"]/g, '');
+          }
+        }
+        a.download = filename;
+
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(downloadUrl);
+        a.remove();
+
+        mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> Exportação de ${chavesAcesso.length} documento(s) concluída!`);
+      } else {
+        const result = await response.json();
+        mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> Erro na exportação: ${result.message}`);
+      }
+
+    } catch (error) {
+      mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro de conexão ao exportar: ${error.message}`);
+    } finally {
+      btn.disabled = false;
+      loading.style.display = 'none';
+    }
+  }
+
+  function mostrarNotificacao(tipo, mensagem) {
+    const container = document.getElementById('notifications');
+    const notification = document.createElement('div');
+
+    const tipoClasses = {
+      'success': 'bg-green-100 text-green-800 border border-green-200',
+      'error': 'bg-red-100 text-red-800 border border-red-200',
+      'info': 'bg-blue-100 text-blue-800 border border-blue-200'
+    };
+
+    notification.className = `${tipoClasses[tipo]} p-4 rounded-lg shadow-md mb-4 flex items-center gap-3 font-medium`;
+    notification.innerHTML = mensagem;
+    notification.style.animation = 'slideIn 0.3s ease-out';
+
+    container.appendChild(notification);
+
+    setTimeout(() => {
+      notification.style.animation = 'slideOut 0.3s ease-in forwards';
+      setTimeout(() => {
+        if (container.contains(notification)) {
+          container.removeChild(notification);
+        }
+      }, 300);
+    }, 5000);
+  }
+
+  // Funções de formatação
+  function formatarCNPJ(cnpj) {
+    if (!cnpj) return '';
+    return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+  }
+
+  function formatarData(dataString) {
+    const data = new Date(dataString);
+    const dataCorrigida = new Date(data.valueOf() + data.getTimezoneOffset() * 60000);
+    return dataCorrigida.toLocaleDateString('pt-BR');
+  }
+
+  function formatarMoeda(valor) {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(valor);
+  }
+
+  // Event listeners para modal
+  window.onclick = function (event) {
+    const modal = document.getElementById('modalLancamento');
+    if (event.target === modal) {
+      fecharModal();
+    }
+  }
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+      fecharModal();
+    }
+  });
+
+  // Adicionar estilos de animação
+  const style = document.createElement('style');
+  style.textContent = `
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -3197,6 +3171,6 @@ endblock %} {% block styles %}
             font-size: 1rem;
         }
     `;
-    document.head.appendChild(style);
+  document.head.appendChild(style);
 </script>
 {% endblock %}
