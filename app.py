@@ -5167,10 +5167,44 @@ def editar_veiculo(veiculo_id):
 
     if request.method == 'POST':
         try:
+            # Lógica para upload de novas fotos
+            novas_fotos_urls = []
+            files = request.files.getlist('fotos[]') # O nome do input é 'fotos[]'
+            if files and any(f and f.filename for f in files):
+                s3_client = boto3.client(
+                    's3',
+                    endpoint_url=app.config['CLOUDFLARE_R2_ENDPOINT'],
+                    aws_access_key_id=app.config['CLOUDFLARE_R2_ACCESS_KEY'],
+                    aws_secret_access_key=app.config['CLOUDFLARE_R2_SECRET_KEY'],
+                    region_name='auto'
+                )
+                bucket_name = app.config['CLOUDFLARE_R2_BUCKET']
+                public_url_base = app.config['CLOUDFLARE_R2_PUBLIC_URL']
+
+                for file in files:
+                    if file and file.filename:
+                        filename = secure_filename(file.filename)
+                        # Usando a placa do veículo para organizar os arquivos
+                        s3_path = f"veiculos/{veiculo.placa}/fotos/{uuid.uuid4()}-{filename}"
+                        
+                        s3_client.upload_fileobj(
+                            file, bucket_name, s3_path,
+                            ExtraArgs={'ContentType': file.content_type or 'application/octet-stream'}
+                        )
+                        novas_fotos_urls.append(f"{public_url_base}/{s3_path}")
+            
+            # Combina as fotos existentes com as novas
+            fotos_atuais = veiculo.fotos_urls.split(',') if veiculo.fotos_urls else []
+            todas_as_fotos = fotos_atuais + novas_fotos_urls
+            if todas_as_fotos:
+                veiculo.fotos_urls = ','.join(todas_as_fotos)
+
+            # Funções auxiliares para conversão segura de tipos
             def to_int(val): return int(val) if val and val.strip() else None
             def to_float(val): return float(val) if val and val.strip() else None
             def to_date(val): return datetime.strptime(val, '%Y-%m-%d').date() if val and val.strip() else None
 
+            # Atualização dos outros campos do formulário
             veiculo.categoria = request.form.get('categoria')
             veiculo.status = request.form.get('status')
             veiculo.modelo = request.form.get('modelo')
@@ -5179,15 +5213,10 @@ def editar_veiculo(veiculo_id):
             veiculo.ano_modelo = to_int(request.form.get('ano_modelo'))
             veiculo.cor = request.form.get('cor').strip() or None
             veiculo.combustivel = request.form.get('combustivel') or None
-
-            # --- CORREÇÃO APLICADA AQUI ---
             veiculo.renavam = request.form.get('renavam').strip() or None
             veiculo.chassi = request.form.get('chassi').strip() or None
             veiculo.crlv_numero = request.form.get('crlv_numero').strip() or None
-            # ------------------------------
-            
             veiculo.crlv_vencimento = to_date(request.form.get('crlv_vencimento'))
-            
             veiculo.km_atual = to_float(request.form.get('km_atual'))
             veiculo.motorista_padrao_id = to_int(request.form.get('motorista_padrao_id'))
             veiculo.observacoes = request.form.get('observacoes').strip() or None
@@ -9564,6 +9593,26 @@ def central_documentos():
             'nome_arquivo': f"ComprovanteAbast_{url.split('/')[-1]}"
         })
 
+    # <<< NOVO BLOCO ADICIONADO AQUI >>>
+    # 5. Anexos de Despesas Diversas de Veículos
+    despesas_com_anexos = DespesaVeiculo.query.join(Veiculo).filter(
+        Veiculo.empresa_id == current_user.empresa_id,
+        DespesaVeiculo.anexos.isnot(None),
+        DespesaVeiculo.anexos != ''
+    ).options(db.joinedload(DespesaVeiculo.veiculo)).all()
+
+    for despesa in despesas_com_anexos:
+        urls = despesa.anexos.split(',')
+        for url in urls:
+            documentos_consolidados.append({
+                'tipo': 'Veículo',
+                'nome_entidade': f"Despesa: {despesa.veiculo.placa} ({despesa.categoria})",
+                'id_entidade': despesa.veiculo_id,
+                'url': url,
+                'nome_arquivo': url.split('/')[-1]
+            })
+    # <<< FIM DO NOVO BLOCO >>>
+
     # Filtrar resultados se houver uma busca
     documentos_finais = []
     if search_query:
@@ -10310,6 +10359,140 @@ def fix_old_trip_tokens():
         db.session.rollback()
         logger.error(f"Erro ao executar a correção de tokens: {e}")
         return f"<h1>Erro ao executar a correção.</h1><p>Detalhes: {e}</p>", 500
+    
+
+def parse_nfe_xml_content(xml_content_str):
+    """
+    Extrai dados essenciais de uma string de conteúdo XML de NF-e.
+    Retorna um dicionário com os dados ou None se houver erro.
+    """
+    try:
+        # Garante que o conteúdo seja uma string decodificada em utf-8
+        if isinstance(xml_content_str, bytes):
+            xml_content_str = xml_content_str.decode('utf-8')
+            
+        root = ET.fromstring(xml_content_str)
+        ns = {'nfe': 'http://www.portalfiscal.inf.br/nfe'}
+
+        infNFe = root.find('.//nfe:infNFe', ns)
+        if infNFe is None: return None
+        chave_acesso = infNFe.get('Id').replace('NFe', '')
+        
+        emit = root.find('.//nfe:emit', ns)
+        emit_cnpj = emit.find('nfe:CNPJ', ns).text
+        emit_nome = emit.find('nfe:xNome', ns).text
+
+        ide = root.find('.//nfe:ide', ns)
+        data_emissao_str = getattr(ide.find('nfe:dhEmi', ns), 'text', None) or getattr(ide.find('nfe:dEmi', ns), 'text', None)
+
+        # --- AQUI ESTÁ A CORREÇÃO ---
+        # Pega apenas a parte da data (YYYY-MM-DD), ignorando o horário e fuso,
+        # o que torna a conversão muito mais confiável.
+        if 'T' in data_emissao_str:
+            data_emissao_str = data_emissao_str.split('T')[0]
+            
+        data_emissao = datetime.fromisoformat(data_emissao_str)
+        # --- FIM DA CORREÇÃO ---
+
+        total = root.find('.//nfe:ICMSTot', ns)
+        valor_total = float(total.find('nfe:vNF', ns).text)
+
+        return {
+            "chave_acesso": chave_acesso,
+            "emitente_cnpj": emit_cnpj,
+            "emitente_nome": emit_nome,
+            "data_emissao": data_emissao,
+            "valor_total": valor_total,
+            "xml_content": xml_content_str
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao parsear XML: {e}", exc_info=True)
+        return None
+
+
+@app.route('/api/fiscal/importar_xmls', methods=['POST'])
+@login_required
+@master_required
+def api_importar_xmls():
+    """
+    Recebe múltiplos arquivos XML, processa e salva no banco de dados
+    um por um para garantir que erros em um arquivo não afetem os outros.
+    """
+    if 'xml_files' not in request.files:
+        return jsonify({'success': False, 'message': 'Nenhum arquivo enviado.'}), 400
+
+    files = request.files.getlist('xml_files')
+    
+    novas_notas_dict = []
+    notas_ja_existentes = 0
+    erros_parse = 0
+
+    for file in files:
+        if file and file.filename.lower().endswith('.xml'):
+            try:
+                xml_content = file.read() 
+                dados_nota = parse_nfe_xml_content(xml_content)
+
+                if not dados_nota:
+                    erros_parse += 1
+                    continue
+
+                chave = dados_nota['chave_acesso']
+                
+                # A verificação de existência continua sendo uma boa prática
+                if NFeImportada.query.filter_by(chave_acesso=chave, empresa_id=current_user.empresa_id).first():
+                    notas_ja_existentes += 1
+                    continue
+
+                # Cria o objeto para a nova nota
+                nova_nfe = NFeImportada(
+                    chave_acesso=chave,
+                    empresa_id=current_user.empresa_id,
+                    nsu='000000000000000',
+                    cnpj_consultado=current_user.empresa.cnpj,
+                    emitente_cnpj=dados_nota['emitente_cnpj'],
+                    emitente_nome=dados_nota['emitente_nome'],
+                    data_emissao=dados_nota['data_emissao'],
+                    valor_total=dados_nota['valor_total'],
+                    xml_content=dados_nota['xml_content'],
+                    status='BAIXADA',
+                    certificado_id=None
+                )
+                db.session.add(nova_nfe)
+                
+                # --- MUDANÇA PRINCIPAL ---
+                # Salva (commit) esta nota imediatamente.
+                db.session.commit()
+                
+                # Se o commit foi bem-sucedido, adiciona à lista de resposta.
+                novas_notas_dict.append(nova_nfe.to_dict())
+
+            except IntegrityError:
+                # Se o commit falhar por chave duplicada (UniqueViolation é um tipo de IntegrityError),
+                # desfaz a transação e conta como "já existente".
+                db.session.rollback()
+                notas_ja_existentes += 1
+                logger.warning(f"Chave duplicada encontrada ao tentar salvar: {file.filename}")
+
+            except Exception as e:
+                # Para qualquer outro erro, desfaz a transação e conta como erro de parse.
+                db.session.rollback()
+                logger.error(f"Erro genérico ao processar o arquivo {file.filename}: {e}", exc_info=True)
+                erros_parse += 1
+
+    # Monta a mensagem final para o usuário
+    msg_sucesso = f"{len(novas_notas_dict)} nova(s) nota(s) importada(s) com sucesso."
+    if notas_ja_existentes > 0:
+        msg_sucesso += f" {notas_ja_existentes} nota(s) já existia(m) e foram ignorada(s)."
+    if erros_parse > 0:
+        msg_sucesso += f" {erros_parse} arquivo(s) não puderam ser lidos."
+    
+    return jsonify({
+        'success': True, 
+        'message': msg_sucesso,
+        'novas_notas': novas_notas_dict
+    })
     
 @app.after_request
 def add_header(response):
