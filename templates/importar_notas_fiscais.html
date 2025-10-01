@@ -1,5 +1,7 @@
-{% extends "base.html" %} {% block title %}Importação NFe SEFAZ - TrackBras{%
-endblock %} {% block styles %}
+{% extends "base.html" %} 
+{% block title %}Importação NFe SEFAZ - TrackBras{% endblock %} 
+
+{% block styles %}
 <style>
   :root {
     --primary-green: #2e7d32;
@@ -21,8 +23,172 @@ endblock %} {% block styles %}
     --blue-100: #dbeafe;
   }
 
-  
+  /* ========== SISTEMA DE NOTIFICAÇÕES FLUTUANTES ========== */
+  #notifications {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 420px;
+    width: 100%;
+    pointer-events: none;
+  }
 
+  .notification-toast {
+    background: white;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    pointer-events: all;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-left: 4px solid;
+    overflow: hidden;
+  }
+
+  .notification-toast:hover {
+    transform: translateX(-5px);
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
+  }
+
+  .notification-toast.success {
+    border-left-color: var(--green-600);
+    background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+  }
+
+  .notification-toast.error {
+    border-left-color: var(--red-600);
+    background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+  }
+
+  .notification-toast.info {
+    border-left-color: var(--blue-600);
+    background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+  }
+
+  .notification-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 16px;
+  }
+
+  .notification-toast.success .notification-icon {
+    background: var(--green-100);
+    color: var(--green-600);
+  }
+
+  .notification-toast.error .notification-icon {
+    background: var(--red-100);
+    color: var(--red-600);
+  }
+
+  .notification-toast.info .notification-icon {
+    background: var(--blue-100);
+    color: var(--blue-600);
+  }
+
+  .notification-content {
+    flex: 1;
+    color: var(--gray-900);
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 500;
+  }
+
+  .notification-close {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--gray-600);
+    background: transparent;
+    border: none;
+    flex-shrink: 0;
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .notification-close:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--gray-900);
+  }
+
+  .notification-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: currentColor;
+    border-radius: 0 0 0 12px;
+    animation: notificationProgress 5s linear forwards;
+  }
+
+  .notification-toast.success .notification-progress {
+    color: var(--green-600);
+  }
+
+  .notification-toast.error .notification-progress {
+    color: var(--red-600);
+  }
+
+  .notification-toast.info .notification-progress {
+    color: var(--blue-600);
+  }
+
+  @keyframes notificationProgress {
+    from { width: 100%; }
+    to { width: 0%; }
+  }
+
+  @keyframes slideInRight {
+    from {
+      transform: translateX(120%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideOutRight {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(120%);
+      opacity: 0;
+    }
+  }
+
+  .notification-toast.entering {
+    animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .notification-toast.exiting {
+    animation: slideOutRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  /* Duração da animação de progresso aumentada para 8 segundos */
+  .notification-toast .notification-progress {
+    animation-duration: 8s;
+  }
+
+  /* ========== ESTILOS GERAIS ========== */
   .nfe-container {
     background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
     border-radius: 16px;
@@ -47,9 +213,7 @@ endblock %} {% block styles %}
   }
 
   .btn-green {
-    background: linear-gradient(135deg,
-        var(--primary-green) 0%,
-        var(--primary-green-dark) 100%);
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-dark) 100%);
     color: white;
     padding: 12px 24px;
     border: none;
@@ -75,9 +239,7 @@ endblock %} {% block styles %}
   }
 
   .btn-secondary {
-    background: linear-gradient(135deg,
-        var(--gray-600) 0%,
-        var(--gray-700) 100%);
+    background: linear-gradient(135deg, var(--gray-600) 0%, var(--gray-700) 100%);
     color: white;
     padding: 10px 20px;
     border: none;
@@ -115,9 +277,7 @@ endblock %} {% block styles %}
   }
 
   @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
+    to { transform: rotate(360deg); }
   }
 
   .stats-grid {
@@ -257,9 +417,7 @@ endblock %} {% block styles %}
 
   .progress-fill {
     height: 100%;
-    background: linear-gradient(135deg,
-        var(--primary-green) 0%,
-        var(--primary-green-light) 100%);
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
     width: 0%;
     transition: width 0.3s ease;
   }
@@ -295,7 +453,6 @@ endblock %} {% block styles %}
       transform: translateY(-50px);
       opacity: 0;
     }
-
     to {
       transform: translateY(0);
       opacity: 1;
@@ -303,9 +460,7 @@ endblock %} {% block styles %}
   }
 
   .modal-header {
-    background: linear-gradient(135deg,
-        var(--primary-green-dark) 0%,
-        var(--primary-green) 100%);
+    background: linear-gradient(135deg, var(--primary-green-dark) 0%, var(--primary-green) 100%);
     color: white;
     padding: 1.5rem 2rem;
     display: flex;
@@ -364,7 +519,6 @@ endblock %} {% block styles %}
     box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
   }
 
-  /* Estilos para Tipo de Movimento */
   .tipo-movimento-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -417,19 +571,13 @@ endblock %} {% block styles %}
     line-height: 1.2;
   }
 
-  .radio-label.receita i {
-    color: var(--green-600);
-  }
-
   .radio-label.despesa i {
     color: var(--red-600);
   }
 
   .radio-option input[type="radio"]:checked+.radio-label {
     border-color: var(--primary-green);
-    background: linear-gradient(135deg,
-        var(--primary-green) 0%,
-        var(--primary-green-light) 100%);
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
     color: white;
   }
 
@@ -441,7 +589,6 @@ endblock %} {% block styles %}
     color: rgba(255, 255, 255, 0.9);
   }
 
-  /* Sistema de Parcelamento Customizado */
   .parcelamento-container {
     background: var(--gray-50);
     border: 2px solid var(--gray-200);
@@ -457,6 +604,7 @@ endblock %} {% block styles %}
     margin-bottom: 1rem;
     font-weight: 600;
     color: var(--gray-700);
+    justify-content: space-between;
   }
 
   .parcela-item {
@@ -543,29 +691,10 @@ endblock %} {% block styles %}
   }
 
   @keyframes shake {
-
-    0%,
-    20%,
-    40%,
-    60%,
-    80% {
-      transform: translateX(0);
-    }
-
-    10%,
-    30%,
-    50%,
-    70% {
-      transform: translateX(-5px);
-    }
-
-    90% {
-      transform: translateX(5px);
-    }
-
-    100% {
-      transform: translateX(0);
-    }
+    0%, 20%, 40%, 60%, 80% { transform: translateX(0); }
+    10%, 30%, 50%, 70% { transform: translateX(-5px); }
+    90% { transform: translateX(5px); }
+    100% { transform: translateX(0); }
   }
 
   .totalizacao {
@@ -611,34 +740,6 @@ endblock %} {% block styles %}
     color: var(--primary-green);
   }
 
-  /* Alerta de Impacto */
-  .impacto-alert {
-    padding: 1rem;
-    border-radius: 8px;
-    margin: 1rem 0;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-weight: 500;
-    display: none;
-  }
-
-  .impacto-alert.receita {
-    background: var(--green-100);
-    color: var(--green-600);
-    border: 1px solid var(--green-600);
-  }
-
-  .impacto-alert.despesa {
-    background: var(--red-100);
-    color: var(--red-600);
-    border: 1px solid var(--red-600);
-  }
-
-  .impacto-alert i {
-    font-size: 1.25rem;
-  }
-
   .empty-state {
     text-align: center;
     padding: 4rem 1.5rem;
@@ -671,7 +772,6 @@ endblock %} {% block styles %}
       opacity: 0;
       transform: translateY(20px);
     }
-
     to {
       opacity: 1;
       transform: translateY(0);
@@ -683,20 +783,11 @@ endblock %} {% block styles %}
   }
 
   @keyframes pulse {
-    0% {
-      box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.7);
-    }
-
-    70% {
-      box-shadow: 0 0 0 10px rgba(46, 125, 50, 0);
-    }
-
-    100% {
-      box-shadow: 0 0 0 0 rgba(46, 125, 50, 0);
-    }
+    0% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(46, 125, 50, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0); }
   }
 
-  /* Estilos para Lista de Notas */
   .nfe-table-container {
     background: white;
     border-radius: 12px;
@@ -711,9 +802,7 @@ endblock %} {% block styles %}
   }
 
   .nfe-table th {
-    background: linear-gradient(135deg,
-        var(--primary-green-dark) 0%,
-        var(--primary-green) 100%);
+    background: linear-gradient(135deg, var(--primary-green-dark) 0%, var(--primary-green) 100%);
     color: white;
     padding: 1rem;
     text-align: left;
@@ -754,9 +843,7 @@ endblock %} {% block styles %}
   }
 
   .status-badge.processado {
-    background: linear-gradient(135deg,
-        var(--primary-green) 0%,
-        var(--primary-green-light) 100%);
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
     color: white;
   }
 
@@ -829,7 +916,6 @@ endblock %} {% block styles %}
     font-size: 0.875rem;
   }
 
-  /* Paginação */
   .pagination-container {
     display: flex;
     justify-content: space-between;
@@ -895,7 +981,6 @@ endblock %} {% block styles %}
     font-size: 0.875rem;
   }
 
-  /* Estilos do sistema de rateio melhorado */
   .veiculo-rateio-item {
     background: white;
     border: 2px solid var(--gray-200);
@@ -1022,38 +1107,12 @@ endblock %} {% block styles %}
     color: var(--blue-600);
   }
 
-  .btn-delete {
-    background: #dc2626;
-    color: white;
-  }
-
-  .btn-delete:hover {
-    background: #991b1b;
-  }
-
-  .text-green-600 {
-    color: var(--green-600);
-  }
-
-  .text-red-600 {
-    color: var(--red-600);
-  }
-
-  .text-orange-600 {
-    color: #ea580c;
-  }
-
-  .ml-auto {
-    margin-left: auto;
-  }
-
-  .ml-2 {
-    margin-left: 0.5rem;
-  }
-
-  .text-xs {
-    font-size: 0.75rem;
-  }
+  .text-green-600 { color: var(--green-600); }
+  .text-red-600 { color: var(--red-600); }
+  .text-orange-600 { color: #ea580c; }
+  .ml-auto { margin-left: auto; }
+  .ml-2 { margin-left: 0.5rem; }
+  .text-xs { font-size: 0.75rem; }
 
   .underline {
     text-decoration: underline;
@@ -1062,16 +1121,6 @@ endblock %} {% block styles %}
 
   .underline:hover {
     color: var(--primary-green);
-  }
-
-  .parcelamento-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 1rem;
-    font-weight: 600;
-    color: var(--gray-700);
-    justify-content: space-between;
   }
 
   #rateioControles {
@@ -1090,6 +1139,12 @@ endblock %} {% block styles %}
   }
 
   @media (max-width: 768px) {
+    #notifications {
+      right: 10px;
+      left: 10px;
+      max-width: none;
+    }
+
     .search-controls {
       flex-direction: column;
       align-items: stretch;
@@ -1133,6 +1188,35 @@ endblock %} {% block styles %}
       gap: 0.5rem;
     }
   }
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .detail-row:last-child {
+    border-bottom: none;
+  }
+
+  .detail-label {
+    font-weight: 600;
+    color: var(--gray-700);
+    font-size: 0.875rem;
+  }
+
+  .detail-value {
+    color: var(--gray-900);
+    font-size: 0.875rem;
+  }
+
+  .valor-destaque {
+    font-weight: 700;
+    color: var(--primary-green);
+    font-size: 1rem;
+  }
 </style>
 {% endblock %}
 
@@ -1163,15 +1247,13 @@ endblock %} {% block styles %}
       </div>
       <div class="stat-card">
         <span class="stat-number" id="notasProcessadas">
-          {{ notas|selectattr('status', 'equalto', 'PROCESSADA')|list|length if
-          notas else 0 }}
+          {{ notas|selectattr('status', 'equalto', 'PROCESSADA')|list|length if notas else 0 }}
         </span>
         <span class="stat-label">Processadas</span>
       </div>
       <div class="stat-card">
         <span class="stat-number" id="valorTotal">
-          R$ {{ "%.2f"|format(notas|sum(attribute='valor_total') if notas else
-          0)|replace('.', ',')|replace(',', '.', 1) }}
+          R$ {{ "%.2f"|format(notas|sum(attribute='valor_total') if notas else 0)|replace('.', ',')|replace(',', '.', 1) }}
         </span>
         <span class="stat-label">Valor Total</span>
       </div>
@@ -1223,8 +1305,7 @@ endblock %} {% block styles %}
 
     <div class="text-sm text-gray-600">
       <i class="fas fa-info-circle"></i>
-      Digite a chave de acesso de 44 dígitos ou use um leitor de código para
-      capturar automaticamente
+      Digite a chave de acesso de 44 dígitos ou use um leitor de código para capturar automaticamente
     </div>
   </div>
 
@@ -1246,10 +1327,10 @@ endblock %} {% block styles %}
     </div>
     <div class="text-sm text-gray-600">
       <i class="fas fa-info-circle"></i>
-      Selecione um ou mais arquivos .xml da sua pasta. O sistema irá verificar e adicionar apenas as notas que ainda não
-      foram importadas.
+      Selecione um ou mais arquivos .xml da sua pasta. O sistema irá verificar e adicionar apenas as notas que ainda não foram importadas.
     </div>
   </div>
+
   <div class="search-section">
     <div class="section-header">
       <i class="fas fa-filter"></i>
@@ -1301,9 +1382,7 @@ endblock %} {% block styles %}
         <label for="tipoExportacao" class="form-label">Tipo de Exportação</label>
         <select id="tipoExportacao" class="form-select">
           <option value="todas">Exportar seleção atual</option>
-          <option value="processadas">
-            Exportar apenas Processadas da seleção atual
-          </option>
+          <option value="processadas">Exportar apenas Processadas da seleção atual</option>
         </select>
       </div>
       <button class="btn-green" id="btnExportarDocumentos">
@@ -1314,8 +1393,7 @@ endblock %} {% block styles %}
     </div>
     <p class="text-sm text-gray-600 mt-3">
       <i class="fas fa-info-circle"></i>
-      Será gerado um arquivo .zip contendo um relatório em Excel e uma pasta com
-      os arquivos XML.
+      Será gerado um arquivo .zip contendo um relatório em Excel e uma pasta com os arquivos XML.
     </p>
   </div>
 
@@ -1331,9 +1409,7 @@ endblock %} {% block styles %}
       <div class="empty-state" id="emptyState">
         <i class="fas fa-file-invoice"></i>
         <h3>Nenhuma nota encontrada</h3>
-        <p>
-          Clique em "Buscar Novas NFe na SEFAZ" para importar suas notas fiscais
-        </p>
+        <p>Clique em "Buscar Novas NFe na SEFAZ" para importar suas notas fiscais</p>
       </div>
       {% else %}
       <div class="nfe-table-container" id="nfeTableContainer">
@@ -1419,20 +1495,13 @@ endblock %} {% block styles %}
           {% endfor %}
         </select>
       </div>
+
       <div class="form-group">
         <label class="form-label">Parcelamento do Pagamento</label>
-        <div style="
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 1rem;
-            align-items: end;
-            margin-bottom: 1rem;
-          ">
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end; margin-bottom: 1rem;">
           <div>
-            <label for="quantidadeParcelas" style="font-size: 0.875rem; color: var(--gray-600)">Quantidade de
-              Parcelas</label>
-            <input type="number" id="quantidadeParcelas" min="1" max="36" value="1" class="form-control"
-              style="padding: 8px 12px" />
+            <label for="quantidadeParcelas" style="font-size: 0.875rem; color: var(--gray-600)">Quantidade de Parcelas</label>
+            <input type="number" id="quantidadeParcelas" min="1" max="36" value="1" class="form-control" style="padding: 8px 12px" />
           </div>
           <button type="button" id="btnGerarParcelas" class="btn-secondary">
             <i class="fas fa-calendar-alt"></i> Gerar Parcelas
@@ -1495,8 +1564,7 @@ endblock %} {% block styles %}
 
       <div id="containerRateio" style="display: none">
         <div class="form-group">
-          <label class="form-label">Buscar Veículos (Placa ou Modelo) para despesas não relacionadas a
-            veiculos (ADMIN)</label>
+          <label class="form-label">Buscar Veículos (Placa ou Modelo) para despesas não relacionadas a veiculos (ADMIN)</label>
           <div class="search-box">
             <input type="text" id="veiculoSearchInput"
               placeholder="Digite para buscar e adicionar múltiplos veículos..." autocomplete="off"
@@ -1507,8 +1575,7 @@ endblock %} {% block styles %}
             style="z-index: 1001; width: calc(100% - 4rem)"></div>
           <div class="text-sm text-gray-600 mt-2">
             <i class="fas fa-info-circle"></i>
-            Você pode adicionar quantos veículos precisar para dividir o custo
-            da nota fiscal
+            Você pode adicionar quantos veículos precisar para dividir o custo da nota fiscal
           </div>
         </div>
 
@@ -1558,8 +1625,7 @@ endblock %} {% block styles %}
                 <div class="progress-fill" id="rateioProgressFill" style="width: 0%"></div>
               </div>
               <div class="text-center mt-2" id="rateioStatus">
-                <small class="text-gray-600">Adicione veículos e distribua os valores para confirmar o
-                  lançamento</small>
+                <small class="text-gray-600">Adicione veículos e distribua os valores para confirmar o lançamento</small>
               </div>
             </div>
           </div>
@@ -1602,6 +1668,54 @@ endblock %} {% block styles %}
     console.log('Aplicação inicializada com sucesso');
   });
 
+  // ========== SISTEMA DE NOTIFICAÇÕES FLUTUANTES ==========
+  function mostrarNotificacao(tipo, mensagem) {
+    const container = document.getElementById('notifications');
+    const notification = document.createElement('div');
+    
+    // Extrair apenas o texto da mensagem (remover tags HTML para o conteúdo)
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = mensagem;
+    const textoLimpo = tempDiv.textContent || tempDiv.innerText;
+    
+    // Determinar o ícone baseado no tipo
+    const icones = {
+      'success': 'fas fa-check-circle',
+      'error': 'fas fa-exclamation-circle',
+      'info': 'fas fa-info-circle'
+    };
+
+    notification.className = `notification-toast ${tipo} entering`;
+    notification.innerHTML = `
+      <div class="notification-icon">
+        <i class="${icones[tipo]}"></i>
+      </div>
+      <div class="notification-content">${textoLimpo}</div>
+      <button class="notification-close" onclick="fecharNotificacao(this)">×</button>
+      <div class="notification-progress"></div>
+    `;
+
+    container.appendChild(notification);
+
+    // Auto-remover após 8 segundos (aumentado de 5 para 8)
+    setTimeout(() => {
+      fecharNotificacao(notification.querySelector('.notification-close'));
+    }, 8000);
+  }
+
+  function fecharNotificacao(btnClose) {
+    const notification = btnClose.closest('.notification-toast');
+    if (notification) {
+      notification.classList.remove('entering');
+      notification.classList.add('exiting');
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300);
+    }
+  }
+
   function popularFiltroEmpresas() {
     const empresaSelect = document.getElementById('empresaFilter');
     empresasDisponiveis.clear();
@@ -1634,30 +1748,30 @@ endblock %} {% block styles %}
   function carregarNotasDoHTML() {
     notasData = [
       {% for nota in notas %}
-  {
-    "chave_acesso": "{{ nota.chave_acesso }}",
-      "emitente_nome": "{{ nota.emitente_nome }}",
+      {
+        "chave_acesso": "{{ nota.chave_acesso }}",
+        "emitente_nome": "{{ nota.emitente_nome }}",
         "emitente_cnpj": "{{ nota.emitente_cnpj }}",
-          "valor_total": {{ nota.valor_total }},
-    "data_emissao": "{{ nota.data_emissao.isoformat() }}",
-      "nsu": "{{ nota.nsu }}",
+        "valor_total": {{ nota.valor_total }},
+        "data_emissao": "{{ nota.data_emissao.isoformat() }}",
+        "nsu": "{{ nota.nsu }}",
         "status": "{{ nota.status }}",
-          "cnpj_consultado": "{{ nota.cnpj_consultado or '' }}"
-  } {% if not loop.last %}, {% endif %}
-  {% endfor %}
-        ];
+        "cnpj_consultado": "{{ nota.cnpj_consultado or '' }}"
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ];
 
-  notasFiltradas = [...notasData];
-  renderizarContador();
-  console.log('Notas carregadas:', notasData.length);
-    }
+    notasFiltradas = [...notasData];
+    renderizarContador();
+    console.log('Notas carregadas:', notasData.length);
+  }
 
   async function importarArquivosXML() {
     const input = document.getElementById('xmlFilesInput');
     const files = input.files;
 
     if (files.length === 0) {
-      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Por favor, selecione pelo menos um arquivo XML.');
+      mostrarNotificacao('info', 'Por favor, selecione pelo menos um arquivo XML.');
       return;
     }
 
@@ -1680,46 +1794,34 @@ endblock %} {% block styles %}
       const result = await response.json();
 
       if (result.success) {
-        mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> ${result.message}`);
+        mostrarNotificacao('success', result.message);
 
         if (result.novas_notas && result.novas_notas.length > 0) {
-          // Adiciona as novas notas ao array de dados local
           notasData.unshift(...result.novas_notas);
-
-          // --- INÍCIO DA CORREÇÃO ---
-          // Limpa os filtros para garantir que a nova nota seja visível
           limparFiltros();
-          // --- FIM DA CORREÇÃO ---
-
-          // O restante do código já faz o necessário (atualizar estatísticas e renderizar)
-          // A função limparFiltros() já chama aplicarFiltros(), que por sua vez renderiza a tabela.
-          // Portanto, não precisamos chamar aplicarFiltros() novamente aqui.
-
-          // Apenas atualizamos os outros componentes que não são atualizados pelo filtro
           popularFiltroEmpresas();
           atualizarEstatisticas();
         }
       } else {
-        mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> ${result.message}`);
+        mostrarNotificacao('error', result.message);
       }
 
     } catch (error) {
       console.error('Erro ao importar XMLs:', error);
-      mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro de conexão ao importar arquivos.`);
+      mostrarNotificacao('error', 'Erro de conexão ao importar arquivos.');
     } finally {
       btn.disabled = false;
       loading.style.display = 'none';
-      input.value = ''; // Limpa o campo de seleção de arquivos
+      input.value = '';
     }
   }
-
 
   function configurarEventos() {
     console.log('Configurando eventos...');
 
     document.getElementById('btnConsultarSefaz').addEventListener('click', consultarSefaz);
     document.getElementById('btnLancarRapido').addEventListener('click', lancarRapido);
-    document.getElementById('btnImportarXmls').addEventListener('click', importarArquivosXML); // <-- NOVA LINHA
+    document.getElementById('btnImportarXmls').addEventListener('click', importarArquivosXML);
     document.getElementById('btnSalvarLancamento').addEventListener('click', salvarLancamento);
     document.getElementById('chaveAcessoInput').addEventListener('input', formatarChaveAcesso);
     document.getElementById('btnLimparFiltros').addEventListener('click', limparFiltros);
@@ -1749,7 +1851,6 @@ endblock %} {% block styles %}
       document.getElementById('rateioValorNota').textContent = formatarMoeda(valorTotalNota);
     } else {
       containerRateio.style.display = 'none';
-      // Limpar veículos selecionados ao desabilitar rateio
       veiculosSelecionados.clear();
       document.getElementById('veiculoSearchInput').value = '';
       document.getElementById('veiculoSearchResults').innerHTML = '';
@@ -1764,52 +1865,44 @@ endblock %} {% block styles %}
     document.getElementById('endDateFilter').addEventListener('change', aplicarFiltros);
   }
 
-  // Função para gerar parcelas customizadas
   function gerarParcelas() {
     const quantidadeParcelas = parseInt(document.getElementById('quantidadeParcelas').value);
     const parcelamentoContainer = document.getElementById('parcelamentoContainer');
     const parcelasContainer = document.getElementById('parcelasContainer');
 
     if (!quantidadeParcelas || quantidadeParcelas < 1 || quantidadeParcelas > 36) {
-      mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Quantidade de parcelas deve ser entre 1 e 36');
+      mostrarNotificacao('error', 'Quantidade de parcelas deve ser entre 1 e 36');
       return;
     }
 
-    // Mostrar container de parcelamento
     parcelamentoContainer.style.display = 'block';
-
-    // Limpar parcelas existentes
     parcelasContainer.innerHTML = '';
 
-    // Calcular valor por parcela
     const valorPorParcela = valorTotalNota / quantidadeParcelas;
 
-    // Gerar campos para cada parcela
     for (let i = 1; i <= quantidadeParcelas; i++) {
       const parcelaDiv = document.createElement('div');
       parcelaDiv.className = 'parcela-item fade-in';
 
-      // Calcular data de vencimento (primeira parcela = 30 dias, demais = +30 dias cada)
       const hoje = new Date();
       const dataVencimento = new Date(hoje.getTime() + (i * 30 * 24 * 60 * 60 * 1000));
       const dataFormatada = dataVencimento.toISOString().split('T')[0];
 
       parcelaDiv.innerHTML = `
-                <div class="parcela-numero">${i}</div>
-                <div class="parcela-input-group">
-                    <label>Data de Vencimento</label>
-                    <input type="date" class="parcela-data" data-parcela="${i}" value="${dataFormatada}" onchange="validarParcelas()">
-                </div>
-                <div class="parcela-input-group">
-                    <label>Valor (R$)</label>
-                    <input type="number" class="parcela-valor" data-parcela="${i}" value="${valorPorParcela.toFixed(2)}" step="0.01" min="0" onchange="validarParcelas()">
-                </div>
-            `;
+        <div class="parcela-numero">${i}</div>
+        <div class="parcela-input-group">
+          <label>Data de Vencimento</label>
+          <input type="date" class="parcela-data" data-parcela="${i}" value="${dataFormatada}" onchange="validarParcelas()">
+        </div>
+        <div class="parcela-input-group">
+          <label>Valor (R$)</label>
+          <input type="number" class="parcela-valor" data-parcela="${i}" value="${valorPorParcela.toFixed(2)}" step="0.01" min="0" onchange="validarParcelas()">
+        </div>
+      `;
 
       parcelasContainer.appendChild(parcelaDiv);
     }
 
-    // Atualizar totalização
     atualizarTotalizacao();
     validarParcelas();
   }
@@ -1841,9 +1934,9 @@ endblock %} {% block styles %}
         item.href = '#';
         item.className = 'list-group-item list-group-item-action p-2 border-bottom d-flex justify-content-between align-items-center';
         item.innerHTML = `
-                    <span>${veiculo.display}</span>
-                    <small class="text-green-600"><i class="fas fa-plus"></i> Adicionar</small>
-                `;
+          <span>${veiculo.display}</span>
+          <small class="text-green-600"><i class="fas fa-plus"></i> Adicionar</small>
+        `;
         item.onclick = (e) => {
           e.preventDefault();
           adicionarVeiculoParaRateio(veiculo);
@@ -1855,7 +1948,6 @@ endblock %} {% block styles %}
       });
     } catch (error) {
       console.error("Erro ao buscar veículos:", error);
-      // Em caso de erro, usar dados mock
       const veiculosMock = [
         { id: 1, display: "ABC-1234 - Volvo FH 540" },
         { id: 2, display: "DEF-5678 - Scania R450" },
@@ -1880,9 +1972,9 @@ endblock %} {% block styles %}
         item.href = '#';
         item.className = 'list-group-item list-group-item-action p-2 border-bottom d-flex justify-content-between align-items-center';
         item.innerHTML = `
-                    <span>${veiculo.display}</span>
-                    <small class="text-green-600"><i class="fas fa-plus"></i> Adicionar</small>
-                `;
+          <span>${veiculo.display}</span>
+          <small class="text-green-600"><i class="fas fa-plus"></i> Adicionar</small>
+        `;
         item.onclick = (e) => {
           e.preventDefault();
           adicionarVeiculoParaRateio(veiculo);
@@ -1897,12 +1989,10 @@ endblock %} {% block styles %}
 
   function adicionarVeiculoParaRateio(veiculo) {
     if (veiculosSelecionados.has(veiculo.id)) {
-      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Este veículo já foi adicionado ao rateio');
+      mostrarNotificacao('info', 'Este veículo já foi adicionado ao rateio');
       return;
     }
 
-    // Se é o primeiro veículo, atribui o valor total
-    // Se não é o primeiro, inicia com valor 0 para distribuição manual
     const valorInicial = veiculosSelecionados.size === 0 ? valorTotalNota : 0;
 
     veiculosSelecionados.set(veiculo.id, { ...veiculo, valor: valorInicial });
@@ -1911,18 +2001,17 @@ endblock %} {% block styles %}
     const quantidade = veiculosSelecionados.size;
 
     if (quantidade === 1) {
-      mostrarNotificacao('success', `<i class="fas fa-truck"></i> Primeiro veículo adicionado com valor total da nota`);
+      mostrarNotificacao('success', 'Primeiro veículo adicionado com valor total da nota');
       setTimeout(() => {
-        mostrarNotificacao('info', '<i class="fas fa-lightbulb"></i> Dica: Adicione mais veículos para ratear a despesa entre eles');
+        mostrarNotificacao('info', 'Dica: Adicione mais veículos para ratear a despesa entre eles');
       }, 2000);
     } else {
-      mostrarNotificacao('success', `<i class="fas fa-truck"></i> Veículo adicionado! Total: ${quantidade} veículo${quantidade > 1 ? 's' : ''} no rateio`);
+      mostrarNotificacao('success', `Veículo adicionado! Total: ${quantidade} veículo${quantidade > 1 ? 's' : ''} no rateio`);
 
-      // Sugestão de distribuição automática
       setTimeout(() => {
         const totalAtual = Array.from(veiculosSelecionados.values()).reduce((sum, v) => sum + v.valor, 0);
         if (Math.abs(totalAtual - valorTotalNota) > 0.01) {
-          mostrarNotificacao('info', '<i class="fas fa-magic"></i> Use "Dividir Igual" ou "Ajustar Auto" para distribuir automaticamente');
+          mostrarNotificacao('info', 'Use "Dividir Igual" ou "Ajustar Auto" para distribuir automaticamente');
         }
       }, 1500);
     }
@@ -1937,7 +2026,7 @@ endblock %} {% block styles %}
       renderizarVeiculosRateio();
 
       const quantidade = veiculosSelecionados.size;
-      mostrarNotificacao('info', `<i class="fas fa-trash"></i> Veículo removido. ${quantidade} veículo${quantidade !== 1 ? 's' : ''} restante${quantidade !== 1 ? 's' : ''}`);
+      mostrarNotificacao('info', `Veículo removido. ${quantidade} veículo${quantidade !== 1 ? 's' : ''} restante${quantidade !== 1 ? 's' : ''}`);
     }
   }
 
@@ -1946,14 +2035,12 @@ endblock %} {% block styles %}
     const emptyState = document.getElementById('rateioEmpty');
     const controles = document.getElementById('rateioControles');
 
-    // Salvar valores atuais dos inputs antes de recriar o DOM
     const valoresAtuais = new Map();
     document.querySelectorAll('.rateio-valor-input').forEach(input => {
       const veiculoId = parseInt(input.dataset.id);
       valoresAtuais.set(veiculoId, parseFloat(input.value) || 0);
     });
 
-    // Atualizar valores no Map com os valores reais dos inputs
     valoresAtuais.forEach((valor, veiculoId) => {
       if (veiculosSelecionados.has(veiculoId)) {
         veiculosSelecionados.get(veiculoId).valor = valor;
@@ -1977,47 +2064,71 @@ endblock %} {% block styles %}
         const itemDiv = document.createElement('div');
         itemDiv.className = 'veiculo-rateio-item fade-in';
         itemDiv.innerHTML = `
-                    <div class="veiculo-header">
-                        <div class="veiculo-numero">${index}</div>
-                        <div class="veiculo-info">
-                            <span class="veiculo-nome">${veiculo.display}</span>
-                            <span class="veiculo-percentual" id="percentual-${veiculo.id}">${percentual.toFixed(1)}%</span>
-                        </div>
-                        <button type="button" class="btn-delete-veiculo" onclick="removerVeiculoDoRateio(${veiculo.id})" title="Remover veículo">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="veiculo-valores">
-                        <div class="valor-input-group">
-                            <label>Valor (R$)</label>
-                            <input type="number"
-                                   class="rateio-valor-input"
-                                   data-id="${veiculo.id}"
-                                   value="${(veiculo.valor || 0).toFixed(2)}"
-                                   step="0.01"
-                                   min="0"
-                                   max="${valorTotalNota}"
-                                   oninput="atualizarValorRateio(${veiculo.id}, this.value)"
-                                   onblur="validarValorMinimo(this)"
-                                   placeholder="0,00">
-                        </div>
-                        <div class="valor-input-group">
-                            <label>Percentual (%)</label>
-                            <input type="number"
-                                   class="rateio-percentual-input"
-                                   data-id="${veiculo.id}"
-                                   value="${percentual.toFixed(1)}"
-                                   step="0.1"
-                                   min="0"
-                                   max="100"
-                                   oninput="atualizarPercentualRateio(${veiculo.id}, this.value)"
-                                   onblur="validarPercentualMinimo(this)"
-                                   placeholder="0,0">
-                        </div>
-                    </div>
-                `;
+          <div class="veiculo-header">
+            <div class="veiculo-numero">${index}</div>
+            <div class="veiculo-info">
+              <span class="veiculo-nome">${veiculo.display}</span>
+              <span class="veiculo-percentual" id="percentual-${veiculo.id}">${percentual.toFixed(1)}%</span>
+            </div>
+            <button type="button" class="btn-delete-veiculo" data-veiculo-id="${veiculo.id}" title="Remover veículo">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="veiculo-valores">
+            <div class="valor-input-group">
+              <label>Valor (R$)</label>
+              <input type="number"
+                     class="rateio-valor-input"
+                     data-id="${veiculo.id}"
+                     value="${(veiculo.valor || 0).toFixed(2)}"
+                     step="0.01"
+                     min="0"
+                     max="${valorTotalNota}"
+                     placeholder="0,00">
+            </div>
+            <div class="valor-input-group">
+              <label>Percentual (%)</label>
+              <input type="number"
+                     class="rateio-percentual-input"
+                     data-id="${veiculo.id}"
+                     value="${percentual.toFixed(1)}"
+                     step="0.1"
+                     min="0"
+                     max="100"
+                     placeholder="0,0">
+            </div>
+          </div>
+        `;
         container.appendChild(itemDiv);
         index++;
+      });
+
+      // Adicionar event listeners aos botões e inputs APÓS criar os elementos
+      container.querySelectorAll('.btn-delete-veiculo').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const veiculoId = parseInt(this.dataset.veiculoId);
+          removerVeiculoDoRateio(veiculoId);
+        });
+      });
+
+      container.querySelectorAll('.rateio-valor-input').forEach(input => {
+        input.addEventListener('input', function() {
+          const veiculoId = parseInt(this.dataset.id);
+          atualizarValorRateio(veiculoId, this.value);
+        });
+        input.addEventListener('blur', function() {
+          validarValorMinimo(this);
+        });
+      });
+
+      container.querySelectorAll('.rateio-percentual-input').forEach(input => {
+        input.addEventListener('input', function() {
+          const veiculoId = parseInt(this.dataset.id);
+          atualizarPercentualRateio(veiculoId, this.value);
+        });
+        input.addEventListener('blur', function() {
+          validarPercentualMinimo(this);
+        });
       });
     }
     atualizarTotalRateio();
@@ -2028,13 +2139,11 @@ endblock %} {% block styles %}
     if (veiculo) {
       veiculo.valor = Math.max(0, Math.min(parseFloat(valor) || 0, valorTotalNota));
 
-      // Atualizar campo de percentual correspondente SEM re-renderizar
       const percentualInput = document.querySelector(`input.rateio-percentual-input[data-id="${veiculoId}"]`);
       if (percentualInput && valorTotalNota > 0) {
         const novoPercentual = (veiculo.valor / valorTotalNota) * 100;
         percentualInput.value = novoPercentual.toFixed(1);
 
-        // Atualizar badge de percentual
         const percentualBadge = document.getElementById(`percentual-${veiculoId}`);
         if (percentualBadge) {
           percentualBadge.textContent = novoPercentual.toFixed(1) + '%';
@@ -2051,13 +2160,11 @@ endblock %} {% block styles %}
       const percentualLimitado = Math.max(0, Math.min(parseFloat(percentual) || 0, 100));
       veiculo.valor = (percentualLimitado / 100) * valorTotalNota;
 
-      // Atualizar campo de valor correspondente SEM re-renderizar
       const valorInput = document.querySelector(`input.rateio-valor-input[data-id="${veiculoId}"]`);
       if (valorInput) {
         valorInput.value = veiculo.valor.toFixed(2);
       }
 
-      // Atualizar badge de percentual
       const percentualBadge = document.getElementById(`percentual-${veiculoId}`);
       if (percentualBadge) {
         percentualBadge.textContent = percentualLimitado.toFixed(1) + '%';
@@ -2070,28 +2177,28 @@ endblock %} {% block styles %}
   function validarValorMinimo(input) {
     if (parseFloat(input.value) < 0) {
       input.value = "0.00";
-      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Valor não pode ser negativo');
+      mostrarNotificacao('info', 'Valor não pode ser negativo');
     }
     if (parseFloat(input.value) > valorTotalNota) {
       input.value = valorTotalNota.toFixed(2);
-      mostrarNotificacao('info', `<i class="fas fa-info-circle"></i> Valor não pode exceder ${formatarMoeda(valorTotalNota)}`);
+      mostrarNotificacao('info', `Valor não pode exceder ${formatarMoeda(valorTotalNota)}`);
     }
   }
 
   function validarPercentualMinimo(input) {
     if (parseFloat(input.value) < 0) {
       input.value = "0.0";
-      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Percentual não pode ser negativo');
+      mostrarNotificacao('info', 'Percentual não pode ser negativo');
     }
     if (parseFloat(input.value) > 100) {
       input.value = "100.0";
-      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Percentual não pode exceder 100%');
+      mostrarNotificacao('info', 'Percentual não pode exceder 100%');
     }
   }
 
   function distribuirIgualmente() {
     if (veiculosSelecionados.size === 0) {
-      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Adicione pelo menos um veículo antes de distribuir os valores');
+      mostrarNotificacao('info', 'Adicione pelo menos um veículo antes de distribuir os valores');
       return;
     }
 
@@ -2101,7 +2208,6 @@ endblock %} {% block styles %}
       veiculo.valor = valorPorVeiculo;
     });
 
-    // Atualizar todos os inputs na tela
     document.querySelectorAll('.rateio-valor-input').forEach(input => {
       const veiculoId = parseInt(input.dataset.id);
       if (veiculosSelecionados.has(veiculoId)) {
@@ -2117,16 +2223,15 @@ endblock %} {% block styles %}
     });
 
     atualizarTotalRateio();
-    mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> Valor distribuído igualmente: ${formatarMoeda(valorPorVeiculo)} por veículo (${(100 / veiculosSelecionados.size).toFixed(1)}% cada)`);
+    mostrarNotificacao('success', `Valor distribuído igualmente: ${formatarMoeda(valorPorVeiculo)} por veículo (${(100 / veiculosSelecionados.size).toFixed(1)}% cada)`);
   }
 
   function ajustarAutomaticamente() {
     if (veiculosSelecionados.size === 0) {
-      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Adicione veículos primeiro');
+      mostrarNotificacao('info', 'Adicione veículos primeiro');
       return;
     }
 
-    // Calcular total atual
     let totalAtual = 0;
     veiculosSelecionados.forEach(v => totalAtual += v.valor);
 
@@ -2135,15 +2240,13 @@ endblock %} {% block styles %}
       return;
     }
 
-    // Calcular diferença
     const diferenca = valorTotalNota - totalAtual;
 
     if (Math.abs(diferenca) <= 0.01) {
-      mostrarNotificacao('success', '<i class="fas fa-check-circle"></i> Valores já estão corretos!');
+      mostrarNotificacao('success', 'Valores já estão corretos!');
       return;
     }
 
-    // Distribuir a diferença proporcionalmente
     veiculosSelecionados.forEach(veiculo => {
       if (totalAtual > 0) {
         const proporcao = veiculo.valor / totalAtual;
@@ -2151,14 +2254,12 @@ endblock %} {% block styles %}
       } else {
         veiculo.valor = valorTotalNota / veiculosSelecionados.size;
       }
-      // Garantir que não seja negativo
       veiculo.valor = Math.max(0, veiculo.valor);
     });
 
-    // Atualizar inputs
     renderizarVeiculosRateio();
 
-    mostrarNotificacao('success', `<i class="fas fa-magic"></i> Valores ajustados automaticamente! Diferença de ${formatarMoeda(Math.abs(diferenca))} distribuída proporcionalmente`);
+    mostrarNotificacao('success', `Valores ajustados automaticamente! Diferença de ${formatarMoeda(Math.abs(diferenca))} distribuída proporcionalmente`);
   }
 
   function limparRateio() {
@@ -2169,15 +2270,7 @@ endblock %} {% block styles %}
     if (confirm(`Tem certeza que deseja remover todos os ${veiculosSelecionados.size} veículo(s) do rateio?`)) {
       veiculosSelecionados.clear();
       renderizarVeiculosRateio();
-      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Todos os veículos foram removidos do rateio');
-    }
-  }
-
-  function atualizarValorRateio(veiculoId, valor) {
-    const veiculo = veiculosSelecionados.get(veiculoId);
-    if (veiculo) {
-      veiculo.valor = parseFloat(valor) || 0;
-      atualizarTotalRateio();
+      mostrarNotificacao('info', 'Todos os veículos foram removidos do rateio');
     }
   }
 
@@ -2189,7 +2282,6 @@ endblock %} {% block styles %}
     const diferenca = total - valorTotalNota;
     const percentualCompleto = valorTotalNota > 0 ? (total / valorTotalNota) * 100 : 0;
 
-    // Atualizar valores na totalização
     document.getElementById('rateioTotalAlocado').textContent = formatarMoeda(total);
     const diferencaEl = document.getElementById('rateioDiferenca');
     const statusEl = document.getElementById('rateioStatus');
@@ -2197,19 +2289,16 @@ endblock %} {% block styles %}
 
     diferencaEl.textContent = formatarMoeda(Math.abs(diferenca));
 
-    // Atualizar barra de progresso
     progressBar.style.width = Math.min(percentualCompleto, 100) + '%';
 
-    // Alterar cor da barra baseado no status
     if (Math.abs(diferenca) <= 0.01) {
       progressBar.style.background = 'linear-gradient(135deg, var(--green-600) 0%, var(--primary-green-light) 100%)';
     } else if (diferenca < 0) {
-      progressBar.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'; // Amarelo/laranja
+      progressBar.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
     } else {
-      progressBar.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'; // Vermelho
+      progressBar.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
     }
 
-    // Atualizar percentuais individuais
     veiculosSelecionados.forEach(veiculo => {
       const percentualEl = document.getElementById(`percentual-${veiculo.id}`);
       if (percentualEl && valorTotalNota > 0) {
@@ -2224,11 +2313,11 @@ endblock %} {% block styles %}
     } else if (Math.abs(diferenca) <= 0.01) {
       diferencaEl.className = 'totalizacao-valor totalizacao-ok';
       statusEl.innerHTML = `
-                <small class="text-green-600">
-                    <i class="fas fa-check-circle"></i>
-                    Rateio correto entre ${quantidadeVeiculos} veículo(s) - 100% distribuído
-                </small>
-            `;
+        <small class="text-green-600">
+          <i class="fas fa-check-circle"></i>
+          Rateio correto entre ${quantidadeVeiculos} veículo(s) - 100% distribuído
+        </small>
+      `;
       document.getElementById('btnSalvarLancamento').disabled = false;
     } else {
       document.getElementById('btnSalvarLancamento').disabled = true;
@@ -2236,44 +2325,40 @@ endblock %} {% block styles %}
       if (diferenca > 0) {
         diferencaEl.className = 'totalizacao-valor totalizacao-diferenca';
         statusEl.innerHTML = `
-                    <small class="text-red-600">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Valor rateado excede em ${formatarMoeda(diferenca)} (${percentualCompleto.toFixed(1)}%)
-                        <button type="button" onclick="ajustarAutomaticamente()" class="ml-2 text-xs underline">Ajustar automaticamente</button>
-                    </small>
-                `;
+          <small class="text-red-600">
+            <i class="fas fa-exclamation-triangle"></i>
+            Valor rateado excede em ${formatarMoeda(diferenca)} (${percentualCompleto.toFixed(1)}%)
+            <button type="button" onclick="ajustarAutomaticamente()" class="ml-2 text-xs underline">Ajustar automaticamente</button>
+          </small>
+        `;
       } else {
         diferencaEl.className = 'totalizacao-valor totalizacao-diferenca';
         const faltante = Math.abs(diferenca);
         statusEl.innerHTML = `
-                    <small class="text-orange-600">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Faltam ${formatarMoeda(faltante)} para completar (${percentualCompleto.toFixed(1)}% distribuído)
-                        <button type="button" onclick="ajustarAutomaticamente()" class="ml-2 text-xs underline">Completar automaticamente</button>
-                    </small>
-                `;
+          <small class="text-orange-600">
+            <i class="fas fa-exclamation-triangle"></i>
+            Faltam ${formatarMoeda(faltante)} para completar (${percentualCompleto.toFixed(1)}% distribuído)
+            <button type="button" onclick="ajustarAutomaticamente()" class="ml-2 text-xs underline">Completar automaticamente</button>
+          </small>
+        `;
       }
     }
   }
 
-  // Função para validar parcelas
   function validarParcelas() {
     const parcelasValor = document.querySelectorAll('.parcela-valor');
     const validationError = document.getElementById('validationError');
     let totalParcelas = 0;
 
-    // Somar valores das parcelas
     parcelasValor.forEach(input => {
       const valor = parseFloat(input.value) || 0;
       totalParcelas += valor;
     });
 
-    // Atualizar totalização
     atualizarTotalizacao();
 
-    // Verificar se valores batem
     const diferenca = Math.abs(totalParcelas - valorTotalNota);
-    const tolerancia = 0.01; // Tolerância de 1 centavo
+    const tolerancia = 0.01;
 
     if (diferenca > tolerancia) {
       validationError.classList.add('show');
@@ -2286,7 +2371,6 @@ endblock %} {% block styles %}
     }
   }
 
-  // Função para atualizar totalização
   function atualizarTotalizacao() {
     const parcelasValor = document.querySelectorAll('.parcela-valor');
     let totalParcelas = 0;
@@ -2395,57 +2479,54 @@ endblock %} {% block styles %}
       const empresaConsultada = nota.cnpj_consultado || 'N/A';
 
       row.innerHTML = `
-                <td>
-                    <div class="empresa-badge">
-                        <i class="fas fa-building"></i>
-                        ${formatarCNPJ(empresaConsultada)}
-                    </div>
-                </td>
-                <td>${nota.emitente_nome}</td>
-                <td>${formatarCNPJ(nota.emitente_cnpj)}</td>
-                <td>${formatarData(nota.data_emissao)}</td>
-                <td class="valor-cell">${formatarMoeda(nota.valor_total)}</td>
-                <td>
-                    <span class="status-badge ${nota.status === 'PROCESSADA' ? 'processado' : 'novo'}">
-                        ${nota.status === 'PROCESSADA' ? 'Processada' : 'Nova'}
-                    </span>
-                </td>
-                <td>
-                    ${nota.status !== 'PROCESSADA' ? `
-                        <button class="btn-table btn-launch" data-chave="${nota.chave_acesso}">
-                            <i class="fas fa-plus"></i>
-                            Lançar
-                        </button>
-                    ` : `
-                        <button class="btn-table btn-processed" disabled>
-                            <i class="fas fa-check"></i>
-                            Processada
-                        </button>
-                    `}
-                    <button class="btn-table btn-view" data-chave="${nota.chave_acesso}">
-                        <i class="fas fa-eye"></i>
-                        Ver XML
-                    </button>
-                </td>
-                <td>
-                    <div class="chave-display">${nota.chave_acesso}</div>
-                </td>
-            `;
+        <td>
+          <div class="empresa-badge">
+            <i class="fas fa-building"></i>
+            ${formatarCNPJ(empresaConsultada)}
+          </div>
+        </td>
+        <td>${nota.emitente_nome}</td>
+        <td>${formatarCNPJ(nota.emitente_cnpj)}</td>
+        <td>${formatarData(nota.data_emissao)}</td>
+        <td class="valor-cell">${formatarMoeda(nota.valor_total)}</td>
+        <td>
+          <span class="status-badge ${nota.status === 'PROCESSADA' ? 'processado' : 'novo'}">
+            ${nota.status === 'PROCESSADA' ? 'Processada' : 'Nova'}
+          </span>
+        </td>
+        <td>
+          ${nota.status !== 'PROCESSADA' ? `
+            <button class="btn-table btn-launch" data-chave="${nota.chave_acesso}">
+              <i class="fas fa-plus"></i>
+              Lançar
+            </button>
+          ` : `
+            <button class="btn-table btn-processed" disabled>
+              <i class="fas fa-check"></i>
+              Processada
+            </button>
+          `}
+          <button class="btn-table btn-view" data-chave="${nota.chave_acesso}">
+            <i class="fas fa-eye"></i>
+            Ver XML
+          </button>
+        </td>
+        <td>
+          <div class="chave-display">${nota.chave_acesso}</div>
+        </td>
+      `;
 
       tbody.appendChild(row);
     });
 
-    // IMPORTANTE: Adicionar event listeners após criar os elementos
     adicionarEventListenersTabela();
     atualizarPaginacao();
     console.log('Tabela renderizada com', notasPagina.length, 'linhas');
   }
 
-  // Nova função para adicionar event listeners aos botões da tabela
   function adicionarEventListenersTabela() {
     console.log('Adicionando event listeners aos botões...');
 
-    // Event listeners para botões de lançar
     document.querySelectorAll('.btn-launch').forEach(button => {
       button.addEventListener('click', function () {
         const chaveAcesso = this.dataset.chave;
@@ -2454,7 +2535,6 @@ endblock %} {% block styles %}
       });
     });
 
-    // Event listeners para botões de visualizar XML
     document.querySelectorAll('.btn-view').forEach(button => {
       button.addEventListener('click', function () {
         const chaveAcesso = this.dataset.chave;
@@ -2615,17 +2695,17 @@ endblock %} {% block styles %}
       }, 1000);
 
       if (result.success) {
-        mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> ${result.message}`);
+        mostrarNotificacao('success', result.message);
         setTimeout(() => {
           window.location.reload();
         }, 2000);
       } else {
-        mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> ${result.message}`);
+        mostrarNotificacao('error', result.message);
       }
     } catch (error) {
       clearInterval(progressInterval);
       progressBar.style.display = 'none';
-      mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro de conexão: ${error.message}`);
+      mostrarNotificacao('error', `Erro de conexão: ${error.message}`);
     } finally {
       btn.disabled = false;
       loading.style.display = 'none';
@@ -2636,16 +2716,15 @@ endblock %} {% block styles %}
     const chaveAcesso = document.getElementById('chaveAcessoInput').value.trim();
 
     if (!chaveAcesso) {
-      mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Digite a chave de acesso da NFe');
+      mostrarNotificacao('error', 'Digite a chave de acesso da NFe');
       return;
     }
 
     if (chaveAcesso.length !== 44) {
-      mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> A chave de acesso deve ter exatamente 44 dígitos');
+      mostrarNotificacao('error', 'A chave de acesso deve ter exatamente 44 dígitos');
       return;
     }
 
-    // Mostrar que está processando
     const btn = document.getElementById('btnLancarRapido');
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando...';
@@ -2655,15 +2734,13 @@ endblock %} {% block styles %}
       await buscarDadosNota(chaveAcesso);
     } catch (error) {
       console.error('Erro no lançamento rápido:', error);
-      mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro inesperado: ${error.message}`);
+      mostrarNotificacao('error', `Erro inesperado: ${error.message}`);
     } finally {
-      // Restaurar botão
       btn.innerHTML = originalText;
       btn.disabled = false;
     }
   }
 
-  // CORRIGIDO: Função agora é async
   async function buscarDadosNota(chaveAcesso) {
     console.log('Buscando dados da nota:', chaveAcesso);
 
@@ -2681,20 +2758,17 @@ endblock %} {% block styles %}
       if (result.success) {
         abrirModalLancamento(result.nota, chaveAcesso);
       } else {
-        mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> ${result.message}`);
+        mostrarNotificacao('error', result.message);
       }
     } catch (error) {
       console.error('Erro na requisição:', error);
 
-      // MELHORADO: Tratar qualquer tipo de erro de conexão, não só 404
       console.log('API não disponível, usando dados mock para demonstração');
 
-      // Buscar dados da nota na lista local primeiro
       const notaLocal = notasData.find(n => n.chave_acesso === chaveAcesso);
 
       let dadosMock;
       if (notaLocal) {
-        // Usar dados da nota local se disponível
         dadosMock = {
           chave_acesso: chaveAcesso,
           emitente_nome: notaLocal.emitente_nome,
@@ -2703,7 +2777,6 @@ endblock %} {% block styles %}
           data_emissao: notaLocal.data_emissao
         };
       } else {
-        // Dados mock genéricos se não encontrar
         dadosMock = {
           chave_acesso: chaveAcesso,
           emitente_nome: 'Empresa Exemplo LTDA',
@@ -2713,7 +2786,7 @@ endblock %} {% block styles %}
         };
       }
 
-      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Usando modo demonstração (API não disponível)');
+      mostrarNotificacao('info', 'Usando modo demonstração (API não disponível)');
       abrirModalLancamento(dadosMock, chaveAcesso);
     }
   }
@@ -2723,61 +2796,55 @@ endblock %} {% block styles %}
     const modal = document.getElementById('modalLancamento');
     const dadosContainer = document.getElementById('dadosNota');
 
-    // Armazenar valor total da nota globalmente
     valorTotalNota = parseFloat(dadosNota.valor_total);
 
     dadosContainer.innerHTML = `
-            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
-                <h4 style="color: #1b5e20; margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-file-invoice"></i>
-                    Dados da Nota Fiscal
-                </h4>
-                <div style="display: grid; gap: 12px;">
-                    <div class="detail-row">
-                        <span class="detail-label">Emitente:</span>
-                        <span class="detail-value">${dadosNota.emitente_nome}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">CNPJ:</span>
-                        <span class="detail-value">${formatarCNPJ(dadosNota.emitente_cnpj)}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Data de Emissão:</span>
-                        <span class="detail-value">${formatarData(dadosNota.data_emissao)}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Valor Total:</span>
-                        <span class="detail-value valor-destaque">${formatarMoeda(dadosNota.valor_total)}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Chave de Acesso:</span>
-                        <span class="detail-value" style="font-family: monospace; font-size: 12px;">${chaveAcesso}</span>
-                    </div>
-                </div>
-            </div>
-        `;
+      <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
+        <h4 style="color: #1b5e20; margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
+          <i class="fas fa-file-invoice"></i>
+          Dados da Nota Fiscal
+        </h4>
+        <div style="display: grid; gap: 12px;">
+          <div class="detail-row">
+            <span class="detail-label">Emitente:</span>
+            <span class="detail-value">${dadosNota.emitente_nome}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">CNPJ:</span>
+            <span class="detail-value">${formatarCNPJ(dadosNota.emitente_cnpj)}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Data de Emissão:</span>
+            <span class="detail-value">${formatarData(dadosNota.data_emissao)}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Valor Total:</span>
+            <span class="detail-value valor-destaque">${formatarMoeda(dadosNota.valor_total)}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Chave de Acesso:</span>
+            <span class="detail-value" style="font-family: monospace; font-size: 12px;">${chaveAcesso}</span>
+          </div>
+        </div>
+      </div>
+    `;
 
-    // Resetar formulário
     document.getElementById('categoriaLancamento').value = 'Fornecedores (NFe)';
     document.getElementById('quantidadeParcelas').value = '1';
     document.getElementById('semRateio').checked = true;
 
-    // Limpar containers
     document.getElementById('parcelamentoContainer').style.display = 'none';
     document.getElementById('parcelasContainer').innerHTML = '';
     document.getElementById('containerRateio').style.display = 'none';
     document.getElementById('validationError').classList.remove('show');
 
-    // Resetar rateio
     veiculosSelecionados.clear();
     document.getElementById('veiculoSearchInput').value = '';
     document.getElementById('veiculoSearchResults').innerHTML = '';
 
-    // Armazenar dados no modal
     modal.dataset.chaveAcesso = chaveAcesso;
     modal.dataset.dadosNota = JSON.stringify(dadosNota);
 
-    // Configurar rateio como desabilitado inicialmente
     toggleRateio();
 
     modal.style.display = 'block';
@@ -2792,11 +2859,10 @@ endblock %} {% block styles %}
     const btn = document.getElementById('btnSalvarLancamento');
     const loading = document.getElementById('loadingSalvar');
 
-    // ▼▼▼ CORREÇÃO 2: Variável 'parcelas' movida para fora do try/catch ▼▼▼
     let parcelas = [];
 
     if (!categoria) {
-      mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Selecione a categoria da despesa');
+      mostrarNotificacao('error', 'Selecione a categoria da despesa');
       return;
     }
 
@@ -2804,12 +2870,12 @@ endblock %} {% block styles %}
     const parcelasValor = document.querySelectorAll('.parcela-valor');
 
     if (parcelasData.length === 0) {
-      mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Configure as parcelas do pagamento');
+      mostrarNotificacao('error', 'Configure as parcelas do pagamento');
       return;
     }
 
     if (!validarParcelas()) {
-      mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> O valor total das parcelas não confere com o valor da nota');
+      mostrarNotificacao('error', 'O valor total das parcelas não confere com o valor da nota');
       return;
     }
 
@@ -2819,19 +2885,19 @@ endblock %} {% block styles %}
     });
 
     if (!datasValidas) {
-      mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Todas as parcelas devem ter data de vencimento');
+      mostrarNotificacao('error', 'Todas as parcelas devem ter data de vencimento');
       return;
     }
 
     if (tipoRateio === 'com_rateio') {
       if (veiculosSelecionados.size === 0) {
-        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Selecione pelo menos um veículo para o rateio');
+        mostrarNotificacao('error', 'Selecione pelo menos um veículo para o rateio');
         return;
       }
       let totalRateio = 0;
       veiculosSelecionados.forEach(v => totalRateio += v.valor);
       if (Math.abs(totalRateio - valorTotalNota) > 0.01) {
-        mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> O valor total do rateio não confere com o valor da nota');
+        mostrarNotificacao('error', 'O valor total do rateio não confere com o valor da nota');
         return;
       }
     }
@@ -2840,7 +2906,6 @@ endblock %} {% block styles %}
     loading.style.display = 'inline-block';
 
     try {
-      // Preencher o array de parcelas (agora declarado fora do try)
       for (let i = 0; i < parcelasData.length; i++) {
         parcelas.push({
           data_vencimento: parcelasData[i].value,
@@ -2848,7 +2913,6 @@ endblock %} {% block styles %}
         });
       }
 
-      // ▼▼▼ CORREÇÃO 1: Linha que define a variável 'unidadeNegocioId' ▼▼▼
       const unidadeNegocioId = document.getElementById('unidadeNegocioLancamento').value;
 
       let payload = {
@@ -2872,7 +2936,6 @@ endblock %} {% block styles %}
         body: JSON.stringify(payload)
       });
 
-      // Adicionamos esta verificação para tratar melhor os erros da API
       if (!response.ok) {
         const errorResult = await response.json();
         throw new Error(errorResult.message || `Erro ${response.status}`);
@@ -2881,7 +2944,7 @@ endblock %} {% block styles %}
       const result = await response.json();
 
       if (result.success) {
-        let mensagem = `<i class="fas fa-check-circle"></i> Lançamento criado com sucesso! `;
+        let mensagem = 'Lançamento criado com sucesso! ';
         if (tipoRateio === 'com_rateio') {
           mensagem += `${parcelas.length} parcela(s) rateada(s) entre ${veiculosSelecionados.size} veículo(s).`;
         } else {
@@ -2891,64 +2954,51 @@ endblock %} {% block styles %}
         fecharModal();
         setTimeout(() => { window.location.reload(); }, 2000);
       } else {
-        // Esta parte agora será acionada pelo 'throw new Error' acima
-        mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> ${result.message}`);
+        mostrarNotificacao('error', result.message);
       }
     } catch (error) {
-      // O bloco de simulação foi removido para mostrar o erro real da API
       console.error('Erro ao salvar lançamento:', error);
-      mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro ao salvar: ${error.message}`);
+      mostrarNotificacao('error', `Erro ao salvar: ${error.message}`);
     } finally {
       btn.disabled = false;
       loading.style.display = 'none';
     }
   }
 
-
-
   function fecharModal() {
     const modal = document.getElementById('modalLancamento');
     modal.style.display = 'none';
 
-    // Limpar dados da nota
     document.getElementById('dadosNota').innerHTML = '';
 
-    // Resetar formulário
     document.getElementById('categoriaLancamento').value = 'Fornecedores (NFe)';
     document.getElementById('quantidadeParcelas').value = '1';
     document.getElementById('semRateio').checked = true;
 
-    // Limpar parcelamento
     document.getElementById('parcelamentoContainer').style.display = 'none';
     document.getElementById('parcelasContainer').innerHTML = '';
     document.getElementById('validationError').classList.remove('show');
 
-    // Limpar rateio
     document.getElementById('containerRateio').style.display = 'none';
     veiculosSelecionados.clear();
     document.getElementById('veiculoSearchInput').value = '';
     document.getElementById('veiculoSearchResults').innerHTML = '';
 
-    // Resetar variáveis
     valorTotalNota = 0;
     delete modal.dataset.chaveAcesso;
     delete modal.dataset.dadosNota;
 
-    // Reativar botão salvar
     document.getElementById('btnSalvarLancamento').disabled = false;
   }
 
-  // CORRIGIDO: Função agora é async
   async function lancarNota(chaveAcesso) {
     console.log('Clicou em lançar nota:', chaveAcesso);
 
-    // Validar chave de acesso
     if (!chaveAcesso || chaveAcesso.length !== 44) {
-      mostrarNotificacao('error', '<i class="fas fa-exclamation-triangle"></i> Chave de acesso inválida');
+      mostrarNotificacao('error', 'Chave de acesso inválida');
       return;
     }
 
-    // Mostrar feedback visual
     const btn = document.querySelector(`button[data-chave="${chaveAcesso}"]`);
     if (btn) {
       const originalText = btn.innerHTML;
@@ -2959,11 +3009,10 @@ endblock %} {% block styles %}
         await buscarDadosNota(chaveAcesso);
       } catch (error) {
         console.error('Erro ao lançar nota:', error);
-        mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro ao carregar dados da nota`);
+        mostrarNotificacao('error', 'Erro ao carregar dados da nota');
 
-        // Fallback final - forçar abertura do modal com dados básicos
         setTimeout(() => {
-          mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Tentando com dados básicos...');
+          mostrarNotificacao('info', 'Tentando com dados básicos...');
           const dadosBasicos = {
             chave_acesso: chaveAcesso,
             emitente_nome: 'Fornecedor da Nota',
@@ -2974,7 +3023,6 @@ endblock %} {% block styles %}
           abrirModalLancamento(dadosBasicos, chaveAcesso);
         }, 1000);
       } finally {
-        // Restaurar botão
         setTimeout(() => {
           if (btn) {
             btn.innerHTML = originalText;
@@ -2983,7 +3031,6 @@ endblock %} {% block styles %}
         }, 1000);
       }
     } else {
-      // Se não encontrou o botão, chamar diretamente
       await buscarDadosNota(chaveAcesso);
     }
   }
@@ -3016,7 +3063,7 @@ endblock %} {% block styles %}
     }
 
     if (notasParaExportar.length === 0) {
-      mostrarNotificacao('info', '<i class="fas fa-info-circle"></i> Nenhuma nota para exportar com os critérios selecionados.');
+      mostrarNotificacao('info', 'Nenhuma nota para exportar com os critérios selecionados.');
       return;
     }
 
@@ -3057,47 +3104,20 @@ endblock %} {% block styles %}
         window.URL.revokeObjectURL(downloadUrl);
         a.remove();
 
-        mostrarNotificacao('success', `<i class="fas fa-check-circle"></i> Exportação de ${chavesAcesso.length} documento(s) concluída!`);
+        mostrarNotificacao('success', `Exportação de ${chavesAcesso.length} documento(s) concluída!`);
       } else {
         const result = await response.json();
-        mostrarNotificacao('error', `<i class="fas fa-exclamation-triangle"></i> Erro na exportação: ${result.message}`);
+        mostrarNotificacao('error', `Erro na exportação: ${result.message}`);
       }
 
     } catch (error) {
-      mostrarNotificacao('error', `<i class="fas fa-times-circle"></i> Erro de conexão ao exportar: ${error.message}`);
+      mostrarNotificacao('error', `Erro de conexão ao exportar: ${error.message}`);
     } finally {
       btn.disabled = false;
       loading.style.display = 'none';
     }
   }
 
-  function mostrarNotificacao(tipo, mensagem) {
-    const container = document.getElementById('notifications');
-    const notification = document.createElement('div');
-
-    const tipoClasses = {
-      'success': 'bg-green-100 text-green-800 border border-green-200',
-      'error': 'bg-red-100 text-red-800 border border-red-200',
-      'info': 'bg-blue-100 text-blue-800 border border-blue-200'
-    };
-
-    notification.className = `${tipoClasses[tipo]} p-4 rounded-lg shadow-md mb-4 flex items-center gap-3 font-medium`;
-    notification.innerHTML = mensagem;
-    notification.style.animation = 'slideIn 0.3s ease-out';
-
-    container.appendChild(notification);
-
-    setTimeout(() => {
-      notification.style.animation = 'slideOut 0.3s ease-in forwards';
-      setTimeout(() => {
-        if (container.contains(notification)) {
-          container.removeChild(notification);
-        }
-      }, 300);
-    }, 5000);
-  }
-
-  // Funções de formatação
   function formatarCNPJ(cnpj) {
     if (!cnpj) return '';
     return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
@@ -3116,7 +3136,6 @@ endblock %} {% block styles %}
     }).format(valor);
   }
 
-  // Event listeners para modal
   window.onclick = function (event) {
     const modal = document.getElementById('modalLancamento');
     if (event.target === modal) {
@@ -3129,48 +3148,5 @@ endblock %} {% block styles %}
       fecharModal();
     }
   });
-
-  // Adicionar estilos de animação
-  const style = document.createElement('style');
-  style.textContent = `
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
-        }
-
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .detail-row:last-child {
-            border-bottom: none;
-        }
-
-        .detail-label {
-            font-weight: 600;
-            color: var(--gray-700);
-            font-size: 0.875rem;
-        }
-
-        .detail-value {
-            color: var(--gray-900);
-            font-size: 0.875rem;
-        }
-
-        .valor-destaque {
-            font-weight: 700;
-            color: var(--primary-green);
-            font-size: 1rem;
-        }
-    `;
-  document.head.appendChild(style);
 </script>
 {% endblock %}
