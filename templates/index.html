@@ -1,130 +1,776 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TrackBras - Gerenciamento Inteligente de Frotas</title>
-    
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='paginaini.css') }}">
+    <style>
+        :root {
+            --brand-color: #3b873e;
+            --brand-color-light: #6ac46a;
+            --cta-color: #00A859;
+            --dark-bg: #1a1a1a;
+            --light-bg: #f4f4f4;
+            --text-color: #333;
+            --text-light: #ffffff;
+            --border-color: #ddd;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: #fff;
+        }
+
+        main {
+            padding-top: 80px;
+        }
+
+        h1,
+        h2,
+        h3 {
+            font-weight: 800;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 40px;
+            font-weight: 800;
+        }
+
+        section {
+            padding: 60px 20px;
+        }
+
+        /* --- HEADER --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 5%;
+            background-color: rgba(26, 26, 26, 0.9);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            height: 80px;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-container img {
+            height: 40px;
+            margin-right: 10px;
+        }
+	
+	.logo-text { /* ADICIONE ESTAS NOVAS REGRAS */
+    color: var(--brand-color); /* Usa o verde da sua marca */
+    font-size: 1.8rem; /* Tamanho do texto */
+    font-weight: 800; /* Negrito */
+    margin-left: -5px; /* Ajuste fino, se a imagem ficar muito longe */
+    letter-spacing: -1px; /* Ajusta o espaçamento entre as letras */
+	}
+        nav a {
+            color: var(--text-light);
+            text-decoration: none;
+            margin: 0 15px;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        nav a:hover {
+            color: var(--brand-color-light);
+        }
+
+        nav a.btn-cliente {
+            background-color: var(--brand-color);
+            padding: 8px 16px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        nav a.btn-cliente:hover {
+            background-color: var(--brand-color-light);
+            color: var(--text-light);
+        }
+
+        /* --- HERO SECTION (AGORA COM IMAGEM DE FUNDO ESTÁTICA) --- */
+        .hero {
+            position: relative;
+            min-height: calc(100vh - 80px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-light);
+            text-align: left;
+            padding: 0 5%;
+            overflow: hidden;
+            /* background-color: #333; -- Não precisamos mais, a imagem cobre */
+
+            /* --- NOVOS ESTILOS PARA IMAGEM DE FUNDO AQUI --- */
+            background-image:
+                linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+                /* Camada escura para texto legível */
+                url("{{ url_for('static', filename='fundo.png') }}");
+            /* Sua imagem de fundo */
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            /* --- FIM DOS NOVOS ESTILOS --- */
+        }
+
+        /* As regras de vídeo e overlay abaixo não são mais usadas, mas podem ser mantidas comentadas */
+        /* #hero-video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+        }
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1;
+        } */
+
+        .hero-container {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 50px;
+            max-width: 1200px;
+            width: 100%;
+            align-items: center;
+        }
+
+        .hero-text h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 20px;
+        }
+
+        .hero-text p {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            max-width: 550px;
+        }
+
+        .hero-features {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .hero-features span {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .hero-features i {
+            color: var(--brand-color-light);
+            margin-right: 8px;
+        }
+
+        .hero-form-container {
+            background-color: #ffffff;
+            color: var(--text-color);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .hero-form-container h3 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .hero-form-container p {
+            margin-bottom: 20px;
+            color: #666;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--cta-color);
+            color: var(--text-light);
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn-submit:hover {
+            background-color: #008a48;
+        }
+
+        /* --- OTHER SECTIONS --- */
+        #sobre {
+            background-color: #fff;
+        }
+
+        #demonstracao {
+            background-color: var(--dark-bg);
+            text-align: center;
+        }
+
+       #demonstracao video {
+   		max-width: 800px;
+   		width: 100%;
+    		height: auto; /* Mantemos por compatibilidade */
+   		aspect-ratio: 16 / 9;
+    		object-fit: cover; 
+    
+   		border-radius: 10px;
+    		box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+}
+
+        #servicos {
+            background-color: var(--light-bg);
+        }
+
+        .servicos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .servico-card {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .servico-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .servico-card i {
+            font-size: 2.5rem;
+            color: var(--brand-color);
+            margin-bottom: 15px;
+        }
+
+        .servico-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        #como-funciona {
+            background-color: #fff;
+            border: none;
+            box-shadow: none;
+        }
+
+        .processo-grid {
+            display: flex;
+            justify-content: space-around;
+            max-width: 1200px;
+            margin: 0 auto;
+            gap: 30px;
+            text-align: center;
+        }
+
+        .processo-passo {
+            flex: 1;
+        }
+
+        .passo-numero {
+            width: 50px;
+            height: 50px;
+            background-color: var(--brand-color);
+            color: #fff;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+        }
+
+        #numeros {
+            text-align: center;
+            color: #fff;
+            background-image:
+                linear-gradient(rgba(26, 26, 26, 0.85), rgba(26, 26, 26, 0.85)),
+                url("{{ url_for('static', filename='fundo.png') }}");
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+        }
+
+        .numeros-grid {
+            display: flex;
+            justify-content: space-around;
+            color: #fff;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .numero-item .valor {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--brand-color-light);
+            display: block;
+        }
+
+        .numero-item .descricao {
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .numero-item .descricao span[role="img"] {
+            font-size: 1.3em;
+            line-height: 1;
+        }
+
+        #faq {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .accordion-container {
+            border-top: 1px solid var(--border-color);
+        }
+
+        .accordion-item {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .accordion-header {
+            width: 100%;
+            background: none;
+            border: none;
+            text-align: left;
+            padding: 20px 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .accordion-header i {
+            transition: transform 0.3s ease;
+        }
+
+        .accordion-header.active i {
+            transform: rotate(45deg);
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+            padding: 0;
+        }
+
+        .accordion-content.active {
+            max-height: 200px;
+            padding: 0 0 20px 0;
+        }
+
+        .accordion-content p {
+            padding: 0;
+        }
+
+        .floating-whatsapp {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background-color: #25D366;
+            color: #fff;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 999;
+        }
+
+        footer {
+            background-color: var(--dark-bg);
+            color: #ccc;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* --- RESPONSIVENESS --- */
+        @media (max-width: 992px) {
+            .hero {
+                min-height: auto;
+                padding-top: 40px;
+                padding-bottom: 40px;
+            }
+
+            .hero-container {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .hero-text {
+                order: 2;
+                margin-top: 40px;
+            }
+
+            .hero-form-container {
+                order: 1;
+            }
+
+            .hero-text h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero-text p {
+                font-size: 1rem;
+                max-width: none;
+            }
+
+            .hero-features {
+                justify-content: center;
+            }
+
+            .servicos-grid,
+            .processo-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .numeros-grid {
+                flex-direction: column;
+                gap: 30px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .section-title {
+                font-size: 2rem;
+            }
+
+            nav {
+                display: none;
+            }
+
+            .processo-grid {
+                flex-direction: column;
+                gap: 40px;
+            }
+        }
+    </style>
 </head>
+
 <body>
 
-<header>
-    <div class="logo-container">
-        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo TrackBras">
-        <h1>TrackBras</h1>
-    </div>
-    <nav>
-        <a href="#sobre">Sobre</a>
-        <a href="#servicos">Serviços</a>
-        <a href="#contato">Contato</a>
-        <a href="{{ url_for('painel') }}">Área do Cliente</a>
-    
-</header>
+    <header>
+<div class="logo-container">
+    <img src="{{ url_for('static', filename='brasao.png') }}" alt="Logo TrackBras">
+    <span class="logo-text">TrackBras</span>
+</div>	
+        <nav>
+            <a href="#sobre">Sobre</a>
+            <a href="#servicos">Soluções</a>
+            <a href="{{ url_for('politica_privacidade') }}">Politica de privacidade</a>
+	    <a href="#">Nossos planos</a>
+            <a href="{{ url_for('login') }}" class="btn-cliente">Área do Cliente</a>
+        </nav>
+    </header>
 
-<main>
-    <div class="hero">
-        <video autoplay muted loop playsinline id="hero-video">
-            <source src="https://pub-8d882d6bc9d04fa1a0384fc62ef6450c.r2.dev/hero-video.mp4" type="video/mp4">
-            Seu navegador não suporta a tag de vídeo.
-        </video>
+    <main>
+        <section class="hero">
+            <div class="hero-container">
+                <div class="hero-text">
+                    <h1>Software de Gestão para sua Frota</h1>
+                    <p>Otimize rotas, gerencie manutenções, controle despesas e tenha a operação da sua transportadora na palma da sua mão com a plataforma mais completa do mercado.</p>
+                    <div class="hero-features">
+                        <span><i class="fa-solid fa-check"></i> Gestão de Viagens</span>
+                        <span><i class="fa-solid fa-check"></i> Controle Financeiro</span>
+                        <span><i class="fa-solid fa-check"></i> Manutenção Preventiva</span>
+                    </div>
+                </div>
+                <div class="hero-form-container">
+                    <h3>Quer saber como nosso sistema pode ajudar?</h3>
+                    <p>Agende uma demonstração gratuita!</p>
+                    <form action="https://formspree.io/f/xblkgpkv" method="POST"> 
+                        <div class="form-group"><label for="nome">Nome*</label><input type="text" id="nome" name="nome" required></div>
+                        <div class="form-group"><label for="telefone">Número de telefone*</label><input type="tel" id="telefone" name="telefone" required></div>
+                        <div class="form-group"><label for="email">E-mail*</label><input type="email" id="email" name="email" required></div>
+                        <div class="form-group"><label for="empresa">Nome da empresa*</label><input type="text" id="empresa" name="empresa" required></div>
+                        <div class="form-group">
+                            <label for="frota">Tamanho da frota*</label>
+                            <select id="frota" name="frota" required>
+                                <option value="" disabled selected>Selecione</option>
+                                <option value="1-5">1-5 veículos</option>
+                                <option value="6-15">6-15 veículos</option>
+                                <option value="16-30">16-30 veículos</option>
+                                <option value="31-50">31-50 veículos</option>
+                                <option value="50+">Mais de 50 veículos</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-submit">Solicite uma demonstração</button>
+                    </form>
+                </div>
+            </div>
+        </section>
 
-        <div class="hero-content">
-            <h2>Sistema Inteligente de Gerenciamento de Frotas</h2>
-            <p>Tenha controle total sobre suas operações, otimize rotas, reduza custos e aumente a segurança da sua frota com a nossa plataforma completa.</p>
-            <a href="https://wa.me/5541987842828?text=Olá!%20Gostaria%20de%20saber%20mais%20sobre%20a%20Trackbras." class="btn-cta" target="_blank">
-                <i class="fab fa-whatsapp"></i> Fale com um Consultor
-            </a>
-        </div>
-    </div>
+        <section id="sobre">
+            <h2 class="section-title">A revolução no gerenciamento de frotas</h2>
+            <p style="text-align: center; max-width: 800px; margin: 0 auto; line-height: 1.6;">
+                Com a nossa plataforma moderna e super intuitiva, você coloca o controle total da sua transportadora na palma da sua mão. Acompanhe em tempo real suas frotas, motoristas, manutenções e desempenho, tudo de forma simples e eficiente. Na TrackBras, transformamos dados em decisões inteligentes que aceleram a produtividade e elevam a lucratividade do seu negócio.
+            </p>
+        </section>
 
-    <section id="sobre">
-        <h2 class="section-title">Sobre a TrackBras</h2>
-        <p style="text-align: center; max-width: 800px; margin: 0 auto; line-height: 1.6;">
-            Descubra a revolução no gerenciamento de frotas com a TrackBras!
-Nossa plataforma moderna e super intuitiva coloca o controle total da sua transportadora na palma da sua mão. Acompanhe em tempo real suas frotas, motoristas, manutenções e desempenho, tudo de forma simples e eficiente.
+        <section id="demonstracao">
+            <h2 class="section-title" style="color: white;">Conheça a TrackBras em Ação</h2>
+            <video controls>
+                <source src="https://pub-8d882d6bc9d04fa1a0384fc62ef6450c.r2.dev/track.mp4" type="video/mp4">
+                Seu navegador não suporta a tag de vídeo.
+            </video>
+        </section>
 
-Na TrackBras, transformamos dados em decisões inteligentes que aceleram a produtividade e elevam a lucratividade do seu negócio.
+        <section id="servicos">
+            <h2 class="section-title">Nossas Soluções</h2>
+            <div class="servicos-grid">
+                <div class="servico-card"><i class="fas fa-route"></i>
+                    <h3>Gestão de Viagens</h3>
+                    <p>Monitore rotas em tempo real e otimize trajetos para economizar tempo e combustível.</p>
+                </div>
+                <div class="servico-card"><i class="fas fa-tachometer-alt"></i>
+                    <h3>Indicadores em tempo real</h3>
+                    <p>Acompanhe paradas e o comportamento dos motoristas através de um dashboard completo.</p>
+                </div>
+                <div class="servico-card"><i class="fas fa-tools"></i>
+                    <h3>Controle de Manutenção</h3>
+                    <p>Receba alertas preventivos e agende manutenções para evitar quebras e paradas inesperadas.</p>
+                </div>
+                <div class="servico-card"><i class="fas fa-file-alt"></i>
+                    <h3>Relatórios Inteligentes</h3>
+                    <p>Exporte relatórios detalhados para análises aprofundadas e tomadas de decisão estratégicas.</p>
+                </div>
+                <div class="servico-card"><i class="fas fa-file-invoice-dollar"></i>
+                    <h3>Controle Financeiro</h3>
+                    <p>Gerencie clientes devedores em um só lugar</p>
+                </div>
+                <div class="servico-card"><i class="fas fa-bell"></i>
+                    <h3>Alertas de Vencimentos</h3>
+                    <p>Receba notificações sobre manutenções, vencimento de CNH, seguros e outros documentos importantes para manter sua frota em dia.</p>
+                </div>
+            </div>
+        </section>
 
-Venha liderar o futuro da logística com a gente!
-        </p>
-    </section>
+        <section id="como-funciona">
+            <h2 class="section-title">Começar a Otimizar é Simples</h2>
+            <div class="processo-grid">
+                <div class="processo-passo">
+                    <div class="passo-numero">1</div>
+                    <h3>Análise e Proposta</h3>
+                    <p>Nossos especialistas entendem sua operação para oferecer o plano ideal.</p>
+                </div>
+                <div class="processo-passo">
+                    <div class="passo-numero">2</div>
+                    <h3>Treinamento e Acesso</h3>
+                    <p>Você e sua equipe recebem treinamento para usar a plataforma e os aplicativos.</p>
+                </div>
+                <div class="processo-passo">
+                    <div class="passo-numero">3</div>
+                    <h3>Suporte Contínuo</h3>
+                    <p>Nossa equipe está sempre à disposição para ajudar você a extrair o máximo da ferramenta.</p>
+                </div>
+            </div>
+        </section>
 
-<section id="demonstracao">
-    <h2 class="section-title" style="color: white;">Saiba um pouco mais sobre a TrackBras</h2>
-    
-    <video controls poster="{{ url_for('static', filename='videos/track.jpg') }}">
-        <source src="https://pub-8d882d6bc9d04fa1a0384fc62ef6450c.r2.dev/track.mp4" type="video/mp4">
-        Seu navegador não suporta a tag de vídeo.
-    </video>
+        <section id="numeros">
+            <h2 class="section-title">Nossos Números em Tempo Real</h2>
+            <div class="numeros-grid">
+                <div class="numero-item" data-target="2500">
+                    <div class="valor">+0</div>
+                    <div class="descricao"><span role="img" aria-label="Estrada">🛣️</span> Viagens Monitoradas</div>
+                </div>
+                <div class="numero-item" data-target="180">
+                    <div class="valor">+0</div>
+                    <div class="descricao"><span role="img" aria-label="Caminhão">🚛</span> Caminhões Rastreados</div>
+                </div>
+                <div class="numero-item" data-target="60">
+                    <div class="valor">+0</div>
+                    <div class="descricao"><span role="img" aria-label="Pessoa de negócios">🧑‍💼</span> Transportadoras Ativas</div>
+                </div>
+                <div class="numero-item" data-target="100">
+                    <div class="valor">+0</div>
+                    <div class="descricao"><span role="img" aria-label="Checkmark">✅</span> Clientes Satisfeitos</div>
+                </div>
+            </div>
+        </section>
 
-</section>
+        <section id="faq">
+            <h2 class="section-title">Perguntas Frequentes</h2>
+            <div class="accordion-container">
+                <div class="accordion-item">
+                    <button class="accordion-header">Preciso ter um contrato de fidelidade?<i class="fas fa-plus"></i></button>
+                    <div class="accordion-content">
+                        <p>Nossos planos são flexíveis. Oferecemos opções com e sem contrato de fidelidade para se adaptar melhor à necessidade e ao momento da sua empresa. Planos com fidelidade geralmente possuem condições comerciais mais atrativas. Fale com um consultor para saber mais.</p>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button class="accordion-header">Como o sistema me ajuda a economizar combustível?<i class="fas fa-plus"></i></button>
+                    <div class="accordion-content">
+                        <p>A plataforma identifica padrões de condução que gastam más combustível, como excesso de velocidade, acelerações e frenagens bruscas. Além disso, o controle de rotas ajuda a encontrar os trajetos mais curtos e eficientes, diminuindo a quilometragem e, consequentemente, o consumo.</p>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button class="accordion-header">Como o sistema de gerenciamento de frota pode ajudar a poupar dinheiro?<i class="fas fa-plus"></i></button>
+                    <div class="accordion-content">
+                        <p>O sistema ajuda a economizar ao otimizar rotas em tempo real, reduzir o tempo de parada dos veículos, evitar atrasos, controlar a jornada dos motoristas e antecipar manutenções importantes. Tudo isso diminui desperdícios, melhora a produtividade e reduz custos com retrabalho, multas e imprevistos.</p>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button class="accordion-header">O sistema me ajuda a controlar os custos das viagens?<i class="fas fa-plus"></i></button>
+                    <div class="accordion-content">
+                        <p>Sim. O TrackBras permite registrar e visualizar todas as despesas de uma viagem — como pedágios, alimentação, hospedagem e outros custos operacionais — além de associar esses dados a relatórios financeiros completos. Com isso, você tem uma visão clara do custo total de cada viagem e pode identificar onde está gastando mais, ajudando na tomada de decisões estratégicas para reduzir despesas.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-<section id="servicos">
-    <h2 class="section-title">Nossas Soluções</h2>
-    <div class="servicos-grid">
-        <div class="servico-card"><i class="fas fa-route"></i><h3>Gestão de Viagens</h3><p>Monitore rotas em tempo real e otimize trajetos para economizar tempo e combustível.</p></div>
-        <div class="servico-card"><i class="fas fa-tachometer-alt"></i><h3>Indicadores em tempo real</h3><p>Acompanhe paradas e o comportamento dos motoristas através de um dashboard completo.</p></div>
-        <div class="servico-card"><i class="fas fa-tools"></i><h3>Controle de Manutenção</h3><p>Receba alertas preventivos e agende manutenções para evitar quebras e paradas inesperadas.</p></div>
-        <div class="servico-card"><i class="fas fa-file-alt"></i><h3>Relatórios Inteligentes</h3><p>Exporte relatórios detalhados para análises aprofundadas e tomadas de decisão estratégicas.</p></div>
-        <div class="servico-card"><i class="fas fa-file-invoice-dollar"></i><h3>Controle Financeiro</h3><p>Gerencie clientes devedores em um só lugar</p></div>
-        <div class="servico-card"><i class="fas fa-bell"></i><h3>Alertas de Vencimentos</h3><p>Receba notificações sobre manutenções, vencimento de CNH, seguros e outros documentos importantes para manter sua frota em dia.</p></div>
-    </div>
-</section>
-    
-    <section id="como-funciona" style="background-color: var(--light-bg); border: none; box-shadow: none;">
-        <h2 class="section-title">Começar a Otimizar é Simples</h2>
-        <div class="processo-grid">
-            <div class="processo-passo"><div class="passo-numero">1</div><h3>Análise e Proposta</h3><p>Nossos especialistas entendem sua operação para oferecer o plano ideal.</p></div>
-            <div class="processo-passo"><div class="passo-numero">2</div><h3>Treinamento e Acesso</h3><p>Você e sua equipe recebem treinamento para usar a plataforma e os aplicativos.</p></div>
-            <div class="processo-passo"><div class="passo-numero">3</div><h3>Suporte Contínuo</h3><p>Nossa equipe está sempre à disposição para ajudar você a extrair o máximo da ferramenta.</p></div>
-        </div>
-    </section>
+    </main>
 
-    <section id="numeros">
-        <h2 class="section-title" style="color: white;">Nossos Números em Tempo Real</h2>
-        <div class="numeros-grid">
-            <div class="numero-item"><div id="contador-viagens" class="valor">+0</div><div class="descricao">🛣️ Viagens Monitoradas</div></div>
-            <div class="numero-item"><div id="contador-caminhoes" class="valor">+0</div><div class="descricao">🚛 Caminhões Rastreados</div></div>
-            <div class="numero-item"><div id="contador-transportadoras" class="valor">+0</div><div class="descricao">🧑‍💼 Transportadoras Ativas</div></div>
-            <div class="numero-item"><div id="contador-clientes" class="valor">+0</div><div class="descricao">✅ Clientes Satisfeitos</div></div>
-        </div>
-    </section>
+    <a href="https://wa.me/5541987842828?text=Olá!%20Vim%20pelo%20site%20e%20gostaria%20de%20mais%20informações."
+        class="floating-whatsapp" target="_blank">
+        <i class="fab fa-whatsapp"></i>
+    </a>
 
-    <section id="faq">
-        <h2 class="section-title">Perguntas Frequentes</h2>
-        <div class="accordion-container">
-            <div class="accordion-item"><button class="accordion-header">Preciso ter um contrato de fidelidade?<i class="fas fa-plus"></i></button><div class="accordion-content"><p>Nossos planos são flexíveis. Oferecemos opções com e sem contrato de fidelidade para se adaptar melhor à necessidade e ao momento da sua empresa. Planos com fidelidade geralmente possuem condições comerciais mais atrativas. Fale com um consultor para saber mais.</p></div></div>
-            <div class="accordion-item"><button class="accordion-header">Como o sistema me ajuda a economizar combustível?<i class="fas fa-plus"></i></button><div class="accordion-content"><p>A plataforma identifica padrões de condução que gastam mais combustível, como excesso de velocidade, acelerações e frenagens bruscas. Além disso, o controle de rotas ajuda a encontrar os trajetos mais curtos e eficientes, diminuindo a quilometragem e, consequentemente, o consumo.</p></div></div>
-            <div class="accordion-item"><button class="accordion-header">Como o sistema de gerenciamento de frota pode ajudar a poupar dinheiro?<i class="fas fa-plus"></i></button><div class="accordion-content"><p>O sistema ajuda a economizar ao otimizar rotas em tempo real, reduzir o tempo de parada dos veículos, evitar atrasos, controlar a jornada dos motoristas e antecipar manutenções importantes. Tudo isso diminui desperdícios, melhora a produtividade e reduz custos com retrabalho, multas e imprevistos.</p></div></div>
-            <div class="accordion-item"><button class="accordion-header">O sistema me ajuda a controlar os custos das viagens?<i class="fas fa-plus"></i></button><div class="accordion-content"><p>Sim. O TrackBras permite registrar e visualizar todas as despesas de uma viagem — como pedágios, alimentação, hospedagem e outros custos operacionais — além de associar esses dados a relatórios financeiros completos. Com isso, você tem uma visão clara do custo total de cada viagem e pode identificar onde está gastando mais, ajudando na tomada de decisões estratégicas para reduzir despesas.</p></div></div>
-        </div>
-    </section>
+    <footer>
+        <p>&copy; 2025 TrackBras. Todos os direitos reservados.</p>
+    </footer>
 
-    <section id="contato">
-        <h2 class="section-title">Fale Conosco</h2>
-        
-        <form action="https://formspree.io/f/xblkgpkv" method="POST">
-            <input type="text" name="nome" placeholder="Seu nome completo" required />
-            <input type="email" name="email" placeholder="Seu melhor e-mail" required />
-            <textarea name="mensagem" rows="5" placeholder="Como podemos ajudar?" required></textarea>
-            <button type="submit">Enviar Mensagem</button>
-        </form>
-    </section>
-</main>
+    <script>
+        document.querySelectorAll('.accordion-header').forEach(button => {
+            button.addEventListener('click', () => {
+                const accordionContent = button.nextElementSibling;
+                document.querySelectorAll('.accordion-header').forEach(otherButton => {
+                    if (otherButton !== button) {
+                        otherButton.classList.remove('active');
+                        otherButton.nextElementSibling.classList.remove('active');
+                        otherButton.nextElementSibling.style.maxHeight = 0;
+                    }
+                });
+                button.classList.toggle('active');
+                accordionContent.classList.toggle('active');
+                if (button.classList.contains('active')) {
+                    accordionContent.style.maxHeight = accordionContent.scrollHeight + 'px';
+                } else {
+                    accordionContent.style.maxHeight = 0;
+                }
+            });
+        });
 
-<a href="https://wa.me/5541987842828?text=Olá!%20Vim%20pelo%20site%20e%20gostaria%20de%20mais%20informações." class="floating-whatsapp" target="_blank">
-    <i class="fab fa-whatsapp"></i>
-</a>
-
-<footer>
-    <p>&copy; 2025 TrackBras. Todos os direitos reservados.</p>
-</footer>
-
-<script src="{{ url_for('static', filename='paginaini.js') }}"></script>
+        const counters = document.querySelectorAll('.numero-item .valor');
+        const speed = 200;
+        const animateCounters = () => {
+            counters.forEach(counter => {
+                const updateCount = () => {
+                    const target = +counter.parentElement.getAttribute('data-target');
+                    const count = +counter.innerText.replace(/[+.]/g, '');
+                    const increment = Math.ceil(target / speed);
+                    if (count < target) {
+                        const newCount = Math.min(count + increment, target);
+                        counter.innerText = '+' + newCount.toLocaleString('pt-BR');
+                        setTimeout(updateCount, 10);
+                    } else {
+                        counter.innerText = '+' + target.toLocaleString('pt-BR');
+                    }
+                };
+                counter.innerText = '+0';
+                updateCount();
+            });
+        };
+        const numerosSection = document.getElementById('numeros');
+        let hasAnimated = false;
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !hasAnimated) {
+                    animateCounters();
+                    hasAnimated = true;
+                }
+            });
+        }, {
+            threshold: 0.5
+        });
+        if (numerosSection) {
+            observer.observe(numerosSection);
+        }
+    </script>
 
 </body>
+
 </html>
