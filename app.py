@@ -7547,6 +7547,10 @@ def consultar_viagens():
         request=request
     )
 
+@app.route('/politica_privacidade')
+def politica_privacidade():
+    return render_template('politica_privacidade.html')
+
 @app.route('/viagem/<int:viagem_id>/gerenciar_despesas')
 @login_required
 def gerenciar_despesas_viagem(viagem_id):
