@@ -4373,12 +4373,15 @@ def exportar_rentabilidade_excel():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        # Redireciona com base no papel se o usuário já estiver logado
+        # Se o usuário já estiver logado, redireciona para o painel correto
         if current_user.role == 'Owner':
             return redirect(url_for('owner_dashboard'))
         elif current_user.role == 'Motorista':
             return redirect(url_for('motorista_dashboard'))
-        return redirect(url_for('index'))
+        else:
+            # --- CORREÇÃO APLICADA AQUI ---
+            # Para qualquer outro usuário logado (Admin, Master), o destino é o 'painel'
+            return redirect(url_for('painel'))
 
     if request.method == 'POST':
         email = request.form.get('email')
@@ -4393,7 +4396,7 @@ def login():
         login_user(usuario)
         flash('Login realizado com sucesso!', 'success')
         
-        # CORREÇÃO: Direcionamento claro e funcional após o login.
+        # O redirecionamento após o login bem-sucedido já estava correto
         if usuario.role == 'Owner':
             return redirect(url_for('owner_dashboard'))
         elif usuario.role == 'Motorista':
@@ -6576,16 +6579,22 @@ def api_exportar_fluxo_excel():
     resumo consolidado e formatação aprimorada para contabilidade.
     """
     try:
-        # 1. Coleta e validação dos filtros da URL
+        # 1. Coleta e validação de todos os filtros da URL
         hoje = date.today()
         data_inicio_str = request.args.get('data_inicio', hoje.strftime('%Y-%m-%d'))
         data_fim_str = request.args.get('data_fim', (hoje + timedelta(days=30)).strftime('%Y-%m-%d'))
+        data_emissao_inicio = request.args.get('data_emissao_inicio', '')
+        data_emissao_fim = request.args.get('data_emissao_fim', '')
+        categoria_filtro = request.args.get('categoria', '')
+        status_filtro = request.args.get('status', '')
+        meio_pagamento_filtro = request.args.get('meio_pagamento', '')
+        tipo_filtro = request.args.get('tipo', '')
         unidade_negocio_filtro_id = request.args.get('unidade_negocio_id', type=int)
-        
+
         data_inicio_obj = datetime.strptime(data_inicio_str, '%Y-%m-%d').date()
         data_fim_obj = datetime.strptime(data_fim_str, '%Y-%m-%d').date()
 
-        # 2. Query otimizada para buscar todos os dados necessários de uma só vez
+        # 2. Query otimizada para buscar todos os dados necessários com base nos filtros
         query = LancamentoFluxoCaixa.query.options(
             db.joinedload(LancamentoFluxoCaixa.unidade_negocio),
             db.joinedload(LancamentoFluxoCaixa.rateios).joinedload(RateioVeiculo.veiculo),
@@ -6595,10 +6604,25 @@ def api_exportar_fluxo_excel():
             LancamentoFluxoCaixa.data_vencimento.between(data_inicio_obj, data_fim_obj)
         )
 
-        # Aplica filtros adicionais
+        # Aplica os filtros da tela
+        if data_emissao_inicio:
+            query = query.filter(LancamentoFluxoCaixa.data_lancamento >= datetime.strptime(data_emissao_inicio, '%Y-%m-%d'))
+        if data_emissao_fim:
+            query = query.filter(LancamentoFluxoCaixa.data_lancamento <= datetime.strptime(data_emissao_fim, '%Y-%m-%d'))
+        if categoria_filtro:
+            query = query.filter(LancamentoFluxoCaixa.categoria.ilike(f'%{categoria_filtro}%'))
+        if status_filtro:
+            status_pagos = ['PAGO', 'Pago']
+            if status_filtro == 'PAGO':
+                query = query.filter(LancamentoFluxoCaixa.status_pagamento.in_(status_pagos))
+            else:
+                query = query.filter(LancamentoFluxoCaixa.status_pagamento.notin_(status_pagos))
+        if tipo_filtro:
+            query = query.filter(LancamentoFluxoCaixa.tipo == tipo_filtro)
+        if meio_pagamento_filtro:
+            query = query.filter(LancamentoFluxoCaixa.meio_pagamento == meio_pagamento_filtro)
         if unidade_negocio_filtro_id:
             query = query.filter(LancamentoFluxoCaixa.unidade_negocio_id == unidade_negocio_filtro_id)
-        # (Adicione outros filtros como categoria, status, etc., aqui se necessário)
 
         lancamentos = query.order_by(LancamentoFluxoCaixa.unidade_negocio_id, LancamentoFluxoCaixa.data_vencimento).all()
 
@@ -6611,15 +6635,15 @@ def api_exportar_fluxo_excel():
         # 4. Cria o arquivo Excel em memória
         output = io.BytesIO()
         workbook = Workbook()
-        workbook.remove(workbook.active)  # Remove a planilha padrão
+        workbook.remove(workbook.active)
 
-        # 5. Define estilos de formatação para a planilha
+        # 5. Define estilos de formatação
         header_font = Font(bold=True, color="FFFFFF")
         header_fill = PatternFill(start_color="2E7D32", end_color="2E7D32", fill_type="solid")
         currency_format = 'R$ #,##0.00'
         summary_font = Font(bold=True)
-        
-        # 6. Função auxiliar para criar uma planilha (aba)
+
+        # 6. Função auxiliar para criar cada aba da planilha
         def create_sheet(sheet_name, data):
             sheet = workbook.create_sheet(title=sheet_name)
             
@@ -6630,7 +6654,6 @@ def api_exportar_fluxo_excel():
             ]
             sheet.append(headers)
             
-            # Aplica estilo ao cabeçalho
             for cell in sheet[1]:
                 cell.font = header_font
                 cell.fill = header_fill
@@ -6638,7 +6661,6 @@ def api_exportar_fluxo_excel():
             total_receitas = 0
             total_despesas = 0
 
-            # Preenche os dados
             for lanc in data:
                 is_nfe = lanc.documento_numero and lanc.documento_numero.startswith('NFE-')
                 chave_acesso = lanc.observacoes.split('Chave de acesso: ')[1] if is_nfe and 'Chave de acesso: ' in lanc.observacoes else ''
@@ -6652,7 +6674,7 @@ def api_exportar_fluxo_excel():
 
                 row = [
                     lanc.data_vencimento,
-                    lanc.data_lancamento,
+                    lanc.data_lancamento.date() if lanc.data_lancamento else None,
                     lanc.data_pagamento,
                     lanc.unidade_negocio.nome if lanc.unidade_negocio else "N/A",
                     lanc.tipo,
@@ -6664,24 +6686,21 @@ def api_exportar_fluxo_excel():
                     lanc.valor_total,
                     lanc.status_pagamento,
                     lanc.meio_pagamento,
-                    f"{lanc.parcela_numero}/{lanc.parcela_total}" if lanc.parcela_total > 1 else "1/1",
+                    f"{lanc.parcela_numero}/{lanc.parcela_total}" if lanc.parcela_total and lanc.parcela_total > 1 else "1/1",
                     "Sim" if lanc.tem_rateio else "Não",
                     alocacao_rateio,
                     lanc.observacoes
                 ]
                 sheet.append(row)
 
-                # Formata a célula de valor
                 sheet.cell(row=sheet.max_row, column=11).number_format = currency_format
 
-                # Soma para o resumo
                 if lanc.tipo == 'RECEITA':
                     total_receitas += lanc.valor_total
                 else:
                     total_despesas += lanc.valor_total
             
-            # Adiciona a linha de resumo no final
-            sheet.append([]) # Linha em branco
+            sheet.append([])
             summary_row_start = sheet.max_row + 1
             sheet.cell(row=summary_row_start, column=10, value="TOTAL RECEITAS:").font = summary_font
             sheet.cell(row=summary_row_start, column=11, value=total_receitas).number_format = currency_format
@@ -6695,8 +6714,6 @@ def api_exportar_fluxo_excel():
             sheet.cell(row=summary_row_start + 2, column=11, value=(total_receitas - total_despesas)).number_format = currency_format
             sheet.cell(row=summary_row_start + 2, column=11).font = summary_font
 
-
-            # Ajusta a largura das colunas
             for col_idx, column_cells in enumerate(sheet.columns, 1):
                 max_length = 0
                 column = get_column_letter(col_idx)
@@ -6707,14 +6724,13 @@ def api_exportar_fluxo_excel():
                     except:
                         pass
                 adjusted_width = (max_length + 2) * 1.2
-                sheet.column_dimensions[column].width = adjusted_width
+                sheet.column_dimensions[column].width = min(adjusted_width, 50)
 
-        # 7. Gera as planilhas
+        # 7. Gera as planilhas: uma consolidada e uma para cada unidade de negócio
         if not unidade_negocio_filtro_id and len(dados_por_unidade) > 1:
             create_sheet("Resumo Geral Consolidado", lancamentos)
 
         for unidade, dados_unidade in sorted(dados_por_unidade.items()):
-            # Limita o nome da aba para 31 caracteres, que é o limite do Excel
             safe_sheet_name = unidade[:31]
             create_sheet(safe_sheet_name, dados_unidade)
 
@@ -6735,7 +6751,7 @@ def api_exportar_fluxo_excel():
         logger.error(f"Erro ao exportar relatório detalhado de fluxo de caixa: {e}", exc_info=True)
         flash('Ocorreu um erro inesperado ao gerar o relatório Excel.', 'error')
         return redirect(url_for('fluxo_caixa', **request.args))
-    
+
 @app.route('/api/fluxo_caixa/reprocessar_nfe/<string:chave_acesso>', methods=['POST'])
 @login_required
 @master_required
@@ -9539,13 +9555,14 @@ def central_documentos():
     for cliente in clientes_com_anexos:
         urls = cliente.anexos.split(',')
         for url in urls:
-            documentos_consolidados.append({
-                'tipo': 'Cliente',
-                'nome_entidade': cliente.nome_razao_social,
-                'id_entidade': cliente.id,
-                'url': url,
-                'nome_arquivo': url.split('/')[-1]
-            })
+            if url: # Garante que não adicione strings vazias
+                documentos_consolidados.append({
+                    'tipo': 'Cliente',
+                    'nome_entidade': cliente.nome_razao_social,
+                    'id_entidade': cliente.id,
+                    'url': url,
+                    'nome_arquivo': url.split('/')[-1]
+                })
 
     # 2. Documentos dos Motoristas
     motoristas_com_anexos = Motorista.query.filter(
@@ -9556,13 +9573,14 @@ def central_documentos():
     for motorista in motoristas_com_anexos:
         urls = motorista.anexos.split(',')
         for url in urls:
-            documentos_consolidados.append({
-                'tipo': 'Motorista',
-                'nome_entidade': motorista.nome,
-                'id_entidade': motorista.id,
-                'url': url,
-                'nome_arquivo': url.split('/')[-1]
-            })
+            if url:
+                documentos_consolidados.append({
+                    'tipo': 'Motorista',
+                    'nome_entidade': motorista.nome,
+                    'id_entidade': motorista.id,
+                    'url': url,
+                    'nome_arquivo': url.split('/')[-1]
+                })
 
     # 3. Anexos de Custos de Viagem
     custos_com_anexos = CustoViagem.query.join(Viagem).filter(
@@ -9573,13 +9591,14 @@ def central_documentos():
     for custo in custos_com_anexos:
         urls = custo.anexos.split(',')
         for url in urls:
-            documentos_consolidados.append({
-                'tipo': 'Viagem',
-                'nome_entidade': f"Viagem #{custo.viagem_id} ({custo.viagem.veiculo.placa if custo.viagem.veiculo else 'N/A'})",
-                'id_entidade': custo.viagem_id,
-                'url': url,
-                'nome_arquivo': url.split('/')[-1]
-            })
+            if url:
+                documentos_consolidados.append({
+                    'tipo': 'Viagem',
+                    'nome_entidade': f"Viagem #{custo.viagem_id} ({custo.viagem.veiculo.placa if custo.viagem.veiculo else 'N/A'})",
+                    'id_entidade': custo.viagem_id,
+                    'url': url,
+                    'nome_arquivo': url.split('/')[-1]
+                })
 
     # 4. Anexos de Abastecimentos
     abastecimentos_com_anexos = Abastecimento.query.join(Viagem).filter(
@@ -9589,33 +9608,52 @@ def central_documentos():
     ).options(db.joinedload(Abastecimento.viagem).joinedload(Viagem.veiculo)).all()
     for abast in abastecimentos_com_anexos:
         url = abast.anexo_comprovante
-        documentos_consolidados.append({
-            'tipo': 'Viagem',
-            'nome_entidade': f"Viagem #{abast.viagem_id} ({abast.viagem.veiculo.placa if abast.viagem.veiculo else 'N/A'})",
-            'id_entidade': abast.viagem_id,
-            'url': url,
-            'nome_arquivo': f"ComprovanteAbast_{url.split('/')[-1]}"
-        })
+        if url:
+            documentos_consolidados.append({
+                'tipo': 'Viagem',
+                'nome_entidade': f"Viagem #{abast.viagem_id} ({abast.viagem.veiculo.placa if abast.viagem.veiculo else 'N/A'})",
+                'id_entidade': abast.viagem_id,
+                'url': url,
+                'nome_arquivo': f"ComprovanteAbast_{url.split('/')[-1]}"
+            })
 
-    # <<< NOVO BLOCO ADICIONADO AQUI >>>
     # 5. Anexos de Despesas Diversas de Veículos
     despesas_com_anexos = DespesaVeiculo.query.join(Veiculo).filter(
         Veiculo.empresa_id == current_user.empresa_id,
         DespesaVeiculo.anexos.isnot(None),
         DespesaVeiculo.anexos != ''
     ).options(db.joinedload(DespesaVeiculo.veiculo)).all()
-
     for despesa in despesas_com_anexos:
         urls = despesa.anexos.split(',')
         for url in urls:
-            documentos_consolidados.append({
-                'tipo': 'Veículo',
-                'nome_entidade': f"Despesa: {despesa.veiculo.placa} ({despesa.categoria})",
-                'id_entidade': despesa.veiculo_id,
-                'url': url,
-                'nome_arquivo': url.split('/')[-1]
-            })
-    # <<< FIM DO NOVO BLOCO >>>
+            if url:
+                documentos_consolidados.append({
+                    'tipo': 'Veículo',
+                    'nome_entidade': f"Despesa: {despesa.veiculo.placa} ({despesa.categoria})",
+                    'id_entidade': despesa.veiculo_id,
+                    'url': url,
+                    'nome_arquivo': url.split('/')[-1]
+                })
+
+    # --- BLOCO ADICIONADO ---
+    # 6. Fotos de Veículos (Anexos do cadastro do veículo)
+    veiculos_com_fotos = Veiculo.query.filter(
+        Veiculo.empresa_id == current_user.empresa_id,
+        Veiculo.fotos_urls.isnot(None),
+        Veiculo.fotos_urls != ''
+    ).all()
+    for veiculo in veiculos_com_fotos:
+        urls = veiculo.fotos_urls.split(',')
+        for url in urls:
+            if url:
+                documentos_consolidados.append({
+                    'tipo': 'Veículo',
+                    'nome_entidade': f"Fotos: {veiculo.placa} ({veiculo.modelo})",
+                    'id_entidade': veiculo.id,
+                    'url': url,
+                    'nome_arquivo': url.split('/')[-1]
+                })
+    # --- FIM DO BLOCO ADICIONADO ---
 
     # Filtrar resultados se houver uma busca
     documentos_finais = []
@@ -10371,7 +10409,6 @@ def parse_nfe_xml_content(xml_content_str):
     Retorna um dicionário com os dados ou None se houver erro.
     """
     try:
-        # Garante que o conteúdo seja uma string decodificada em utf-8
         if isinstance(xml_content_str, bytes):
             xml_content_str = xml_content_str.decode('utf-8')
             
@@ -10383,20 +10420,34 @@ def parse_nfe_xml_content(xml_content_str):
         chave_acesso = infNFe.get('Id').replace('NFe', '')
         
         emit = root.find('.//nfe:emit', ns)
-        emit_cnpj = emit.find('nfe:CNPJ', ns).text
-        emit_nome = emit.find('nfe:xNome', ns).text
+        if emit is None: return None # Adiciona uma verificação de segurança
+
+        # --- INÍCIO DA CORREÇÃO ---
+        # Procura por CNPJ, se não achar, procura por CPF.
+        emit_cnpj_node = emit.find('nfe:CNPJ', ns)
+        emit_cpf_node = emit.find('nfe:CPF', ns)
+        
+        if emit_cnpj_node is not None:
+            emit_cnpj = emit_cnpj_node.text
+        elif emit_cpf_node is not None:
+            emit_cnpj = emit_cpf_node.text
+        else:
+            # Se não encontrar nem CNPJ nem CPF, não é uma nota válida para o sistema.
+            logger.error(f"XML com chave {chave_acesso} não possui CNPJ ou CPF do emitente.")
+            return None
+        
+        # Acesso seguro ao nome do emitente
+        emit_nome_node = emit.find('nfe:xNome', ns)
+        emit_nome = emit_nome_node.text if emit_nome_node is not None else "Emitente Desconhecido"
+        # --- FIM DA CORREÇÃO ---
 
         ide = root.find('.//nfe:ide', ns)
         data_emissao_str = getattr(ide.find('nfe:dhEmi', ns), 'text', None) or getattr(ide.find('nfe:dEmi', ns), 'text', None)
 
-        # --- AQUI ESTÁ A CORREÇÃO ---
-        # Pega apenas a parte da data (YYYY-MM-DD), ignorando o horário e fuso,
-        # o que torna a conversão muito mais confiável.
         if 'T' in data_emissao_str:
             data_emissao_str = data_emissao_str.split('T')[0]
             
         data_emissao = datetime.fromisoformat(data_emissao_str)
-        # --- FIM DA CORREÇÃO ---
 
         total = root.find('.//nfe:ICMSTot', ns)
         valor_total = float(total.find('nfe:vNF', ns).text)
