@@ -1138,11 +1138,103 @@
     padding: 1rem;
   }
 
+  /* Modal de Loading para importação de XMLs */
+  .loading-modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .loading-modal.show {
+    display: flex;
+  }
+
+  .loading-modal-content {
+    background: white;
+    border-radius: 20px;
+    padding: 3rem 4rem;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: modalBounce 0.4s ease-out;
+    max-width: 500px;
+  }
+
+  @keyframes modalBounce {
+    0% {
+      transform: scale(0.8);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .loading-spinner-large {
+    width: 80px;
+    height: 80px;
+    border: 6px solid var(--gray-200);
+    border-radius: 50%;
+    border-top-color: var(--primary-green);
+    animation: spin 1s linear infinite;
+    margin: 0 auto 2rem;
+  }
+
+  .loading-modal-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 0.5rem;
+  }
+
+  .loading-modal-text {
+    font-size: 1rem;
+    color: var(--gray-600);
+    line-height: 1.5;
+  }
+
+  .loading-modal-details {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: 10px;
+    font-size: 0.875rem;
+    color: var(--gray-700);
+  }
+
+  .loading-modal-details strong {
+    color: var(--primary-green);
+    font-size: 1.125rem;
+  }
+
   @media (max-width: 768px) {
     #notifications {
       right: 10px;
       left: 10px;
       max-width: none;
+    }
+
+    .loading-modal-content {
+      margin: 1rem;
+      padding: 2rem;
+      max-width: 90%;
+    }
+
+    .loading-spinner-large {
+      width: 60px;
+      height: 60px;
+      border-width: 4px;
     }
 
     .search-controls {
@@ -1462,6 +1554,21 @@
   </div>
 </div>
 
+<!-- Modal de Loading para Importação de XMLs -->
+<div id="loadingModal" class="loading-modal">
+  <div class="loading-modal-content">
+    <div class="loading-spinner-large"></div>
+    <div class="loading-modal-title">Processando XMLs...</div>
+    <div class="loading-modal-text">
+      Por favor, aguarde enquanto processamos os arquivos.<br>
+      Isso pode levar alguns instantes.
+    </div>
+    <div class="loading-modal-details">
+      Arquivos selecionados: <strong id="loadingFileCount">0</strong>
+    </div>
+  </div>
+</div>
+
 <div id="modalLancamento" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -1775,6 +1882,11 @@
       return;
     }
 
+    // Mostrar modal de loading
+    const loadingModal = document.getElementById('loadingModal');
+    document.getElementById('loadingFileCount').textContent = files.length;
+    loadingModal.classList.add('show');
+
     const btn = document.getElementById('btnImportarXmls');
     const loading = document.getElementById('loadingImportarXml');
     btn.disabled = true;
@@ -1793,6 +1905,9 @@
 
       const result = await response.json();
 
+      // Esconder modal de loading
+      loadingModal.classList.remove('show');
+
       if (result.success) {
         mostrarNotificacao('success', result.message);
 
@@ -1808,6 +1923,7 @@
 
     } catch (error) {
       console.error('Erro ao importar XMLs:', error);
+      loadingModal.classList.remove('show');
       mostrarNotificacao('error', 'Erro de conexão ao importar arquivos.');
     } finally {
       btn.disabled = false;
@@ -2923,11 +3039,19 @@
         unidade_negocio_id: unidadeNegocioId
       };
 
+      // IMPORTANTE: Enviar os veículos como um array de rateios
+      // O backend deve criar UM lançamento com MÚLTIPLOS rateios associados
       if (tipoRateio === 'com_rateio') {
-        payload.veiculos = Array.from(veiculosSelecionados.values()).map(v => ({
+        payload.rateios = Array.from(veiculosSelecionados.values()).map(v => ({
           veiculo_id: v.id,
+          valor: v.valor,
           percentual: (v.valor / valorTotalNota) * 100
         }));
+        
+        console.log('Payload com rateio:', JSON.stringify(payload, null, 2));
+        console.log(`Enviando 1 lançamento com ${payload.rateios.length} rateios de veículos`);
+      } else {
+        console.log('Payload sem rateio:', JSON.stringify(payload, null, 2));
       }
 
       const response = await fetch('/api/fiscal/salvar_lancamento', {
@@ -2946,7 +3070,7 @@
       if (result.success) {
         let mensagem = 'Lançamento criado com sucesso! ';
         if (tipoRateio === 'com_rateio') {
-          mensagem += `${parcelas.length} parcela(s) rateada(s) entre ${veiculosSelecionados.size} veículo(s).`;
+          mensagem += `${parcelas.length} parcela(s) com rateio entre ${veiculosSelecionados.size} veículo(s).`;
         } else {
           mensagem += `${parcelas.length} parcela(s) de pagamento gerada(s).`;
         }

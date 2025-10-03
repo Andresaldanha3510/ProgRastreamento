@@ -85,13 +85,14 @@
             margin-right: 10px;
         }
 	
-	.logo-text { /* ADICIONE ESTAS NOVAS REGRAS */
-    color: var(--brand-color); /* Usa o verde da sua marca */
-    font-size: 1.8rem; /* Tamanho do texto */
-    font-weight: 800; /* Negrito */
-    margin-left: -5px; /* Ajuste fino, se a imagem ficar muito longe */
-    letter-spacing: -1px; /* Ajusta o espaçamento entre as letras */
-	}
+	    .logo-text {
+            color: var(--brand-color);
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-left: -5px;
+            letter-spacing: -1px;
+	    }
+
         nav a {
             color: var(--text-light);
             text-decoration: none;
@@ -116,7 +117,7 @@
             color: var(--text-light);
         }
 
-        /* --- HERO SECTION (AGORA COM IMAGEM DE FUNDO ESTÁTICA) --- */
+        /* --- HERO SECTION --- */
         .hero {
             position: relative;
             min-height: calc(100vh - 80px);
@@ -127,40 +128,14 @@
             text-align: left;
             padding: 0 5%;
             overflow: hidden;
-            /* background-color: #333; -- Não precisamos mais, a imagem cobre */
 
-            /* --- NOVOS ESTILOS PARA IMAGEM DE FUNDO AQUI --- */
             background-image:
                 linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
-                /* Camada escura para texto legível */
                 url("{{ url_for('static', filename='fundo.png') }}");
-            /* Sua imagem de fundo */
             background-size: cover;
             background-position: center center;
             background-repeat: no-repeat;
-            /* --- FIM DOS NOVOS ESTILOS --- */
         }
-
-        /* As regras de vídeo e overlay abaixo não são mais usadas, mas podem ser mantidas comentadas */
-        /* #hero-video {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: translate(-50%, -50%);
-            z-index: 0;
-        }
-        .hero-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            z-index: 1;
-        } */
 
         .hero-container {
             position: relative;
@@ -274,15 +249,14 @@
         }
 
        #demonstracao video {
-   		max-width: 800px;
-   		width: 100%;
-    		height: auto; /* Mantemos por compatibilidade */
-   		aspect-ratio: 16 / 9;
+   		    max-width: 800px;
+   		    width: 100%;
+    		height: auto;
+   		    aspect-ratio: 16 / 9;
     		object-fit: cover; 
-    
-   		border-radius: 10px;
+    		border-radius: 10px;
     		box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-}
+        }
 
         #servicos {
             background-color: var(--light-bg);
@@ -534,15 +508,15 @@
 <body>
 
     <header>
-<div class="logo-container">
-    <img src="{{ url_for('static', filename='brasao.png') }}" alt="Logo TrackBras">
-    <span class="logo-text">TrackBras</span>
-</div>	
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='brasao.png') }}" alt="Logo TrackBras">
+            <span class="logo-text">TrackBras</span>
+        </div>	
         <nav>
             <a href="#sobre">Sobre</a>
             <a href="#servicos">Soluções</a>
             <a href="{{ url_for('politica_privacidade') }}">Politica de privacidade</a>
-	    <a href="#">Nossos planos</a>
+            <a href="#">Nossos planos</a>
             <a href="{{ url_for('login') }}" class="btn-cliente">Área do Cliente</a>
         </nav>
     </header>

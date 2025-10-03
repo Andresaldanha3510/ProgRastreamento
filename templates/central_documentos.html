@@ -50,6 +50,12 @@
     color: #2e7d32;
   }
 
+  /* --- ESTILO ADICIONADO --- */
+  .icon-veículo {
+    background-color: #f3e5f5;
+    color: #8e24aa;
+  }
+
   .search-card {
     background: white;
     border-radius: 0.5rem;
@@ -127,6 +133,12 @@
     background-color: #e8f5e8;
     color: #2e7d32;
   }
+  
+  /* --- ESTILO ADICIONADO --- */
+  .badge-veículo {
+    background-color: #f3e5f5;
+    color: #8e24aa;
+  }
 
   .empty-state {
     background: #f9fafb;
@@ -189,7 +201,6 @@
   }
 </style>
 {% endblock %} {% block content %}
-<!-- Header Section -->
 <div class="header-card rounded-lg shadow-md p-6 mb-6">
   <div
     class="flex flex-col lg:flex-row justify-between items-start lg:items-center"
@@ -203,7 +214,6 @@
         Encontre todos os anexos do sistema em um só lugar
       </p>
 
-      <!-- Estatísticas -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 stats-grid">
         <div class="stats-card p-4 text-center">
           <div class="text-2xl font-bold">{{ documentos|length }}</div>
@@ -224,17 +234,16 @@
           <div class="text-sm opacity-80">Motoristas</div>
         </div>
         <div class="stats-card p-4 text-center">
-          <div class="text-2xl font-bold">
-            {{ documentos|selectattr('tipo', 'equalto', 'Viagem')|list|length }}
-          </div>
-          <div class="text-sm opacity-80">Viagens</div>
+            <div class="text-2xl font-bold">
+              {{ (documentos|selectattr('tipo', 'equalto', 'Viagem')|list|length) + (documentos|selectattr('tipo', 'equalto', 'Veículo')|list|length) }}
+            </div>
+            <div class="text-sm opacity-80">Frota</div>
         </div>
-      </div>
+        </div>
     </div>
   </div>
 </div>
 
-<!-- Search Section -->
 <div class="search-card p-6 mb-6">
   <form method="GET">
     <div class="flex flex-col md:flex-row gap-4">
@@ -271,18 +280,19 @@
   </form>
 </div>
 
-<!-- Documents Grid -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
   {% for doc in documentos %}
   <div class="doc-card p-5 fade-in stagger-{{ loop.index % 6 + 1 }}">
     <div class="flex items-start gap-4">
-      <div class="doc-icon icon-{{ doc.tipo|lower }}">
+      <div class="doc-icon icon-{{ doc.tipo|lower|replace('í', 'i') }}">
         {% if doc.tipo == 'Cliente' %}
         <i class="fas fa-building fa-lg"></i>
         {% elif doc.tipo == 'Motorista' %}
         <i class="fas fa-id-card fa-lg"></i>
         {% elif doc.tipo == 'Viagem' %}
         <i class="fas fa-route fa-lg"></i>
+        {% elif doc.tipo == 'Veículo' %}
+        <i class="fas fa-truck fa-lg"></i>
         {% else %}
         <i class="fas fa-file-alt fa-lg"></i>
         {% endif %}
@@ -290,7 +300,7 @@
 
       <div class="flex-1 min-w-0">
         <div class="flex items-center justify-between mb-3">
-          <span class="doc-type-badge badge-{{ doc.tipo|lower }}">
+          <span class="doc-type-badge badge-{{ doc.tipo|lower|replace('í', 'i') }}">
             {{ doc.tipo }}
           </span>
         </div>
