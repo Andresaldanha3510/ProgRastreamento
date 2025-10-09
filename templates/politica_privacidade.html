@@ -1,80 +1,318 @@
 <!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Política de Privacidade - TrackGo</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Política de Privacidade - TrackBras</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    />
     <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f7f6;
+      :root {
+        --brand-color: #3b873e;
+        --brand-color-light: #6ac46a;
+        --dark-bg: #1a1a1a;
+        --light-bg: #f9f9f9;
+        --text-color: #333;
+        --text-light: #ffffff;
+        --border-color: #ddd;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        line-height: 1.6;
+        color: var(--text-color);
+        background-color: var(--light-bg);
+      }
+      main {
+        padding-top: 80px;
+      }
+      h1,
+      h2,
+      h3 {
+        font-weight: 800;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 5%;
+        background-color: rgba(26, 26, 26, 0.9);
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000;
+        backdrop-filter: blur(5px);
+        height: 80px;
+      }
+      .logo-link {
+        text-decoration: none;
+      }
+      .logo-container {
+        display: flex;
+        align-items: center;
+      }
+      .logo-container img {
+        height: 40px;
+        margin-right: 10px;
+      }
+      .logo-text {
+        color: var(--brand-color);
+        font-size: 1.8rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+      }
+      nav a {
+        color: var(--text-light);
+        text-decoration: none;
+        margin: 0 15px;
+        font-weight: 600;
+      }
+      nav a.btn-cliente {
+        background-color: var(--brand-color);
+        padding: 8px 16px;
+        border-radius: 5px;
+      }
+      #mobile-menu-button {
+        display: none;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.8rem;
+        cursor: pointer;
+      }
+      .page-container {
+        padding: 60px 20px;
+      }
+      .page-content {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 50px;
+        background-color: #fff;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+      }
+      .page-content h1 {
+        font-size: 2.8rem;
+        margin-bottom: 15px;
+        border-bottom: 3px solid var(--brand-color);
+        padding-bottom: 15px;
+        text-align: center;
+      }
+      .last-updated {
+        text-align: center;
+        color: #777;
+        margin-bottom: 40px;
+        font-style: italic;
+      }
+      .page-content h2 {
+        font-size: 1.8rem;
+        margin-top: 40px;
+        margin-bottom: 15px;
+        color: var(--brand-color);
+      }
+      .page-content p,
+      .page-content li {
+        line-height: 1.8;
+        margin-bottom: 15px;
+        text-align: justify;
+        color: #444;
+      }
+      .page-content ul {
+        padding-left: 20px;
+      }
+      .page-content a {
+        color: var(--brand-color);
+        font-weight: 600;
+        text-decoration: none;
+        transition: opacity 0.3s;
+      }
+      .page-content a:hover {
+        opacity: 0.8;
+        text-decoration: underline;
+      }
+      footer {
+        background-color: var(--dark-bg);
+        color: #aaa;
+        text-align: center;
+        padding: 30px 20px;
+      }
+      footer a {
+        color: #fff;
+        text-decoration: none;
+        margin: 0 10px;
+      }
+      @media (max-width: 768px) {
+        nav#main-nav {
+          display: none;
         }
-        .container {
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 30px;
-            background-color: white;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-            border-radius: 8px;
+        #mobile-menu-button {
+          display: block;
         }
-        h1, h2 {
-            color: #0056b3;
+        .page-content {
+          padding: 30px;
         }
-        a {
-            color: #28a745;
+        .page-content h1 {
+          font-size: 2.2rem;
         }
-        .footer {
-            text-align: center;
-            margin-top: 30px;
-            font-size: 0.9em;
-            color: #666;
-        }
+      }
     </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Política de Privacidade</h1>
-        <p><strong>Última atualização:</strong> 01 de Outubro de 2024</p>
-
-        <p>A sua privacidade é importante para nós. É política da TrackGo respeitar a sua privacidade em relação a qualquer informação sua que possamos coletar no nosso sistema.</p>
-
-        <h2>1. Informações que Coletamos</h2>
-        <p>Coletamos informações que você nos fornece diretamente ao se registrar e usar nosso sistema, como nome, e-mail, CPF/CNPJ e informações do veículo. Também coletamos dados de telemetria e localização dos veículos para o funcionamento do serviço de rastreamento.</p>
-
-        <h2>2. Como Usamos as Informações</h2>
-        <p>Usamos as informações que coletamos para operar, manter e fornecer a você os recursos e a funcionalidade do sistema, incluindo:</p>
-        <ul>
-            <li>Fornecer rastreamento em tempo real e histórico de localização.</li>
-            <li>Gerenciar manutenções e despesas da frota.</li>
-            <li>Gerar relatórios de desempenho e financeiros.</li>
-            <li>Comunicar-se com você, inclusive para fins de suporte ao cliente.</li>
-        </ul>
-
-        <h2>3. Compartilhamento de Informações</h2>
-        <p>Não compartilhamos as suas informações pessoais com terceiros, exceto para cumprir com a lei, desenvolver nossos produtos ou proteger nossos direitos.</p>
-
-        <h2>4. Segurança dos Dados</h2>
-        <p>Empregamos medidas de segurança técnicas e administrativas para proteger suas informações contra perda, roubo e uso, divulgação ou modificação não autorizados.</p>
-
-        <h2>5. Seus Direitos</h2>
-        <p>Você tem o direito de acessar, corrigir ou excluir suas informações pessoais. Você também pode se opor ao processamento de suas informações pessoais.</p>
-
-        <h2>6. Links para Sites de Terceiros</h2>
-        <p>Nosso sistema pode ter links para sites externos que não são operados por nós. Esteja ciente de que não temos controle sobre o conteúdo e práticas desses sites e não podemos aceitar responsabilidade por suas respectivas políticas de privacidade.</p>
-
-        <h2>7. Alterações a Esta Política de Privacidade</h2>
-        <p>Podemos atualizar nossa Política de Privacidade de tempos em tempos. Notificaremos você sobre quaisquer alterações, publicando a nova Política de Privacidade nesta página.</p>
-
-        <h2>8. Contato</h2>
-        <p>Se você tiver alguma dúvida sobre esta Política de Privacidade, entre em contato conosco através do e-mail: <a href="mailto:suporte@trackgo.com">suporte@trackgo.com</a></p>
-
-        <div class="footer">
-            <a href="{{ url_for('index') }}">Voltar para a página inicial</a>
+  </head>
+  <body>
+    <header>
+      <a href="{{ url_for('index') }}" class="logo-link">
+        <div class="logo-container">
+          <img
+            src="{{ url_for('static', filename='brasao.png') }}"
+            alt="Logo TrackBras"
+          />
+          <span class="logo-text">TrackBras</span>
         </div>
-    </div>
-</body>
+      </a>
+      <nav id="main-nav">
+        <a href="{{ url_for('index') }}#sobre">Sobre</a>
+        <a href="{{ url_for('index') }}#servicos">Soluções</a>
+        <a href="{{ url_for('contato_page') }}">Contato</a>
+        <a href="{{ url_for('planos_page') }}">Nossos planos</a>
+        <a href="{{ url_for('politica_privacidade') }}"
+          >Politica de privacidade</a
+        >
+        <a href="{{ url_for('login') }}" class="btn-cliente">Área do Cliente</a>
+      </nav>
+      <button id="mobile-menu-button"><i class="fas fa-bars"></i></button>
+    </header>
+    <main>
+      <div class="page-container">
+        <div class="page-content">
+          <h1>Política de Privacidade</h1>
+          <p class="last-updated">
+            <strong>Última atualização:</strong> 02 de Outubro de 2025
+          </p>
+
+          <h2>1. Introdução</h2>
+          <p>
+            A sua privacidade é importante para nós. É política da TrackBras
+            respeitar a sua privacidade em relação a qualquer informação sua que
+            possamos coletar no site TrackBras. Esta política de privacidade
+            aplica-se a todos os dados que coletamos através do nosso site e
+            outros canais de comunicação.
+          </p>
+
+          <h2>2. Coleta de Dados</h2>
+          <p>
+            Solicitamos informações pessoais apenas quando realmente precisamos
+            delas para lhe fornecer um serviço. Fazemo-lo por meios justos e
+            legais, com o seu conhecimento e consentimento. Também informamos
+            por que estamos coletando e como será usado.
+          </p>
+          <p>
+            As informações que coletamos através do nosso formulário de contato
+            incluem:
+          </p>
+          <ul>
+            <li>Nome completo</li>
+            <li>Número de telefone</li>
+            <li>Endereço de e-mail</li>
+            <li>Nome da empresa</li>
+            <li>Tamanho da frota</li>
+          </ul>
+          <p>
+            Também podemos coletar dados de navegação não-pessoais, como
+            endereço IP, tipo de navegador, páginas visitadas e tempo gasto no
+            site, para fins de análise e melhoria dos nossos serviços.
+          </p>
+
+          <h2>3. Uso das Informações</h2>
+          <p>Utilizamos as informações coletadas para os seguintes fins:</p>
+          <ul>
+            <li>
+              Entrar em contato para fornecer informações, propostas e
+              demonstrações sobre nossos serviços.
+            </li>
+            <li>Personalizar e melhorar a sua experiência em nosso site.</li>
+            <li>
+              Analisar o tráfego do site e o comportamento do usuário para
+              otimizar nossos serviços.
+            </li>
+            <li>
+              Enviar comunicações de marketing, como newsletters e promoções,
+              caso você opte por recebê-las.
+            </li>
+          </ul>
+
+          <h2>4. Compartilhamento de Dados</h2>
+          <p>
+            Não compartilhamos suas informações de identificação pessoal
+            publicamente ou com terceiros, exceto quando exigido por lei ou com
+            seu consentimento explícito. Podemos compartilhar dados com
+            plataformas de terceiros que nos auxiliam na operação do nosso site
+            e na prestação de serviços (como provedores de e-mail e análise de
+            dados), que são obrigados a manter a confidencialidade das
+            informações.
+          </p>
+
+          <h2>5. Segurança dos Dados</h2>
+          <p>
+            Apenas retemos as informações coletadas pelo tempo necessário para
+            fornecer o serviço solicitado. Quando armazenamos dados, protegemos
+            dentro de meios comercialmente aceitáveis para evitar perdas e
+            roubos, bem como acesso, divulgação, cópia, uso ou modificação não
+            autorizados.
+          </p>
+
+          <h2>6. Cookies</h2>
+          <p>
+            Nosso site pode usar cookies para melhorar a experiência do usuário.
+            Cookies são pequenos arquivos de dados que são colocados no seu
+            computador ou dispositivo móvel quando você visita um site. Eles são
+            amplamente utilizados para fazer os sites funcionarem, ou
+            funcionarem de forma mais eficiente, bem como para fornecer
+            informações de relatórios.
+          </p>
+
+          <h2>7. Seus Direitos (LGPD)</h2>
+          <p>
+            Você tem o direito de acessar, corrigir, anonimizar, bloquear ou
+            eliminar dados desnecessários, excessivos ou tratados em
+            desconformidade com a Lei Geral de Proteção de Dados (LGPD). Você
+            também pode solicitar a portabilidade dos seus dados a outro
+            fornecedor de serviço.
+          </p>
+
+          <h2>8. Alterações nesta Política</h2>
+          <p>
+            A nossa Política de Privacidade pode ser atualizada periodicamente.
+            Recomendamos que você revise esta página regularmente para quaisquer
+            alterações. Notificaremos sobre quaisquer alterações publicando a
+            nova Política de Privacidade nesta página.
+          </p>
+
+          <h2>9. Contato</h2>
+          <p>
+            Se você tiver alguma dúvida sobre como lidamos com dados do usuário
+            e informações pessoais, entre em contato conosco através do e-mail:
+            <a href="mailto:contato@trackbras.com.br"
+              >contato@trackbras.com.br</a
+            >.
+          </p>
+        </div>
+      </div>
+    </main>
+    <footer>
+      <p>© 2025 TrackBras. Todos os direitos reservados.</p>
+      <div>
+        <a href="{{ url_for('index') }}">Página Inicial</a>
+      </div>
+    </footer>
+  </body>
 </html>

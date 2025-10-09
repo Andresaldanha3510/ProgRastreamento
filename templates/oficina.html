@@ -1,687 +1,1648 @@
-{% extends "base.html" %}
-
-{% block title %}Dashboard de Manutenção da Frota{% endblock %}
-
-{% block styles %}
+{% extends "base.html" %} {% block title %}Dashboard de Manutenção da Frota{%
+endblock %} {% block styles %}
 <style>
-    /* Estilos aprimorados para um look mais profissional */
-    :root {
-        --primary-color: #4f46e5;
-        --secondary-color: #10b981;
-        --danger-color: #ef4444;
-        --warning-color: #f59e0b;
-        --gray-100: #f3f4f6;
-        --gray-500: #6b7280;
-        --gray-700: #374151;
-        --gray-800: #1f2937;
+  :root {
+    /* Paleta de Cores VERDE (do sistema) */
+    --primary-green: #2e7d32;
+    --primary-green-dark: #1b5e20;
+    --primary-green-light: #4caf50;
+
+    --accent-yellow: #f59e0b; /* Amarelo para Alertas */
+    --danger-red: #ef4444; /* Vermelho para Perigo */
+    --success-green: #10b981; /* Verde para Sucesso */
+    --purple-500: #8b5cf6; /* Roxo para Em Andamento */
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-300: #cbd5e1;
+    --gray-400: #9ca3af;
+    --gray-600: #475569;
+    --gray-700: #334155;
+    --gray-900: #0f172a;
+    --red-100: #fee2e2;
+    --green-100: #dcfce7;
+    --blue-100: #dbeafe;
+    --yellow-100: #fef3c7;
+  }
+
+  body {
+    background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      sans-serif;
+    color: var(--gray-900);
+    line-height: 1.6;
+  }
+
+  .dashboard-container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  /* Header Principal */
+  .main-header {
+    background: linear-gradient(
+      135deg,
+      var(--primary-green-dark) 0%,
+      var(--primary-green) 100%
+    );
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    border-radius: 0 0 24px 24px;
+    box-shadow: 0 10px 25px rgba(46, 125, 50, 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .main-header::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: -50px;
+    width: 300px;
+    height: 300px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    transform: translate(50%, -50%);
+  }
+
+  .header-content {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+
+  .header-title {
+    flex: 1;
+  }
+
+  .header-title h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .header-subtitle {
+    font-size: 1.125rem;
+    opacity: 0.9;
+    font-weight: 400;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  /* Botões do Header */
+  .btn-header {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+  }
+
+  .btn-header:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    color: white;
+    text-decoration: none;
+  }
+
+  .btn-header.primary {
+    background: var(--danger-red);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  .btn-header.primary:hover {
+    background: #b91c1c; /* red-800 */
+  }
+
+  /* Cards de Estatísticas */
+  .stats-section {
+    margin-bottom: 2rem;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--gray-200);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .stat-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+  }
+
+  .stat-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+  }
+
+  .stat-card.alertas::before {
+    background: linear-gradient(90deg, var(--accent-yellow) 0%, #f97316 100%);
+  }
+  .stat-card.em-manutencao::before {
+    background: linear-gradient(90deg, var(--purple-500) 0%, #a855f7 100%);
+  }
+  .stat-card.concluidas::before {
+    background: linear-gradient(90deg, var(--success-green) 0%, #34d399 100%);
+  }
+  .stat-card.custo::before {
+    background: linear-gradient(90deg, var(--danger-red) 0%, #f87171 100%);
+  }
+
+  .stat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+  }
+
+  .stat-info h3 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gray-600);
+    margin: 0 0 0.5rem 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .stat-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin: 0;
+    line-height: 1;
+  }
+  .stat-number.currency {
+    font-size: 2.25rem;
+  }
+
+  .stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+  }
+
+  .stat-icon.alertas {
+    background: linear-gradient(135deg, var(--accent-yellow) 0%, #f97316 100%);
+  }
+  .stat-icon.em-manutencao {
+    background: linear-gradient(135deg, var(--purple-500) 0%, #a855f7 100%);
+  }
+  .stat-icon.concluidas {
+    background: linear-gradient(135deg, var(--success-green) 0%, #34d399 100%);
+  }
+  .stat-icon.custo {
+    background: linear-gradient(135deg, var(--danger-red) 0%, #f87171 100%);
+  }
+
+  /* Container Principal */
+  .main-content {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+  }
+
+  /* Navegação por Tabs */
+  .nav-tabs-container {
+    background: linear-gradient(135deg, var(--gray-50) 0%, white 100%);
+    border-bottom: 1px solid var(--gray-200);
+    padding: 0 2rem;
+  }
+
+  .nav-tabs {
+    display: flex;
+    gap: 0;
+    border: none;
+    margin: 0;
+  }
+
+  .nav-tab {
+    padding: 1.25rem 2rem;
+    border: none;
+    background: transparent;
+    color: var(--gray-600);
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .nav-tab:hover {
+    color: var(--primary-green);
+    background: rgba(46, 125, 50, 0.05);
+  }
+
+  .nav-tab.active {
+    color: var(--primary-green);
+    border-bottom-color: var(--primary-green);
+    background: rgba(46, 125, 50, 0.05);
+  }
+
+  .nav-tab .badge {
+    background: var(--primary-green);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .nav-tab .badge.alert {
+    background-color: var(--accent-yellow);
+    color: var(--gray-900);
+  }
+
+  /* Conteúdo das Tabs */
+  .tab-content {
+    padding: 2rem;
+  }
+  .tab-pane {
+    display: none;
+  }
+  .tab-pane.active {
+    display: block;
+    animation: fadeInUp 0.4s ease-out;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
     }
-
-    body {
-        background-color: var(--gray-100);
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
+  }
 
-    .kpi-card {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
+  /* Estilos para tabelas e listas */
+  .section-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gray-700);
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--gray-200);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .section-title i {
+    color: var(--primary-green);
+  }
+
+  .table-wrapper {
+    overflow-x: auto;
+  }
+  .styled-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .styled-table thead {
+    background-color: var(--gray-50);
+    border-bottom: 2px solid var(--gray-200);
+  }
+  .styled-table th {
+    padding: 1rem 1.5rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .styled-table tbody tr {
+    border-bottom: 1px solid var(--gray-200);
+    transition: background-color 0.2s ease;
+  }
+  .styled-table tbody tr:last-child {
+    border-bottom: none;
+  }
+  .styled-table tbody tr:hover {
+    background-color: var(--gray-50);
+  }
+  .styled-table td {
+    padding: 1rem 1.5rem;
+    vertical-align: middle;
+    font-size: 0.875rem;
+  }
+
+  .plate-tag {
+    font-family: "Courier New", monospace;
+    background: var(--gray-200);
+    color: var(--gray-700);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: bold;
+  }
+
+  /* Status Badges */
+  .status {
+    padding: 5px 12px;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: white;
+    display: inline-block;
+  }
+  .status-disponível {
+    background-color: var(--success-green);
+  }
+  .status-em_rota {
+    background-color: #3b82f6;
+  }
+  .status-em_manutenção {
+    background-color: var(--accent-yellow);
+    color: var(--gray-900);
+  }
+  .status-concluída {
+    background-color: var(--gray-600);
+  }
+  .status-agendada {
+    background-color: #6366f1;
+  }
+  .status-em_andamento {
+    background-color: var(--purple-500);
+  }
+
+  /* Botões de Ação */
+  .btn-action {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-decoration: none;
+  }
+  .btn-action.primary {
+    background: var(--primary-green);
+    color: white;
+  }
+  .btn-action.primary:hover {
+    background: var(--primary-green-dark);
+  }
+  .btn-action.secondary {
+    background: var(--purple-500);
+    color: white;
+  }
+  .btn-action.secondary:hover {
+    background: #7c3aed;
+  }
+  .btn-action.warning {
+    background: var(--accent-yellow);
+    color: var(--gray-900);
+  }
+  .btn-action.warning:hover {
+    background: #d97706;
+  }
+
+  /* Barras de Progresso */
+  .progress-bar-container {
+    background-color: var(--gray-200);
+    border-radius: 9999px;
+    height: 8px;
+    width: 100%;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.5s ease-in-out;
+  }
+
+  /* Modal Styling */
+  .modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    align-items: center;
+    justify-content: center;
+    z-index: 1050;
+    animation: fadeIn 0.3s;
+  }
+  .modal.flex {
+    display: flex;
+  }
+  .modal-content {
+    background-color: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    padding: 2rem;
+    width: 100%;
+    animation: slideIn 0.3s;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-content.max-w-md {
+    max-width: 500px;
+  }
+  .modal-content.max-w-xl {
+    max-width: 650px;
+  }
+  .modal-content.max-w-2xl {
+    max-width: 800px;
+  }
+  .modal-content.max-w-3xl {
+    max-width: 950px;
+  }
+  .modal-content.max-w-4xl {
+    max-width: 1100px;
+  }
+  .modal-content.max-w-6xl {
+    max-width: 1400px;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--gray-200);
+    margin-bottom: 1.5rem;
+  }
+  .modal-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gray-800);
+  }
+  .modal-header .btn-close {
+    background: transparent;
+    border: none;
+    font-size: 1.75rem;
+    color: var(--gray-400);
+    cursor: pointer;
+  }
+  .modal-body {
+    overflow-y: auto;
+    flex-grow: 1;
+  }
+  .modal-footer {
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--gray-200);
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
     }
-
-    .kpi-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    to {
+      opacity: 1;
     }
-
-    .status {
-        padding: 5px 12px;
-        border-radius: 9999px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: white;
+  }
+  @keyframes slideIn {
+    from {
+      transform: translateY(-20px) scale(0.98);
+      opacity: 0;
     }
-
-    .status-disponível {
-        background-color: var(--secondary-color);
+    to {
+      transform: translateY(0) scale(1);
+      opacity: 1;
     }
+  }
 
-    .status-em_rota {
-        background-color: #3b82f6;
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--gray-600);
+  }
+
+  .empty-state i {
+    font-size: 4rem;
+    color: var(--gray-300);
+    margin-bottom: 1.5rem;
+  }
+
+  .empty-state h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 0.75rem;
+  }
+
+  .empty-state p {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  /* Animação de contadores */
+  @keyframes count-up {
+    from {
+      opacity: 0;
+      transform: translateY(15px);
     }
-
-    .status-em_manutenção {
-        background-color: var(--warning-color);
-        color: var(--gray-800);
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
+  }
+  .stat-number {
+    animation: count-up 0.5s ease-out forwards;
+  }
 
-    .status-concluída {
-        background-color: var(--gray-500);
+  /* Responsividade */
+  @media (max-width: 768px) {
+    .header-content {
+      flex-direction: column;
+      text-align: center;
     }
-
-    .status-agendada {
-        background-color: #6366f1;
+    .header-actions {
+      justify-content: center;
+      width: 100%;
+      flex-direction: column;
     }
-
-    /* CORREÇÃO ADICIONADA AQUI */
-    .status-em_andamento {
-        background-color: #8b5cf6;
+    .btn-header {
+      width: 100%;
+      justify-content: center;
     }
-
-    /* Roxo sólido e opaco */
-
-
-    .modal {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background-color: rgba(0, 0, 0, 0.7);
-        backdrop-filter: blur(4px);
-        align-items: center;
-        justify-content: center;
-        z-index: 50;
-        animation: fadeIn 0.3s;
+    .nav-tabs-container {
+      padding: 0 0.5rem;
     }
-
-    .modal.flex {
-        display: flex;
+    .nav-tabs {
+      flex-wrap: wrap;
     }
-
-    .modal-content {
-        background-color: white;
-        border-radius: 0.75rem;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        padding: 1.5rem 2rem;
-        width: 100%;
-        animation: slideIn 0.3s;
+    .nav-tab {
+      padding: 1rem;
+      font-size: 0.8rem;
     }
-
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
+    .tab-content {
+      padding: 1.5rem;
     }
-
-    @keyframes slideIn {
-        from {
-            transform: translateY(-20px) scale(0.98);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateY(0) scale(1);
-            opacity: 1;
-        }
-    }
-
-    .progress-bar-container {
-        background-color: #e5e7eb;
-        border-radius: 9999px;
-        height: 8px;
-        width: 100%;
-        overflow: hidden;
-    }
-
-    .progress-bar {
-        height: 100%;
-        border-radius: 9999px;
-        transition: width 0.5s ease-in-out;
-    }
-
-    /* CORREÇÃO PARA O MENU DE AÇÕES: Classe que permite o menu 'transbordar' o container da tabela */
-    .overflow-visible {
-        overflow: visible;
-    }
+  }
 </style>
-{% endblock %}
+{% endblock %} {% block content %}
+<div class="dashboard-container">
+  <div class="main-header">
+    <div class="header-content">
+      <div class="header-title">
+        <h1><i class="fas fa-tools"></i> Dashboard de Manutenção</h1>
+        <p class="header-subtitle">
+          Gestão completa de planos, alertas e serviços da frota.
+        </p>
+      </div>
+      <div class="header-actions">
+        <button
+          type="button"
+          onclick="abrirModalNovaManutencao(null, null, null)"
+          class="btn-header"
+        >
+          <i class="fas fa-screwdriver-wrench"></i>
+          <span>Registrar Corretiva</span>
+        </button>
+        <a href="{{ url_for('gerenciar_planos_page') }}" class="btn-header">
+          <i class="fas fa-tasks"></i>
+          <span>Gerenciar Planos</span>
+        </a>
+        <a href="{{ url_for('gerenciar_insumos_page') }}" class="btn-header">
+          <i class="fas fa-box-open"></i>
+          <span>Gerenciar Insumos</span>
+        </a>
+        <button onclick="abrirModalHistoricoCompleto()" class="btn-header">
+          <i class="fas fa-history"></i>
+          <span>Ver Histórico</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
-{% block content %}
-<div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h1 class="text-3xl font-bold text-gray-800">Dashboard de Manutenção</h1>
-        <div class="flex flex-wrap md:flex-nowrap gap-2 sm:gap-4">
-            <button onclick="abrirModalHistoricoCompleto()" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 text-sm sm:text-base">
-                <i class="fas fa-history"></i>
-                <span>Ver Histórico</span>
-            </button>
-            <button onclick="abrirModalNovaManutencao(null, null, null)" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 text-sm sm:text-base">
-                <i class="fas fa-screwdriver-wrench"></i>
-                <span>Registrar Corretiva</span>
-            </button>
-            <a href="{{ url_for('gerenciar_insumos_page') }}" class="bg-gray-800 hover:bg-black text-white font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 text-sm sm:text-base">
-                <i class="fas fa-box-open"></i>
-                <span>Gerenciar Insumos</span>
-            </a>
-            <a href="{{ url_for('gerenciar_planos_page') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 text-sm sm:text-base">
-                <i class="fas fa-tasks"></i>
-                <span>Gerenciar Planos</span>
-            </a>
-        <!--    <a href="{{ url_for('previsao_custos_manutencao') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 text-sm sm:text-base">
-                <i class="fas fa-chart-line"></i>
-                <span>Ver Previsão de Custos</span>
-            </a>
-            -->
+  <div class="stats-section">
+    <div class="stats-grid">
+      <div class="stat-card alertas">
+        <div class="stat-header">
+          <div class="stat-info">
+            <h3>Alertas Atuais</h3>
+            <p class="stat-number">{{ alertas|length }}</p>
+          </div>
+          <div class="stat-icon alertas">
+            <i class="fas fa-triangle-exclamation"></i>
+          </div>
         </div>
+      </div>
+      <div class="stat-card em-manutencao">
+        <div class="stat-header">
+          <div class="stat-info">
+            <h3>Em Manutenção</h3>
+            <p class="stat-number">{{ manutencoes_em_andamento|length }}</p>
+          </div>
+          <div class="stat-icon em-manutencao">
+            <i class="fas fa-tools"></i>
+          </div>
+        </div>
+      </div>
+      <div class="stat-card concluidas">
+        <div class="stat-header">
+          <div class="stat-info">
+            <h3>Concluídas no Mês</h3>
+            <p class="stat-number">{{ kpis.concluidas_no_mes }}</p>
+          </div>
+          <div class="stat-icon concluidas">
+            <i class="fas fa-check-circle"></i>
+          </div>
+        </div>
+      </div>
+      <div class="stat-card custo">
+        <div class="stat-header">
+          <div class="stat-info">
+            <h3>Custo do Mês</h3>
+            <p class="stat-number currency">
+              R$ {{ "{:,.2f}".format(kpis.custo_mes_atual).replace(",",
+              "X").replace(".", ",").replace("X", ".") }}
+            </p>
+          </div>
+          <div class="stat-icon custo"><i class="fas fa-dollar-sign"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="nav-tabs-container">
+      <div class="nav-tabs">
+        <button class="nav-tab active" data-tab="em-andamento">
+          <i class="fas fa-spinner fa-spin"></i>
+          Em Andamento & Agendados {% if manutencoes_em_andamento|length > 0
+          %}<span class="badge">{{ manutencoes_em_andamento|length }}</span>{%
+          endif %}
+        </button>
+        <button class="nav-tab" data-tab="alertas-frota">
+          <i class="fas fa-triangle-exclamation"></i>
+          Alertas da Frota {% if alertas|length > 0 %}<span class="badge alert"
+            >{{ alertas|length }}</span
+          >{% endif %}
+        </button>
+        <button class="nav-tab" data-tab="frota-completa">
+          <i class="fas fa-truck"></i>
+          Gerenciamento Completo
+        </button>
+        <button class="nav-tab" data-tab="alertas-estoque">
+          <i class="fas fa-boxes-stacked"></i>
+          Alertas de Estoque {% if alertas_de_estoque|length > 0 %}<span
+            class="badge alert"
+            >{{ alertas_de_estoque|length }}</span
+          >{% endif %}
+        </button>
+      </div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div class="kpi-card bg-white p-6 rounded-lg shadow-md text-center">
-            <h2 class="text-lg font-semibold text-gray-500"><i
-                    class="fas fa-triangle-exclamation text-yellow-500 mr-2"></i>Alertas Atuais</h2>
-            <p class="text-4xl font-bold text-gray-800 mt-2">{{ alertas|length }}</p>
+    <div class="tab-content">
+      <div class="tab-pane active" id="em-andamento">
+        <h2 class="section-title">
+          <i class="fas fa-tools"></i>Veículos em Manutenção ou Agendados
+        </h2>
+        {% if manutencoes_em_andamento %}
+        <div class="table-wrapper">
+          <table class="styled-table">
+            <thead>
+              <tr>
+                <th>Veículo (Placa)</th>
+                <th>Tipo</th>
+                <th>Data de Entrada / Agendamento</th>
+                <th>Status</th>
+                <th class="text-center">Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for manutencao in manutencoes_em_andamento %}
+              <tr>
+                <td>
+                  <strong>{{ manutencao.veiculo.modelo }}</strong><br />
+                  <span class="plate-tag">{{ manutencao.veiculo.placa }}</span>
+                </td>
+                <td>{{ manutencao.tipo_manutencao }}</td>
+                <td>{{ manutencao.data_entrada.strftime('%d/%m/%Y') }}</td>
+                <td>
+                  <span
+                    class="status status-{{ manutencao.status.lower().replace(' ', '_') }}"
+                    >{{ manutencao.status }}</span
+                  >
+                </td>
+                <td class="text-center">
+                  <button
+                    onclick="abrirModalGerenciarManutencao('{{ manutencao.id }}', '{{ manutencao.veiculo.placa }}')"
+                    class="btn-action secondary"
+                  >
+                    <i class="fas fa-edit"></i> Gerenciar
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-        <div class="kpi-card bg-white p-6 rounded-lg shadow-md text-center">
-            <h2 class="text-lg font-semibold text-gray-500"><i class="fas fa-tools text-blue-500 mr-2"></i>Em Manutenção
-            </h2>
-            <p class="text-4xl font-bold text-gray-800 mt-2">{{ manutencoes_em_andamento|length }}</p>
+        {% else %}
+        <div class="empty-state">
+          <i class="fas fa-car-side"></i>
+          <h3>Nenhum veículo em manutenção</h3>
+          <p>Todos os veículos estão operacionais. Bom trabalho!</p>
         </div>
-        <div class="kpi-card bg-white p-6 rounded-lg shadow-md text-center">
-            <h2 class="text-lg font-semibold text-gray-500"><i
-                    class="fas fa-check-circle text-green-500 mr-2"></i>Concluídas no Mês</h2>
-            <p class="text-4xl font-bold text-gray-800 mt-2">{{ kpis.concluidas_no_mes }}</p>
-        </div>
-        <div class="kpi-card bg-white p-6 rounded-lg shadow-md text-center">
-            <h2 class="text-lg font-semibold text-gray-500"><i class="fas fa-dollar-sign text-red-500 mr-2"></i>Custo do
-                Mês</h2>
-            <p class="text-4xl font-bold text-gray-800 mt-2">R$ {{ "{:,.2f}".format(kpis.custo_mes_atual).replace(",",
-                "X").replace(".", ",").replace("X", ".") }}</p>
-        </div>
-    </div>
+        {% endif %}
+      </div>
 
-    <div class="bg-white rounded-lg shadow-md mb-8">
-        <h2 class="text-xl font-semibold text-gray-700 p-4 border-b">Veículos em Manutenção ou Agendados</h2>
-        <div id="frota-table-wrapper" class="overflow-x-auto">
-            <table class="min-w-full bg-white">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="py-4 px-8 text-left">Veículo (Placa)</th>
-                        <th class="py-4 px-8 text-left">Tipo</th>
-                        <th class="py-4 px-8 text-left">Data de Entrada / Agendamento</th>
-                        <th class="py-4 px-8 text-left">Status</th>
-                        <th class="py-4 px-8 text-center">Ação</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for manutencao in manutencoes_em_andamento %}
-                    <tr class="border-t hover:bg-gray-50">
-                        <td class="py-5 px-8 font-semibold whitespace-nowrap">{{ manutencao.veiculo.modelo }} <span
-                                class="font-mono text-gray-600">({{ manutencao.veiculo.placa }})</span></td>
-                        <td class="py-5 px-8 whitespace-nowrap">{{ manutencao.tipo_manutencao }}</td>
-                        <td class="py-5 px-8 whitespace-nowrap">{{ manutencao.data_entrada.strftime('%d/%m/%Y') }}</td>
-                        <td class="py-5 px-8 whitespace-nowrap">
-                            <span class="status status-{{ manutencao.status.lower().replace(' ', '_') }}">{{
-                                manutencao.status }}</span>
-                        </td>
-                        <td class="py-5 px-8 text-center">
-                            <button
-                                onclick="abrirModalGerenciarManutencao('{{ manutencao.id }}', '{{ manutencao.veiculo.placa }}')"
-                                class="bg-purple-500 hover:bg-purple-600 text-white text-sm font-bold py-2 px-4 rounded-lg">
-                                <i class="fas fa-edit mr-1"></i> Gerenciar
-                            </button>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="5" class="py-6 px-8 text-center text-gray-500">
-                            <i class="fas fa-car-side text-green-500 text-2xl mb-2"></i>
-                            <p>Nenhum veículo em manutenção no momento.</p>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+      <div class="tab-pane" id="alertas-frota">
+        <h2 class="section-title">
+          <i class="fas fa-bell"></i>Alertas e Próximas Manutenções
+        </h2>
+        {% if alertas %}
+        <div class="table-wrapper">
+          <table class="styled-table">
+            <thead>
+              <tr>
+                <th>Veículo (Placa)</th>
+                <th>Plano de Manutenção</th>
+                <th style="width: 25%">Progresso (KM)</th>
+                <th>Detalhe</th>
+                <th class="text-center">Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for alerta in alertas %}
+              <tr>
+                <td>
+                  <strong>{{ alerta.veiculo.modelo }}</strong><br />
+                  <span class="plate-tag">{{ alerta.veiculo.placa }}</span>
+                </td>
+                <td>{{ alerta.plano.descricao }}</td>
+                <td>
+                  {% set km_desde_ultima = alerta.veiculo.km_rodados -
+                  (alerta.km_ultima_manutencao or 0) %} {% set progresso =
+                  (km_desde_ultima * 100 / alerta.intervalo_km) | int if
+                  alerta.intervalo_km and alerta.intervalo_km > 0 else 0 %} {%
+                  set cor_barra = 'bg-red-500' if progresso >= 100 else
+                  ('bg-yellow-500' if progresso >= 85 else 'bg-green-500') %}
+                  <div class="progress-bar-container">
+                    <div
+                      class="progress-bar {{ cor_barra }}"
+                      style="width: {{ progresso }}%;"
+                    ></div>
+                  </div>
+                  <span class="text-xs text-gray-600"
+                    >{{ "{:,.0f}".format(km_desde_ultima).replace(",", ".") }} /
+                    {{ "{:,.0f}".format(alerta.intervalo_km).replace(",", ".")
+                    }} km</span
+                  >
+                </td>
+                <td class="font-semibold text-red-600">
+                  {{ alerta.mensagem }}
+                </td>
+                <td class="text-center">
+                  <button
+                    onclick="abrirModalNovaManutencao('{{ alerta.veiculo.id }}', '{{ alerta.veiculo.placa }}', '{{ alerta.veiculo.km_rodados }}', '{{ alerta.plano.id }}')"
+                    class="btn-action primary"
+                  >
+                    <i class="fas fa-calendar-plus"></i> Agendar
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-    </div>
+        {% else %}
+        <div class="empty-state">
+          <i class="fas fa-check-circle"></i>
+          <h3>Nenhum alerta de manutenção</h3>
+          <p>Todos os planos de manutenção estão em dia. Excelente!</p>
+        </div>
+        {% endif %}
+      </div>
 
-    <div class="bg-white rounded-lg shadow-md mb-8">
-        <h2 class="text-xl font-semibold text-gray-700 p-4 border-b">Alertas e Próximas Manutenções</h2>
-        <div class="overflow-x-auto">
-            <table class="min-w-full bg-white">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="py-4 px-8 text-left">Veículo (Placa)</th>
-                        <th class="py-4 px-8 text-left">Plano de Manutenção</th>
-                        <th class="py-4 px-8 text-left w-1/4">Progresso (KM)</th>
-                        <th class="py-4 px-8 text-left">Detalhe</th>
-                        <th class="py-4 px-8 text-center">Ação</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for alerta in alertas %}
-                    <tr class="border-t hover:bg-gray-50">
-                        <td class="py-6 px-8 font-semibold whitespace-nowrap">{{ alerta.veiculo.modelo }} <span
-                                class="font-mono text-gray-600">({{ alerta.veiculo.placa }})</span></td>
-                        <td class="py-6 px-8 whitespace-nowrap">{{ alerta.plano.descricao }}</td>
-                        <td class="py-6 px-8 whitespace-nowrap">
-                            {% set km_desde_ultima = alerta.veiculo.km_rodados - (alerta.km_ultima_manutencao or 0) %}
-                            {% set progresso = (km_desde_ultima * 100 / alerta.intervalo_km) | int if
-                            alerta.intervalo_km and alerta.intervalo_km > 0 else 0 %}
-                            {% set cor_barra = 'bg-red-500' if progresso >= 100 else ('bg-yellow-500' if progresso >= 85
-                            else 'bg-blue-500') %}
-                            <div class="progress-bar-container">
-                                <div class="progress-bar {{ cor_barra }}" style="width: {{ progresso }}%;"></div>
-                            </div>
-                            <span class="text-xs text-gray-600">{{ "{:,.0f}".format(km_desde_ultima).replace(",", ".")
-                                }} / {{ "{:,.0f}".format(alerta.intervalo_km).replace(",", ".") }} km</span>
-                        </td>
-                        <td class="py-5 px-8 text-red-600 font-semibold">{{ alerta.mensagem }}</td>
-                        <td class="py-5 px-8 text-center">
-                            <button
-                                onclick="abrirModalNovaManutencao('{{ alerta.veiculo.id }}', '{{ alerta.veiculo.placa }}', '{{ alerta.veiculo.km_rodados }}', '{{ alerta.plano.id }}')"
-                                class="bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold py-2 px-4 rounded-lg">
-                                <i class="fas fa-calendar-plus mr-1"></i> Agendar
-                            </button>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="5" class="py-6 px-8 text-center text-gray-500">
-                            <i class="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
-                            <p>Nenhum alerta de manutenção no momento. Bom trabalho!</p>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+      <div class="tab-pane" id="frota-completa">
+        <h2 class="section-title">
+          <i class="fas fa-truck-moving"></i>Gerenciamento da Frota
+        </h2>
+        <div class="table-wrapper">
+          <table class="styled-table">
+            <thead>
+              <tr>
+                <th>Veículo</th>
+                <th>Placa</th>
+                <th>Status</th>
+                <th style="width: 25%">Progresso Próxima Manutenção</th>
+                <th class="text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for veiculo in todos_veiculos %}
+              <tr>
+                <td class="font-medium text-gray-900">{{ veiculo.modelo }}</td>
+                <td><span class="plate-tag">{{ veiculo.placa }}</span></td>
+                <td>
+                  <span
+                    class="status status-{{ veiculo.status.lower().replace(' ', '_') }}"
+                    >{{ veiculo.status }}</span
+                  >
+                </td>
+                <td>
+                  {% if veiculo.proxima_manutencao %}
+                  <div class="text-sm font-medium text-gray-800">
+                    {{ veiculo.proxima_manutencao.descricao }}
+                  </div>
+                  {% set progresso = veiculo.proxima_manutencao.progresso %} {%
+                  set cor_barra = 'bg-red-500' if progresso >= 100 else
+                  ('bg-yellow-500' if progresso >= 85 else 'bg-green-500') %}
+                  <div class="progress-bar-container mt-1">
+                    <div
+                      class="progress-bar {{ cor_barra }}"
+                      style="width: {{ progresso }}%;"
+                    ></div>
+                  </div>
+                  <div class="text-xs text-gray-600 flex justify-between">
+                    <span
+                      >{{
+                      "{:,.0f}".format(veiculo.proxima_manutencao.km_desde_ultima
+                      or 0).replace(",", ".") }} / {{
+                      "{:,.0f}".format(veiculo.proxima_manutencao.intervalo_km
+                      or 0).replace(",", ".") }} km</span
+                    >
+                    <span class="font-bold">{{ progresso }}%</span>
+                  </div>
+                  {% else %}
+                  <span class="text-xs text-gray-500"
+                    >Nenhum plano definido</span
+                  >
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  <button
+                    type="button"
+                    class="btn-action primary"
+                    onclick="abrirModalDetalhesVeiculo({{ veiculo.id }})"
+                  >
+                    Detalhes
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-    </div>
+      </div>
 
-    <div class="bg-white rounded-lg shadow-md mb-8">
-        <h2 class="text-xl font-semibold text-gray-700 p-4 border-b">Alertas de Estoque Baixo</h2>
-        <div class="overflow-x-auto">
-            <table class="min-w-full bg-white">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="py-4 px-8 text-left">Insumo</th>
-                        <th class="py-4 px-8 text-center">Estoque Atual</th>
-                        <th class="py-4 px-8 text-center">Estoque Mínimo</th>
-                        <th class="py-4 px-8 text-center">Ação</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for insumo in alertas_de_estoque %}
-                    <tr class="border-t hover:bg-gray-50">
-                        <td class="py-5 px-8 font-semibold">{{ insumo.descricao }}</td>
-                        <td class="py-5 px-8 text-center font-bold text-red-600">{{ insumo.quantidade_em_estoque|int }}</td>
-                        <td class="py-5 px-8 text-center text-gray-600">{{ insumo.ponto_ressuprimento|int }}</td>
-                        <td class="py-5 px-8 text-center">
-                            <a href="{{ url_for('gerenciar_insumos_page') }}" class="bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-bold py-2 px-4 rounded-lg">
-                                <i class="fas fa-dolly-flatbed mr-1"></i> Gerenciar
-                            </a>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="4" class="py-6 px-8 text-center text-gray-500">
-                            <i class="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
-                            <p>Nenhum alerta de estoque. Tudo em ordem!</p>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+      <div class="tab-pane" id="alertas-estoque">
+        <h2 class="section-title">
+          <i class="fas fa-exclamation-triangle"></i>Alertas de Estoque Baixo
+        </h2>
+        {% if alertas_de_estoque %}
+        <div class="table-wrapper">
+          <table class="styled-table">
+            <thead>
+              <tr>
+                <th>Insumo</th>
+                <th class="text-center">Estoque Atual</th>
+                <th class="text-center">Estoque Mínimo</th>
+                <th class="text-center">Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for insumo in alertas_de_estoque %}
+              <tr>
+                <td class="font-semibold">{{ insumo.descricao }}</td>
+                <td class="text-center font-bold text-red-600">
+                  {{ insumo.quantidade_em_estoque|int }}
+                </td>
+                <td class="text-center text-gray-600">
+                  {{ insumo.ponto_ressuprimento|int }}
+                </td>
+                <td class="text-center">
+                  <a
+                    href="{{ url_for('gerenciar_insumos_page') }}"
+                    class="btn-action warning"
+                  >
+                    <i class="fas fa-dolly-flatbed"></i> Gerenciar
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-    </div>
-
-    <div class="space-y-8">
-        <div class="bg-white rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold text-gray-700 p-4 border-b">Gerenciamento da Frota</h2>
-            <div class="overflow-x-auto">
-                <table class="min-w-full bg-white">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Veículo</th>
-                            <th class="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden md:table-cell">Placa</th>
-                            <th class="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                            <th class="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider lg:w-1/4">Progresso Próxima Manutenção</th>
-                            <th class="py-4 px-6 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        {% for veiculo in todos_veiculos %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="py-5 px-6 whitespace-nowrap font-medium text-gray-900">{{ veiculo.modelo }}</td>
-                            <td class="py-5 px-6 whitespace-nowrap font-mono hidden md:table-cell">{{ veiculo.placa }}</td>
-                            <td class="py-5 px-6 whitespace-nowrap">
-                                <span class="status status-{{ veiculo.status.lower().replace(' ', '_') }}">{{ veiculo.status }}</span>
-                            </td>
-                            <td class="py-5 px-6 whitespace-nowrap">
-                                {% if veiculo.proxima_manutencao %}
-                                    <div class="text-sm font-medium text-gray-800">{{ veiculo.proxima_manutencao.descricao }}</div>
-                                    {% set progresso = veiculo.proxima_manutencao.progresso %}
-                                    {% set cor_barra = 'bg-red-500' if progresso >= 100 else ('bg-yellow-500' if progresso >= 85 else 'bg-blue-500') %}
-                                    <div class="progress-bar-container mt-1">
-                                        <div class="progress-bar {{ cor_barra }}" style="width: {{ progresso }}%;"></div>
-                                    </div>
-                                    <div class="text-xs text-gray-600 flex justify-between">
-                                        <span>{{ "{:,.0f}".format(veiculo.proxima_manutencao.km_desde_ultima or 0).replace(",", ".") }} / {{ "{:,.0f}".format(veiculo.proxima_manutencao.intervalo_km or 0).replace(",", ".") }} km</span>
-                                        <span class="font-bold">{{ progresso }}%</span>
-                                    </div>
-                                {% else %}
-                                    <span class="text-xs text-gray-500">Nenhum plano definido</span>
-                                {% endif %}
-                            </td>
-                            <td class="py-5 px-6 whitespace-nowrap text-center">
-                                <button type="button" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg text-sm" onclick='abrirModalDetalhesVeiculo({{ veiculo|tojson }})'>
-                                    Detalhes
-                                </button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+        {% else %}
+        <div class="empty-state">
+          <i class="fas fa-check-circle"></i>
+          <h3>Nenhum alerta de estoque</h3>
+          <p>Todos os insumos estão com níveis adequados.</p>
         </div>
+        {% endif %}
+      </div>
     </div>
+  </div>
 </div>
 
 <div id="modal-detalhes-veiculo" class="modal">
-    <div class="modal-content max-w-3xl">
-        <div class="flex justify-between items-start mb-4">
-            <div>
-                <h2 class="text-2xl font-bold text-gray-800">Painel de Detalhes do Veículo</h2>
-                <p class="text-gray-600">Visualize o progresso e gerencie as ações.</p>
-            </div>
-            <button onclick="fecharModal('modal-detalhes-veiculo')" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button>
-        </div>
-        
-        <div class="bg-gray-50 border rounded-lg p-4 mb-6">
-            <h3 class="text-lg font-bold text-gray-900" id="detalhes-modal-modelo"></h3>
-            <p class="font-mono text-gray-600" id="detalhes-modal-placa"></p>
-            <div class="flex items-center gap-4 mt-2 text-sm">
-                <div><strong>Status:</strong> <span id="detalhes-modal-status-badge"></span></div>
-                <div><strong>KM Atual:</strong> <span id="detalhes-modal-km" class="font-semibold"></span> km</div>
-            </div>
-        </div>
-
-        <div class="mb-6">
-            <h4 class="font-bold text-gray-800 mb-3">Acompanhamento de Planos de Manutenção</h4>
-            <div id="detalhes-planos-progresso" class="space-y-4 max-h-60 overflow-y-auto pr-2">
-                </div>
-        </div>
-
-        <div class="border-t pt-6">
-             <h4 class="font-bold text-gray-800 mb-3">Ações Disponíveis</h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <button id="detalhes-btn-planos" class="text-left bg-white hover:bg-gray-100 border p-4 rounded-lg transition">
-                    <i class="fas fa-cogs text-indigo-500 text-xl mb-2"></i>
-                    <h4 class="font-bold text-gray-800">Gerenciar Planos</h4>
-                    <p class="text-sm text-gray-600">Atribuir ou editar planos de manutenção.</p>
-                </button>
-                <button id="detalhes-btn-historico" class="text-left bg-white hover:bg-gray-100 border p-4 rounded-lg transition">
-                    <i class="fas fa-history text-indigo-500 text-xl mb-2"></i>
-                    <h4 class="font-bold text-gray-800">Ver Histórico</h4>
-                    <p class="text-sm text-gray-600">Consultar manutenções passadas.</p>
-                </button>
-                <div id="detalhes-container-btn-finalizar" style="display: none;">
-                    <button id="detalhes-btn-finalizar" class="w-full h-full text-left bg-green-50 hover:bg-green-100 border border-green-200 p-4 rounded-lg transition">
-                        <i class="fas fa-flag-checkered text-green-600 text-xl mb-2"></i>
-                        <h4 class="font-bold text-green-800">Finalizar Manutenção</h4>
-                        <p class="text-sm text-green-700">Registrar conclusão, serviços e custos.</p>
-                    </button>
-                </div>
-            </div>
-        </div>
+  <div class="modal-content max-w-3xl">
+    <div class="modal-header">
+      <div>
+        <h2 id="detalhes-modal-modelo">Painel de Detalhes do Veículo</h2>
+        <p class="text-gray-600" id="detalhes-modal-placa"></p>
+      </div>
+      <button onclick="fecharModal('modal-detalhes-veiculo')" class="btn-close">
+        &times;
+      </button>
     </div>
+    <div class="modal-body">
+      <div class="bg-gray-50 border rounded-lg p-4 mb-6">
+        <div class="flex items-center gap-4 mt-2 text-sm">
+          <div>
+            <strong>Status:</strong>
+            <span id="detalhes-modal-status-badge"></span>
+          </div>
+          <div>
+            <strong>KM Atual:</strong>
+            <span id="detalhes-modal-km" class="font-semibold"></span> km
+          </div>
+        </div>
+      </div>
+      <div class="mb-6">
+        <h4 class="font-bold text-gray-800 mb-3">
+          Acompanhamento de Planos de Manutenção
+        </h4>
+        <div
+          id="detalhes-planos-progresso"
+          class="space-y-4 max-h-60 overflow-y-auto pr-2"
+        ></div>
+      </div>
+      <div class="border-t pt-6">
+        <h4 class="font-bold text-gray-800 mb-3">Ações Disponíveis</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <button
+            id="detalhes-btn-planos"
+            class="text-left bg-white hover:bg-gray-100 border p-4 rounded-lg transition"
+          >
+            <i class="fas fa-cogs text-indigo-500 text-xl mb-2"></i>
+            <h4 class="font-bold text-gray-800">Gerenciar Planos</h4>
+            <p class="text-sm text-gray-600">
+              Atribuir ou editar planos de manutenção.
+            </p>
+          </button>
+          <button
+            id="detalhes-btn-historico"
+            class="text-left bg-white hover:bg-gray-100 border p-4 rounded-lg transition"
+          >
+            <i class="fas fa-history text-indigo-500 text-xl mb-2"></i>
+            <h4 class="font-bold text-gray-800">Ver Histórico</h4>
+            <p class="text-sm text-gray-600">Consultar manutenções passadas.</p>
+          </button>
+          <div id="detalhes-container-btn-finalizar" style="display: none">
+            <button
+              id="detalhes-btn-finalizar"
+              class="w-full h-full text-left bg-green-50 hover:bg-green-100 border border-green-200 p-4 rounded-lg transition"
+            >
+              <i class="fas fa-flag-checkered text-green-600 text-xl mb-2"></i>
+              <h4 class="font-bold text-green-800">Finalizar Manutenção</h4>
+              <p class="text-sm text-green-700">
+                Registrar conclusão, serviços e custos.
+              </p>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="modal-nova" class="modal">
-    <div class="modal-content max-w-md">
-        <h2 class="text-2xl font-bold mb-4">Registrar Manutenção</h2>
-        <form id="form-nova-manutencao" action="{{ url_for('iniciar_manutencao_oficina') }}" method="POST">
-            <input type="hidden" id="nova-veiculo-id" name="veiculo_id">
-            <input type="hidden" id="nova-plano-id" name="plano_id">
-            <div id="veiculo-selecionado-display" class="mb-4" style="display: none;">
-                <strong>Veículo:</strong> <span id="nova-veiculo-placa" class="font-mono"></span>
-            </div>
-            <div id="veiculo-selecao-dropdown" class="mb-4" style="display: none;">
-                <label for="nova-veiculo-select" class="block text-gray-700">Selecione o Veículo*</label>
-                <select id="nova-veiculo-select" class="w-full p-2 border rounded" required>
-                    <option value="" data-hodometro="">-- Escolha um veículo --</option>
-                    {% for veiculo in todos_veiculos %}
-                    <option value="{{ veiculo.id }}" data-hodometro="{{ veiculo.km_rodados | int }}">{{ veiculo.modelo
-                        }} ({{ veiculo.placa }})</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="mb-4">
-                <label for="nova-status" class="block text-gray-700">Status</label>
-                <select name="status" id="nova-status" class="w-full p-2 border rounded">
-                    <option value="Em Andamento">Iniciar (Em Andamento)</option>
-                    <option value="Agendada">Apenas Agendar</option>
-                </select>
-            </div>
-            <div class="mb-4">
-                <label for="nova-hodometro" class="block text-gray-700">Hodômetro de Entrada*</label>
-                <input type="number" id="nova-hodometro" name="hodometro" class="w-full p-2 border rounded" required>
-            </div>
-            <div class="mb-4">
-                <label for="nova-descricao" class="block text-gray-700">Descrição do Problema (para corretivas)</label>
-                <textarea id="nova-descricao" name="descricao" rows="3" class="w-full p-2 border rounded"></textarea>
-            </div>
-            <div class="flex justify-end gap-4">
-                <button type="button" onclick="fecharModal('modal-nova')"
-                    class="bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded">Cancelar</button>
-                <button type="submit"
-                    class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Salvar</button>
-            </div>
-        </form>
+  <div class="modal-content max-w-md">
+    <div class="modal-header">
+      <h2>Registrar Manutenção</h2>
+      <button onclick="fecharModal('modal-nova')" class="btn-close">
+        &times;
+      </button>
     </div>
+    <form
+      id="form-nova-manutencao"
+      action="{{ url_for('iniciar_manutencao_oficina') }}"
+      method="POST"
+    >
+      <div class="modal-body">
+        <input type="hidden" id="nova-veiculo-id" name="veiculo_id" />
+        <input type="hidden" id="nova-plano-id" name="plano_id" />
+        <div
+          id="veiculo-selecionado-display"
+          class="mb-4"
+          style="display: none"
+        >
+          <strong>Veículo:</strong>
+          <span id="nova-veiculo-placa" class="font-mono"></span>
+        </div>
+        <div id="veiculo-selecao-dropdown" class="mb-4" style="display: none">
+          <label for="nova-veiculo-select" class="block text-gray-700"
+            >Selecione o Veículo*</label
+          >
+          <select
+            id="nova-veiculo-select"
+            class="w-full p-2 border rounded"
+            required
+          >
+            <option value="" data-hodometro="">-- Escolha um veículo --</option>
+            {% for veiculo in todos_veiculos %}
+            <option
+              value="{{ veiculo.id }}"
+              data-hodometro="{{ veiculo.km_rodados | int }}"
+            >
+              {{ veiculo.modelo }} ({{ veiculo.placa }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-4">
+          <label for="nova-status" class="block text-gray-700">Status</label>
+          <select
+            name="status"
+            id="nova-status"
+            class="w-full p-2 border rounded"
+          >
+            <option value="Em Andamento">Iniciar (Em Andamento)</option>
+            <option value="Agendada">Apenas Agendar</option>
+          </select>
+        </div>
+        <div class="mb-4">
+          <label for="nova-hodometro" class="block text-gray-700"
+            >Hodômetro de Entrada*</label
+          >
+          <input
+            type="number"
+            id="nova-hodometro"
+            name="hodometro"
+            class="w-full p-2 border rounded"
+            required
+          />
+        </div>
+        <div class="mb-4">
+          <label for="nova-descricao" class="block text-gray-700"
+            >Descrição do Problema (para corretivas)</label
+          >
+          <textarea
+            id="nova-descricao"
+            name="descricao"
+            rows="3"
+            class="w-full p-2 border rounded"
+          ></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          onclick="fecharModal('modal-nova')"
+          class="bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Salvar
+        </button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <div id="modal-finalizar" class="modal">
-    <div class="modal-content max-w-md">
-        <h2 class="text-2xl font-bold mb-4">Finalizar Manutenção</h2>
-        <form id="form-finalizar-manutencao" action="{{ url_for('finalizar_manutencao_oficina') }}" method="POST">
-            <input type="hidden" id="finalizar-manutencao-id" name="manutencao_id">
-            <p class="mb-4"><strong>Veículo:</strong> <span id="finalizar-veiculo-placa" class="font-mono"></span></p>
-            <div class="mb-4">
-                <label for="finalizar-servicos" class="block text-gray-700">Serviços Executados</label>
-                <textarea id="finalizar-servicos" name="servicos_executados" rows="4" class="w-full p-2 border rounded"
-                    required></textarea>
-            </div>
-            <div class="mb-4">
-                <label for="custo_total" class="block text-gray-700">Custo Total (R$)</label>
-                <input type="number" step="0.01" id="custo_total" name="custo_total" class="w-full p-2 border rounded"
-                    placeholder="Ex: 150.50">
-            </div>
-            <div class="flex justify-end gap-4">
-                <button type="button" onclick="fecharModal('modal-finalizar')"
-                    class="bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded">Cancelar</button>
-                <button type="submit"
-                    class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">Concluir
-                    Serviço</button>
-            </div>
-        </form>
+  <div class="modal-content max-w-md">
+    <div class="modal-header">
+      <h2 class="text-2xl font-bold mb-4">Finalizar Manutenção</h2>
+      <button onclick="fecharModal('modal-finalizar')" class="btn-close">
+        &times;
+      </button>
     </div>
+    <form
+      id="form-finalizar-manutencao"
+      action="{{ url_for('finalizar_manutencao_oficina') }}"
+      method="POST"
+    >
+      <div class="modal-body">
+        <input
+          type="hidden"
+          id="finalizar-manutencao-id"
+          name="manutencao_id"
+        />
+        <p class="mb-4">
+          <strong>Veículo:</strong>
+          <span id="finalizar-veiculo-placa" class="font-mono"></span>
+        </p>
+        <div class="mb-4">
+          <label for="finalizar-servicos" class="block text-gray-700"
+            >Serviços Executados</label
+          >
+          <textarea
+            id="finalizar-servicos"
+            name="servicos_executados"
+            rows="4"
+            class="w-full p-2 border rounded"
+            required
+          ></textarea>
+        </div>
+        <div class="mb-4">
+          <label for="custo_total" class="block text-gray-700"
+            >Custo Total (R$)</label
+          >
+          <input
+            type="number"
+            step="0.01"
+            id="custo_total"
+            name="custo_total"
+            class="w-full p-2 border rounded"
+            placeholder="Ex: 150.50"
+          />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          onclick="fecharModal('modal-finalizar')"
+          class="bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
+        >
+          Concluir Serviço
+        </button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <div id="modal-historico" class="modal">
-    <div class="modal-content max-w-3xl">
-        <h2 class="text-2xl font-bold mb-4">Histórico do Veículo: <span id="historico-veiculo-placa"
-                class="font-mono"></span></h2>
-        <div id="historico-content" class="max-h-96 overflow-y-auto"></div>
-        <div class="mt-4 text-right">
-            <button type="button" onclick="fecharModal('modal-historico')"
-                class="bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded">Fechar</button>
-        </div>
+  <div class="modal-content max-w-3xl">
+    <div class="modal-header">
+      <h2>
+        Histórico do Veículo:
+        <span id="historico-veiculo-placa" class="font-mono"></span>
+      </h2>
+      <button
+        type="button"
+        onclick="fecharModal('modal-historico')"
+        class="btn-close"
+      >
+        &times;
+      </button>
     </div>
+    <div id="historico-content" class="modal-body"></div>
+  </div>
 </div>
 
 <div id="modal-planos" class="modal">
-    <div class="modal-content max-w-4xl">
-        <h2 class="text-2xl font-bold mb-4">Gerenciar Planos para: <span id="planos-veiculo-placa"
-                class="font-mono"></span></h2>
-        <input type="hidden" id="planos-veiculo-id">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="border rounded-lg p-4 bg-gray-50">
-                <h3 class="font-bold text-lg mb-2">Planos Disponíveis</h3>
-                <input type="text" id="filtro-planos-disponiveis" class="w-full p-2 border rounded mb-2"
-                    placeholder="Filtrar planos...">
-                <div id="container-criar-plano" class="hidden mt-2">
-                    <button type="button" id="btn-criar-plano" class="w-full text-left p-2 border border-dashed rounded text-sm text-green-700 hover:bg-green-50 font-semibold"></button>
-                </div>
-                <div id="lista-planos-disponiveis" class="space-y-2 max-h-80 overflow-y-auto pr-2"></div>
-            </div>
-            <div class="border rounded-lg p-4">
-                <h3 class="font-bold text-lg mb-2">Planos Atribuídos ao Veículo</h3>
-                <div id="lista-planos-atribuidos" class="space-y-2 max-h-80 overflow-y-auto pr-2"></div>
-            </div>
-        </div>
-        <div class="mt-6 flex justify-end gap-4">
-            <button type="button" onclick="fecharModal('modal-planos')"
-                class="bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded">Cancelar</button>
-            <button type="button" id="btn-salvar-planos" onclick="salvarPlanosDoVeiculo()"
-                class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded w-40 text-center">
-                <span class="btn-text">Salvar Alterações</span>
-                <span class="spinner hidden animate-spin fas fa-spinner"></span>
-            </button>
-        </div>
+  <div class="modal-content max-w-4xl">
+    <div class="modal-header">
+      <h2>
+        Gerenciar Planos para:
+        <span id="planos-veiculo-placa" class="font-mono"></span>
+      </h2>
+      <button
+        type="button"
+        onclick="fecharModal('modal-planos')"
+        class="btn-close"
+      >
+        &times;
+      </button>
     </div>
+    <div class="modal-body">
+      <input type="hidden" id="planos-veiculo-id" />
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="border rounded-lg p-4 bg-gray-50">
+          <h3 class="font-bold text-lg mb-2">Planos Disponíveis</h3>
+          <input
+            type="text"
+            id="filtro-planos-disponiveis"
+            class="w-full p-2 border rounded mb-2"
+            placeholder="Filtrar planos..."
+          />
+          <div id="container-criar-plano" class="hidden mt-2">
+            <button
+              type="button"
+              id="btn-criar-plano"
+              class="w-full text-left p-2 border border-dashed rounded text-sm text-green-700 hover:bg-green-50 font-semibold"
+            ></button>
+          </div>
+          <div
+            id="lista-planos-disponiveis"
+            class="space-y-2 max-h-80 overflow-y-auto pr-2"
+          ></div>
+        </div>
+        <div class="border rounded-lg p-4">
+          <h3 class="font-bold text-lg mb-2">Planos Atribuídos ao Veículo</h3>
+          <div
+            id="lista-planos-atribuidos"
+            class="space-y-2 max-h-80 overflow-y-auto pr-2"
+          ></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button
+        type="button"
+        onclick="fecharModal('modal-planos')"
+        class="bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        id="btn-salvar-planos"
+        onclick="salvarPlanosDoVeiculo()"
+        class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-40 text-center"
+      >
+        <span class="btn-text">Salvar Alterações</span>
+        <span class="spinner hidden animate-spin fas fa-spinner"></span>
+      </button>
+    </div>
+  </div>
 </div>
 
 <div id="modal-registrar-historico-inicial" class="modal">
-    <div class="modal-content max-w-md">
-        <h2 class="text-2xl font-bold mb-4">Ponto de Partida do Plano</h2>
-        <p class="text-sm text-gray-600 mb-4">
-            Informe a data e o KM da última vez que este serviço (<strong id="hist-inicial-plano-desc"></strong>) foi realizado.
-            Isso define o início da contagem para o próximo alerta.
-        </p>
-        <form id="form-hist-inicial">
-            <input type="hidden" id="hist-inicial-plano-ref">
-            
-            <div class="mb-4">
-                <input type="checkbox" id="hist-inicial-feito-hoje" onchange="preencherComDadosAtuais(this.checked)">
-                <label for="hist-inicial-feito-hoje" class="ml-2 font-medium">Marcar como feito hoje com KM atual.</label>
-            </div>
-
-            <div class="mb-4">
-                <label for="hist-inicial-data" class="block text-gray-700">Data da Última Manutenção</label>
-                <input type="date" id="hist-inicial-data" class="w-full p-2 border rounded mt-1" required>
-            </div>
-            <div class="mb-4">
-                <label for="hist-inicial-km" class="block text-gray-700">KM na Última Manutenção</label>
-                <input type="number" id="hist-inicial-km" class="w-full p-2 border rounded mt-1" required>
-            </div>
-            
-            <div class="flex justify-end gap-4">
-                <button type="button" onclick="fecharModal('modal-registrar-historico-inicial')" class="bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded">Cancelar</button>
-                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Confirmar Ponto de Partida</button>
-            </div>
-        </form>
+  <div class="modal-content max-w-md">
+    <div class="modal-header">
+      <h2>Ponto de Partida do Plano</h2>
+      <button
+        onclick="fecharModal('modal-registrar-historico-inicial')"
+        class="btn-close"
+      >
+        &times;
+      </button>
     </div>
+    <form id="form-hist-inicial">
+      <div class="modal-body">
+        <p class="text-sm text-gray-600 mb-4">
+          Informe a data e o KM da última vez que este serviço (<strong
+            id="hist-inicial-plano-desc"
+          ></strong
+          >) foi realizado. Isso define o início da contagem para o próximo
+          alerta.
+        </p>
+        <input type="hidden" id="hist-inicial-plano-ref" />
+        <div class="mb-4">
+          <input
+            type="checkbox"
+            id="hist-inicial-feito-hoje"
+            onchange="preencherComDadosAtuais(this.checked)"
+          />
+          <label for="hist-inicial-feito-hoje" class="ml-2 font-medium"
+            >Marcar como feito hoje com KM atual.</label
+          >
+        </div>
+        <div class="mb-4">
+          <label for="hist-inicial-data" class="block text-gray-700"
+            >Data da Última Manutenção</label
+          >
+          <input
+            type="date"
+            id="hist-inicial-data"
+            class="w-full p-2 border rounded mt-1"
+            required
+          />
+        </div>
+        <div class="mb-4">
+          <label for="hist-inicial-km" class="block text-gray-700"
+            >KM na Última Manutenção</label
+          >
+          <input
+            type="number"
+            id="hist-inicial-km"
+            class="w-full p-2 border rounded mt-1"
+            required
+          />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          onclick="fecharModal('modal-registrar-historico-inicial')"
+          class="bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Confirmar
+        </button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <div id="modal-gerenciar-manutencao" class="modal">
-    <div class="modal-content max-w-4xl">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-2xl font-bold">Gerenciar Manutenção: <span id="gerenciar-manutencao-placa"
-                    class="font-mono"></span></h2>
-            <div>
-                <button onclick="finalizarDesdeGerenciar()"
-                    class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-3 rounded-lg text-sm mr-4">
-                    <i class="fas fa-flag-checkered"></i> Finalizar Manutenção
-                </button>
-                <button onclick="fecharModal('modal-gerenciar-manutencao')"
-                    class="text-2xl text-gray-500 hover:text-gray-800">&times;</button>
-            </div>
-        </div>
-        <input type="hidden" id="gerenciar-manutencao-id">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
-            <div class="bg-gray-50 p-4 rounded-lg border">
-                <h3 class="font-bold text-lg mb-4">Adicionar Peça / Serviço</h3>
-                <form id="form-adicionar-item" class="space-y-3">
-                    <div>
-                        <label for="item-data" class="block text-sm font-medium text-gray-700">Data</label>
-                        <input type="date" id="item-data" class="w-full p-2 border rounded mt-1" required>
-                    </div>
-                    <div>
-                        <label for="item-descricao" class="block text-sm font-medium text-gray-700">Descrição (Peça ou
-                            Serviço)</label>
-                        <input type="text" id="item-descricao" class="w-full p-2 border rounded mt-1"
-                            placeholder="Ex: Filtro de Ar" required>
-                    </div>
-                    <div class="flex gap-4">
-                        <div class="w-1/2">
-                            <label for="item-qtd" class="block text-sm font-medium text-gray-700">Quantidade</label>
-                            <input type="number" step="0.01" id="item-qtd" value="1"
-                                class="w-full p-2 border rounded mt-1" required>
-                        </div>
-                        <div class="w-1/2">
-                            <label for="item-custo" class="block text-sm font-medium text-gray-700">Custo Unit.
-                                (R$)</label>
-                            <input type="number" step="0.01" id="item-custo" placeholder="150.50"
-                                class="w-full p-2 border rounded mt-1" required>
-                        </div>
-                    </div>
-                    <button type="submit"
-                        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mt-2">
-                        <i class="fas fa-plus"></i> Adicionar Item
-                    </button>
-                </form>
-            </div>
-            <div>
-                <h3 class="font-bold text-lg mb-4">Itens Lançados</h3>
-                <div id="lista-itens-manutencao" class="space-y-2 max-h-80 overflow-y-auto pr-2">
-                    <p class="text-gray-500">Nenhum item lançado para esta manutenção.</p>
-                </div>
-                <div class="mt-4 pt-4 border-t font-bold text-lg flex justify-between">
-                    <span>Custo Total:</span>
-                    <span id="custo-total-manutencao">R$ 0,00</span>
-                </div>
-            </div>
-        </div>
+  <div class="modal-content max-w-4xl">
+    <div class="modal-header">
+      <h2>
+        Gerenciar Manutenção:
+        <span id="gerenciar-manutencao-placa" class="font-mono"></span>
+      </h2>
+      <div>
+        <button
+          onclick="finalizarDesdeGerenciar()"
+          class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-3 rounded-lg text-sm mr-4"
+        >
+          <i class="fas fa-flag-checkered"></i> Finalizar Manutenção
+        </button>
+        <button
+          onclick="fecharModal('modal-gerenciar-manutencao')"
+          class="btn-close"
+        >
+          &times;
+        </button>
+      </div>
     </div>
+    <div class="modal-body">
+      <input type="hidden" id="gerenciar-manutencao-id" />
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-2">
+        <div class="bg-gray-50 p-4 rounded-lg border">
+          <h3 class="font-bold text-lg mb-4">Adicionar Peça / Serviço</h3>
+          <form id="form-adicionar-item" class="space-y-3">
+            <div>
+              <label
+                for="item-data"
+                class="block text-sm font-medium text-gray-700"
+                >Data</label
+              >
+              <input
+                type="date"
+                id="item-data"
+                class="w-full p-2 border rounded mt-1"
+                required
+              />
+            </div>
+            <div>
+              <label
+                for="item-descricao"
+                class="block text-sm font-medium text-gray-700"
+                >Descrição (Peça ou Serviço)</label
+              >
+              <input
+                type="text"
+                id="item-descricao"
+                class="w-full p-2 border rounded mt-1"
+                placeholder="Ex: Filtro de Ar"
+                required
+              />
+            </div>
+            <div class="flex gap-4">
+              <div class="w-1/2">
+                <label
+                  for="item-qtd"
+                  class="block text-sm font-medium text-gray-700"
+                  >Quantidade</label
+                >
+                <input
+                  type="number"
+                  step="0.01"
+                  id="item-qtd"
+                  value="1"
+                  class="w-full p-2 border rounded mt-1"
+                  required
+                />
+              </div>
+              <div class="w-1/2">
+                <label
+                  for="item-custo"
+                  class="block text-sm font-medium text-gray-700"
+                  >Custo Unit. (R$)</label
+                >
+                <input
+                  type="number"
+                  step="0.01"
+                  id="item-custo"
+                  placeholder="150.50"
+                  class="w-full p-2 border rounded mt-1"
+                  required
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-2"
+            >
+              <i class="fas fa-plus"></i> Adicionar Item
+            </button>
+          </form>
+        </div>
+        <div>
+          <h3 class="font-bold text-lg mb-4">Itens Lançados</h3>
+          <div
+            id="lista-itens-manutencao"
+            class="space-y-2 max-h-80 overflow-y-auto pr-2"
+          >
+            <p class="text-gray-500">
+              Nenhum item lançado para esta manutenção.
+            </p>
+          </div>
+          <div
+            class="mt-4 pt-4 border-t font-bold text-lg flex justify-between"
+          >
+            <span>Custo Total:</span>
+            <span id="custo-total-manutencao">R$ 0,00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="modal-historico-completo" class="modal">
-    <div class="modal-content max-w-6xl">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-2xl font-bold text-gray-800">Histórico de Manutenções Concluídas</h2>
-            <button onclick="fecharModal('modal-historico-completo')"
-                class="text-2xl text-gray-500 hover:text-gray-800">&times;</button>
-        </div>
-        <form id="form-filtrar-historico"
-            class="bg-gray-50 p-4 rounded-lg border grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-            <div>
-                <label for="filtro-placa" class="text-sm font-medium">Placa</label>
-                <input type="text" id="filtro-placa" class="w-full p-2 border rounded mt-1" placeholder="ABC1234">
-            </div>
-            <div>
-                <label for="filtro-data-inicio" class="text-sm font-medium">Data Início</label>
-                <input type="date" id="filtro-data-inicio" class="w-full p-2 border rounded mt-1">
-            </div>
-            <div>
-                <label for="filtro-data-fim" class="text-sm font-medium">Data Fim</label>
-                <input type="date" id="filtro-data-fim" class="w-full p-2 border rounded mt-1">
-            </div>
-            <div>
-                <label for="filtro-tipo" class="text-sm font-medium">Tipo</label>
-                <select id="filtro-tipo" class="w-full p-2 border rounded mt-1">
-                    <option value="">Todos</option>
-                    <option value="Preventiva">Preventiva</option>
-                    <option value="Corretiva">Corretiva</option>
-                </select>
-            </div>
-            <div class="md:col-span-4 text-right">
-                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
-                    <i class="fas fa-filter"></i> Filtrar
-                </button>
-            </div>
-        </form>
-        <div id="historico-completo-content" class="max-h-[60vh] overflow-y-auto"></div>
+  <div class="modal-content max-w-6xl">
+    <div class="modal-header">
+      <h2>Histórico de Manutenções Concluídas</h2>
+      <button
+        onclick="fecharModal('modal-historico-completo')"
+        class="btn-close"
+      >
+        &times;
+      </button>
     </div>
+    <div class="modal-body">
+      <form
+        id="form-filtrar-historico"
+        class="bg-gray-50 p-4 rounded-lg border grid grid-cols-1 md:grid-cols-4 gap-4 mb-4"
+      >
+        <div>
+          <label for="filtro-placa" class="text-sm font-medium">Placa</label>
+          <input
+            type="text"
+            id="filtro-placa"
+            class="w-full p-2 border rounded mt-1"
+            placeholder="ABC1234"
+          />
+        </div>
+        <div>
+          <label for="filtro-data-inicio" class="text-sm font-medium"
+            >Data Início</label
+          >
+          <input
+            type="date"
+            id="filtro-data-inicio"
+            class="w-full p-2 border rounded mt-1"
+          />
+        </div>
+        <div>
+          <label for="filtro-data-fim" class="text-sm font-medium"
+            >Data Fim</label
+          >
+          <input
+            type="date"
+            id="filtro-data-fim"
+            class="w-full p-2 border rounded mt-1"
+          />
+        </div>
+        <div>
+          <label for="filtro-tipo" class="text-sm font-medium">Tipo</label>
+          <select id="filtro-tipo" class="w-full p-2 border rounded mt-1">
+            <option value="">Todos</option>
+            <option value="Preventiva">Preventiva</option>
+            <option value="Corretiva">Corretiva</option>
+          </select>
+        </div>
+        <div class="md:col-span-4 text-right">
+          <button
+            type="submit"
+            class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+          >
+            <i class="fas fa-filter"></i> Filtrar
+          </button>
+        </div>
+      </form>
+      <div
+        id="historico-completo-content"
+        class="max-h-[60vh] overflow-y-auto"
+      ></div>
+    </div>
+  </div>
 </div>
-
-
-{% endblock %}
-
-{% block scripts %}
-{{ super() }}
+{% endblock %} {% block scripts %} {{ super() }}
 <script>
-    // --- Funções Globais e Utilitários ---
+  // ▼▼▼ PASSO 1 DA CORREÇÃO DEFINITIVA ▼▼▼
+  const TODOS_VEICULOS = {{ todos_veiculos|tojson|safe }};
+
+  // --- Script para Tabs e Animações (do layout borracharia) ---
+  document.addEventListener('DOMContentLoaded', function() {
+      // Configurar navegação por tabs
+      const tabButtons = document.querySelectorAll('.nav-tab');
+      const tabPanes = document.querySelectorAll('.tab-pane');
+
+      tabButtons.forEach(button => {
+          button.addEventListener('click', function() {
+              const targetTab = this.dataset.tab;
+
+              tabButtons.forEach(btn => btn.classList.remove('active'));
+              tabPanes.forEach(pane => pane.classList.remove('active'));
+
+              this.classList.add('active');
+              document.getElementById(targetTab).classList.add('active');
+          });
+      });
+
+      // Animação de contadores
+      const counters = document.querySelectorAll('.stat-number');
+      counters.forEach(counter => {
+          const target = parseFloat(counter.textContent.replace('R$', '').replace('.', '').replace(',', '.'));
+          if (isNaN(target)) return;
+
+          const isCurrency = counter.classList.contains('currency');
+          let current = 0;
+          const duration = 1500;
+          const increment = target / (duration / 16);
+
+          const updateCounter = () => {
+              current += increment;
+              if (current >= target) {
+                  if(isCurrency) {
+                      counter.textContent = 'R$ ' + target.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                  } else {
+                      counter.textContent = Math.round(target).toLocaleString('pt-BR');
+                  }
+              } else {
+                   if(isCurrency) {
+                      counter.textContent = 'R$ ' + current.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                  } else {
+                      counter.textContent = Math.floor(current).toLocaleString('pt-BR');
+                  }
+                  requestAnimationFrame(updateCounter);
+              }
+          };
+          requestAnimationFrame(updateCounter);
+      });
+  });
+
+
+  // --- LÓGICA ORIGINAL DA OFICINA (MODAIS E AÇÕES) ---
+  // --- Funções Globais e Utilitários ---
     const hoje = new Date().toISOString().slice(0, 10);
     let todosOsPlanosGerais = [];
     let planosAtribuidosCache = [];
@@ -709,18 +1670,22 @@
         if (modal) modal.classList.add('flex');
     }
 
-    // ### FUNÇÃO MODIFICADA PARA ABRIR O NOVO MODAL DE DETALHES ###
-    function abrirModalDetalhesVeiculo(veiculo) {
-        // Preenche as informações estáticas do veículo
+    // ### FUNÇÃO COM A CORREÇÃO DEFINITIVA ###
+    function abrirModalDetalhesVeiculo(veiculoId) {
+        const veiculo = TODOS_VEICULOS.find(v => v.id == veiculoId);
+        if (!veiculo) {
+            alert("Erro: Veículo com ID " + veiculoId + " não encontrado!");
+            return;
+        }
+
         document.getElementById('detalhes-modal-modelo').textContent = veiculo.modelo;
         document.getElementById('detalhes-modal-placa').textContent = veiculo.placa;
         document.getElementById('detalhes-modal-km').textContent = parseInt(veiculo.km_rodados).toLocaleString('pt-BR');
-        
+
         const statusBadge = document.getElementById('detalhes-modal-status-badge');
         statusBadge.className = `status status-${veiculo.status.toLowerCase().replace(' ', '_')}`;
         statusBadge.textContent = veiculo.status;
 
-        // Configura os botões de ação
         document.getElementById('detalhes-btn-planos').onclick = () => abrirModalGerenciarPlanos(veiculo.id, veiculo.placa);
         document.getElementById('detalhes-btn-historico').onclick = () => {
             const url = `{{ url_for('api_historico_veiculo', veiculo_id=0) }}`.replace('0', veiculo.id);
@@ -735,14 +1700,13 @@
             containerFinalizar.style.display = 'none';
         }
 
-        // ### LÓGICA ADICIONADA: Popula a lista de progresso dos planos ###
         const planosContainer = document.getElementById('detalhes-planos-progresso');
-        planosContainer.innerHTML = ''; // Limpa o conteúdo anterior
+        planosContainer.innerHTML = '';
 
         if (veiculo.planos_progresso && veiculo.planos_progresso.length > 0) {
             veiculo.planos_progresso.forEach(plano => {
                 const progresso = plano.progresso;
-                const cor_barra = progresso >= 100 ? 'bg-red-500' : (progresso >= 85 ? 'bg-yellow-500' : 'bg-blue-500');
+                const cor_barra = progresso >= 100 ? 'bg-red-500' : (progresso >= 85 ? 'bg-yellow-500' : 'bg-green-500');
                 const kmDesdeUltimaFmt = parseInt(plano.km_desde_ultima).toLocaleString('pt-BR');
                 const intervaloKmFmt = parseInt(plano.intervalo_km).toLocaleString('pt-BR');
 
@@ -763,7 +1727,7 @@
         } else {
             planosContainer.innerHTML = '<p class="text-center text-gray-500 text-sm">Nenhum plano de manutenção configurado para este veículo.</p>';
         }
-        
+
         abrirModal('modal-detalhes-veiculo');
     }
 
@@ -822,7 +1786,7 @@
     // --- LÓGICA PARA MODAL FINALIZAR MANUTENÇÃO ---
     function abrirModalFinalizar(manutencaoId, veiculoPlaca, custoCalculado) {
         const form = document.getElementById('form-finalizar-manutencao');
-        form.reset(); 
+        form.reset();
         document.getElementById('finalizar-manutencao-id').value = manutencaoId;
         document.getElementById('finalizar-veiculo-placa').textContent = veiculoPlaca;
         const custoTotalInput = document.getElementById('custo_total');
@@ -986,13 +1950,13 @@
         if (acao === 'atribuir') {
             // Encontra o plano completo na nossa lista de planos gerais
             const plano = todosOsPlanosGerais.find(p => p.descricao === descricao);
-            
+
             // Adiciona ao cache, PUXANDO OS VALORES PADRÃO
-            planosAtribuidosCache.push({ 
-                descricao: plano.descricao, 
+            planosAtribuidosCache.push({
+                descricao: plano.descricao,
                 // A mágica acontece aqui:
-                intervalo_km: plano.intervalo_km_padrao || '', 
-                intervalo_meses: plano.intervalo_meses_padrao || '' 
+                intervalo_km: plano.intervalo_km_padrao || '',
+                intervalo_meses: plano.intervalo_meses_padrao || ''
             });
         } else if (acao === 'remover') {
             planosAtribuidosCache = planosAtribuidosCache.filter(p => p.descricao !== descricao);
@@ -1033,9 +1997,9 @@
                 const errorResult = await response.json();
                 throw new Error(errorResult.message || 'Falha ao salvar os planos.');
             }
-            setTimeout(() => { 
-                fecharModal('modal-planos'); 
-                window.location.reload(); 
+            setTimeout(() => {
+                fecharModal('modal-planos');
+                window.location.reload();
             }, 500);
         } catch (error) {
             alert(error.message);
@@ -1178,29 +2142,29 @@
         const descricaoPlano = document.getElementById('hist-inicial-plano-ref').value;
         const data = document.getElementById('hist-inicial-data').value;
         const km = document.getElementById('hist-inicial-km').value;
-        
+
         const planoNoCache = planosAtribuidosCache.find(p => p.descricao === descricaoPlano);
-        
+
         if (planoNoCache) {
             // Atualiza os dados diretamente na variável de cache
             planoNoCache.data_ultima_manutencao = data;
             planoNoCache.km_ultima_manutencao = km;
         }
-        
+
         fecharModal('modal-registrar-historico-inicial');
-        renderizarListasDePlanos(); 
+        renderizarListasDePlanos();
     });
 
     function preencherComDadosAtuais(isChecked) {
         if (isChecked) {
             document.getElementById('hist-inicial-data').value = hoje;
             const veiculoId = document.getElementById('planos-veiculo-id').value;
-            const veiculo = {{ todos_veiculos|tojson }}.find(v => v.id == veiculoId);
+            // ▼▼▼ PASSO 2 DA CORREÇÃO DEFINITIVA ▼▼▼
+            const veiculo = TODOS_VEICULOS.find(v => v.id == veiculoId);
             if (veiculo) {
                 document.getElementById('hist-inicial-km').value = veiculo.km_rodados;
             }
         }
     }
-
 </script>
 {% endblock %}

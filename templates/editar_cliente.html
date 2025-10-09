@@ -2,88 +2,206 @@
 
 {% block title %}Editar Cliente - {{ cliente.nome_razao_social }}{% endblock %}
 
+{% block styles %}
+{{ super() }}
+<style>
+    /* Estilos consistentes com o restante do sistema */
+    :root {
+        --primary-green: #2e7d32;
+        --primary-green-dark: #1b5e20;
+        --gray-50: #f8fafc;
+        --gray-100: #f1f5f9;
+        --gray-200: #e2e8f0;
+        --gray-600: #475569;
+        --gray-700: #334155;
+        --gray-900: #0f172a;
+        --red-600: #dc2626;
+    }
+
+    .form-container {
+        background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        border: 1px solid var(--gray-200);
+    }
+
+    .form-section-header {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--primary-green-dark);
+        border-bottom: 2px solid var(--primary-green);
+        padding-bottom: 0.5rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .form-input, .form-select {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid var(--gray-200);
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s;
+        background: white;
+    }
+
+    .form-input:focus, .form-select:focus {
+        outline: none;
+        border-color: var(--primary-green);
+        box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+    }
+
+    .btn-green {
+        background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-dark) 100%);
+        color: white; padding: 12px 24px; border: none; border-radius: 12px; font-weight: 600;
+        cursor: pointer; transition: all 0.3s; display: inline-flex; align-items: center;
+        gap: 8px; box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3); text-decoration: none;
+    }
+    .btn-green:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(46, 125, 50, 0.4); color: white; text-decoration: none; }
+
+    .btn-secondary {
+        background-color: var(--gray-200);
+        color: var(--gray-700);
+        padding: 12px 24px;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-decoration: none;
+    }
+    .btn-secondary:hover { background-color: var(--gray-300); }
+
+    /* Estilos para a lista de anexos */
+    .attachment-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-radius: 8px; transition: background-color 0.2s; border: 1px solid var(--gray-200); }
+    .attachment-item:hover { background-color: var(--gray-100); }
+    .attachment-icon { color: var(--gray-600); margin-right: 0.75rem; }
+    .attachment-name { color: var(--gray-900); text-decoration: none; font-weight: 500; word-break: break-all; }
+    .attachment-name:hover { text-decoration: underline; color: var(--primary-green); }
+    .btn-delete-attachment { background: none; border: none; color: var(--gray-600); cursor: pointer; font-size: 1rem; padding: 0.5rem; }
+    .btn-delete-attachment:hover { color: var(--red-600); }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="p-6 bg-gray-200 min-h-screen">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Editar Cliente</h1>
+<div class="space-y-6">
+    <div class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 shadow-lg">
+        <h1 class="text-3xl font-bold flex items-center gap-3">
+            <i class="fas fa-edit"></i>
+            Editar Cliente
+        </h1>
+        <p class="text-green-100 mt-2">Atualize as informações de <span class="font-semibold">{{ cliente.nome_razao_social }}</span></p>
     </div>
 
-    <form method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded-lg shadow-md">
+    <form method="POST" enctype="multipart/form-data" class="form-container">
         
-        <h2 class="text-xl font-semibold mb-4 border-b pb-2 text-gray-700">Dados Gerais</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <h2 class="form-section-header"><i class="fas fa-id-card"></i>Dados Gerais</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div class="md:col-span-2">
-                <label for="pessoa_tipo" class="block text-sm font-medium text-gray-700">Pessoa Física ou Jurídica</label>
-                <select id="pessoa_tipo" name="pessoa_tipo" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2">
+                <label for="pessoa_tipo" class="block text-sm font-medium text-gray-700 mb-1">Pessoa Física ou Jurídica</label>
+                <select id="pessoa_tipo" name="pessoa_tipo" required class="form-select">
                     <option value="fisica" {% if cliente.pessoa_tipo == 'fisica' %}selected{% endif %}>Pessoa Física</option>
                     <option value="juridica" {% if cliente.pessoa_tipo == 'juridica' %}selected{% endif %}>Pessoa Jurídica</option>
                 </select>
             </div>
             <div>
-                <label for="nome_razao_social" class="block text-sm font-medium text-gray-700">Nome / Razão Social</label>
-                <input type="text" name="nome_razao_social" id="nome_razao_social" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ cliente.nome_razao_social }}">
+                <label for="nome_razao_social" class="block text-sm font-medium text-gray-700 mb-1">Nome / Razão Social</label>
+                <input type="text" name="nome_razao_social" id="nome_razao_social" required class="form-input" value="{{ cliente.nome_razao_social }}">
             </div>
             <div id="campo_nome_fantasia" class="{{ 'hidden' if cliente.pessoa_tipo == 'fisica' else '' }}">
-                <label for="nome_fantasia" class="block text-sm font-medium text-gray-700">Nome Fantasia</label>
-                <input type="text" name="nome_fantasia" id="nome_fantasia" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ cliente.nome_fantasia or '' }}">
+                <label for="nome_fantasia" class="block text-sm font-medium text-gray-700 mb-1">Nome Fantasia</label>
+                <input type="text" name="nome_fantasia" id="nome_fantasia" class="form-input" value="{{ cliente.nome_fantasia or '' }}">
             </div>
             <div>
-                <label id="cpf_cnpj_label" for="cpf_cnpj" class="block text-sm font-medium text-gray-700">CPF/CNPJ</label>
-                <input type="text" id="cpf_cnpj" name="cpf_cnpj" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ cliente.cpf_cnpj }}">
+                <label id="cpf_cnpj_label" for="cpf_cnpj" class="block text-sm font-medium text-gray-700 mb-1">CPF/CNPJ</label>
+                <input type="text" id="cpf_cnpj" name="cpf_cnpj" required class="form-input" value="{{ cliente.cpf_cnpj }}">
             </div>
             <div id="campo_ie" class="{{ 'hidden' if cliente.pessoa_tipo == 'fisica' else '' }}">
-                <label for="inscricao_estadual" class="block text-sm font-medium text-gray-700">Inscrição Estadual</label>
-                <input type="text" name="inscricao_estadual" id="inscricao_estadual" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ cliente.inscricao_estadual or '' }}">
+                <label for="inscricao_estadual" class="block text-sm font-medium text-gray-700 mb-1">Inscrição Estadual</label>
+                <input type="text" name="inscricao_estadual" id="inscricao_estadual" class="form-input" value="{{ cliente.inscricao_estadual or '' }}">
             </div>
         </div>
 
-        <h2 class="text-xl font-semibold my-6 border-b pb-2 text-gray-700">Endereço</h2>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <h2 class="form-section-header"><i class="fas fa-map-marker-alt"></i>Endereço</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div class="md:col-span-1">
-                <label for="cep" class="block text-sm font-medium text-gray-700">CEP</label>
-                <input type="text" id="cep" name="cep" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ cliente.cep }}">
+                <label for="cep" class="block text-sm font-medium text-gray-700 mb-1">CEP</label>
+                <input type="text" id="cep" name="cep" required class="form-input" value="{{ cliente.cep }}">
             </div>
             <div class="md:col-span-3">
-                <label for="logradouro" class="block text-sm font-medium text-gray-700">Endereço (Logradouro)</label>
-                <input type="text" id="logradouro" name="logradouro" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ cliente.logradouro }}">
+                <label for="logradouro" class="block text-sm font-medium text-gray-700 mb-1">Endereço (Logradouro)</label>
+                <input type="text" id="logradouro" name="logradouro" required class="form-input" value="{{ cliente.logradouro }}">
             </div>
             <div class="md:col-span-1">
-                <label for="numero" class="block text-sm font-medium text-gray-700">Número</label>
-                <input type="text" id="numero" name="numero" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ cliente.numero }}">
+                <label for="numero" class="block text-sm font-medium text-gray-700 mb-1">Número</label>
+                <input type="text" id="numero" name="numero" required class="form-input" value="{{ cliente.numero }}">
             </div>
             <div class="md:col-span-3">
-                <label for="complemento" class="block text-sm font-medium text-gray-700">Complemento</label>
-                <input type="text" id="complemento" name="complemento" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ cliente.complemento or '' }}">
+                <label for="complemento" class="block text-sm font-medium text-gray-700 mb-1">Complemento</label>
+                <input type="text" id="complemento" name="complemento" class="form-input" value="{{ cliente.complemento or '' }}">
             </div>
             <div class="md:col-span-2">
-                <label for="bairro" class="block text-sm font-medium text-gray-700">Bairro</label>
-                <input type="text" id="bairro" name="bairro" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ cliente.bairro }}">
+                <label for="bairro" class="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
+                <input type="text" id="bairro" name="bairro" required class="form-input" value="{{ cliente.bairro }}">
             </div>
             <div class="md:col-span-1">
-                <label for="cidade" class="block text-sm font-medium text-gray-700">Cidade</label>
-                <input type="text" id="cidade" name="cidade" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ cliente.cidade }}">
+                <label for="cidade" class="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+                <input type="text" id="cidade" name="cidade" required class="form-input" value="{{ cliente.cidade }}">
             </div>
             <div class="md:col-span-1">
-                <label for="estado" class="block text-sm font-medium text-gray-700">Estado (UF)</label>
-                <input type="text" id="estado" name="estado" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ cliente.estado }}">
+                <label for="estado" class="block text-sm font-medium text-gray-700 mb-1">Estado (UF)</label>
+                <input type="text" id="estado" name="estado" required class="form-input" value="{{ cliente.estado }}">
             </div>
         </div>
         
-        <h2 class="text-xl font-semibold my-6 border-b pb-2 text-gray-700">Contato</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <h2 class="form-section-header"><i class="fas fa-phone-alt"></i>Contato</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div>
-                <label for="email" class="block text-sm font-medium text-gray-700">E-mail</label>
-                <input type="email" name="email" id="email" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ cliente.email }}">
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                <input type="email" name="email" id="email" required class="form-input" value="{{ cliente.email }}">
             </div>
             <div>
-                <label for="telefone" class="block text-sm font-medium text-gray-700">Telefone/WhatsApp</label>
-                <input type="text" id="telefone" name="telefone" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" value="{{ cliente.telefone }}">
+                <label for="telefone" class="block text-sm font-medium text-gray-700 mb-1">Telefone/WhatsApp</label>
+                <input type="text" id="telefone" name="telefone" required class="form-input" value="{{ cliente.telefone }}">
             </div>
         </div>
 
+        <h2 class="form-section-header"><i class="fas fa-paperclip"></i>Anexos</h2>
+        <div class="mb-8">
+            <div id="anexos-list" class="space-y-2 mb-4">
+                {% if cliente.anexos %}
+                    {% for anexo_url in cliente.anexos.split(',') %}
+                    {% if anexo_url %}
+                        <div class="attachment-item" id="anexo-{{ loop.index }}">
+                            <div class="flex items-center">
+                                <i class="fas fa-paperclip attachment-icon"></i>
+                                <a href="{{ anexo_url }}" target="_blank" class="attachment-name" title="{{ anexo_url.split('/')[-1].split('-', 1)[-1] }}">
+                                    {{ anexo_url.split('/')[-1].split('-', 1)[-1] }}
+                                </a>
+                            </div>
+                            <button type="button" onclick="deleteAttachment('{{ anexo_url }}', 'anexo-{{ loop.index }}')" class="btn-delete-attachment" title="Excluir anexo">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p id="no-attachments-msg" class="text-sm text-gray-500">Nenhum anexo cadastrado.</p>
+                {% endif %}
+            </div>
+            <div>
+                <label for="anexos" class="block text-sm font-medium text-gray-700 mb-1">Adicionar Novos Anexos</label>
+                <input type="file" name="anexos" id="anexos" multiple class="form-input">
+            </div>
+        </div>
+
+
         <div class="mt-8 flex justify-end gap-4">
-            <a href="{{ url_for('consultar_clientes') }}" class="bg-gray-200 text-gray-800 px-5 py-2 rounded-md hover:bg-gray-300">Cancelar</a>
-            <button type="submit" class="bg-green-600 text-white px-5 py-2 rounded-md hover:bg-green-700">Salvar Alterações</button>
+            <a href="{{ url_for('consultar_clientes') }}" class="btn-secondary">Cancelar</a>
+            <button type="submit" class="btn-green">Salvar Alterações</button>
         </div>
     </form>
 </div>
@@ -138,5 +256,37 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+async function deleteAttachment(anexoUrl, elementId) {
+    if (!confirm('Tem certeza que deseja excluir este anexo? Esta ação não pode ser desfeita.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/cliente/excluir_anexo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cliente_id: {{ cliente.id }}, anexo_url: anexoUrl })
+        });
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.remove();
+            }
+            // Verifica se ainda existem anexos
+            if (document.querySelectorAll('.attachment-item').length === 0) {
+                 document.getElementById('no-attachments-msg').style.display = 'block';
+            }
+            alert('Anexo excluído com sucesso!');
+        } else {
+            throw new Error(result.message || 'Erro ao excluir anexo.');
+        }
+    } catch (error) {
+        console.error("Erro ao excluir anexo:", error);
+        alert(error.message);
+    }
+}
 </script>
 {% endblock %}

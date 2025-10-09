@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nossos Planos - TrackBras</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    />
+    <style>
+      :root {
+        --brand-color: #3b873e;
+        --brand-color-light: #6ac46a;
+        --cta-color: #00a859;
+        --dark-bg: #1a1a1a;
+        --light-bg: #f9f9f9;
+        --text-color: #333;
+        --text-light: #ffffff;
+        --border-color: #ddd;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        line-height: 1.6;
+        color: var(--text-color);
+        background-color: var(--light-bg);
+      }
+      main {
+        padding-top: 80px;
+      }
+      h1,
+      h2,
+      h3 {
+        font-weight: 800;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 5%;
+        background-color: rgba(26, 26, 26, 0.9);
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000;
+        backdrop-filter: blur(5px);
+        height: 80px;
+      }
+      .logo-link {
+        text-decoration: none;
+      }
+      .logo-container {
+        display: flex;
+        align-items: center;
+      }
+      .logo-container img {
+        height: 40px;
+        margin-right: 10px;
+      }
+      .logo-text {
+        color: var(--brand-color);
+        font-size: 1.8rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+      }
+      nav a {
+        color: var(--text-light);
+        text-decoration: none;
+        margin: 0 15px;
+        font-weight: 600;
+        transition: color 0.3s ease;
+      }
+      nav a:hover {
+        color: var(--brand-color-light);
+      }
+      nav a.btn-cliente {
+        background-color: var(--brand-color);
+        padding: 8px 16px;
+        border-radius: 5px;
+      }
+      #mobile-menu-button {
+        display: none;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.8rem;
+        cursor: pointer;
+      }
+      .plans-section {
+        padding: 80px 20px;
+      }
+      .plans-header {
+        text-align: center;
+        margin-bottom: 60px;
+        max-width: 700px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .plans-header h1 {
+        font-size: 3rem;
+        margin-bottom: 15px;
+      }
+      .plans-header p {
+        font-size: 1.2rem;
+        color: #555;
+      }
+      .billing-toggle {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 50px;
+      }
+      .billing-toggle button {
+        background: #e9ecef;
+        border: none;
+        border-radius: 20px;
+        padding: 10px 25px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        color: #6c757d;
+      }
+      .billing-toggle button.active {
+        background: var(--cta-color);
+        color: white;
+      }
+      .pricing-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 30px;
+        max-width: 1200px;
+        margin: 0 auto;
+        align-items: stretch;
+      }
+      .pricing-card {
+        background-color: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 35px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+      .pricing-card.popular {
+        border: 2px solid var(--cta-color);
+        transform: scale(1.05);
+      }
+      .price {
+        font-size: 3rem;
+        font-weight: 800;
+        color: var(--brand-color);
+        margin: 20px 0 5px 0;
+      }
+      .features {
+        list-style: none;
+        text-align: left;
+        margin-top: 30px;
+        flex-grow: 1;
+      }
+      .features li {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: flex-start;
+      }
+      .features i {
+        color: var(--cta-color);
+        margin-right: 10px;
+        margin-top: 4px;
+      }
+      .btn-plan {
+        display: block;
+        width: 100%;
+        padding: 15px;
+        border: 2px solid var(--brand-color);
+        border-radius: 8px;
+        color: var(--brand-color);
+        font-weight: 600;
+        text-decoration: none;
+        margin-top: 30px;
+      }
+      .pricing-card.popular .btn-plan {
+        background-color: var(--cta-color);
+        border-color: var(--cta-color);
+        color: white;
+      }
+      footer {
+        background-color: var(--dark-bg);
+        color: #aaa;
+        text-align: center;
+        padding: 30px 20px;
+      }
+      footer a {
+        color: #fff;
+        text-decoration: none;
+        margin: 0 10px;
+      }
+      @media (max-width: 992px) {
+        .pricing-grid {
+          grid-template-columns: 1fr;
+          gap: 50px;
+        }
+        .pricing-card.popular {
+          transform: scale(1);
+        }
+      }
+      @media (max-width: 768px) {
+        nav#main-nav {
+          display: none;
+        }
+        #mobile-menu-button {
+          display: block;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a href="{{ url_for('index') }}" class="logo-link">
+        <div class="logo-container">
+          <img
+            src="{{ url_for('static', filename='brasao.png') }}"
+            alt="Logo TrackBras"
+          />
+          <span class="logo-text">TrackBras</span>
+        </div>
+      </a>
+      <nav id="main-nav">
+        <a href="{{ url_for('index') }}#sobre">Sobre</a>
+        <a href="{{ url_for('index') }}#servicos">Soluções</a>
+        <a href="{{ url_for('contato_page') }}">Contato</a>
+        <a href="{{ url_for('planos_page') }}">Nossos planos</a>
+        <a href="{{ url_for('politica_privacidade') }}"
+          >Politica de privacidade</a
+        >
+        <a href="{{ url_for('login') }}" class="btn-cliente">Área do Cliente</a>
+      </nav>
+      <button id="mobile-menu-button"><i class="fas fa-bars"></i></button>
+    </header>
+    <main>
+      <section class="plans-section">
+        <div class="plans-header">
+          <h1>Planos Flexíveis para sua Frota</h1>
+          <p>
+            Escolha o plano que melhor se adapta ao tamanho e às necessidades da
+            sua operação.
+          </p>
+        </div>
+        <div class="billing-toggle">
+          <button id="monthly-btn" class="active">Mensal</button>
+          <button id="annual-btn">
+            Anual
+            <span style="color: var(--cta-color); font-weight: bold"
+              >(Economize 10%)</span
+            >
+          </button>
+        </div>
+        <div class="pricing-grid">
+          <div class="pricing-card">
+            <h3>Start</h3>
+            <div class="price">
+              R$ <span id="price-start">99</span>
+              <span class="period">/mês</span>
+            </div>
+            <ul class="features">
+              <li>
+                <i class="fas fa-check-circle"></i> Rastreamento GPS em tempo
+                real
+              </li>
+              <li>
+                <i class="fas fa-check-circle"></i> Cadastro de Viagens e
+                Clientes
+              </li>
+              <li>
+                <i class="fas fa-check-circle"></i> Cadastro de Motoristas e
+                Veículos
+              </li>
+              <li>
+                <i class="fas fa-check-circle"></i> Lançamento de Despesas de
+                Viagem
+              </li>
+              <li>
+                <i class="fas fa-check-circle"></i> Controle de Abastecimentos
+              </li>
+            </ul>
+            <a
+              href="https://wa.me/5541987842828"
+              target="_blank"
+              class="btn-plan"
+              >Falar com Consultor</a
+            >
+          </div>
+          <div class="pricing-card popular">
+            <h3>Pro</h3>
+            <div class="price">
+              R$ <span id="price-pro">199</span>
+              <span class="period">/mês</span>
+            </div>
+            <ul class="features">
+              <li>
+                <i class="fas fa-check-circle"></i>
+                <strong>Tudo do plano Start, e mais:</strong>
+              </li>
+              <li>
+                <i class="fas fa-check-circle"></i> Fluxo de Caixa Completo
+              </li>
+              <li>
+                <i class="fas fa-check-circle"></i> Rateio de Despesas por
+                Veículo
+              </li>
+              <li>
+                <i class="fas fa-check-circle"></i> Módulo de Borracharia e
+                Oficina
+              </li>
+            </ul>
+            <a
+              href="https://wa.me/5541987842828"
+              target="_blank"
+              class="btn-plan"
+              >Falar com Consultor</a
+            >
+          </div>
+          <div class="pricing-card">
+            <h3>Enterprise</h3>
+            <div class="price">Sob Consulta</div>
+            <ul class="features">
+              <li>
+                <i class="fas fa-check-circle"></i>
+                <strong>Tudo do plano Pro, e mais:</strong>
+              </li>
+
+              <li>
+                <i class="fas fa-check-circle"></i> Folha de Pagamento para
+                Motoristas
+              </li>
+              <li>
+                <i class="fas fa-check-circle"></i> Gerente de Conta Dedicado
+              </li>
+            </ul>
+            <a
+              href="https://wa.me/5541987842828"
+              target="_blank"
+              class="btn-plan"
+              >Solicitar Cotação</a
+            >
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <p>© 2025 TrackBras. Todos os direitos reservados.</p>
+      <div>
+        <a href="{{ url_for('index') }}">Página Inicial</a>
+        <a href="{{ url_for('politica_privacidade') }}" target="_blank"
+          >Política de Privacidade</a
+        >
+      </div>
+    </footer>
+  </body>
+</html>

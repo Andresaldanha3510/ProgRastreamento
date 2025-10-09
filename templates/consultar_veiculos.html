@@ -1,938 +1,686 @@
-{% extends "base.html" %}
-
-{% block title %}Frota de Veículos - TrackGo{% endblock %}
-
-{% block styles %}
-{{ super() }}
+{% extends "base.html" %} {% block title %}Frota de Veículos - TrackGo{%
+endblock %} {% block styles %} {{ super() }}
 <style>
-    .card-shadow { 
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); 
-        transition: box-shadow 0.3s ease;
-    }
-    .card-shadow:hover { 
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); 
-    }
-    
-    .action-buttons { 
-        display: flex; 
-        gap: 0.375rem; 
-        justify-content: center; 
-        flex-wrap: wrap;
-    }
-    
-    .btn-small { 
-        padding: 0.5rem 0.75rem; 
-        font-size: 0.875rem; 
-        line-height: 1; 
-        border-radius: 0.5rem; 
-        color: white; 
-        transition: all 0.2s ease; 
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.25rem;
-        min-width: 2.5rem;
-        justify-content: center;
-    }
-    
-    .btn-small:hover { transform: translateY(-1px); }
-    
-    /* Status badges modernizados */
-    .status-badge {
-        padding: 0.375rem 1rem;
-        border-radius: 9999px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.375rem;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .status-badge::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
-        transform: translateX(-100%);
-        transition: transform 0.6s ease;
-    }
-    
-    .status-badge:hover::before {
-        transform: translateX(100%);
-    }
-    
-    .status-disponivel { 
-        background: linear-gradient(135deg, #10b981, #059669); 
-        color: white; 
-        box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
-    }
-    
-    .status-em-rota { 
-        background: linear-gradient(135deg, #3b82f6, #2563eb); 
-        color: white; 
-        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
-    }
-    
-    .status-em-manutencao { 
-        background: linear-gradient(135deg, #f59e0b, #d97706); 
-        color: white; 
-        box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
-    }
-    
-    .status-inativo { 
-        background: linear-gradient(135deg, #ef4444, #dc2626); 
-        color: white; 
-        box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
-    }
-    
-    .status-vendido { 
-        background: linear-gradient(135deg, #6b7280, #4b5563); 
-        color: white; 
-        box-shadow: 0 2px 4px rgba(107, 114, 128, 0.3);
-    }
+  /* Estilos adaptados de 'consultar_clientes' para consistência visual */
+  :root {
+    --primary-green: #2e7d32;
+    --primary-green-dark: #1b5e20;
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-600: #475569;
+    --gray-700: #334155;
+    --gray-900: #0f172a;
+    --red-600: #dc2626;
+  }
 
-    /* Filtros e barra de ações */
-    .filter-bar {
-        background: linear-gradient(135deg, #f8fafc, #e2e8f0);
-        border: 1px solid #e2e8f0;
-        border-radius: 0.75rem;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-    }
-    
-    /* Tabela responsiva melhorada */
-    .table-container {
-        background: white;
-        border-radius: 0.75rem;
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-    
-    .table-header {
-        background: linear-gradient(135deg, #1f2937, #111827);
-        color: white;
-    }
-    
-    .table-row {
-        transition: all 0.2s ease;
-        border-bottom: 1px solid #f1f5f9;
-    }
-    
-    .table-row:hover {
-        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-        transform: translateY(-1px);
-    }
-    
-    /* Cards para mobile */
-    @media (max-width: 768px) {
-        .vehicle-card {
-            background: white;
-            border-radius: 0.75rem;
-            padding: 1.25rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            border: 1px solid #e2e8f0;
-            transition: all 0.2s ease;
-        }
-        
-        .vehicle-card:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transform: translateY(-2px);
-        }
-    }
-    
-    /* Estatísticas cards */
-    .stats-card {
-        background: linear-gradient(135deg, #ffffff, #f8fafc);
-        border: 1px solid #e2e8f0;
-        border-radius: 0.75rem;
-        padding: 1.5rem;
-        text-align: center;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .stats-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: var(--accent-color, #3b82f6);
-        border-radius: 0.75rem 0.75rem 0 0;
-    }
-    
-    .stats-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-    }
-    
-    /* Animações */
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .animate-fade-in-up {
-        animation: fadeInUp 0.5s ease forwards;
-    }
-    
-    /* Loading skeleton */
-    .loading-skeleton {
-        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-        background-size: 200% 100%;
-        animation: loading 1.5s infinite;
-    }
-    
-    @keyframes loading {
-        0% { background-position: 200% 0; }
-        100% { background-position: -200% 0; }
-    }
+  .veiculos-container {
+    background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--gray-200);
+  }
 
-    /* Estilo para botão de exportação com loading */
-    .export-loading {
-        position: relative;
-        overflow: hidden;
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+    color: var(--primary-green-dark);
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  .section-header i {
+    color: var(--primary-green);
+    font-size: 1.5rem;
+  }
+
+  .btn-green {
+    background: linear-gradient(
+      135deg,
+      var(--primary-green) 0%,
+      var(--primary-green-dark) 100%
+    );
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+    text-decoration: none;
+  }
+  .btn-green:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(46, 125, 50, 0.4);
+    color: white;
+    text-decoration: none;
+  }
+
+  .btn-secondary {
+    background: linear-gradient(
+      135deg,
+      var(--gray-600) 0%,
+      var(--gray-700) 100%
+    );
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+  }
+  .btn-secondary:hover {
+    color: white;
+    text-decoration: none;
+  }
+
+  .search-section {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--gray-200);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .search-box {
+    position: relative;
+    flex: 1;
+    min-width: 300px;
+  }
+  .search-box input {
+    width: 100%;
+    padding: 12px 16px 12px 48px;
+    border: 2px solid var(--gray-200);
+    border-radius: 25px;
+    font-size: 1rem;
+    transition: all 0.3s;
+    background: white;
+  }
+  .search-box input:focus {
+    outline: none;
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+  }
+  .search-box i {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-600);
+    font-size: 1.125rem;
+  }
+
+  .veiculos-table-container {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--gray-200);
+  }
+  .veiculos-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .veiculos-table th {
+    background: linear-gradient(
+      135deg,
+      var(--primary-green-dark) 0%,
+      var(--primary-green) 100%
+    );
+    color: white;
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .veiculos-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--gray-100);
+    vertical-align: middle;
+    font-size: 0.875rem;
+  }
+  .veiculos-table tr:hover {
+    background: var(--gray-50);
+  }
+
+  .btn-table {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    margin-right: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.3s;
+    text-decoration: none;
+  }
+  .btn-table.btn-view {
+    background: var(--primary-green);
+    color: white;
+  }
+  .btn-table.btn-view:hover {
+    background: var(--primary-green-dark);
+    color: white;
+    text-decoration: none;
+  }
+  .btn-table.btn-dashboard {
+    background: #3b82f6;
+    color: white;
+  }
+  .btn-table.btn-dashboard:hover {
+    background: #1d4ed8;
+    color: white;
+    text-decoration: none;
+  }
+  .btn-table.btn-edit {
+    background: #6366f1;
+    color: white;
+  }
+  .btn-table.btn-edit:hover {
+    background: #4338ca;
+    color: white;
+    text-decoration: none;
+  }
+
+  .status-badge {
+    padding: 0.375rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: white;
+  }
+  .status-disponivel {
+    background: linear-gradient(135deg, #10b981, #059669);
+  }
+  .status-em-rota {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+  }
+  .status-em-manutencao {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+  }
+  .status-inativo {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+  }
+  .status-vendido {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 1.5rem;
+    color: var(--gray-600);
+  }
+  .empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+    color: var(--gray-200);
+  }
+
+  .fade-in {
+    animation: fadeIn 0.5s ease-in;
+  }
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
     }
-    
-    .export-loading::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-        transition: left 0.5s ease;
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
-    
-    .export-loading.loading::after {
-        left: 100%;
-    }
+  }
+
+  /* Estilos do Modal */
+  .tab-button.active {
+    border-bottom: 2px solid var(--primary-green);
+    color: var(--primary-green);
+    font-weight: 600;
+  }
+  .attachment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+  }
+  .attachment-item:hover {
+    background-color: var(--gray-100);
+  }
+  .attachment-icon {
+    color: var(--gray-600);
+    margin-right: 0.75rem;
+  }
+  .attachment-name {
+    color: var(--gray-900);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .attachment-name:hover {
+    text-decoration: underline;
+    color: var(--primary-green);
+  }
+  .btn-delete-attachment {
+    background: none;
+    border: none;
+    color: var(--gray-600);
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  .btn-delete-attachment:hover {
+    color: var(--red-600);
+  }
 </style>
-{% endblock %}
+{% endblock %} {% block content %} {% set stats = { 'total': veiculos|length,
+'disponivel': veiculos|selectattr('status', 'equalto',
+'Disponível')|list|length, 'em_rota': veiculos|selectattr('status', 'equalto',
+'Em Rota')|list|length, 'em_manutencao': veiculos|selectattr('status',
+'equalto', 'Em Manutenção')|list|length } %}
+<div class="space-y-6">
+  <div
+    class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 shadow-lg"
+  >
+    <h1 class="text-3xl font-bold flex items-center gap-3">
+      <i class="fas fa-truck"></i>
+      Frota de Veículos
+    </h1>
+    <p class="text-green-100 mt-2">
+      Gerencie todos os veículos da sua frota de forma eficiente.
+    </p>
+  </div>
 
-{% block content %}
-<div x-data="vehicleManager()" x-init="init()" class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-    <div class="mb-6">
-        <nav class="flex mb-4" aria-label="Breadcrumb">
-            <ol class="inline-flex items-center space-x-1 md:space-x-3">
-                <li class="inline-flex items-center">
-                    <a href="{{ url_for('painel') }}" class="text-gray-700 hover:text-blue-600 inline-flex items-center">
-                        <i class="fas fa-home mr-2"></i>
-                        Dashboard
-                    </a>
-                </li>
-                <li>
-                    <div class="flex items-center">
-                        <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-                        <span class="text-gray-500">Frota de Veículos</span>
-                    </div>
-                </li>
-            </ol>
-        </nav>
-        
-        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-                    <i class="fas fa-truck text-blue-600"></i>
-                    Frota de Veículos
-                </h1>
-                <p class="text-gray-600">Gerencie todos os veículos da sua frota de forma eficiente</p>
-            </div>
-            
-            <div class="flex flex-wrap gap-3">
-                <a href="{{ url_for('cadastrar_veiculo') }}" 
-                   class="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-3 px-6 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                    <i class="fas fa-plus"></i>
-                    Novo Veículo
-                </a>
-                
-                <button @click="exportToExcel()" 
-                        :disabled="exporting"
-                        :class="exporting ? 'export-loading loading cursor-not-allowed' : ''"
-                        class="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 disabled:from-emerald-400 disabled:to-emerald-500 text-white font-semibold py-3 px-6 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                    <i class="fas" :class="exporting ? 'fa-spinner fa-spin' : 'fa-file-excel'"></i>
-                    <span x-text="exporting ? 'Exportando...' : 'Exportar Excel'"></span>
+  <div class="veiculos-container fade-in">
+    <div class="flex flex-col md:flex-row justify-between items-center">
+      <div class="section-header !mb-4 md:!mb-0">
+        <i class="fas fa-chart-bar"></i>
+        Visão Geral da Frota
+      </div>
+      <div class="flex gap-2 w-full md:w-auto">
+        <a
+          href="{{ url_for('cadastrar_veiculo') }}"
+          class="btn-green flex-grow md:flex-grow-0"
+        >
+          <i class="fas fa-plus"></i> Novo Veículo
+        </a>
+        <button id="export-btn" class="btn-secondary flex-grow md:flex-grow-0">
+          <i class="fas fa-file-excel"></i> Exportar para Excel
+        </button>
+      </div>
+    </div>
+    <div
+      class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mt-4 text-center"
+    >
+      <div class="bg-indigo-100 p-4 rounded-lg">
+        <p class="text-2xl font-bold text-indigo-800">{{ stats.total }}</p>
+        <p class="text-sm text-indigo-600">Total de Veículos</p>
+      </div>
+      <div class="bg-green-100 p-4 rounded-lg">
+        <p class="text-2xl font-bold text-green-800">{{ stats.disponivel }}</p>
+        <p class="text-sm text-green-600">Disponíveis</p>
+      </div>
+      <div class="bg-blue-100 p-4 rounded-lg">
+        <p class="text-2xl font-bold text-blue-800">{{ stats.em_rota }}</p>
+        <p class="text-sm text-blue-600">Em Rota</p>
+      </div>
+      <div class="bg-yellow-100 p-4 rounded-lg">
+        <p class="text-2xl font-bold text-yellow-800">
+          {{ stats.em_manutencao }}
+        </p>
+        <p class="text-sm text-yellow-600">Em Manutenção</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="search-section fade-in">
+    <div class="section-header">
+      <i class="fas fa-filter"></i>
+      Buscar e Filtrar Veículos
+    </div>
+    <form method="GET">
+      <div class="flex flex-col md:flex-row gap-4 items-center">
+        <div class="search-box w-full">
+          <input
+            type="text"
+            name="search"
+            value="{{ search_query or '' }}"
+            placeholder="Buscar por Placa, Modelo ou Categoria..."
+            class="w-full"
+          />
+          <i class="fas fa-search"></i>
+        </div>
+        <div class="flex gap-2 w-full md:w-auto">
+          <button type="submit" class="btn-green w-full md:w-auto">
+            <i class="fas fa-search"></i> Filtrar
+          </button>
+          <a
+            href="{{ url_for('consultar_veiculos') }}"
+            class="btn-secondary w-full md:w-auto"
+            ><i class="fas fa-times"></i> Limpar</a
+          >
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="veiculos-container fade-in">
+    <div class="section-header">
+      <i class="fas fa-list"></i>
+      Lista de Veículos {% if veiculos %}<span
+        class="text-base font-normal text-gray-600"
+        >({{ veiculos|length }} veículo{{ 's' if veiculos|length != 1 }})</span
+      >{% endif %}
+    </div>
+
+    {% if not veiculos %}
+    <div class="empty-state">
+      <i class="fas fa-truck"></i>
+      <h3>Nenhum veículo encontrado</h3>
+      <p>Clique em "Novo Veículo" para adicionar o primeiro da sua frota.</p>
+    </div>
+    {% else %}
+    <div class="veiculos-table-container">
+      <table class="veiculos-table">
+        <thead>
+          <tr>
+            <th>Placa</th>
+            <th>Veículo</th>
+            <th>Ano</th>
+            <th>Quilometragem</th>
+            <th class="text-center">Status</th>
+            <th class="text-center">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for veiculo in veiculos %}
+          <tr
+            class="fade-in"
+            style="animation-delay: {{ loop.index0 * 0.05 }}s"
+          >
+            <td>
+              <div
+                class="font-bold text-gray-900 font-mono bg-gray-100 px-3 py-1 rounded inline-block"
+              >
+                {{ veiculo.placa }}
+              </div>
+            </td>
+            <td>
+              <div>
+                <div class="font-semibold text-gray-900">
+                  {{ veiculo.modelo }}
+                </div>
+                <div class="text-sm text-gray-500">
+                  {{ veiculo.marca or 'Marca não informada' }}
+                </div>
+              </div>
+            </td>
+            <td>{{ veiculo.ano or 'N/A' }}</td>
+            <td>
+              <div class="flex items-center gap-2">
+                <i class="fas fa-tachometer-alt text-gray-400"></i>
+                <span
+                  >{{ "{:,.0f}".format(veiculo.quilometragem).replace(",", ".")
+                  if veiculo.quilometragem else 'Não informado' }} km</span
+                >
+              </div>
+            </td>
+            <td class="text-center">
+              <span
+                class="status-badge {% if veiculo.status == 'Disponível' %}status-disponivel {% elif veiculo.status == 'Em Rota' %}status-em-rota {% elif veiculo.status == 'Em Manutenção' %}status-em-manutencao {% elif veiculo.status == 'Inativo' %}status-inativo {% elif veiculo.status == 'Vendido' %}status-vendido {% endif %}"
+              >
+                {{ veiculo.status }}
+              </span>
+            </td>
+            <td class="p-4">
+              <div class="flex gap-2 justify-center">
+                <button
+                  onclick="openVehicleModal({{ veiculo.id }})"
+                  class="btn-table btn-view"
+                  title="Ver Detalhes e Anexos"
+                >
+                  <i class="fas fa-eye"></i>
                 </button>
-            </div>
-        </div>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div class="stats-card" style="--accent-color: #10b981">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Disponíveis</p>
-                    <p class="text-3xl font-bold text-green-600" x-text="stats.disponivel || 0"></p>
-                </div>
-                <div class="p-3 bg-green-100 rounded-full">
-                    <i class="fas fa-check-circle text-2xl text-green-600"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="stats-card" style="--accent-color: #3b82f6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Em Rota</p>
-                    <p class="text-3xl font-bold text-blue-600" x-text="stats.em_rota || 0"></p>
-                </div>
-                <div class="p-3 bg-blue-100 rounded-full">
-                    <i class="fas fa-route text-2xl text-blue-600"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="stats-card" style="--accent-color: #f59e0b">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Em Manutenção</p>
-                    <p class="text-3xl font-bold text-yellow-600" x-text="stats.em_manutencao || 0"></p>
-                </div>
-                <div class="p-3 bg-yellow-100 rounded-full">
-                    <i class="fas fa-wrench text-2xl text-yellow-600"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="stats-card" style="--accent-color: #6366f1">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Total</p>
-                    <p class="text-3xl font-bold text-indigo-600" x-text="stats.total || 0"></p>
-                </div>
-                <div class="p-3 bg-indigo-100 rounded-full">
-                    <i class="fas fa-truck text-2xl text-indigo-600"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="filter-bar">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="relative">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Buscar Veículo</label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-search text-gray-400"></i>
-                    </div>
-                    <input type="text" 
-                           x-model="searchTerm" 
-                           @input="filterVehicles()"
-                           placeholder="Placa, modelo ou ano..." 
-                           class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
-                </div>
-            </div>
-            
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <select x-model="statusFilter" @change="filterVehicles()" 
-                        class="block w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
-                    <option value="">Todos os Status</option>
-                    <option value="Disponível">Disponível</option>
-                    <option value="Em Rota">Em Rota</option>
-                    <option value="Em Manutenção">Em Manutenção</option>
-                    <option value="Inativo">Inativo</option>
-                    <option value="Vendido">Vendido</option>
-                </select>
-            </div>
-            
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Ordenar por</label>
-                <select x-model="sortBy" @change="filterVehicles()" 
-                        class="block w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
-                    <option value="placa">Placa</option>
-                    <option value="modelo">Modelo</option>
-                    <option value="ano">Ano</option>
-                    <option value="status">Status</option>
-                    <option value="created_at">Data de Cadastro</option>
-                </select>
-            </div>
-            
-            <div class="flex items-end">
-                <button @click="clearFilters()" 
-                        class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
-                    <i class="fas fa-times mr-2"></i>
-                    Limpar Filtros
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div class="hidden lg:block table-container">
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="table-header">
-                    <tr>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
-                            <div class="flex items-center gap-2">
-                                <i class="fas fa-hashtag"></i>
-                                Placa
-                            </div>
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
-                            <div class="flex items-center gap-2">
-                                <i class="fas fa-car"></i>
-                                Veículo
-                            </div>
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
-                            <div class="flex items-center gap-2">
-                                <i class="fas fa-calendar"></i>
-                                Ano
-                            </div>
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
-                            <div class="flex items-center gap-2">
-                                <i class="fas fa-tachometer-alt"></i>
-                                Quilometragem
-                            </div>
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
-                            <div class="flex items-center gap-2">
-                                <i class="fas fa-info-circle"></i>
-                                Status
-                            </div>
-                        </th>
-                        <th class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider">
-                            <div class="flex items-center justify-center gap-2">
-                                <i class="fas fa-cogs"></i>
-                                Ações
-                            </div>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    <template x-if="loading">
-                        <tr>
-                            <td colspan="6" class="px-6 py-12 text-center">
-                                <div class="flex flex-col items-center justify-center">
-                                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                                    <p class="text-gray-500">Carregando veículos...</p>
-                                </div>
-                            </td>
-                        </tr>
-                    </template>
-                    
-                    <template x-if="!loading && filteredVehicles.length === 0">
-                        <tr>
-                            <td colspan="6" class="px-6 py-12 text-center">
-                                <div class="flex flex-col items-center justify-center">
-                                    <i class="fas fa-search text-4xl text-gray-300 mb-4"></i>
-                                    <p class="text-gray-500 text-lg">Nenhum veículo encontrado</p>
-                                    <p class="text-gray-400">Tente ajustar os filtros ou <a href="{{ url_for('cadastrar_veiculo') }}" class="text-blue-600 hover:text-blue-800 underline">cadastre um novo veículo</a></p>
-                                </div>
-                            </td>
-                        </tr>
-                    </template>
-                    
-                    <template x-for="veiculo in filteredVehicles" :key="veiculo.id">
-                        <tr class="table-row animate-fade-in-up">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="text-sm font-bold text-gray-900 font-mono bg-gray-100 px-3 py-1 rounded" x-text="veiculo.placa"></div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div>
-                                    <div class="text-sm font-medium text-gray-900" x-text="veiculo.modelo"></div>
-                                    <div class="text-sm text-gray-500" x-text="veiculo.marca || 'Marca não informada'"></div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="text-sm text-gray-900" x-text="veiculo.ano || 'N/A'"></span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <i class="fas fa-road text-gray-400 mr-2"></i>
-                                    <span class="text-sm text-gray-900" x-text="formatKm(veiculo.quilometragem)"></span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span :class="getStatusClass(veiculo.status)" 
-                                      class="status-badge"
-                                      x-text="veiculo.status">
-                                    <i :class="getStatusIcon(veiculo.status)"></i>
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center">
-                                <div class="action-buttons">
-                                    <a :href="getVehicleUrl('dashboard', veiculo.id)" 
-                                       class="btn-small bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800" 
-                                       title="Dashboard Financeiro">
-                                        <i class="fas fa-chart-line"></i>
-                                        <span class="hidden xl:inline">Dashboard</span>
-                                    </a>
-                                    <a :href="getVehicleUrl('edit', veiculo.id)" 
-                                       class="btn-small bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800" 
-                                       title="Editar Cadastro">
-                                        <i class="fas fa-edit"></i>
-                                        <span class="hidden xl:inline">Editar</span>
-                                    </a>
-                                    <a :href="getVehicleUrl('delete', veiculo.id)" 
-                                       @click="return confirm(`Tem certeza que deseja excluir o veículo ${veiculo.placa}?`)"
-                                       class="btn-small bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800" 
-                                       title="Excluir Veículo">
-                                        <i class="fas fa-trash"></i>
-                                        <span class="hidden xl:inline">Excluir</span>
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                    </template>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="lg:hidden">
-        <template x-if="loading">
-            <div class="space-y-4">
-                <div x-data="{ }" x-init="$nextTick(() => { for(let i = 0; i < 3; i++) { setTimeout(() => { }, i * 100) } })" class="vehicle-card loading-skeleton h-32 rounded-lg"></div>
-                <div class="vehicle-card loading-skeleton h-32 rounded-lg"></div>
-                <div class="vehicle-card loading-skeleton h-32 rounded-lg"></div>
-            </div>
-        </template>
-        
-        <template x-if="!loading && filteredVehicles.length === 0">
-            <div class="text-center py-12">
-                <i class="fas fa-search text-6xl text-gray-300 mb-6"></i>
-                <h3 class="text-xl font-medium text-gray-900 mb-2">Nenhum veículo encontrado</h3>
-                <p class="text-gray-500 mb-6">Tente ajustar os filtros ou cadastre um novo veículo</p>
-                <a href="{{ url_for('cadastrar_veiculo') }}" 
-                   class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
-                    <i class="fas fa-plus mr-2"></i>
-                    Cadastrar Veículo
+                <a
+                  href="{{ url_for('veiculo_dashboard', veiculo_id=veiculo.id) }}"
+                  class="btn-table btn-dashboard"
+                  title="Dashboard Financeiro e Despesas"
+                >
+                  <i class="fas fa-chart-line"></i>
                 </a>
-            </div>
-        </template>
-        
-        <div class="space-y-4">
-            <template x-for="veiculo in filteredVehicles" :key="veiculo.id">
-                <div class="vehicle-card animate-fade-in-up">
-                    <div class="flex items-start justify-between mb-4">
-                        <div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-1" x-text="veiculo.placa"></h3>
-                            <p class="text-gray-600" x-text="`${veiculo.modelo} ${veiculo.ano ? '(' + veiculo.ano + ')' : ''}`"></p>
-                        </div>
-                        <span :class="getStatusClass(veiculo.status)" 
-                              class="status-badge text-xs"
-                              x-text="veiculo.status">
-                        </span>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
-                        <div>
-                            <span class="text-gray-500 block">Marca:</span>
-                            <span class="font-medium" x-text="veiculo.marca || 'Não informada'"></span>
-                        </div>
-                        <div>
-                            <span class="text-gray-500 block">Quilometragem:</span>
-                            <span class="font-medium" x-text="formatKm(veiculo.quilometragem)"></span>
-                        </div>
-                    </div>
-                    
-                    <div class="action-buttons">
-                        <a :href="'/veiculo/' + veiculo.id + '/dashboard'"
-                           class="btn-small bg-gradient-to-r from-blue-600 to-blue-700" title="Dashboard">
-                            <i class="fas fa-chart-line"></i>
-                            Dashboard
-                        </a>
-                        <a :href="'/editar_veiculo/' + veiculo.id"
-                           class="btn-small bg-gradient-to-r from-indigo-600 to-indigo-700" title="Editar">
-                            <i class="fas fa-edit"></i>
-                            Editar
-                        </a>
-                        <a :href="'/excluir_veiculo/' + veiculo.id"
-                           @click="return confirm(`Tem certeza que deseja excluir o veículo ${veiculo.placa}?`)"
-                           class="btn-small bg-gradient-to-r from-red-600 to-red-700" title="Excluir">
-                            <i class="fas fa-trash"></i>
-                            Excluir
-                        </a>
-                    </div>
-                    </div>
-            </template>
-        </div>
+                <a
+                  href="{{ url_for('editar_veiculo', veiculo_id=veiculo.id) }}"
+                  class="btn-table btn-edit"
+                  title="Editar Cadastro"
+                >
+                  <i class="fas fa-edit"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+    {% endif %}
+  </div>
 </div>
 
+<div
+  id="vehicleModal"
+  class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden"
+>
+  <div
+    class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col"
+  >
+    <header class="flex justify-between items-center p-4 border-b">
+      <h2 class="text-xl font-bold text-gray-800">
+        Detalhes do Veículo: <span id="modal-vehicle-plate"></span>
+      </h2>
+      <button
+        onclick="closeModal('vehicleModal')"
+        class="text-gray-400 hover:text-gray-700 text-3xl"
+      >
+        &times;
+      </button>
+    </header>
+    <div class="border-b">
+      <nav class="flex px-4">
+        <button
+          id="tab-kpis"
+          class="tab-button py-3 px-4"
+          onclick="switchTab('kpis')"
+        >
+          KPIs
+        </button>
+        <button
+          id="tab-historico"
+          class="tab-button py-3 px-4"
+          onclick="switchTab('historico')"
+        >
+          Histórico
+        </button>
+        <button
+          id="tab-anexos"
+          class="tab-button py-3 px-4"
+          onclick="switchTab('anexos')"
+        >
+          Anexos (Fotos)
+        </button>
+      </nav>
+    </div>
+    <div class="p-6 overflow-y-auto">
+      <div id="content-kpis" class="tab-content"></div>
+      <div id="content-historico" class="tab-content hidden"></div>
+      <div id="content-anexos" class="tab-content hidden"></div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %} {{ super() }}
 <!-- Adicionar a biblioteca SheetJS via CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
 <script>
-function vehicleManager() {
-    return {
-        loading: true,
-        exporting: false,
-        vehicles: [],
-        filteredVehicles: [],
-        searchTerm: '',
-        statusFilter: '',
-        sortBy: 'placa',
-        stats: {
-            total: 0,
-            disponivel: 0,
-            em_rota: 0,
-            em_manutencao: 0,
-            inativo: 0
-        },
-        
-        init() {
-            this.loadVehicles();
-        },
-        
-        loadVehicles() {
-            // Simulando dados - substitua pela chamada real da API
-            setTimeout(() => {
-                this.vehicles = {{ veiculos | tojson | safe if veiculos else '[]' }};
-                this.filteredVehicles = [...this.vehicles];
-                this.calculateStats();
-                this.loading = false;
-            }, 500);
-        },
-        
-        calculateStats() {
-            this.stats = this.vehicles.reduce((acc, vehicle) => {
-                acc.total++;
-                switch(vehicle.status) {
-                    case 'Disponível':
-                        acc.disponivel++;
-                        break;
-                    case 'Em Rota':
-                        acc.em_rota++;
-                        break;
-                    case 'Em Manutenção':
-                        acc.em_manutencao++;
-                        break;
-                    case 'Inativo':
-                        acc.inativo++;
-                        break;
-                }
-                return acc;
-            }, { total: 0, disponivel: 0, em_rota: 0, em_manutencao: 0, inativo: 0 });
-        },
-        
-        filterVehicles() {
-            let filtered = [...this.vehicles];
-            
-            // Filtrar por termo de busca
-            if (this.searchTerm) {
-                filtered = filtered.filter(vehicle => 
-                    vehicle.placa.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-                    vehicle.modelo.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-                    (vehicle.marca && vehicle.marca.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
-                    (vehicle.ano && vehicle.ano.toString().includes(this.searchTerm))
-                );
-            }
-            
-            // Filtrar por status
-            if (this.statusFilter) {
-                filtered = filtered.filter(vehicle => vehicle.status === this.statusFilter);
-            }
-            
-            // Ordenar
-            filtered.sort((a, b) => {
-                let aValue = a[this.sortBy] || '';
-                let bValue = b[this.sortBy] || '';
-                
-                if (typeof aValue === 'string') {
-                    return aValue.localeCompare(bValue);
-                }
-                
-                return aValue - bValue;
-            });
-            
-            this.filteredVehicles = filtered;
-        },
-        
-        clearFilters() {
-            this.searchTerm = '';
-            this.statusFilter = '';
-            this.sortBy = 'placa';
-            this.filterVehicles();
-        },
-        
-        getStatusClass(status) {
-            const statusClasses = {
-                'Disponível': 'status-disponivel',
-                'Em Rota': 'status-em-rota',
-                'Em Manutenção': 'status-em-manutencao',
-                'Inativo': 'status-inativo',
-                'Vendido': 'status-vendido'
-            };
-            return statusClasses[status] || 'status-badge';
-        },
-        
-        getStatusIcon(status) {
-            const statusIcons = {
-                'Disponível': 'fas fa-check-circle',
-                'Em Rota': 'fas fa-route',
-                'Em Manutenção': 'fas fa-wrench',
-                'Inativo': 'fas fa-pause-circle',
-                'Vendido': 'fas fa-handshake'
-            };
-            return statusIcons[status] || 'fas fa-info-circle';
-        },
-        
-        formatKm(km) {
-            if (!km && km !== 0) return 'Não informado';
-            return new Intl.NumberFormat('pt-BR').format(km) + ' km';
-        },
+  document.getElementById('export-btn').addEventListener('click', function() {
+      const veiculos = {{ veiculos|tojson|safe }};
 
-        getVehicleUrl(action, vehicleId) {
-            const urls = {
-                'dashboard': `/veiculo/${vehicleId}/dashboard`,
-                'edit': `/editar_veiculo/${vehicleId}`,
-                'delete': `/excluir_veiculo/${vehicleId}`
-            };
-            return urls[action] || '#';
-        },
-        
-        async exportToExcel() {
-            if (this.filteredVehicles.length === 0) {
-                alert('Não há dados para exportar.');
-                return;
-            }
+      if (!veiculos || veiculos.length === 0) {
+          alert('Não há dados para exportar.');
+          return;
+      }
 
-            this.exporting = true;
+      const exportData = veiculos.map(v => ({
+          'Placa': v.placa,
+          'Veículo': v.modelo,
+          'Marca': v.marca || 'N/A',
+          'Ano': v.ano || 'N/A',
+          'Quilometragem (km)': v.quilometragem || 0,
+          'Status': v.status,
+          'Data de Cadastro': v.created_at ? new Date(v.created_at).toLocaleDateString('pt-BR') : 'N/A'
+      }));
 
-            try {
-                // Preparar dados para exportação
-                const exportData = this.filteredVehicles.map(vehicle => ({
-                    'Placa': vehicle.placa || '',
-                    'Modelo': vehicle.modelo || '',
-                    'Marca': vehicle.marca || 'Não informada',
-                    'Ano': vehicle.ano || 'N/A',
-                    'Status': vehicle.status || '',
-                    'Quilometragem': vehicle.quilometragem || 0,
-                    'Data de Cadastro': vehicle.created_at ? 
-                        new Date(vehicle.created_at).toLocaleDateString('pt-BR') : 'N/A'
-                }));
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Frota de Veículos");
 
-                // Criar nova planilha
-                const worksheet = XLSX.utils.json_to_sheet(exportData);
-                const workbook = XLSX.utils.book_new();
-                
-                // Adicionar a planilha ao workbook
-                XLSX.utils.book_append_sheet(workbook, worksheet, "Veículos");
-                
-                // Configurar larguras das colunas
-                const columnWidths = [
-                    { wch: 12 }, // Placa
-                    { wch: 20 }, // Modelo
-                    { wch: 15 }, // Marca
-                    { wch: 8 },  // Ano
-                    { wch: 15 }, // Status
-                    { wch: 15 }, // Quilometragem
-                    { wch: 18 }  // Data de Cadastro
-                ];
-                worksheet['!cols'] = columnWidths;
-                
-                // Aplicar estilos aos cabeçalhos
-                const range = XLSX.utils.decode_range(worksheet['!ref']);
-                for (let col = range.s.c; col <= range.e.c; col++) {
-                    const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
-                    if (!worksheet[cellAddress]) continue;
-                    worksheet[cellAddress].s = {
-                        font: { bold: true, color: { rgb: "FFFFFF" } },
-                        fill: { fgColor: { rgb: "4F46E5" } },
-                        alignment: { horizontal: "center" }
-                    };
-                }
-                
-                // Aplicar formatação de número para quilometragem
-                for (let row = 1; row <= range.e.r; row++) {
-                    const kmCellAddress = XLSX.utils.encode_cell({ r: row, c: 5 }); // Coluna Quilometragem
-                    if (worksheet[kmCellAddress] && typeof worksheet[kmCellAddress].v === 'number') {
-                        worksheet[kmCellAddress].z = '#,##0" km"';
-                    }
-                }
+      const today = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(workbook, `Relatorio_Frota_${today}.xlsx`);
+  });
 
-                // Gerar nome do arquivo com timestamp
-                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-                const filename = `veiculos_${timestamp}.xlsx`;
-                
-                // Fazer o download
-                XLSX.writeFile(workbook, filename, {
-                    bookType: 'xlsx',
-                    type: 'binary'
-                });
+  // --- Lógica do Modal ---
+  function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
+  function switchTab(tabName) {
+      document.querySelectorAll('#vehicleModal .tab-content').forEach(c => c.classList.add('hidden'));
+      document.querySelectorAll('#vehicleModal .tab-button').forEach(b => b.classList.remove('active'));
+      document.getElementById(`content-${tabName}`).classList.remove('hidden');
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+  }
 
-                // Mostrar toast de sucesso
-                this.showToast(`Arquivo Excel exportado com sucesso!<br><small>Total: ${this.filteredVehicles.length} veículos</small>`, 'success');
+  async function openVehicleModal(veiculoId) {
+      const modal = document.getElementById('vehicleModal');
+      modal.classList.remove('hidden');
+      switchTab('kpis');
 
-            } catch (error) {
-                console.error('Erro ao exportar Excel:', error);
-                this.showToast('Erro ao exportar arquivo Excel. Tente novamente.', 'error');
-            } finally {
-                this.exporting = false;
-            }
-        },
+      const kpisContainer = document.getElementById('content-kpis');
+      const historicoContainer = document.getElementById('content-historico');
+      const anexosContainer = document.getElementById('content-anexos');
 
-        showToast(message, type = 'success') {
-            const toast = document.createElement('div');
-            toast.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg text-white font-medium transform transition-all duration-300 translate-x-full max-w-sm`;
-            
-            const colors = {
-                'success': 'bg-emerald-500',
-                'error': 'bg-red-500',
-                'warning': 'bg-yellow-500',
-                'info': 'bg-blue-500'
-            };
-            
-            const icons = {
-                'success': 'fa-check-circle',
-                'error': 'fa-exclamation-circle', 
-                'warning': 'fa-exclamation-triangle',
-                'info': 'fa-info-circle'
-            };
-            
-            toast.classList.add(colors[type] || colors.info);
-            
-            toast.innerHTML = `
-                <div class="flex items-start gap-3">
-                    <i class="fas ${icons[type] || icons.info} flex-shrink-0 mt-0.5"></i>
-                    <div class="flex-1">
-                        <div>${message}</div>
-                    </div>
-                    <button onclick="this.closest('.fixed').remove()" 
-                            class="text-white/80 hover:text-white ml-2 flex-shrink-0">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            `;
-            
-            document.body.appendChild(toast);
-            
-            // Animar entrada
-            setTimeout(() => {
-                toast.classList.remove('translate-x-full');
-            }, 100);
-            
-            // Remover automaticamente após 5 segundos
-            setTimeout(() => {
-                toast.classList.add('translate-x-full');
-                setTimeout(() => {
-                    if (toast.parentElement) {
-                        toast.remove();
-                    }
-                }, 300);
-            }, 5000);
-        }
-    };
-}
-</script>
-{% endblock %}
+      kpisContainer.innerHTML = '<p class="text-center text-gray-500">Carregando KPIs...</p>';
+      historicoContainer.innerHTML = '<p class="text-center text-gray-500">Carregando histórico...</p>';
+      anexosContainer.innerHTML = '<p class="text-center text-gray-500">Carregando anexos...</p>';
 
-{% block scripts %}
-{{ super() }}
-<script>
-    // Interceptar exclusões para mostrar feedback
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('a[href*="excluir_veiculo"]')) {
-            const link = e.target.closest('a');
-            const vehiclePlate = link.getAttribute('href').match(/veiculo_id=(\d+)/);
-            
-            if (vehiclePlate && confirm('Tem certeza que deseja excluir este veículo?')) {
-                // Aqui você pode adicionar lógica adicional antes da exclusão
-                showToast('Veículo será excluído...', 'warning');
-            } else {
-                e.preventDefault();
-            }
-        }
-    });
-    
-    // Feedback para ações bem-sucedidas (pode ser usado com Flask flash messages)
-    document.addEventListener('DOMContentLoaded', function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const success = urlParams.get('success');
-        const error = urlParams.get('error');
-        
-        if (success) {
-            switch(success) {
-                case 'created':
-                    showToast('Veículo cadastrado com sucesso!', 'success');
-                    break;
-                case 'updated':
-                    showToast('Veículo atualizado com sucesso!', 'success');
-                    break;
-                case 'deleted':
-                    showToast('Veículo excluído com sucesso!', 'success');
-                    break;
-            }
-        }
-        
-        if (error) {
-            showToast('Erro ao realizar operação. Tente novamente.', 'error');
-        }
-    });
+      document.getElementById('modal-vehicle-plate').innerText = 'Carregando...';
 
-    // Função global para toast (fallback)
-    function showToast(message, type = 'success') {
-        // Usar a instância do Alpine.js se disponível
-        if (window.Alpine && window.Alpine.store) {
-            // Se você tiver um store global, use-o
-            return;
-        }
-        
-        // Fallback para criar toast manualmente
-        const toast = document.createElement('div');
-        toast.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg text-white font-medium transform transition-all duration-300 translate-x-full`;
-        
-        switch(type) {
-            case 'success':
-                toast.classList.add('bg-green-500');
-                break;
-            case 'error':
-                toast.classList.add('bg-red-500');
-                break;
-            case 'warning':
-                toast.classList.add('bg-yellow-500');
-                break;
-            default:
-                toast.classList.add('bg-blue-500');
-        }
-        
-        toast.innerHTML = `
-            <div class="flex items-center gap-3">
-                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
-                <span>${message}</span>
-                <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white/80 hover:text-white">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `;
-        
-        document.body.appendChild(toast);
-        
-        setTimeout(() => {
-            toast.classList.remove('translate-x-full');
-        }, 100);
-        
-        setTimeout(() => {
-            toast.classList.add('translate-x-full');
-            setTimeout(() => {
-                if (toast.parentElement) {
-                    toast.remove();
-                }
-            }, 300);
-        }, 5000);
-    }
+      try {
+          const response = await fetch(`/api/veiculo/${veiculoId}/details`);
+          if (!response.ok) throw new Error('Falha ao buscar dados do veículo.');
+          const data = await response.json();
+
+          document.getElementById('modal-vehicle-plate').innerText = data.veiculo.placa;
+
+          // Render KPIs
+          const kpis = data.kpis;
+          kpisContainer.innerHTML = `
+              <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
+                  <div class="bg-blue-100 p-4 rounded-lg"><p class="text-2xl font-bold text-blue-800">${kpis.total_viagens}</p><p class="text-sm text-blue-600">Total de Viagens</p></div>
+                  <div class="bg-indigo-100 p-4 rounded-lg"><p class="text-2xl font-bold text-indigo-800">${kpis.total_km.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} km</p><p class="text-sm text-indigo-600">KM Rodados</p></div>
+                  <div class="bg-red-100 p-4 rounded-lg"><p class="text-2xl font-bold text-red-800">R$ ${kpis.custo_geral.toFixed(2).replace('.', ',')}</p><p class="text-sm text-red-600">Custo Geral</p></div>
+                  <div class="bg-yellow-100 p-4 rounded-lg"><p class="text-2xl font-bold text-yellow-800">R$ ${kpis.custo_por_km.toFixed(2).replace('.', ',')}</p><p class="text-sm text-yellow-600">Custo por KM</p></div>
+              </div>`;
+
+          // Render History
+          const manutencoes = data.manutencoes;
+          if (manutencoes.length > 0) {
+              let historyHtml = '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="bg-gray-100"><th class="p-2 text-left">Data</th><th class="p-2 text-left">Tipo</th><th class="p-2 text-left">Descrição</th><th class="p-2 text-right">Custo</th></tr></thead><tbody>';
+              manutencoes.forEach(m => {
+                  historyHtml += `<tr class="border-b"><td class="p-2">${m.data}</td><td class="p-2">${m.tipo}</td><td class="p-2">${m.descricao}</td><td class="p-2 text-right">R$ ${m.custo ? m.custo.toFixed(2).replace('.', ',') : '0,00'}</td></tr>`;
+              });
+              historyHtml += '</tbody></table></div>';
+              historicoContainer.innerHTML = historyHtml;
+          } else {
+              historicoContainer.innerHTML = '<p class="text-center text-gray-500">Nenhum histórico de manutenção encontrado.</p>';
+          }
+
+          // Render Attachments
+          renderAnexos(veiculoId, data.anexos, anexosContainer);
+
+      } catch (error) {
+          console.error("Erro no modal do veículo:", error);
+          kpisContainer.innerHTML = `<p class="text-center text-red-500">${error.message}</p>`;
+          historicoContainer.innerHTML = '';
+          anexosContainer.innerHTML = '';
+      }
+  }
+
+  function renderAnexos(veiculoId, anexos, container) {
+      if (anexos && anexos.length > 0) {
+          let anexosHtml = '<div class="space-y-2">';
+          anexos.forEach(anexoUrl => {
+              const fileName = anexoUrl.split('/').pop().split('-').slice(1).join('-') || 'Arquivo de imagem';
+              anexosHtml += `
+                  <div class="attachment-item" id="anexo-${btoa(anexoUrl)}">
+                      <div class="flex items-center">
+                           <i class="fas fa-image attachment-icon"></i>
+                           <a href="${anexoUrl}" target="_blank" class="attachment-name" title="${fileName}">${fileName}</a>
+                      </div>
+                      <button onclick="deleteVehicleAttachment(${veiculoId}, '${anexoUrl}')" class="btn-delete-attachment" title="Excluir anexo">
+                          <i class="fas fa-times"></i>
+                      </button>
+                  </div>
+              `;
+          });
+          anexosHtml += '</div><p class="text-xs text-gray-500 mt-4">Para adicionar novas fotos, acesse a tela de <a href="/editar_veiculo/' + veiculoId + '" class="text-blue-600 hover:underline">edição de veículo</a>.</p>';
+          container.innerHTML = anexosHtml;
+      } else {
+          container.innerHTML = '<p class="text-center text-gray-500">Nenhuma foto ou anexo encontrado. Você pode adicionar na tela de edição do veículo.</p>';
+      }
+  }
+
+  async function deleteVehicleAttachment(veiculoId, fotoUrl) {
+      if (!confirm('Tem certeza que deseja excluir esta foto/anexo? A ação não pode ser desfeita.')) {
+          return;
+      }
+
+      try {
+          const response = await fetch('/api/veiculo/excluir_foto', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ veiculo_id: veiculoId, foto_url: fotoUrl })
+          });
+          const result = await response.json();
+
+          if (response.ok && result.success) {
+              const elementId = btoa(fotoUrl);
+              document.getElementById(`anexo-${elementId}`).remove();
+              // Opcional: mostrar uma notificação de sucesso
+              alert('Anexo excluído com sucesso!');
+          } else {
+              throw new Error(result.message || 'Erro ao excluir anexo.');
+          }
+      } catch (error) {
+          console.error("Erro ao excluir anexo:", error);
+          alert(error.message);
+      }
+  }
 </script>
 {% endblock %}

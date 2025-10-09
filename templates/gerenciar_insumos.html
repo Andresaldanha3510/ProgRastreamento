@@ -1,288 +1,1013 @@
-{% extends "base.html" %}
-
-{% block title %}Gerenciar Insumos da Oficina{% endblock %}
-
-{% block styles %}
-{{ super() }} {# Mantém os estilos do base.html, se houver #}
+{% extends "base.html" %} {% block title %}Gerenciar Insumos da Oficina{%
+endblock %} {% block styles %}
 <style>
-    .modal {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background-color: rgba(0, 0, 0, 0.6);
-        align-items: center;
-        justify-content: center;
-        z-index: 50;
-        animation: fadeIn 0.2s ease-out;
-    }
-    .modal.flex {
-        display: flex;
-    }
-    .modal-content {
-        background-color: white;
-        padding: 1.5rem 2rem;
-        border-radius: 0.75rem;
-        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
-        animation: slideIn 0.3s ease-out;
-        width: 90%;
-        max-width: 500px;
-    }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .main-container {
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: linear-gradient(to bottom, #ffffff, #f8fdf9);
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(27, 94, 32, 0.08);
+  }
 
-    /* ### CSS PARA RESPONSIVIDADE ### */
-    .header-actions {
-        display: flex;
-        flex-wrap: wrap; /* Permite que os botões quebrem a linha */
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-        gap: 1rem; /* Espaçamento entre os itens */
-    }
-    .main-grid {
-        display: grid;
-        grid-template-columns: 1fr; /* Uma coluna por padrão */
-        gap: 2rem;
-    }
-    .table-container {
-        overflow-x: auto; /* Permite rolagem horizontal na tabela em telas pequenas */
-    }
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 2rem;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid #e8f5e9;
+    position: relative;
+  }
 
-    @media (min-width: 1024px) { /* Em telas grandes (lg), usa 3 colunas */
-        .main-grid {
-            grid-template-columns: repeat(3, 1fr);
-        }
-        .form-column {
-            grid-column: span 1 / span 1;
-        }
-        .table-column {
-            grid-column: span 2 / span 2;
-        }
+  .page-header::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 120px;
+    height: 2px;
+    background: linear-gradient(to right, #2e7d32, #66bb6a);
+    border-radius: 2px;
+  }
+
+  .page-header h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .page-header h1 i {
+    background: linear-gradient(135deg, #2e7d32, #66bb6a);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 2rem;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, #f1f8f4 0%, #ffffff 100%);
+    border-radius: 16px;
+    margin-bottom: 2rem;
+    border: 2px solid #e8f5e9;
+    box-shadow: 0 4px 12px rgba(27, 94, 32, 0.04);
+  }
+
+  .search-input {
+    flex-grow: 1;
+    position: relative;
+  }
+
+  .search-input i {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #66bb6a;
+    font-size: 1.1rem;
+  }
+
+  .search-input input {
+    width: 100%;
+    padding: 12px 16px 12px 46px;
+    border-radius: 12px;
+    border: 2px solid #c8e6c9;
+    background-color: #ffffff;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+  }
+
+  .search-input input:focus {
+    outline: none;
+    border-color: #66bb6a;
+    box-shadow: 0 0 0 3px rgba(102, 187, 106, 0.1);
+  }
+
+  .filter-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    color: #2e7d32;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 8px 16px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    border: 2px solid #e8f5e9;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .filter-checkbox:hover {
+    background-color: #f1f8f4;
+    border-color: #c8e6c9;
+  }
+
+  .filter-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #2e7d32;
+  }
+
+  .table-wrapper {
+    overflow-x: auto;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(27, 94, 32, 0.06);
+  }
+
+  .styled-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background-color: #ffffff;
+    overflow: hidden;
+    border-radius: 16px;
+  }
+
+  .styled-table thead {
+    background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
+  }
+
+  .styled-table thead th {
+    padding: 1.25rem 1rem;
+    text-align: left;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: none;
+  }
+
+  .styled-table tbody tr {
+    border-bottom: 1px solid #e8f5e9;
+    transition: all 0.3s ease;
+  }
+
+  .styled-table tbody tr:hover {
+    background-color: #f1f8f4;
+    transform: scale(1.001);
+    box-shadow: 0 2px 8px rgba(27, 94, 32, 0.06);
+  }
+
+  .styled-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .styled-table tbody td {
+    padding: 1rem;
+    font-size: 0.95rem;
+    color: #2c3e50;
+  }
+
+  .styled-table .font-semibold {
+    font-weight: 600;
+    color: #1b5e20;
+  }
+
+  .styled-table .font-mono {
+    font-family: "Courier New", monospace;
+    font-size: 0.9rem;
+    color: #546e7a;
+    background-color: #f5f5f5;
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+
+  .styled-table .text-red-600 {
+    color: #d32f2f !important;
+    font-weight: 700;
+  }
+
+  .styled-table .text-gray-800 {
+    color: #2e7d32 !important;
+  }
+
+  .styled-table .text-gray-600 {
+    color: #546e7a;
+  }
+
+  .actions-cell {
+    text-align: center !important;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+
+  .action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-size: 1.1rem;
+  }
+
+  .action-btn:hover {
+    background-color: #f1f8f4;
+    transform: translateY(-2px);
+  }
+
+  .action-btn.text-green-600 {
+    color: #2e7d32;
+  }
+
+  .action-btn.text-green-600:hover {
+    background-color: #e8f5e9;
+  }
+
+  .action-btn.text-red-600 {
+    color: #d32f2f;
+  }
+
+  .action-btn.text-red-600:hover {
+    background-color: #ffebee;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+  }
+
+  .btn-secondary {
+    background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
+    color: #424242;
+  }
+
+  .btn-secondary:hover {
+    background: linear-gradient(135deg, #d0d0d0 0%, #e0e0e0 100%);
+  }
+
+  .btn-success {
+    background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%);
+    color: white;
+  }
+
+  .btn-success:hover {
+    background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%);
+  }
+
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(27, 94, 32, 0.15);
+    backdrop-filter: blur(4px);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal.flex {
+    display: flex;
+  }
+
+  .modal-content {
+    background: linear-gradient(to bottom, #ffffff, #f8fdf9);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(27, 94, 32, 0.2);
+    width: 90%;
+    max-width: 600px;
+    animation: modalSlideIn 0.3s ease;
+    border: 2px solid #e8f5e9;
+  }
+
+  @keyframes modalSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-30px);
     }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 2px solid #e8f5e9;
+  }
+
+  .modal-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .btn-close {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #757575;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+  }
+
+  .btn-close:hover {
+    background-color: #ffebee;
+    color: #d32f2f;
+  }
+
+  .modal-body {
+    padding: 2rem;
+  }
+
+  .modal-footer {
+    padding: 1.5rem 2rem;
+    border-top: 2px solid #e8f5e9;
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+  }
+
+  .form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #2e7d32;
+    font-size: 0.9rem;
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid #c8e6c9;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    background-color: #ffffff;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: #66bb6a;
+    box-shadow: 0 0 0 3px rgba(102, 187, 106, 0.1);
+  }
+
+  .grid {
+    display: grid;
+  }
+
+  .grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  .gap-4 {
+    gap: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .md\:grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .md\:col-span-2 {
+      grid-column: span 2 / span 2;
+    }
+  }
+
+  .text-center {
+    text-align: center;
+  }
+
+  .text-right {
+    text-align: right;
+  }
+
+  .mr-2 {
+    margin-right: 0.5rem;
+  }
+
+  .mb-4 {
+    margin-bottom: 1rem;
+  }
+
+  .py-8 {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+
+  .text-gray-500 {
+    color: #9e9e9e;
+  }
+
+  .text-gray-700 {
+    color: #616161;
+  }
+
+  .max-w-lg {
+    max-width: 32rem;
+  }
+
+  .max-w-md {
+    max-width: 28rem;
+  }
+
+  .block {
+    display: block;
+  }
+
+  /* Badge para estoque baixo */
+  .stock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .stock-badge.low {
+    background-color: #ffebee;
+    color: #d32f2f;
+  }
+
+  .stock-badge.ok {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  /* Animação suave para transições */
+  * {
+    transition: background-color 0.3s ease, color 0.3s ease,
+      border-color 0.3s ease;
+  }
+
+  /* Scrollbar personalizada */
+  .table-wrapper::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .table-wrapper::-webkit-scrollbar-track {
+    background: #f1f8f4;
+    border-radius: 10px;
+  }
+
+  .table-wrapper::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #66bb6a, #43a047);
+    border-radius: 10px;
+  }
+
+  .table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #43a047, #2e7d32);
+  }
 </style>
-{% endblock %}
-
-{% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h1 class="text-2xl font-bold text-gray-800">Catálogo de Insumos</h1>
-        <a href="{{ url_for('oficina') }}" class="text-indigo-600 hover:text-indigo-800 font-medium">
-            &larr; Voltar para a Oficina
-        </a>
+{% endblock %} {% block content %}
+<div class="main-container">
+  <div class="page-header">
+    <h1><i class="fas fa-box-open"></i>Catálogo de Insumos</h1>
+    <div class="header-actions">
+      <a href="{{ url_for('oficina') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Voltar à Oficina
+      </a>
+      <button onclick="abrirModal('modal-novo-insumo')" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Adicionar Insumo
+      </button>
     </div>
+  </div>
 
-    <div class="flex flex-col lg:flex-row gap-8">
-        <div class="w-full lg:w-1/3">
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Adicionar Novo Insumo</h2>
-                <form id="form-novo-insumo" class="space-y-4">
-                    <div>
-                        <label for="descricao" class="block text-sm font-medium text-gray-700">Descrição*</label>
-                        <input type="text" id="descricao" name="descricao" class="w-full mt-1 p-2 border rounded-md shadow-sm" placeholder="Ex: Filtro de Ar Volvo FH" required>
-                    </div>
-                    <div>
-                        <label for="codigo_peca" class="block text-sm font-medium text-gray-700">Código da Peça (Part Number)</label>
-                        <input type="text" id="codigo_peca" name="codigo_peca" class="w-full mt-1 p-2 border rounded-md shadow-sm" placeholder="Ex: 21707133">
-                    </div>
-                    <div>
-                        <label for="custo_unitario_medio" class="block text-sm font-medium text-gray-700">Custo Unitário Médio (R$)</label>
-                        <input type="number" step="0.01" id="custo_unitario_medio" name="custo_unitario_medio" class="w-full mt-1 p-2 border rounded-md shadow-sm" placeholder="Ex: 150.75">
-                    </div>
-                    <div>
-                        <label for="quantidade_em_estoque" class="block text-sm font-medium text-gray-700">Quantidade Inicial em Estoque</label>
-                        <input type="number" step="1" id="quantidade_em_estoque" name="quantidade_em_estoque" class="w-full mt-1 p-2 border rounded-md shadow-sm" placeholder="0">
-                    </div>
-                    <div>
-                        <label for="ponto_ressuprimento" class="block text-sm font-medium text-gray-700">Estoque Mínimo (para alerta)</label>
-                        <input type="number" step="1" id="ponto_ressuprimento" name="ponto_ressuprimento" class="w-full mt-1 p-2 border rounded-md shadow-sm" placeholder="Ex: 5">
-                    </div>
-                    <div>
-                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition">
-                            <i class="fas fa-plus mr-2"></i>Salvar Insumo
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <div class="w-full lg:w-2/3">
-            <div class="bg-white rounded-lg shadow-md">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estoque</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Mínimo</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Custo</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            {% for insumo in insumos %}
-                            <tr id="insumo-{{ insumo.id }}">
-                                <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{{ insumo.descricao }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-gray-500">{{ insumo.codigo_peca or 'N/A' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center font-bold {% if insumo.ponto_ressuprimento and insumo.quantidade_em_estoque <= insumo.ponto_ressuprimento %}text-red-600{% endif %} stock-quantity">
-                                    {{ insumo.quantidade_em_estoque|int }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center text-gray-500">{{ insumo.ponto_ressuprimento|int if insumo.ponto_ressuprimento is not none else 'N/A' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-gray-500">R$ {{ "%.2f"|format(insumo.custo_unitario_medio or 0)|replace('.', ',') }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                    <button onclick="abrirModalEntrada({{ insumo.id }}, '{{ insumo.descricao }}')" class="text-green-600 hover:text-green-800 mr-3" title="Registrar Entrada no Estoque">
-                                        <i class="fas fa-plus-circle"></i>
-                                    </button>
-                                    <button onclick="deletarInsumo({{ insumo.id }})" class="text-red-500 hover:text-red-700" title="Excluir Insumo">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="6" class="px-6 py-4 text-center text-gray-500">Nenhum insumo cadastrado.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+  <div class="toolbar">
+    <div class="search-input">
+      <i class="fas fa-search"></i>
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="Buscar por descrição ou código..."
+      />
     </div>
+    <label class="filter-checkbox">
+      <input type="checkbox" id="stockFilter" />
+      <span>Apenas estoque baixo</span>
+    </label>
+    <a
+      id="export-excel-btn"
+      href="{{ url_for('exportar_insumos_excel') }}"
+      class="btn btn-secondary"
+    >
+      <i class="fas fa-file-excel"></i> Exportar
+    </a>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="styled-table">
+      <thead>
+        <tr>
+          <th>Descrição</th>
+          <th>Código</th>
+          <th class="text-center">Estoque Atual</th>
+          <th class="text-center">Estoque Mínimo</th>
+          <th class="text-right">Custo Unitário</th>
+          <th class="text-center">Ações</th>
+        </tr>
+      </thead>
+      <tbody id="lista-insumos">
+        {% for insumo in insumos %}
+        <tr
+          data-insumo-id="{{ insumo.id }}"
+          data-estoque-atual="{{ insumo.quantidade_em_estoque }}"
+          data-estoque-minimo="{{ insumo.ponto_ressuprimento or -1 }}"
+        >
+          <td class="font-semibold">{{ insumo.descricao }}</td>
+          <td><span class="font-mono">{{ insumo.codigo_peca }}</span></td>
+          <td
+            class="text-center font-bold {% if insumo.ponto_ressuprimento is not none and insumo.quantidade_em_estoque <= insumo.ponto_ressuprimento %}text-red-600{% else %}text-gray-800{% endif %}"
+          >
+            {{ "%.0f"|format(insumo.quantidade_em_estoque) }}
+          </td>
+          <td class="text-center text-gray-600">
+            {{ "%.0f"|format(insumo.ponto_ressuprimento) if
+            insumo.ponto_ressuprimento is not none else 'N/A' }}
+          </td>
+          <td class="text-right font-mono">
+            R$ {{ "%.2f"|format(insumo.custo_unitario_medio or 0) }}
+          </td>
+          <td class="actions-cell">
+            <button
+              onclick="abrirModalAjuste('{{ insumo.id }}', '{{ insumo.descricao }}')"
+              class="action-btn text-green-600"
+              title="Ajustar Estoque"
+            >
+              <i class="fas fa-exchange-alt"></i>
+            </button>
+            <button
+              onclick="deletarInsumo('{{ insumo.id }}')"
+              class="action-btn text-red-600"
+              title="Excluir Insumo"
+            >
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+        <tr id="no-results-row" style="display: none">
+          <td colspan="6" class="text-center text-gray-500 py-8">
+            Nenhum insumo encontrado.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
-<div id="modal-entrada-estoque" class="modal">
-    <div class="modal-content max-w-md">
-        <h2 class="text-2xl font-bold mb-2">Registrar Entrada de Estoque</h2>
-        <p class="mb-4 text-gray-600">Insumo: <strong id="entrada-insumo-nome"></strong></p>
-        <form id="form-entrada-estoque">
-            <input type="hidden" id="entrada-insumo-id">
-            <div>
-                <label for="entrada-quantidade" class="block text-sm font-medium text-gray-700">Quantidade a Adicionar*</label>
-                <input type="number" id="entrada-quantidade" class="w-full mt-1 p-2 border rounded-md" required>
-            </div>
-            <div class="flex justify-end gap-4 mt-6">
-                <button type="button" onclick="fecharModal('modal-entrada-estoque')" class="bg-gray-300 text-black px-4 py-2 rounded-md">Cancelar</button>
-                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-md">Confirmar Entrada</button>
-            </div>
-        </form>
+<div id="modal-novo-insumo" class="modal">
+  <div class="modal-content max-w-lg">
+    <div class="modal-header">
+      <h2>Adicionar Novo Insumo</h2>
+      <button onclick="fecharModal('modal-novo-insumo')" class="btn-close">
+        &times;
+      </button>
     </div>
+    <form id="form-novo-insumo">
+      <div class="modal-body grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="md:col-span-2">
+          <label for="descricao" class="form-label">Descrição*</label>
+          <input
+            type="text"
+            id="descricao"
+            class="form-input"
+            placeholder="Ex: Filtro de Ar Volvo FH"
+            required
+          />
+        </div>
+        <div>
+          <label for="codigo_peca" class="form-label"
+            >Código da Peça (Part Number)</label
+          >
+          <input
+            type="text"
+            id="codigo_peca"
+            class="form-input"
+            placeholder="Ex: 21707133"
+          />
+        </div>
+        <div>
+          <label for="custo_unitario_medio" class="form-label"
+            >Custo Unitário Médio (R$)</label
+          >
+          <input
+            type="number"
+            step="0.01"
+            id="custo_unitario_medio"
+            class="form-input"
+            placeholder="Ex: 150.75"
+          />
+        </div>
+        <div>
+          <label for="quantidade_em_estoque" class="form-label"
+            >Quantidade Inicial</label
+          >
+          <input
+            type="number"
+            step="1"
+            id="quantidade_em_estoque"
+            class="form-input"
+            value="0"
+          />
+        </div>
+        <div>
+          <label for="ponto_ressuprimento" class="form-label"
+            >Estoque Mínimo (Alerta)</label
+          >
+          <input
+            type="number"
+            step="1"
+            id="ponto_ressuprimento"
+            class="form-input"
+            placeholder="Ex: 5"
+          />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          onclick="fecharModal('modal-novo-insumo')"
+          class="btn btn-secondary"
+        >
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Salvar Insumo
+        </button>
+      </div>
+    </form>
+  </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
-{{ super() }}
+<div id="modal-ajuste-estoque" class="modal">
+  <div class="modal-content max-w-md">
+    <div class="modal-header">
+      <h2>Ajustar Estoque</h2>
+      <button onclick="fecharModal('modal-ajuste-estoque')" class="btn-close">
+        &times;
+      </button>
+    </div>
+    <form id="form-ajuste-estoque">
+      <div class="modal-body">
+        <input type="hidden" id="ajuste-insumo-id" />
+        <p class="mb-4">
+          <strong>Insumo:</strong> <span id="ajuste-insumo-descricao"></span>
+        </p>
+        <div class="mb-4">
+          <label for="ajuste-quantidade" class="block text-gray-700"
+            >Quantidade a Ajustar*</label
+          >
+          <input
+            type="number"
+            id="ajuste-quantidade"
+            class="form-input"
+            placeholder="Ex: 10 para entrada, -2 para baixa"
+            required
+          />
+          <small class="text-gray-500"
+            >Use valores positivos para entradas e negativos para
+            saídas/baixas.</small
+          >
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          onclick="fecharModal('modal-ajuste-estoque')"
+          class="btn btn-secondary"
+        >
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-success">Confirmar Ajuste</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %} {% block scripts %} {{ super() }}
 <script>
-    // --- Funções de Modal ---
-    function fecharModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) modal.classList.remove('flex');
+  // Função Toast para exibir mensagens
+  function showToast(message, type = "info") {
+    const toast = document.createElement("div");
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 16px 24px;
+      border-radius: 12px;
+      color: white;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 10000;
+      animation: slideIn 0.3s ease forwards;
+      max-width: 400px;
+    `;
+
+    if (type === "success") {
+      toast.style.background = "linear-gradient(135deg, #2e7d32, #43a047)";
+    } else if (type === "error") {
+      toast.style.background = "linear-gradient(135deg, #d32f2f, #f44336)";
+    } else {
+      toast.style.background = "linear-gradient(135deg, #1976d2, #2196f3)";
     }
 
-    function abrirModal(modalId) {
-        document.querySelectorAll('.modal.flex').forEach(m => fecharModal(m.id));
-        const modal = document.getElementById(modalId);
-        if (modal) modal.classList.add('flex');
-    }
+    toast.textContent = message;
+    document.body.appendChild(toast);
 
-    // --- Lógica do Formulário de Novo Insumo ---
-    document.getElementById('form-novo-insumo').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-        const data = Object.fromEntries(formData.entries());
-        
-        try {
-            const response = await fetch("{{ url_for('api_criar_insumo') }}", {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(result.message);
-            }
-            alert(result.message);
-            window.location.reload();
-        } catch (error) {
-            alert('Erro: ' + error.message);
+    setTimeout(() => {
+      toast.style.animation = "slideOut 0.3s ease forwards";
+      setTimeout(() => toast.remove(), 300);
+    }, 3500);
+  }
+
+  // Adiciona as animações CSS necessárias para o Toast
+  if (!document.getElementById("toast-animations")) {
+    const style = document.createElement("style");
+    style.id = "toast-animations";
+    style.textContent = `
+      @keyframes slideIn {
+        from {
+          transform: translateX(110%);
+          opacity: 0;
         }
-    });
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      @keyframes slideOut {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(110%);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
 
-    // --- Lógica para Deletar Insumo ---
-    async function deletarInsumo(insumoId) {
-        if (!confirm('Tem certeza que deseja excluir este insumo? Ele não poderá ser removido se estiver em uso por um plano.')) {
-            return;
-        }
-        try {
-            const response = await fetch(`/oficina/api/insumos/${insumoId}`, { method: 'DELETE' });
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(result.message);
-            }
-            alert(result.message);
-            document.getElementById(`insumo-${insumoId}`).remove();
-        } catch (error) {
-            alert('Erro: ' + error.message);
-        }
+  // Funções de Modal
+  function abrirModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.classList.add("flex");
+  }
+  function fecharModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.classList.remove("flex");
+  }
+
+  // Lógica para Busca e Filtro
+  const searchInput = document.getElementById("searchInput");
+  const stockFilter = document.getElementById("stockFilter");
+  const tableBody = document.getElementById("lista-insumos");
+  const rows = tableBody.getElementsByTagName("tr");
+  const noResultsRow = document.getElementById("no-results-row");
+  const exportBtn = document.getElementById("export-excel-btn");
+  const baseExportUrl = exportBtn.href;
+
+  function filterTable() {
+    const searchTerm = searchInput.value.toLowerCase();
+    const onlyLowStock = stockFilter.checked;
+    let visibleRows = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (row.id === "no-results-row") continue;
+
+      const description = row.cells[0].textContent.toLowerCase();
+      const code = row.cells[1].textContent.toLowerCase();
+      const currentStock = parseFloat(row.dataset.estoqueAtual);
+      const minStock = parseFloat(row.dataset.estoqueMinimo);
+
+      const matchesSearch =
+        description.includes(searchTerm) || code.includes(searchTerm);
+      const matchesFilter =
+        !onlyLowStock || (minStock !== -1 && currentStock <= minStock);
+
+      if (matchesSearch && matchesFilter) {
+        row.style.display = "";
+        visibleRows++;
+      } else {
+        row.style.display = "none";
+      }
     }
 
-    // --- Lógica para Entrada de Estoque ---
-    function abrirModalEntrada(insumoId, insumoNome) {
-        document.getElementById('form-entrada-estoque').reset();
-        document.getElementById('entrada-insumo-id').value = insumoId;
-        document.getElementById('entrada-insumo-nome').textContent = insumoNome;
-        abrirModal('modal-entrada-estoque');
+    noResultsRow.style.display = visibleRows === 0 ? "" : "none";
+
+    // Atualiza o link de exportação com o filtro de busca
+    const params = new URLSearchParams();
+    if (searchTerm) {
+      params.append("search", searchTerm);
     }
+    exportBtn.href = `${baseExportUrl}?${params.toString()}`;
+  }
 
-    document.getElementById('form-entrada-estoque').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const insumoId = document.getElementById('entrada-insumo-id').value;
-    const quantidade = document.getElementById('entrada-quantidade').value;
-    const submitButton = this.querySelector('button[type="submit"]');
+  searchInput.addEventListener("input", filterTable);
+  stockFilter.addEventListener("change", filterTable);
 
-    // Desabilita o botão para evitar cliques duplos
-    submitButton.disabled = true;
-    submitButton.textContent = 'Salvando...';
-    
-    try {
-        const response = await fetch(`/oficina/api/insumos/${insumoId}/entrada`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ quantidade: quantidade })
+  // Adicionar Novo Insumo
+  document
+    .getElementById("form-novo-insumo")
+    .addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const descricao = document.getElementById("descricao").value.trim();
+
+      if (!descricao) {
+        showToast("Por favor, informe a descrição do insumo.", "error");
+        return;
+      }
+
+      const data = {
+        descricao: descricao,
+        codigo_peca: document.getElementById("codigo_peca").value.trim(),
+        custo_unitario_medio: document.getElementById("custo_unitario_medio")
+          .value,
+        quantidade_em_estoque: document.getElementById("quantidade_em_estoque")
+          .value,
+        ponto_ressuprimento: document.getElementById("ponto_ressuprimento")
+          .value,
+      };
+
+      try {
+        const response = await fetch("{{ url_for('api_criar_insumo') }}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
         });
         const result = await response.json();
-        if (!response.ok) {
-            throw new Error(result.message);
+        if (response.ok) {
+          showToast(
+            result.message || "Insumo adicionado com sucesso!",
+            "success"
+          );
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          throw new Error(result.message || "Erro ao adicionar insumo");
         }
+      } catch (error) {
+        console.error("Erro ao adicionar insumo:", error);
+        showToast(`Erro: ${error.message}`, "error");
+      }
+    });
 
-        // ### LÓGICA CORRIGIDA ###
-        
-        // 1. Fecha o modal sozinho
-        fecharModal('modal-entrada-estoque');
+  // Deletar Insumo
+  async function deletarInsumo(insumoId) {
+    if (
+      !confirm(
+        "Tem certeza que deseja excluir este insumo? Esta ação não pode ser desfeita."
+      )
+    )
+      return;
 
-        // 2. Atualiza o valor na tabela sem recarregar a página
-        const linhaDoInsumo = document.getElementById(`insumo-${insumoId}`);
-        if (linhaDoInsumo) {
-            const celulaEstoque = linhaDoInsumo.querySelector('.stock-quantity');
-            if (celulaEstoque) {
-                // Atualiza o número
-                celulaEstoque.textContent = Math.floor(result.novo_estoque);
-                
-                // (Opcional) Efeito visual para destacar a célula atualizada
-                celulaEstoque.style.backgroundColor = '#d1fae5'; // Tom de verde claro
-                setTimeout(() => {
-                    celulaEstoque.style.backgroundColor = ''; // Remove a cor após 2 segundos
-                }, 2000);
-            }
-        }
-        
+    try {
+      const response = await fetch(
+        `{{ url_for('api_deletar_insumo', insumo_id=0) }}`.replace(
+          "0",
+          insumoId
+        ),
+        { method: "DELETE" }
+      );
+      const result = await response.json();
+      if (response.ok) {
+        showToast(result.message, "success");
+        document.querySelector(`tr[data-insumo-id='${insumoId}']`).remove();
+        filterTable(); // Re-avalia se a linha "nenhum resultado" deve aparecer
+      } else {
+        throw new Error(result.message);
+      }
     } catch (error) {
-        alert('Erro: ' + error.message);
-    } finally {
-        // Reabilita o botão, independentemente do resultado
-        submitButton.disabled = false;
-        submitButton.textContent = 'Confirmar Entrada';
+      showToast(`Erro: ${error.message}`, "error");
     }
-});
+  }
+
+  // Ajuste de Estoque
+  function abrirModalAjuste(insumoId, insumoDescricao) {
+    document.getElementById("form-ajuste-estoque").reset();
+    document.getElementById("ajuste-insumo-id").value = insumoId;
+    document.getElementById("ajuste-insumo-descricao").textContent =
+      insumoDescricao;
+    abrirModal("modal-ajuste-estoque");
+  }
+
+  document
+    .getElementById("form-ajuste-estoque")
+    .addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const insumoId = document.getElementById("ajuste-insumo-id").value;
+      const quantidadeInput =
+        document.getElementById("ajuste-quantidade").value;
+
+      // Validação básica
+      if (!quantidadeInput || quantidadeInput === "0") {
+        showToast(
+          "Por favor, informe uma quantidade diferente de zero.",
+          "error"
+        );
+        return;
+      }
+
+      const quantidade = parseFloat(quantidadeInput);
+
+      try {
+        const response = await fetch(
+          `{{ url_for('api_ajustar_estoque_insumo', insumo_id=0) }}`.replace(
+            "0",
+            insumoId
+          ),
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ quantidade: quantidade }),
+          }
+        );
+
+        const result = await response.json();
+        if (response.ok) {
+          showToast(
+            result.message || "Estoque ajustado com sucesso!",
+            "success"
+          );
+          fecharModal("modal-ajuste-estoque");
+
+          const linha = document.querySelector(
+            `tr[data-insumo-id='${insumoId}']`
+          );
+          if (linha) {
+            const novoEstoque = parseFloat(result.novo_estoque).toFixed(0);
+            linha.dataset.estoqueAtual = novoEstoque;
+            linha.querySelector("td:nth-child(3)").textContent = novoEstoque;
+
+            // Atualiza a cor do estoque
+            const estoqueCell = linha.querySelector("td:nth-child(3)");
+            const estoqueMinimo = parseFloat(linha.dataset.estoqueMinimo);
+            if (estoqueMinimo !== -1 && novoEstoque <= estoqueMinimo) {
+              estoqueCell.className = "text-center font-bold text-red-600";
+            } else {
+              estoqueCell.className = "text-center font-bold text-gray-800";
+            }
+
+            // Reavalia o filtro
+            filterTable();
+          }
+        } else {
+          throw new Error(result.message || "Erro ao ajustar estoque");
+        }
+      } catch (error) {
+        console.error("Erro ao ajustar estoque:", error);
+        showToast(`Erro: ${error.message}`, "error");
+      }
+    });
 </script>
 {% endblock %}

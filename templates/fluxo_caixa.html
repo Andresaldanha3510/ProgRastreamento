@@ -1487,7 +1487,8 @@
                     <tr class="{% if item.is_vencido %}vencido{% elif item.status in ['PAGO', 'Pago'] %}pago{% elif item.data_vencimento == hoje %}hoje{% endif %} table-row"
                         data-search="{{ (item.descricao or '') + ' ' + (item.fornecedor_cliente or '') + ' ' + (item.documento or '') + ' ' + (item.categoria or '') }}">
                         <td style="width: 50px; text-align: center;">
-                            {% if item.tipo_origem == 'MANUAL' and item.status not in ['PAGO', 'Pago'] %}
+                            {# ### ALTERAÇÃO PRINCIPAL AQUI ### #}
+                            {% if item.status not in ['PAGO', 'Pago'] %}
                             <input type="checkbox" class="item-checkbox" value="{{ item.id }}"
                                 onchange="atualizarSelecao()">
                             {% endif %}
@@ -1599,8 +1600,6 @@
     <button class="btn-table btn-massa" id="btnExcluirMassa"><i class="fas fa-trash-alt"></i> Excluir</button>
 </div>
 
-<!-- MODAIS -->
-
 <div id="detalhesModal" class="modal">
     <div class="modal-content extra-large">
         <div class="modal-header">
@@ -1644,6 +1643,39 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('pagamentoModal')">Cancelar</button>
                 <button type="submit" class="btn-green">Confirmar Pagamento</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="pagamentoMassaModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title"><i class="fas fa-check-double"></i> Pagar Lançamentos em Massa</h2>
+            <span class="close" onclick="closeModal('pagamentoMassaModal')">&times;</span>
+        </div>
+        <form id="pagamentoMassaForm">
+            <div class="modal-body">
+                <p>Você está prestes a marcar <strong id="contadorModalPagamento"></strong> lançamento(s) como <strong>pagos</strong>.</p>
+                <div class="form-group mt-4">
+                    <label class="form-label" for="data_pagamento_massa">Data do Pagamento</label>
+                    <input type="date" id="data_pagamento_massa" name="data_pagamento" class="form-control" required>
+                </div>
+                <div class="form-group mt-4">
+                    <label class="form-label" for="meio_pagamento_massa">Forma de Pagamento</label>
+                    <select id="meio_pagamento_massa" name="meio_pagamento" class="form-select" required>
+                        <option value="">Selecione</option>
+                        <option value="PIX">PIX</option>
+                        <option value="DEPOSITO">Depósito</option>
+                        <option value="TRANSFERENCIA">Transferência</option>
+                        <option value="DINHEIRO">Dinheiro</option>
+                        <option value="CARTAO">Cartão</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('pagamentoMassaModal')">Cancelar</button>
+                <button type="submit" class="btn-green">Confirmar Pagamentos</button>
             </div>
         </form>
     </div>
@@ -1853,6 +1885,10 @@
                         <input type="number" step="0.01" id="nlValorTotal" class="form-control" required>
                     </div>
                     <div class="form-group">
+                        <label class="form-label" for="nlDataEmissao">Data de Emissão *</label>
+                        <input type="date" id="nlDataEmissao" class="form-control" required>
+                    </div>
+                    <div class="form-group">
                         <label class="form-label" for="nlCategoria">Categoria</label>
                         <input type="text" id="nlCategoria" class="form-control" list="listaCategorias">
                         <datalist id="listaCategorias">
@@ -1996,7 +2032,7 @@
                 <div id="rateioInfoLancamento"
                     style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;"></div>
                 <div class="form-group">
-                    <label class="form-label">Buscar Veículos (Placa ou Modelo) para despesas não relacionadas a veiculos (ADMIN)</label>
+                    <label class="form-label">Buscar Veículos (Placa ou Modelo)</label>
                     <div class="search-box">
                         <input type="text" id="rateioVeiculoSearchInput" placeholder="Digite para buscar..."
                             autocomplete="off" class="form-control">
@@ -2158,6 +2194,7 @@
             }
 
             nlForm.reset();
+            document.getElementById('nlDataEmissao').value = new Date().toISOString().split('T')[0];
 
             nlValorTotal = 0;
             nlVeiculosRateio.clear();
@@ -2321,6 +2358,46 @@
                 showNotification('<i class="fas fa-info-circle"></i> Selecione ao menos um item.', 'info');
             }
         });
+
+        // ### NOVO CÓDIGO JAVASCRIPT AQUI ###
+        document.getElementById('btnMarcarPagoMassa')?.addEventListener('click', () => {
+            const items = getSelectedItems();
+            if (items.length > 0) {
+                document.getElementById('contadorModalPagamento').textContent = items.length;
+                const dataInput = document.getElementById('data_pagamento_massa');
+                if (dataInput) {
+                    dataInput.valueAsDate = new Date();
+                }
+                openModal('pagamentoMassaModal');
+            } else {
+                showNotification('<i class="fas fa-info-circle"></i> Selecione ao menos um item para pagar.', 'info');
+            }
+        });
+
+        const pagamentoMassaForm = document.getElementById('pagamentoMassaForm');
+        if (pagamentoMassaForm) {
+            pagamentoMassaForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const btn = e.target.querySelector('button[type="submit"]');
+                btn.disabled = true;
+
+                const formData = new FormData(e.target);
+                const data = Object.fromEntries(formData.entries());
+                data.item_ids = getSelectedItems(); // Adiciona os IDs dos itens selecionados
+
+                fetch('/api/fluxo_caixa/marcar_pago_massa', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                .then(handleResponse) // Reutiliza sua função de resposta
+                .catch(handleError)   // Reutiliza sua função de erro
+                .finally(() => {
+                    btn.disabled = false;
+                    closeModal('pagamentoMassaModal');
+                });
+            });
+        }
     }
 
     // NOVA FUNÇÃO específica para lidar com pagamento
@@ -2445,6 +2522,7 @@
             const payload = {
                 tipo: document.querySelector('input[name="nl_tipo"]:checked').value,
                 descricao: document.getElementById('nlDescricao').value,
+                data_emissao: document.getElementById('nlDataEmissao').value,
                 valor_total: nlValorTotal,
                 categoria: document.getElementById('nlCategoria').value,
                 fornecedor_cliente: document.getElementById('nlFornecedorCliente').value,
@@ -2459,6 +2537,7 @@
             if (payload.tem_rateio) {
                 payload.veiculos = Array.from(nlVeiculosRateio.values()).map(v => ({
                     veiculo_id: v.id,
+                    valor: v.valor,
                     percentual: (v.valor / nlValorTotal) * 100
                 }));
             }

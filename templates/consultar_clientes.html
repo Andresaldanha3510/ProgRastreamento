@@ -1,150 +1,637 @@
-{% extends "base.html" %}
-
-{% block title %}Consultar Clientes - TrackGo{% endblock %}
-
-{% block styles %}
-{{ super() }}
+{% extends "base.html" %} {% block title %}Consultar Clientes - TrackGo{%
+endblock %} {% block styles %} {{ super() }}
 <style>
-    .action-buttons { display: flex; gap: 0.5rem; justify-content: center; }
-    .btn-small { padding: 0.5rem 0.75rem; font-size: 0.875rem; line-height: 1; border-radius: 0.375rem; background-color: #9ea2a7; transition: background-color 0.2s; }
-    .tab-button.active { border-bottom: 2px solid #16a34a; color: #16a34a; font-weight: 600; }
+  /* Estilos importados e adaptados de consultar_motoristas.html */
+  :root {
+    --primary-green: #2e7d32;
+    --primary-green-dark: #1b5e20;
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-600: #475569;
+    --gray-700: #334155;
+    --gray-900: #0f172a;
+    --red-600: #dc2626;
+  }
+
+  .clientes-container {
+    background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--gray-200);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+    color: var(--primary-green-dark);
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  .section-header i {
+    color: var(--primary-green);
+    font-size: 1.5rem;
+  }
+
+  .btn-green {
+    background: linear-gradient(
+      135deg,
+      var(--primary-green) 0%,
+      var(--primary-green-dark) 100%
+    );
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+    text-decoration: none;
+  }
+  .btn-green:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(46, 125, 50, 0.4);
+    color: white;
+    text-decoration: none;
+  }
+
+  .btn-secondary {
+    background: linear-gradient(
+      135deg,
+      var(--gray-600) 0%,
+      var(--gray-700) 100%
+    );
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+  }
+  .btn-secondary:hover {
+    color: white;
+    text-decoration: none;
+  }
+
+  .search-section {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--gray-200);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .search-box {
+    position: relative;
+    flex: 1;
+    min-width: 300px;
+  }
+  .search-box input {
+    width: 100%;
+    padding: 12px 16px 12px 48px;
+    border: 2px solid var(--gray-200);
+    border-radius: 25px;
+    font-size: 1rem;
+    transition: all 0.3s;
+    background: white;
+  }
+  .search-box input:focus {
+    outline: none;
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+  }
+  .search-box i {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-600);
+    font-size: 1.125rem;
+  }
+
+  .clientes-table-container {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--gray-200);
+  }
+  .clientes-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .clientes-table th {
+    background: linear-gradient(
+      135deg,
+      var(--primary-green-dark) 0%,
+      var(--primary-green) 100%
+    );
+    color: white;
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .clientes-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--gray-100);
+    vertical-align: middle;
+    font-size: 0.875rem;
+  }
+  .clientes-table tr:hover {
+    background: var(--gray-50);
+  }
+
+  .cliente-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 1.125rem;
+    margin-right: 12px;
+    box-shadow: 0 2px 8px rgba(30, 136, 229, 0.3);
+  }
+
+  .btn-table {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    margin-right: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.3s;
+    text-decoration: none;
+  }
+  .btn-table.btn-view {
+    background: var(--primary-green);
+    color: white;
+  }
+  .btn-table.btn-view:hover {
+    background: var(--primary-green-dark);
+    color: white;
+    text-decoration: none;
+  }
+  .btn-table.btn-edit {
+    background: #3b82f6;
+    color: white;
+  }
+  .btn-table.btn-edit:hover {
+    background: #1d4ed8;
+    color: white;
+    text-decoration: none;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 1.5rem;
+    color: var(--gray-600);
+  }
+  .empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+    color: var(--gray-200);
+  }
+
+  .fade-in {
+    animation: fadeIn 0.5s ease-in;
+  }
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Estilos do Modal */
+  .tab-button.active {
+    border-bottom: 2px solid var(--primary-green);
+    color: var(--primary-green);
+    font-weight: 600;
+  }
+  .attachment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+  }
+  .attachment-item:hover {
+    background-color: var(--gray-100);
+  }
+  .attachment-icon {
+    color: var(--gray-600);
+    margin-right: 0.75rem;
+  }
+  .attachment-name {
+    color: var(--gray-900);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .attachment-name:hover {
+    text-decoration: underline;
+    color: var(--primary-green);
+  }
+  .btn-delete-attachment {
+    background: none;
+    border: none;
+    color: var(--gray-600);
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  .btn-delete-attachment:hover {
+    color: var(--red-600);
+  }
 </style>
-{% endblock %}
+{% endblock %} {% block content %}
+<div class="space-y-6">
+  <div
+    class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 shadow-lg"
+  >
+    <h1 class="text-3xl font-bold flex items-center gap-3">
+      <i class="fas fa-address-book"></i>
+      Consultar Clientes
+    </h1>
+    <p class="text-green-100 mt-2">
+      Gerencie sua carteira de clientes de forma eficiente.
+    </p>
+  </div>
 
-{% block content %}
-<div class="p-6 bg-gray-200 min-h-screen">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Consultar Clientes</h1>
-        <a href="{{ url_for('cadastrar_cliente') }}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2">
-            <i class="fas fa-plus"></i> Novo Cliente
-        </a>
+  <div class="clientes-container fade-in">
+    <div class="flex justify-between items-center">
+      <div class="section-header !mb-0">
+        <i class="fas fa-chart-bar"></i>
+        Visão Geral
+      </div>
+      <a href="{{ url_for('cadastrar_cliente') }}" class="btn-green">
+        <i class="fas fa-plus"></i> Novo Cliente
+      </a>
     </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4 text-center">
+      <div class="bg-blue-100 p-4 rounded-lg">
+        <p class="text-2xl font-bold text-blue-800">{{ clientes|length }}</p>
+        <p class="text-sm text-blue-600">Total de Clientes</p>
+      </div>
+      <div class="bg-green-100 p-4 rounded-lg">
+        <p class="text-2xl font-bold text-green-800">
+          R$ {{ '%.2f'|format(total_receita) }}
+        </p>
+        <p class="text-sm text-green-600">Receita Total (Histórico)</p>
+      </div>
+      <div class="bg-orange-100 p-4 rounded-lg">
+        <p class="text-2xl font-bold text-orange-800">0</p>
+        <p class="text-sm text-orange-600">Pendências Financeiras</p>
+      </div>
+    </div>
+  </div>
 
-    <div class="bg-white p-4 rounded-lg shadow-sm mb-6">
-        <form method="GET">
-            <input type="text" name="search" value="{{ search_query or '' }}" placeholder="Buscar por Nome, CPF/CNPJ ou Cidade..." class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-        </form>
+  <div class="search-section fade-in">
+    <div class="section-header">
+      <i class="fas fa-filter"></i>
+      Buscar e Filtrar Clientes
     </div>
-    
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-        <table class="w-full">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Nome / Razão Social</th>
-                    <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">CPF / CNPJ</th>
-                    <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Telefone</th>
-                    <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Cidade/UF</th>
-                    <th class="p-4 text-center text-xs font-medium text-gray-500 uppercase">Ações</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-                {% for cliente in clientes %}
-                <tr class="hover:bg-gray-100">
-                    <td class="p-4 text-sm font-medium text-gray-900">{{ cliente.nome_razao_social }}</td>
-                    <td class="p-4 text-sm text-gray-600">{{ cliente.cpf_cnpj }}</td>
-                    <td class="p-4 text-sm text-gray-600">{{ cliente.telefone }}</td>
-                    <td class="p-4 text-sm text-gray-600">{{ cliente.cidade }} / {{ cliente.estado }}</td>
-                    <td class="p-4">
-                        <div class="action-buttons">
-                            <button onclick="openClientModal({{ cliente.id }})" class="btn-small bg-blue-600 hover:bg-blue-700" title="Ver Detalhes e KPIs"><i class="fas fa-chart-line"></i></button>
-                            <a href="{{ url_for('editar_cliente', cliente_id=cliente.id) }}" class="btn-small bg-indigo-600 hover:bg-indigo-700" title="Editar Cadastro"><i class="fas fa-edit"></i></a>
-                        </div>
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="5" class="p-6 text-center text-gray-500">Nenhum cliente encontrado.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<div id="clientModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-        <header class="flex justify-between items-center p-4 border-b">
-            <h2 class="text-xl font-bold text-gray-800">Detalhes do Cliente: <span id="modal-client-name"></span></h2>
-            <button onclick="closeModal('clientModal')" class="text-gray-400 hover:text-gray-700 text-3xl">&times;</button>
-        </header>
-        <div class="border-b"><nav class="flex px-4">
-            <button id="tab-stats" class="tab-button py-3 px-4" onclick="switchTab('stats')">Estatísticas</button>
-            <button id="tab-viagens" class="tab-button py-3 px-4" onclick="switchTab('viagens')">Histórico de Viagens</button>
-        </nav></div>
-        <div class="p-6 overflow-y-auto">
-            <div id="content-stats" class="tab-content"></div>
-            <div id="content-viagens" class="tab-content hidden"></div>
+    <form method="GET">
+      <div class="flex gap-4 items-center">
+        <div class="search-box">
+          <input
+            type="text"
+            name="search"
+            value="{{ search_query or '' }}"
+            placeholder="Buscar por Nome, CPF/CNPJ ou Cidade..."
+            class="w-full"
+          />
+          <i class="fas fa-search"></i>
         </div>
+        <button type="submit" class="btn-green">
+          <i class="fas fa-search"></i> Filtrar
+        </button>
+        <a href="{{ url_for('consultar_clientes') }}" class="btn-secondary"
+          ><i class="fas fa-times"></i> Limpar</a
+        >
+      </div>
+    </form>
+  </div>
+
+  <div class="clientes-container fade-in">
+    <div class="section-header">
+      <i class="fas fa-list"></i>
+      Lista de Clientes {% if clientes %}<span
+        class="text-base font-normal text-gray-600"
+        >({{ clientes|length }} cliente{{ 's' if clientes|length != 1 }})</span
+      >{% endif %}
     </div>
+
+    {% if not clientes %}
+    <div class="empty-state">
+      <i class="fas fa-address-book"></i>
+      <h3>Nenhum cliente encontrado</h3>
+      <p>Clique em "Novo Cliente" para adicionar seu primeiro cliente.</p>
+    </div>
+    {% else %}
+    <div class="clientes-table-container">
+      <table class="clientes-table">
+        <thead>
+          <tr>
+            <th>Nome / Razão Social</th>
+            <th>CPF / CNPJ</th>
+            <th>Telefone</th>
+            <th>Cidade/UF</th>
+            <th class="text-center">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cliente in clientes %}
+          <tr
+            class="fade-in"
+            style="animation-delay: {{ loop.index0 * 0.05 }}s"
+          >
+            <td>
+              <div class="flex items-center">
+                <div class="cliente-avatar">
+                  {{ cliente.nome_razao_social[0].upper() }}
+                </div>
+                <div>
+                  <div class="font-semibold text-gray-900">
+                    {{ cliente.nome_razao_social }}
+                  </div>
+                  {% if cliente.nome_fantasia %}
+                  <div class="text-sm text-gray-500">
+                    {{ cliente.nome_fantasia }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            <td class="font-mono text-sm">{{ cliente.cpf_cnpj }}</td>
+            <td>{{ cliente.telefone }}</td>
+            <td>{{ cliente.cidade }} / {{ cliente.estado }}</td>
+            <td class="p-4">
+              <div class="flex gap-2 justify-center">
+                <button
+                  onclick="openClientModal({{ cliente.id }})"
+                  class="btn-table btn-view"
+                  title="Ver Detalhes e KPIs"
+                >
+                  <i class="fas fa-chart-line"></i>
+                </button>
+                <a
+                  href="{{ url_for('editar_cliente', cliente_id=cliente.id) }}"
+                  class="btn-table btn-edit"
+                  title="Editar Cadastro"
+                  ><i class="fas fa-edit"></i
+                ></a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
-{{ super() }}
+<div
+  id="clientModal"
+  class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden"
+>
+  <div
+    class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col"
+  >
+    <header class="flex justify-between items-center p-4 border-b">
+      <h2 class="text-xl font-bold text-gray-800">
+        Detalhes do Cliente: <span id="modal-client-name"></span>
+      </h2>
+      <button
+        onclick="closeModal('clientModal')"
+        class="text-gray-400 hover:text-gray-700 text-3xl"
+      >
+        &times;
+      </button>
+    </header>
+    <div class="border-b">
+      <nav class="flex px-4">
+        <button
+          id="tab-stats"
+          class="tab-button py-3 px-4"
+          onclick="switchTab('stats')"
+        >
+          Estatísticas
+        </button>
+        <button
+          id="tab-viagens"
+          class="tab-button py-3 px-4"
+          onclick="switchTab('viagens')"
+        >
+          Histórico de Viagens
+        </button>
+        <button
+          id="tab-anexos"
+          class="tab-button py-3 px-4"
+          onclick="switchTab('anexos')"
+        >
+          Anexos
+        </button>
+      </nav>
+    </div>
+    <div class="p-6 overflow-y-auto">
+      <div id="content-stats" class="tab-content"></div>
+      <div id="content-viagens" class="tab-content hidden"></div>
+      <div id="content-anexos" class="tab-content hidden"></div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %} {{ super() }}
 <script>
-function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
-function switchTab(tabName) {
-    document.querySelectorAll('#clientModal .tab-content').forEach(c => c.classList.add('hidden'));
-    document.querySelectorAll('#clientModal .tab-button').forEach(b => b.classList.remove('active'));
-    document.getElementById(`content-${tabName}`).classList.remove('hidden');
-    document.getElementById(`tab-${tabName}`).classList.add('active');
-}
+  function closeModal(modalId) {
+    document.getElementById(modalId).classList.add("hidden");
+  }
+  function switchTab(tabName) {
+    document
+      .querySelectorAll("#clientModal .tab-content")
+      .forEach((c) => c.classList.add("hidden"));
+    document
+      .querySelectorAll("#clientModal .tab-button")
+      .forEach((b) => b.classList.remove("active"));
+    document.getElementById(`content-${tabName}`).classList.remove("hidden");
+    document.getElementById(`tab-${tabName}`).classList.add("active");
+  }
 
-async function openClientModal(clienteId) {
-    const modal = document.getElementById('clientModal');
-    modal.classList.remove('hidden');
-    switchTab('stats');
-    
-    const statsContainer = document.getElementById('content-stats');
-    const tripsContainer = document.getElementById('content-viagens');
-    statsContainer.innerHTML = '<p class="text-center text-gray-500">Carregando estatísticas...</p>';
-    tripsContainer.innerHTML = '<p class="text-center text-gray-500">Carregando histórico...</p>';
+  async function openClientModal(clienteId) {
+    const modal = document.getElementById("clientModal");
+    modal.classList.remove("hidden");
+    switchTab("stats");
+
+    const statsContainer = document.getElementById("content-stats");
+    const tripsContainer = document.getElementById("content-viagens");
+    const anexosContainer = document.getElementById("content-anexos");
+
+    statsContainer.innerHTML =
+      '<p class="text-center text-gray-500">Carregando estatísticas...</p>';
+    tripsContainer.innerHTML =
+      '<p class="text-center text-gray-500">Carregando histórico...</p>';
+    anexosContainer.innerHTML =
+      '<p class="text-center text-gray-500">Carregando anexos...</p>';
+
+    document.getElementById("modal-client-name").innerText = "Carregando...";
 
     try {
-        const response = await fetch(`/api/cliente/${clienteId}/details`);
-        if (!response.ok) throw new Error('Falha ao buscar dados do cliente.');
-        const data = await response.json();
+      const response = await fetch(`/api/cliente/${clienteId}/details`);
+      if (!response.ok) throw new Error("Falha ao buscar dados do cliente.");
+      const data = await response.json();
 
-        // Preenche o nome do cliente no cabeçalho do modal
-        const clienteNome = document.querySelector(`tr[data-cliente-id='${clienteId}'] td:first-child`)?.innerText || 'Cliente';
-        document.getElementById('modal-client-name').innerText = clienteNome;
+      document.getElementById("modal-client-name").innerText =
+        data.cliente.nome_razao_social;
 
-        // Preenche a aba de Estatísticas (KPIs)
-        const stats = data.stats;
-        statsContainer.innerHTML = `
+      // Preenche a aba de Estatísticas (KPIs)
+      const stats = data.stats;
+      statsContainer.innerHTML = `
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
-                <div class="bg-blue-100 p-4 rounded-lg"><p class="text-2xl font-bold text-blue-800">${stats.total_viagens || 0}</p><p class="text-sm text-blue-600">Viagens Realizadas</p></div>
-                <div class="bg-green-100 p-4 rounded-lg"><p class="text-2xl font-bold text-green-800">R$ ${stats.total_receita.toFixed(2).replace('.', ',')}</p><p class="text-sm text-green-600">Receita Total</p></div>
-                <div class="bg-red-100 p-4 rounded-lg"><p class="text-2xl font-bold text-red-800">R$ ${stats.total_custo.toFixed(2).replace('.', ',')}</p><p class="text-sm text-red-600">Custo Total</p></div>
-                <div class="bg-yellow-100 p-4 rounded-lg"><p class="text-2xl font-bold text-yellow-800">R$ ${stats.lucro_total.toFixed(2).replace('.', ',')}</p><p class="text-sm text-yellow-600">Lucro Total</p></div>
+                <div class="bg-blue-100 p-4 rounded-lg"><p class="text-2xl font-bold text-blue-800">${
+                  stats.total_viagens || 0
+                }</p><p class="text-sm text-blue-600">Viagens Realizadas</p></div>
+                <div class="bg-green-100 p-4 rounded-lg"><p class="text-2xl font-bold text-green-800">R$ ${stats.total_receita
+                  .toFixed(2)
+                  .replace(
+                    ".",
+                    ","
+                  )}</p><p class="text-sm text-green-600">Receita Total</p></div>
+                <div class="bg-red-100 p-4 rounded-lg"><p class="text-2xl font-bold text-red-800">R$ ${stats.total_custo
+                  .toFixed(2)
+                  .replace(
+                    ".",
+                    ","
+                  )}</p><p class="text-sm text-red-600">Custo Total</p></div>
+                <div class="bg-yellow-100 p-4 rounded-lg"><p class="text-2xl font-bold text-yellow-800">R$ ${stats.lucro_total
+                  .toFixed(2)
+                  .replace(
+                    ".",
+                    ","
+                  )}</p><p class="text-sm text-yellow-600">Lucro Total</p></div>
             </div>`;
 
-        // Preenche a aba de Histórico de Viagens
-        const viagens = data.viagens;
-        if (viagens.length > 0) {
-            let tripsHtml = '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="bg-gray-100"><th class="p-2 text-left">Data</th><th class="p-2 text-left">Origem &rarr; Destino</th><th class="p-2 text-left">Receita</th><th class="p-2 text-left">Status</th></tr></thead><tbody>';
-            viagens.forEach(v => {
-                tripsHtml += `<tr class="border-b"><td class="p-2">${v.data_inicio}</td><td class="p-2">${v.origem} &rarr; ${v.destino}</td><td class="p-2">R$ ${v.receita.toFixed(2).replace('.', ',')}</td><td class="p-2">${v.status}</td></tr>`;
-            });
-            tripsHtml += '</tbody></table></div>';
-            tripsContainer.innerHTML = tripsHtml;
-        } else {
-            tripsContainer.innerHTML = '<p class="text-center text-gray-500">Nenhum histórico de viagem para este cliente.</p>';
-        }
-    } catch (error) {
-        console.error("Erro no modal do cliente:", error);
-        statsContainer.innerHTML = `<p class="text-center text-red-500">${error.message}</p>`;
-        tripsContainer.innerHTML = '';
-    }
-}
+      // Preenche a aba de Histórico de Viagens
+      const viagens = data.viagens;
+      if (viagens.length > 0) {
+        let tripsHtml =
+          '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="bg-gray-100"><th class="p-2 text-left">Data</th><th class="p-2 text-left">Origem &rarr; Destino</th><th class="p-2 text-left">Receita</th><th class="p-2 text-left">Status</th></tr></thead><tbody>';
+        viagens.forEach((v) => {
+          tripsHtml += `<tr class="border-b"><td class="p-2">${
+            v.data_inicio
+          }</td><td class="p-2">${v.origem} &rarr; ${
+            v.destino
+          }</td><td class="p-2">R$ ${v.receita
+            .toFixed(2)
+            .replace(".", ",")}</td><td class="p-2">${v.status}</td></tr>`;
+        });
+        tripsHtml += "</tbody></table></div>";
+        tripsContainer.innerHTML = tripsHtml;
+      } else {
+        tripsContainer.innerHTML =
+          '<p class="text-center text-gray-500">Nenhum histórico de viagem para este cliente.</p>';
+      }
 
-// Adicionar data-cliente-id para cada linha para pegar o nome no modal
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('tbody tr').forEach(row => {
-        const button = row.querySelector('button[onclick^="openClientModal"]');
-        if (button) {
-            const clienteId = button.onclick.toString().match(/\d+/)[0];
-            row.setAttribute('data-cliente-id', clienteId);
-        }
-    });
-});
+      // Preenche a aba de Anexos
+      renderAnexos(clienteId, data.anexos, anexosContainer);
+    } catch (error) {
+      console.error("Erro no modal do cliente:", error);
+      statsContainer.innerHTML = `<p class="text-center text-red-500">${error.message}</p>`;
+      tripsContainer.innerHTML = "";
+      anexosContainer.innerHTML = "";
+    }
+  }
+
+  function renderAnexos(clienteId, anexos, container) {
+    if (anexos && anexos.length > 0) {
+      let anexosHtml = '<div class="space-y-2">';
+      anexos.forEach((anexoUrl) => {
+        const fileName = anexoUrl
+          .split("/")
+          .pop()
+          .split("-")
+          .slice(1)
+          .join("-");
+        anexosHtml += `
+                <div class="attachment-item" id="anexo-${btoa(anexoUrl)}">
+                    <div class="flex items-center">
+                         <i class="fas fa-paperclip attachment-icon"></i>
+                         <a href="${anexoUrl}" target="_blank" class="attachment-name" title="${fileName}">${fileName}</a>
+                    </div>
+                    <button onclick="deleteClientAttachment(${clienteId}, '${anexoUrl}')" class="btn-delete-attachment" title="Excluir anexo">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+      });
+      anexosHtml +=
+        '</div><p class="text-xs text-gray-500 mt-4">Para adicionar novos arquivos, acesse a tela de <a href="/editar_cliente/' +
+        clienteId +
+        '" class="text-blue-600 hover:underline">edição de cliente</a>.</p>';
+      container.innerHTML = anexosHtml;
+    } else {
+      container.innerHTML =
+        '<p class="text-center text-gray-500">Nenhum anexo encontrado. Você pode adicionar arquivos na tela de edição do cliente.</p>';
+    }
+  }
+
+  async function deleteClientAttachment(clienteId, anexoUrl) {
+    if (
+      !confirm(
+        "Tem certeza que deseja excluir este anexo? Esta ação não pode ser desfeita."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/cliente/excluir_anexo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cliente_id: clienteId, anexo_url: anexoUrl }),
+      });
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        // Remove o elemento do DOM
+        const elementId = btoa(anexoUrl);
+        document.getElementById(`anexo-${elementId}`).remove();
+        alert("Anexo excluído com sucesso!");
+      } else {
+        throw new Error(result.message || "Erro ao excluir anexo.");
+      }
+    } catch (error) {
+      console.error("Erro ao excluir anexo:", error);
+      alert(error.message);
+    }
+  }
 </script>
 {% endblock %}

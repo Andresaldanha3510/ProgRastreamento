@@ -1,750 +1,762 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TrackBras - Gerenciamento Inteligente de Frotas</title>
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    />
     <style>
-        :root {
-            --brand-color: #3b873e;
-            --brand-color-light: #6ac46a;
-            --cta-color: #00A859;
-            --dark-bg: #1a1a1a;
-            --light-bg: #f4f4f4;
-            --text-color: #333;
-            --text-light: #ffffff;
-            --border-color: #ddd;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        html {
-            scroll-behavior: smooth;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            line-height: 1.6;
-            color: var(--text-color);
-            background-color: #fff;
-        }
-
-        main {
-            padding-top: 80px;
-        }
-
-        h1,
-        h2,
-        h3 {
-            font-weight: 800;
-        }
-
-        .section-title {
-            text-align: center;
-            font-size: 2.5rem;
-            margin-bottom: 40px;
-            font-weight: 800;
-        }
-
-        section {
-            padding: 60px 20px;
-        }
-
-        /* --- HEADER --- */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 5%;
-            background-color: rgba(26, 26, 26, 0.9);
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            z-index: 1000;
-            backdrop-filter: blur(5px);
-            height: 80px;
-        }
-
-        .logo-container {
-            display: flex;
-            align-items: center;
-        }
-
-        .logo-container img {
-            height: 40px;
-            margin-right: 10px;
-        }
-	
-	    .logo-text {
-            color: var(--brand-color);
-            font-size: 1.8rem;
-            font-weight: 800;
-            margin-left: -5px;
-            letter-spacing: -1px;
-	    }
-
-        nav a {
-            color: var(--text-light);
-            text-decoration: none;
-            margin: 0 15px;
-            font-weight: 600;
-            transition: color 0.3s ease;
-        }
-
-        nav a:hover {
-            color: var(--brand-color-light);
-        }
-
-        nav a.btn-cliente {
-            background-color: var(--brand-color);
-            padding: 8px 16px;
-            border-radius: 5px;
-            transition: background-color 0.3s ease;
-        }
-
-        nav a.btn-cliente:hover {
-            background-color: var(--brand-color-light);
-            color: var(--text-light);
-        }
-
-        /* --- HERO SECTION --- */
-        .hero {
-            position: relative;
-            min-height: calc(100vh - 80px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-light);
-            text-align: left;
-            padding: 0 5%;
-            overflow: hidden;
-
-            background-image:
-                linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
-                url("{{ url_for('static', filename='fundo.png') }}");
-            background-size: cover;
-            background-position: center center;
-            background-repeat: no-repeat;
-        }
-
+      :root {
+        --brand-color: #3b873e;
+        --brand-color-light: #6ac46a;
+        --cta-color: #00a859;
+        --dark-bg: #1a1a1a;
+        --light-bg: #f4f4f4;
+        --text-color: #333;
+        --text-light: #ffffff;
+        --border-color: #ddd;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        line-height: 1.6;
+        color: var(--text-color);
+        background-color: #fff;
+      }
+      main {
+        padding-top: 80px;
+      }
+      h1,
+      h2,
+      h3 {
+        font-weight: 800;
+      }
+      .section-title {
+        text-align: center;
+        font-size: 2.5rem;
+        margin-bottom: 40px;
+      }
+      section {
+        padding: 60px 20px;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 5%;
+        background-color: rgba(26, 26, 26, 0.9);
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000;
+        backdrop-filter: blur(5px);
+        height: 80px;
+      }
+      .logo-link {
+        text-decoration: none;
+      }
+      .logo-container {
+        display: flex;
+        align-items: center;
+      }
+      .logo-container img {
+        height: 40px;
+        margin-right: 10px;
+      }
+      .logo-text {
+        color: var(--brand-color);
+        font-size: 1.8rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+      }
+      nav a {
+        color: var(--text-light);
+        text-decoration: none;
+        margin: 0 15px;
+        font-weight: 600;
+        transition: color 0.3s ease;
+      }
+      nav a:hover {
+        color: var(--brand-color-light);
+      }
+      nav a.btn-cliente {
+        background-color: var(--brand-color);
+        padding: 8px 16px;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+      }
+      #mobile-menu-button {
+        display: none;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.8rem;
+        cursor: pointer;
+        z-index: 1001;
+      }
+      .hero {
+        position: relative;
+        min-height: calc(100vh - 80px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-light);
+        text-align: left;
+        padding: 0 5%;
+        overflow: hidden;
+        background-image: linear-gradient(
+            rgba(0, 0, 0, 0.7),
+            rgba(0, 0, 0, 0.7)
+          ),
+          url("{{ url_for('static', filename='fundo.png') }}");
+        background-size: cover;
+        background-position: center center;
+      }
+      .hero-container {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 50px;
+        max-width: 1200px;
+        width: 100%;
+        align-items: center;
+      }
+      .hero-text h1 {
+        font-size: 3.5rem;
+        line-height: 1.2;
+        margin-bottom: 20px;
+      }
+      .hero-text p {
+        font-size: 1.2rem;
+        margin-bottom: 30px;
+        max-width: 550px;
+      }
+      .hero-features {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+      .hero-features span {
+        background-color: rgba(255, 255, 255, 0.1);
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-weight: 600;
+      }
+      .hero-features i {
+        color: var(--brand-color-light);
+        margin-right: 8px;
+      }
+      .hero-form-container {
+        background-color: #ffffff;
+        color: var(--text-color);
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        text-align: center;
+      }
+      .hero-form-container h3 {
+        font-size: 1.5rem;
+        margin-bottom: 5px;
+      }
+      .form-group {
+        margin-bottom: 15px;
+        text-align: left;
+      }
+      .form-group label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 5px;
+        font-size: 0.9rem;
+      }
+      .form-group input,
+      .form-group select {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-family: "Inter", sans-serif;
+        font-size: 1rem;
+      }
+      .btn-submit {
+        width: 100%;
+        padding: 15px;
+        background-color: var(--cta-color);
+        color: var(--text-light);
+        border: none;
+        border-radius: 6px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 10px;
+      }
+      #demonstracao {
+        background-color: var(--dark-bg);
+        text-align: center;
+      }
+      #demonstracao video {
+        max-width: 800px;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+        border-radius: 10px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+      }
+      #servicos {
+        background-color: var(--light-bg);
+      }
+      .servicos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .servico-card {
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        transition: transform 0.3s, box-shadow 0.3s;
+      }
+      .servico-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+      }
+      .servico-card i {
+        font-size: 2.5rem;
+        color: var(--brand-color);
+        margin-bottom: 15px;
+      }
+      .servico-card h3 {
+        font-size: 1.3rem;
+        margin-bottom: 10px;
+      }
+      .processo-grid {
+        display: flex;
+        justify-content: space-around;
+        max-width: 1200px;
+        margin: 0 auto;
+        gap: 30px;
+        text-align: center;
+      }
+      .passo-numero {
+        width: 50px;
+        height: 50px;
+        background-color: var(--brand-color);
+        color: #fff;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin-bottom: 15px;
+      }
+      #numeros {
+        text-align: center;
+        color: #fff;
+        background-image: linear-gradient(
+            rgba(26, 26, 26, 0.85),
+            rgba(26, 26, 26, 0.85)
+          ),
+          url("{{ url_for('static', filename='fundo.png') }}");
+        background-size: cover;
+        background-position: center center;
+      }
+      .numeros-grid {
+        display: flex;
+        justify-content: space-around;
+        color: #fff;
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      .numero-item .valor {
+        font-size: 3rem;
+        font-weight: 800;
+        color: var(--brand-color-light);
+        display: block;
+      }
+      #faq {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      .accordion-item {
+        border-bottom: 1px solid var(--border-color);
+      }
+      .accordion-header {
+        width: 100%;
+        background: none;
+        border: none;
+        text-align: left;
+        padding: 20px 0;
+        font-size: 1.2rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .accordion-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+      }
+      .floating-whatsapp {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background-color: #25d366;
+        color: #fff;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        z-index: 999;
+      }
+      footer {
+        background-color: var(--dark-bg);
+        color: #aaa;
+        text-align: center;
+        padding: 30px 20px;
+      }
+      footer a {
+        color: #fff;
+        text-decoration: none;
+        margin: 0 10px;
+      }
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s, visibility 0.3s;
+      }
+      .modal-overlay.visible {
+        opacity: 1;
+        visibility: visible;
+      }
+      .modal-content {
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        text-align: center;
+        max-width: 400px;
+        width: 90%;
+        position: relative;
+        transform: scale(0.9);
+        transition: transform 0.3s;
+      }
+      .modal-overlay.visible .modal-content {
+        transform: scale(1);
+      }
+      .modal-icon {
+        font-size: 4rem;
+        color: var(--cta-color);
+        margin-bottom: 20px;
+      }
+      .modal-content h2 {
+        margin-bottom: 10px;
+      }
+      .modal-close-btn {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        font-size: 1.8rem;
+        color: #aaa;
+        cursor: pointer;
+      }
+      @media (max-width: 992px) {
         .hero-container {
-            position: relative;
-            z-index: 2;
-            display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
-            gap: 50px;
-            max-width: 1200px;
-            width: 100%;
-            align-items: center;
+          grid-template-columns: 1fr;
         }
-
-        .hero-text h1 {
-            font-size: 3.5rem;
-            font-weight: 800;
-            line-height: 1.2;
-            margin-bottom: 20px;
-        }
-
-        .hero-text p {
-            font-size: 1.2rem;
-            margin-bottom: 30px;
-            max-width: 550px;
-        }
-
-        .hero-features {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-
-        .hero-features span {
-            background-color: rgba(255, 255, 255, 0.1);
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-weight: 600;
-        }
-
-        .hero-features i {
-            color: var(--brand-color-light);
-            margin-right: 8px;
-        }
-
-        .hero-form-container {
-            background-color: #ffffff;
-            color: var(--text-color);
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            text-align: center;
-        }
-
-        .hero-form-container h3 {
-            font-size: 1.5rem;
-            margin-bottom: 5px;
-        }
-
-        .hero-form-container p {
-            margin-bottom: 20px;
-            color: #666;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-            text-align: left;
-        }
-
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 5px;
-            font-size: 0.9rem;
-        }
-
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-family: 'Inter', sans-serif;
-            font-size: 1rem;
-        }
-
-        .btn-submit {
-            width: 100%;
-            padding: 15px;
-            background-color: var(--cta-color);
-            color: var(--text-light);
-            border: none;
-            border-radius: 6px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            margin-top: 10px;
-        }
-
-        .btn-submit:hover {
-            background-color: #008a48;
-        }
-
-        /* --- OTHER SECTIONS --- */
-        #sobre {
-            background-color: #fff;
-        }
-
-        #demonstracao {
-            background-color: var(--dark-bg);
-            text-align: center;
-        }
-
-       #demonstracao video {
-   		    max-width: 800px;
-   		    width: 100%;
-    		height: auto;
-   		    aspect-ratio: 16 / 9;
-    		object-fit: cover; 
-    		border-radius: 10px;
-    		box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-        }
-
-        #servicos {
-            background-color: var(--light-bg);
-        }
-
-        .servicos-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .servico-card {
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        .servico-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        .servico-card i {
-            font-size: 2.5rem;
-            color: var(--brand-color);
-            margin-bottom: 15px;
-        }
-
-        .servico-card h3 {
-            font-size: 1.3rem;
-            margin-bottom: 10px;
-        }
-
-        #como-funciona {
-            background-color: #fff;
-            border: none;
-            box-shadow: none;
-        }
-
+        .servicos-grid,
         .processo-grid {
-            display: flex;
-            justify-content: space-around;
-            max-width: 1200px;
-            margin: 0 auto;
-            gap: 30px;
-            text-align: center;
+          grid-template-columns: 1fr;
         }
-
-        .processo-passo {
-            flex: 1;
-        }
-
-        .passo-numero {
-            width: 50px;
-            height: 50px;
-            background-color: var(--brand-color);
-            color: #fff;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: 800;
-            margin-bottom: 15px;
-        }
-
-        #numeros {
-            text-align: center;
-            color: #fff;
-            background-image:
-                linear-gradient(rgba(26, 26, 26, 0.85), rgba(26, 26, 26, 0.85)),
-                url("{{ url_for('static', filename='fundo.png') }}");
-            background-size: cover;
-            background-position: center center;
-            background-repeat: no-repeat;
-        }
-
         .numeros-grid {
-            display: flex;
-            justify-content: space-around;
-            color: #fff;
-            max-width: 1000px;
-            margin: 0 auto;
+          flex-direction: column;
+          gap: 30px;
         }
-
-        .numero-item .valor {
-            font-size: 3rem;
-            font-weight: 800;
-            color: var(--brand-color-light);
-            display: block;
+      }
+      @media (max-width: 768px) {
+        nav#main-nav {
+          position: fixed;
+          top: 80px;
+          right: 0;
+          width: 100%;
+          height: calc(100vh - 80px);
+          background-color: var(--dark-bg);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 30px;
+          transform: translateX(100%);
+          transition: transform 0.3s ease-in-out;
         }
-
-        .numero-item .descricao {
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
+        nav#main-nav.open {
+          transform: translateX(0);
         }
-
-        .numero-item .descricao span[role="img"] {
-            font-size: 1.3em;
-            line-height: 1;
+        nav#main-nav a {
+          font-size: 1.5rem;
         }
-
-        #faq {
-            max-width: 800px;
-            margin: 0 auto;
+        #mobile-menu-button {
+          display: block;
         }
-
-        .accordion-container {
-            border-top: 1px solid var(--border-color);
-        }
-
-        .accordion-item {
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .accordion-header {
-            width: 100%;
-            background: none;
-            border: none;
-            text-align: left;
-            padding: 20px 0;
-            font-size: 1.2rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .accordion-header i {
-            transition: transform 0.3s ease;
-        }
-
-        .accordion-header.active i {
-            transform: rotate(45deg);
-        }
-
-        .accordion-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
-            padding: 0;
-        }
-
-        .accordion-content.active {
-            max-height: 200px;
-            padding: 0 0 20px 0;
-        }
-
-        .accordion-content p {
-            padding: 0;
-        }
-
-        .floating-whatsapp {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            background-color: #25D366;
-            color: #fff;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-            z-index: 999;
-        }
-
-        footer {
-            background-color: var(--dark-bg);
-            color: #ccc;
-            text-align: center;
-            padding: 20px;
-        }
-
-        /* --- RESPONSIVENESS --- */
-        @media (max-width: 992px) {
-            .hero {
-                min-height: auto;
-                padding-top: 40px;
-                padding-bottom: 40px;
-            }
-
-            .hero-container {
-                grid-template-columns: 1fr;
-                text-align: center;
-            }
-
-            .hero-text {
-                order: 2;
-                margin-top: 40px;
-            }
-
-            .hero-form-container {
-                order: 1;
-            }
-
-            .hero-text h1 {
-                font-size: 2.5rem;
-            }
-
-            .hero-text p {
-                font-size: 1rem;
-                max-width: none;
-            }
-
-            .hero-features {
-                justify-content: center;
-            }
-
-            .servicos-grid,
-            .processo-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .numeros-grid {
-                flex-direction: column;
-                gap: 30px;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .section-title {
-                font-size: 2rem;
-            }
-
-            nav {
-                display: none;
-            }
-
-            .processo-grid {
-                flex-direction: column;
-                gap: 40px;
-            }
-        }
+      }
     </style>
-</head>
-
-<body>
-
+  </head>
+  <body>
     <header>
+      <a href="{{ url_for('index') }}" class="logo-link">
         <div class="logo-container">
-            <img src="{{ url_for('static', filename='brasao.png') }}" alt="Logo TrackBras">
-            <span class="logo-text">TrackBras</span>
-        </div>	
-        <nav>
-            <a href="#sobre">Sobre</a>
-            <a href="#servicos">Soluções</a>
-            <a href="{{ url_for('politica_privacidade') }}">Politica de privacidade</a>
-            <a href="#">Nossos planos</a>
-            <a href="{{ url_for('login') }}" class="btn-cliente">Área do Cliente</a>
-        </nav>
+          <img
+            src="{{ url_for('static', filename='brasao.png') }}"
+            alt="Logo TrackBras"
+          />
+          <span class="logo-text">TrackBras</span>
+        </div>
+      </a>
+      <nav id="main-nav">
+        <a href="#sobre">Sobre</a>
+        <a href="#servicos">Soluções</a>
+        <a href="{{ url_for('contato_page') }}">Contato</a>
+        <a href="{{ url_for('planos_page') }}">Nossos planos</a>
+        <a href="{{ url_for('politica_privacidade') }}"
+          >Politica de privacidade</a
+        >
+        <a href="{{ url_for('login') }}" class="btn-cliente">Área do Cliente</a>
+      </nav>
+      <button id="mobile-menu-button"><i class="fas fa-bars"></i></button>
     </header>
 
     <main>
-        <section class="hero">
-            <div class="hero-container">
-                <div class="hero-text">
-                    <h1>Software de Gestão para sua Frota</h1>
-                    <p>Otimize rotas, gerencie manutenções, controle despesas e tenha a operação da sua transportadora na palma da sua mão com a plataforma mais completa do mercado.</p>
-                    <div class="hero-features">
-                        <span><i class="fa-solid fa-check"></i> Gestão de Viagens</span>
-                        <span><i class="fa-solid fa-check"></i> Controle Financeiro</span>
-                        <span><i class="fa-solid fa-check"></i> Manutenção Preventiva</span>
-                    </div>
-                </div>
-                <div class="hero-form-container">
-                    <h3>Quer saber como nosso sistema pode ajudar?</h3>
-                    <p>Agende uma demonstração gratuita!</p>
-                    <form action="https://formspree.io/f/xblkgpkv" method="POST"> 
-                        <div class="form-group"><label for="nome">Nome*</label><input type="text" id="nome" name="nome" required></div>
-                        <div class="form-group"><label for="telefone">Número de telefone*</label><input type="tel" id="telefone" name="telefone" required></div>
-                        <div class="form-group"><label for="email">E-mail*</label><input type="email" id="email" name="email" required></div>
-                        <div class="form-group"><label for="empresa">Nome da empresa*</label><input type="text" id="empresa" name="empresa" required></div>
-                        <div class="form-group">
-                            <label for="frota">Tamanho da frota*</label>
-                            <select id="frota" name="frota" required>
-                                <option value="" disabled selected>Selecione</option>
-                                <option value="1-5">1-5 veículos</option>
-                                <option value="6-15">6-15 veículos</option>
-                                <option value="16-30">16-30 veículos</option>
-                                <option value="31-50">31-50 veículos</option>
-                                <option value="50+">Mais de 50 veículos</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn-submit">Solicite uma demonstração</button>
-                    </form>
-                </div>
-            </div>
-        </section>
-
-        <section id="sobre">
-            <h2 class="section-title">A revolução no gerenciamento de frotas</h2>
-            <p style="text-align: center; max-width: 800px; margin: 0 auto; line-height: 1.6;">
-                Com a nossa plataforma moderna e super intuitiva, você coloca o controle total da sua transportadora na palma da sua mão. Acompanhe em tempo real suas frotas, motoristas, manutenções e desempenho, tudo de forma simples e eficiente. Na TrackBras, transformamos dados em decisões inteligentes que aceleram a produtividade e elevam a lucratividade do seu negócio.
+      <section class="hero">
+        <div class="hero-container">
+          <div class="hero-text">
+            <h1>Software de Gestão para sua Frota</h1>
+            <p>
+              Otimize rotas, gerencie manutenções, controle despesas e tenha a
+              operação da sua transportadora na palma da sua mão.
             </p>
-        </section>
-
-        <section id="demonstracao">
-            <h2 class="section-title" style="color: white;">Conheça a TrackBras em Ação</h2>
-            <video controls>
-                <source src="https://pub-8d882d6bc9d04fa1a0384fc62ef6450c.r2.dev/track.mp4" type="video/mp4">
-                Seu navegador não suporta a tag de vídeo.
-            </video>
-        </section>
-
-        <section id="servicos">
-            <h2 class="section-title">Nossas Soluções</h2>
-            <div class="servicos-grid">
-                <div class="servico-card"><i class="fas fa-route"></i>
-                    <h3>Gestão de Viagens</h3>
-                    <p>Monitore rotas em tempo real e otimize trajetos para economizar tempo e combustível.</p>
-                </div>
-                <div class="servico-card"><i class="fas fa-tachometer-alt"></i>
-                    <h3>Indicadores em tempo real</h3>
-                    <p>Acompanhe paradas e o comportamento dos motoristas através de um dashboard completo.</p>
-                </div>
-                <div class="servico-card"><i class="fas fa-tools"></i>
-                    <h3>Controle de Manutenção</h3>
-                    <p>Receba alertas preventivos e agende manutenções para evitar quebras e paradas inesperadas.</p>
-                </div>
-                <div class="servico-card"><i class="fas fa-file-alt"></i>
-                    <h3>Relatórios Inteligentes</h3>
-                    <p>Exporte relatórios detalhados para análises aprofundadas e tomadas de decisão estratégicas.</p>
-                </div>
-                <div class="servico-card"><i class="fas fa-file-invoice-dollar"></i>
-                    <h3>Controle Financeiro</h3>
-                    <p>Gerencie clientes devedores em um só lugar</p>
-                </div>
-                <div class="servico-card"><i class="fas fa-bell"></i>
-                    <h3>Alertas de Vencimentos</h3>
-                    <p>Receba notificações sobre manutenções, vencimento de CNH, seguros e outros documentos importantes para manter sua frota em dia.</p>
-                </div>
+            <div class="hero-features">
+              <span><i class="fa-solid fa-check"></i> Gestão de Viagens</span>
+              <span><i class="fa-solid fa-check"></i> Controle Financeiro</span>
+              <span
+                ><i class="fa-solid fa-check"></i> Manutenção Preventiva</span
+              >
             </div>
-        </section>
+          </div>
+          <div class="hero-form-container">
+            <h3>Agende uma demonstração gratuita!</h3>
+            <form
+              id="contatoForm"
+              action="{{ url_for('enviar_contato') }}"
+              method="POST"
+            >
+              <div class="form-group">
+                <label for="nome">Nome*</label>
+                <input type="text" id="nome" name="nome" required />
+              </div>
+              <div class="form-group">
+                <label for="telefone">Telefone*</label>
+                <input type="tel" id="telefone" name="telefone" required />
+              </div>
+              <div class="form-group">
+                <label for="email">E-mail*</label>
+                <input type="email" id="email" name="email" required />
+              </div>
+              <div class="form-group">
+                <label for="empresa">Nome da empresa*</label>
+                <input type="text" id="empresa" name="empresa" required />
+              </div>
+              <div class="form-group">
+                <label for="frota">Tamanho da frota</label>
+                <select id="frota" name="frota">
+                  <option value="" disabled selected>Selecione</option>
+                  <option value="1-5">1-5 veículos</option>
+                  <option value="6-15">6-15 veículos</option>
+                  <option value="16-30">16-30 veículos</option>
+                  <option value="31-50">31-50 veículos</option>
+                  <option value="50+">Mais de 50 veículos</option>
+                </select>
+              </div>
+              <button type="submit" class="btn-submit">
+                Solicite uma demonstração
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
 
-        <section id="como-funciona">
-            <h2 class="section-title">Começar a Otimizar é Simples</h2>
-            <div class="processo-grid">
-                <div class="processo-passo">
-                    <div class="passo-numero">1</div>
-                    <h3>Análise e Proposta</h3>
-                    <p>Nossos especialistas entendem sua operação para oferecer o plano ideal.</p>
-                </div>
-                <div class="processo-passo">
-                    <div class="passo-numero">2</div>
-                    <h3>Treinamento e Acesso</h3>
-                    <p>Você e sua equipe recebem treinamento para usar a plataforma e os aplicativos.</p>
-                </div>
-                <div class="processo-passo">
-                    <div class="passo-numero">3</div>
-                    <h3>Suporte Contínuo</h3>
-                    <p>Nossa equipe está sempre à disposição para ajudar você a extrair o máximo da ferramenta.</p>
-                </div>
+      <section id="sobre">
+        <h2 class="section-title">A revolução no gerenciamento de frotas</h2>
+        <p style="text-align: center; max-width: 800px; margin: 0 auto">
+          Na TrackBras, transformamos dados em decisões inteligentes que
+          aceleram a produtividade e elevam a lucratividade do seu negócio.
+        </p>
+      </section>
+
+      <section id="demonstracao">
+        <h2 class="section-title" style="color: white">
+          Conheça a TrackBras em Ação
+        </h2>
+        <video autoplay muted loop playsinline>
+          <source
+            src="https://pub-1e6f8559bc2b413c889fbf4860462599.r2.dev/video_ini.mp4"
+            type="video/mp4"
+          />
+          Seu navegador não suporta a tag de vídeo.
+        </video>
+      </section>
+
+      <section id="servicos">
+        <h2 class="section-title">Nossas Soluções</h2>
+        <div class="servicos-grid">
+          <div class="servico-card">
+            <i class="fas fa-route"></i>
+            <h3>Gestão de Viagens</h3>
+            <p>Monitore rotas em tempo real e otimize trajetos.</p>
+          </div>
+          <div class="servico-card">
+            <i class="fas fa-tools"></i>
+            <h3>Controle de Manutenção</h3>
+            <p>Receba alertas preventivos e agende manutenções.</p>
+          </div>
+          <div class="servico-card">
+            <i class="fas fa-file-invoice-dollar"></i>
+            <h3>Controle Financeiro</h3>
+            <p>Gerencie despesas, receitas e fluxo de caixa.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="como-funciona">
+        <h2 class="section-title">Começar a Otimizar é Simples</h2>
+        <div class="processo-grid">
+          <div class="processo-passo">
+            <div class="passo-numero">1</div>
+            <h3>Análise e Proposta</h3>
+            <p>Entendemos sua operação para oferecer o plano ideal.</p>
+          </div>
+          <div class="processo-passo">
+            <div class="passo-numero">2</div>
+            <h3>Treinamento e Acesso</h3>
+            <p>Sua equipe recebe treinamento para usar a plataforma.</p>
+          </div>
+          <div class="processo-passo">
+            <div class="passo-numero">3</div>
+            <h3>Suporte Contínuo</h3>
+            <p>Nossa equipe está sempre à disposição para ajudar.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="numeros">
+        <h2 class="section-title">Nossos Números</h2>
+        <div class="numeros-grid">
+          <div class="numero-item" data-target="2500">
+            <div class="valor">+0</div>
+            <span>Viagens Monitoradas</span>
+          </div>
+          <div class="numero-item" data-target="180">
+            <div class="valor">+0</div>
+            <span>Caminhões Rastreados</span>
+          </div>
+          <div class="numero-item" data-target="60">
+            <div class="valor">+0</div>
+            <span>Transportadoras Ativas</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="faq">
+        <h2 class="section-title">Perguntas Frequentes</h2>
+        <div class="accordion-container">
+          <div class="accordion-item">
+            <button class="accordion-header">
+              Preciso de fidelidade?<i class="fas fa-plus"></i>
+            </button>
+            <div class="accordion-content">
+              <p>Não, nossos planos são flexíveis.</p>
             </div>
-        </section>
-
-        <section id="numeros">
-            <h2 class="section-title">Nossos Números em Tempo Real</h2>
-            <div class="numeros-grid">
-                <div class="numero-item" data-target="2500">
-                    <div class="valor">+0</div>
-                    <div class="descricao"><span role="img" aria-label="Estrada">🛣️</span> Viagens Monitoradas</div>
-                </div>
-                <div class="numero-item" data-target="180">
-                    <div class="valor">+0</div>
-                    <div class="descricao"><span role="img" aria-label="Caminhão">🚛</span> Caminhões Rastreados</div>
-                </div>
-                <div class="numero-item" data-target="60">
-                    <div class="valor">+0</div>
-                    <div class="descricao"><span role="img" aria-label="Pessoa de negócios">🧑‍💼</span> Transportadoras Ativas</div>
-                </div>
-                <div class="numero-item" data-target="100">
-                    <div class="valor">+0</div>
-                    <div class="descricao"><span role="img" aria-label="Checkmark">✅</span> Clientes Satisfeitos</div>
-                </div>
+          </div>
+          <div class="accordion-item">
+            <button class="accordion-header">
+              Como economizo combustível?<i class="fas fa-plus"></i>
+            </button>
+            <div class="accordion-content">
+              <p>
+                Otimizando rotas e monitorando o comportamento do motorista.
+              </p>
             </div>
-        </section>
-
-        <section id="faq">
-            <h2 class="section-title">Perguntas Frequentes</h2>
-            <div class="accordion-container">
-                <div class="accordion-item">
-                    <button class="accordion-header">Preciso ter um contrato de fidelidade?<i class="fas fa-plus"></i></button>
-                    <div class="accordion-content">
-                        <p>Nossos planos são flexíveis. Oferecemos opções com e sem contrato de fidelidade para se adaptar melhor à necessidade e ao momento da sua empresa. Planos com fidelidade geralmente possuem condições comerciais mais atrativas. Fale com um consultor para saber mais.</p>
-                    </div>
-                </div>
-                <div class="accordion-item">
-                    <button class="accordion-header">Como o sistema me ajuda a economizar combustível?<i class="fas fa-plus"></i></button>
-                    <div class="accordion-content">
-                        <p>A plataforma identifica padrões de condução que gastam más combustível, como excesso de velocidade, acelerações e frenagens bruscas. Além disso, o controle de rotas ajuda a encontrar os trajetos mais curtos e eficientes, diminuindo a quilometragem e, consequentemente, o consumo.</p>
-                    </div>
-                </div>
-                <div class="accordion-item">
-                    <button class="accordion-header">Como o sistema de gerenciamento de frota pode ajudar a poupar dinheiro?<i class="fas fa-plus"></i></button>
-                    <div class="accordion-content">
-                        <p>O sistema ajuda a economizar ao otimizar rotas em tempo real, reduzir o tempo de parada dos veículos, evitar atrasos, controlar a jornada dos motoristas e antecipar manutenções importantes. Tudo isso diminui desperdícios, melhora a produtividade e reduz custos com retrabalho, multas e imprevistos.</p>
-                    </div>
-                </div>
-                <div class="accordion-item">
-                    <button class="accordion-header">O sistema me ajuda a controlar os custos das viagens?<i class="fas fa-plus"></i></button>
-                    <div class="accordion-content">
-                        <p>Sim. O TrackBras permite registrar e visualizar todas as despesas de uma viagem — como pedágios, alimentação, hospedagem e outros custos operacionais — além de associar esses dados a relatórios financeiros completos. Com isso, você tem uma visão clara do custo total de cada viagem e pode identificar onde está gastando mais, ajudando na tomada de decisões estratégicas para reduzir despesas.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
+          </div>
+        </div>
+      </section>
     </main>
 
-    <a href="https://wa.me/5541987842828?text=Olá!%20Vim%20pelo%20site%20e%20gostaria%20de%20mais%20informações."
-        class="floating-whatsapp" target="_blank">
-        <i class="fab fa-whatsapp"></i>
-    </a>
+    <a
+      href="https://wa.me/5541987842828"
+      class="floating-whatsapp"
+      target="_blank"
+      ><i class="fab fa-whatsapp"></i
+    ></a>
 
     <footer>
-        <p>&copy; 2025 TrackBras. Todos os direitos reservados.</p>
+      <p>&copy; 2025 TrackBras. Todos os direitos reservados.</p>
+      <div>
+        <a href="{{ url_for('politica_privacidade') }}" target="_blank"
+          >Política de Privacidade</a
+        >
+      </div>
     </footer>
 
+    <div id="successModal" class="modal-overlay" style="display: none">
+      <div class="modal-content">
+        <span class="modal-close-btn">&times;</span>
+        <i class="fas fa-check-circle modal-icon"></i>
+        <h2>Enviado com Sucesso!</h2>
+        <p>Em breve, um de nossos consultores entrará em contato com você.</p>
+      </div>
+    </div>
     <script>
-        document.querySelectorAll('.accordion-header').forEach(button => {
-            button.addEventListener('click', () => {
-                const accordionContent = button.nextElementSibling;
-                document.querySelectorAll('.accordion-header').forEach(otherButton => {
-                    if (otherButton !== button) {
-                        otherButton.classList.remove('active');
-                        otherButton.nextElementSibling.classList.remove('active');
-                        otherButton.nextElementSibling.style.maxHeight = 0;
-                    }
-                });
-                button.classList.toggle('active');
-                accordionContent.classList.toggle('active');
-                if (button.classList.contains('active')) {
-                    accordionContent.style.maxHeight = accordionContent.scrollHeight + 'px';
-                } else {
-                    accordionContent.style.maxHeight = 0;
-                }
-            });
+      // Script original do template para animações e menu mobile...
+      document.querySelectorAll(".accordion-header").forEach((b) =>
+        b.addEventListener("click", () => {
+          const c = b.nextElementSibling;
+          document.querySelectorAll(".accordion-header").forEach((o) => {
+            if (o !== b) {
+              o.classList.remove("active");
+              o.nextElementSibling.style.maxHeight = 0;
+            }
+          });
+          b.classList.toggle("active");
+          c.style.maxHeight = b.classList.contains("active")
+            ? c.scrollHeight + "px"
+            : 0;
+        })
+      );
+      const counters = document.querySelectorAll(".numero-item .valor");
+      const animate = () => {
+        counters.forEach((c) => {
+          const u = () => {
+            const t = +c.parentElement.getAttribute("data-target"),
+              n = +c.innerText.replace(/[+.]/g, ""),
+              i = Math.ceil(t / 200);
+            if (n < t) {
+              c.innerText = "+" + Math.min(n + i, t).toLocaleString("pt-BR");
+              setTimeout(u, 10);
+            } else {
+              c.innerText = "+" + t.toLocaleString("pt-BR");
+            }
+          };
+          u();
         });
+      };
+      const obs = new IntersectionObserver(
+        (e) => {
+          e.forEach((i) => {
+            if (i.isIntersecting) {
+              animate();
+              obs.unobserve(i.target);
+            }
+          });
+        },
+        { threshold: 0.5 }
+      );
+      document.querySelectorAll(".numero-item").forEach((c) => obs.observe(c));
+      const menuButton = document.getElementById("mobile-menu-button"),
+        mainNav = document.getElementById("main-nav");
+      menuButton.addEventListener("click", () => {
+        mainNav.classList.toggle("open");
+      });
 
-        const counters = document.querySelectorAll('.numero-item .valor');
-        const speed = 200;
-        const animateCounters = () => {
-            counters.forEach(counter => {
-                const updateCount = () => {
-                    const target = +counter.parentElement.getAttribute('data-target');
-                    const count = +counter.innerText.replace(/[+.]/g, '');
-                    const increment = Math.ceil(target / speed);
-                    if (count < target) {
-                        const newCount = Math.min(count + increment, target);
-                        counter.innerText = '+' + newCount.toLocaleString('pt-BR');
-                        setTimeout(updateCount, 10);
-                    } else {
-                        counter.innerText = '+' + target.toLocaleString('pt-BR');
-                    }
-                };
-                counter.innerText = '+0';
-                updateCount();
-            });
-        };
-        const numerosSection = document.getElementById('numeros');
-        let hasAnimated = false;
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting && !hasAnimated) {
-                    animateCounters();
-                    hasAnimated = true;
-                }
-            });
-        }, {
-            threshold: 0.5
-        });
-        if (numerosSection) {
-            observer.observe(numerosSection);
+      // --- LÓGICA PARA O MODAL E ENVIO DO FORMULÁRIO ---
+      const contatoForm = document.getElementById("contatoForm");
+      const successModal = document.getElementById("successModal");
+      const closeModalBtn = document.querySelector(".modal-close-btn");
+
+      function openSuccessModal() {
+        if (successModal) {
+          successModal.style.display = "flex";
+          setTimeout(() => successModal.classList.add("visible"), 10);
         }
+      }
+      function closeSuccessModal() {
+        if (successModal) {
+          successModal.classList.remove("visible");
+          setTimeout(() => (successModal.style.display = "none"), 300);
+        }
+      }
+      if (closeModalBtn)
+        closeModalBtn.addEventListener("click", closeSuccessModal);
+      if (successModal) {
+        successModal.addEventListener("click", function (event) {
+          if (event.target === successModal) {
+            closeSuccessModal();
+          }
+        });
+      }
+
+      if (contatoForm) {
+        contatoForm.addEventListener("submit", function (event) {
+          event.preventDefault();
+          const formData = new FormData(contatoForm);
+          const submitButton = contatoForm.querySelector(
+            'button[type="submit"]'
+          );
+          const originalButtonText = submitButton.textContent;
+          submitButton.textContent = "Enviando...";
+          submitButton.disabled = true;
+
+          fetch(contatoForm.action, { method: "POST", body: formData })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                contatoForm.reset();
+                openSuccessModal();
+              } else {
+                alert("Erro: " + data.message);
+              }
+            })
+            .catch((error) => {
+              console.error("Erro:", error);
+              alert("Ocorreu um erro de rede. Tente novamente.");
+            })
+            .finally(() => {
+              submitButton.textContent = originalButtonText;
+              submitButton.disabled = false;
+            });
+        });
+      }
     </script>
-
-</body>
-
+  </body>
 </html>
