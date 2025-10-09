@@ -86,7 +86,8 @@
 
 {% block content %}
 <body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
-    <div class="glass-effect shadow-lg sticky top-0 z-40 border-b">
+    <!-- Header -->
+    <div class="glass-effect shadow-lg border-b">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div class="flex justify-between items-center">
                 <div class="flex items-center space-x-4">
@@ -120,7 +121,9 @@
         </div>
     </div>
 
+    <!-- Main Content -->
     <main class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+        <!-- Page Title -->
         <div class="text-center">
             <h2 class="text-3xl font-extrabold text-slate-800 mb-2">
                 <i class="fas fa-tachometer-alt text-blue-600 mr-3"></i>
@@ -129,8 +132,10 @@
             <p class="text-slate-600">Gerencie sua viagem e acompanhe suas atividades</p>
         </div>
 
+        <!-- Active Trip Section -->
         {% if viagem_ativa %}
         <div id="active-trip-section" class="space-y-6">
+            <!-- Map Card -->
             <div class="floating-card bg-white rounded-2xl shadow-lg overflow-hidden">
                 <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
                     <div class="flex items-center justify-between">
@@ -159,7 +164,9 @@
                 </div>
             </div>
 
+            <!-- Trip Details Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Trip Information -->
                 <div class="lg:col-span-2 floating-card bg-white p-6 rounded-2xl shadow-lg">
                     <h4 class="text-lg font-bold text-slate-800 mb-4 flex items-center">
                         <i class="fas fa-route text-blue-600 mr-2"></i>
@@ -205,6 +212,7 @@
                     </div>
                 </div>
 
+                <!-- Status Card -->
                 <div class="floating-card bg-white p-6 rounded-2xl shadow-lg">
                     <h4 class="text-lg font-bold text-slate-800 mb-4 flex items-center">
                         <i class="fas fa-chart-line text-green-600 mr-2"></i>
@@ -220,6 +228,7 @@
                 </div>
             </div>
 
+            <!-- Trip Actions -->
             <div class="space-y-4">
                 <h3 class="text-xl font-semibold text-slate-800">Ações da Viagem</h3>
                 
@@ -242,6 +251,7 @@
             </div>
         </div>
         {% else %}
+        <!-- Pending Trips Section -->
         <div id="pending-trips-section">
             <h2 class="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-3">
                 <i class="fas fa-clock text-blue-600"></i> 
@@ -253,6 +263,7 @@
         </div>
         {% endif %}
 
+        <!-- History Section -->
         <div id="history-section" class="floating-card bg-white rounded-2xl shadow-lg overflow-hidden">
             <div class="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b">
                 <h2 class="text-xl font-bold text-slate-800 flex items-center">
@@ -300,6 +311,7 @@
         </div>
     </main>
 
+    <!-- Odometer Modal -->
     <div id="odometerModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4">
         <div class="bg-white p-6 rounded-xl w-full max-w-md shadow-2xl">
             <h3 id="odometerModalTitle" class="text-xl font-bold mb-4 text-slate-800">Registrar Quilometragem</h3>
@@ -314,6 +326,7 @@
         </div>
     </div>
 
+    <!-- Expense Modal -->
     <div id="despesaModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4">
         <div class="bg-white p-6 rounded-xl w-full max-w-lg shadow-2xl">
             <div class="flex justify-between items-center mb-4">
@@ -323,12 +336,30 @@
             <form id="despesaForm" enctype="multipart/form-data">
                 <input type="hidden" name="viagem_id" value="{{ viagem_ativa.id if viagem_ativa }}">
                 <div class="space-y-4">
-                    <div><label class="block text-sm font-medium text-gray-700">Pedágios (R$)</label><input type="number" step="0.01" name="pedagios" class="modal-input" placeholder="0,00"></div>
-                    <div><label class="block text-sm font-medium text-gray-700">Alimentação (R$)</label><input type="number" step="0.01" name="alimentacao" class="modal-input" placeholder="0,00"></div>
-                    <div><label class="block text-sm font-medium text-gray-700">Hospedagem (R$)</label><input type="number" step="0.01" name="hospedagem" class="modal-input" placeholder="0,00"></div>
-                    <div><label class="block text-sm font-medium text-gray-700">Outros Gastos (R$)</label><input type="number" step="0.01" name="outros" class="modal-input" placeholder="0,00"></div>
-                    <div><label class="block text-sm font-medium text-gray-700">Descrição dos Outros Gastos</label><textarea name="descricao_outros" rows="2" class="modal-input" placeholder="Ex: Manutenção leve, pernoite..."></textarea></div>
-                    <div><label class="block text-sm font-medium text-gray-700">Anexar Comprovantes</label><input name="anexos_despesa" type="file" multiple class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"></div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Pedágios (R$)</label>
+                        <input type="number" step="0.01" name="pedagios" class="modal-input" placeholder="0,00">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Alimentação (R$)</label>
+                        <input type="number" step="0.01" name="alimentacao" class="modal-input" placeholder="0,00">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Hospedagem (R$)</label>
+                        <input type="number" step="0.01" name="hospedagem" class="modal-input" placeholder="0,00">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Outros Gastos (R$)</label>
+                        <input type="number" step="0.01" name="outros" class="modal-input" placeholder="0,00">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Descrição dos Outros Gastos</label>
+                        <textarea name="descricao_outros" rows="2" class="modal-input" placeholder="Ex: Manutenção leve, pernoite..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Anexar Comprovantes</label>
+                        <input name="anexos_despesa" type="file" multiple class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+                    </div>
                 </div>
                 <div class="flex justify-end gap-3 mt-6">
                     <button type="button" data-close-button class="bg-gray-200 text-gray-800 font-bold px-4 py-2 rounded-md hover:bg-gray-300">Cancelar</button>
@@ -338,23 +369,39 @@
         </div>
     </div>
 
+    <!-- Fuel Modal -->
     <div id="abastecimentoModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4">
         <div class="bg-white p-6 rounded-xl w-full max-w-lg shadow-2xl">
-             <div class="flex justify-between items-center mb-4">
+            <div class="flex justify-between items-center mb-4">
                 <h3 class="text-xl font-bold text-slate-800">Registrar Abastecimento</h3>
                 <button data-close-button class="text-gray-400 hover:text-gray-700 text-2xl font-bold">&times;</button>
             </div>
             <form id="abastecimentoForm" enctype="multipart/form-data">
                 <div class="space-y-4">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div><label class="block text-sm font-medium text-gray-700">Litros</label><input id="fuel-litros" type="number" step="0.01" name="litros" required class="modal-input" placeholder="0.00"></div>
-                        <div><label class="block text-sm font-medium text-gray-700">Preço por Litro (R$)</label><input id="fuel-preco_litro" type="number" step="0.01" name="preco_por_litro" required class="modal-input" placeholder="0.00"></div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Litros</label>
+                            <input id="fuel-litros" type="number" step="0.01" name="litros" required class="modal-input" placeholder="0.00">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Preço por Litro (R$)</label>
+                            <input id="fuel-preco_litro" type="number" step="0.01" name="preco_por_litro" required class="modal-input" placeholder="0.00">
+                        </div>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div><label class="block text-sm font-medium text-gray-700">Custo Total (R$)</label><input id="fuel-custo_total" type="text" readonly class="modal-input bg-gray-200 cursor-not-allowed" placeholder="Automático"></div>
-                        <div><label class="block text-sm font-medium text-gray-700">Odômetro (KM)</label><input type="number" step="1" id="fuel-odometro" name="odometro" required class="modal-input"></div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Custo Total (R$)</label>
+                            <input id="fuel-custo_total" type="text" readonly class="modal-input bg-gray-200 cursor-not-allowed" placeholder="Automático">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Odômetro (KM)</label>
+                            <input type="number" step="1" id="fuel-odometro" name="odometro" required class="modal-input">
+                        </div>
                     </div>
-                    <div><label class="block text-sm font-medium text-gray-700">Anexar Comprovante</label><input name="anexo_comprovante" type="file" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"></div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Anexar Comprovante</label>
+                        <input name="anexo_comprovante" type="file" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200">
+                    </div>
                 </div>
                 <div class="flex justify-end gap-3 mt-6">
                     <button type="button" data-close-button class="bg-gray-200 text-gray-800 font-bold px-4 py-2 rounded-md hover:bg-gray-300">Cancelar</button>
@@ -373,16 +420,16 @@
 <script src="https://unpkg.com/@mapbox/polyline@1.1.1/src/polyline.js"></script>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
-    // --- VARIÁVEIS GLOBAIS ---
+    // === GLOBAL VARIABLES ===
     const VIAGEM_ATIVA_ID = {{ viagem_ativa.id if viagem_ativa else 'null' }};
     const DESTINOS_VIAGEM_ATIVA = {{ destinos_viagem_ativa|tojson if destinos_viagem_ativa else '[]' }};
     
-    // Variáveis de estado para o mapa
+    // Map state variables
     let map = null;
     let driverMarker = null;
-    let autoRecenter = true; // Centralização automática ligada por padrão
+    let autoRecenter = true; // Auto-center enabled by default
 
-    // --- FUNÇÕES UTILITÁRIAS ---
+    // === UTILITY FUNCTIONS ===
     const showToast = (msg, type = 'info') => {
         const colors = {
             success: 'linear-gradient(to right, #16a34a, #6ee7b7)',
@@ -406,9 +453,9 @@
         document.getElementById(modalId)?.classList.add('hidden'); 
     }
     
-    // --- LÓGICA PRINCIPAL (DOM LOADED) ---
+    // === MAIN INITIALIZATION ===
     document.addEventListener('DOMContentLoaded', () => {
-        // Relógio em tempo real
+        // Real-time clock
         function updateTime() {
             const now = new Date();
             const timeString = now.toLocaleTimeString('pt-BR', {
@@ -421,6 +468,7 @@
         updateTime();
         setInterval(updateTime, 1000);
 
+        // Initialize appropriate section
         if (VIAGEM_ATIVA_ID) {
             initializeActiveTripMap();
             startRealTimeTracking();
@@ -428,34 +476,40 @@
             loadPendingTrips();
         }
         
-        // Listeners para os modais e botões
+        // Event listeners
         document.getElementById('odometerForm')?.addEventListener('submit', handleOdometerSubmit);
         document.getElementById('despesaForm')?.addEventListener('submit', handleExpenseSubmit);
         document.getElementById('abastecimentoForm')?.addEventListener('submit', handleFuelSubmit);
+        
         document.querySelectorAll('[data-open-modal]').forEach(button => 
             button.addEventListener('click', () => openModalWithData(button.dataset.openModal))
         );
+        
         document.getElementById('finish-trip-btn')?.addEventListener('click', () => 
             handleFinishTripClick(VIAGEM_ATIVA_ID)
         );
+        
         document.querySelectorAll('[data-close-button]').forEach(button => 
             button.addEventListener('click', () => closeModal(button.closest('.fixed').id))
         );
+        
         document.querySelectorAll('.fixed.inset-0').forEach(modal => 
             modal.addEventListener('click', e => { 
                 if (e.target === modal) closeModal(modal.id); 
             })
         );
+        
         document.getElementById('fuel-litros')?.addEventListener('input', updateFuelCost);
         document.getElementById('fuel-preco_litro')?.addEventListener('input', updateFuelCost);
     });
 
-    // --- FUNÇÕES DO MAPA ---
+    // === MAP FUNCTIONS ===
     function initializeActiveTripMap() {
         const mapElement = document.getElementById('map');
         if (!mapElement) return;
 
-        document.getElementById('recenter-map-btn').addEventListener('click', () => {
+        // Recenter button functionality
+        document.getElementById('recenter-map-btn')?.addEventListener('click', () => {
             autoRecenter = !autoRecenter;
             const btn = document.getElementById('recenter-map-btn');
             btn.classList.toggle('text-blue-600', autoRecenter);
@@ -466,32 +520,43 @@
             }
         });
 
+        // Initialize map
         const routeGeometry = mapElement.dataset.routeGeometry;
         map = L.map('map').setView([-25.4284, -49.2733], 13);
+        
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
+        // Driver icon
         const driverIcon = L.icon({
             iconUrl: "{{ url_for('static', filename='localizacaoanimado.gif') }}",
             iconSize: [40, 40],
             iconAnchor: [20, 40],
         });
 
+        // Draw route if available
         if (routeGeometry) {
             try {
                 const decodedRoute = polyline.decode(routeGeometry);
-                const routeLine = L.polyline(decodedRoute, { color: '#0055ff', weight: 5 }).addTo(map);
+                const routeLine = L.polyline(decodedRoute, { 
+                    color: '#0055ff', 
+                    weight: 5 
+                }).addTo(map);
                 map.fitBounds(routeLine.getBounds().pad(0.1));
                 
-                L.marker(decodedRoute[0]).addTo(map).bindPopup("<b>Origem</b>").openPopup();
+                // Origin marker
+                L.marker(decodedRoute[0]).addTo(map)
+                    .bindPopup("<b>Origem</b>").openPopup();
                 
+                // Destination markers
                 DESTINOS_VIAGEM_ATIVA.forEach((destino, index) => {
                     if (destino.latitude && destino.longitude) {
                         const isLast = index === DESTINOS_VIAGEM_ATIVA.length - 1;
                         const label = isLast ? 'Destino Final' : `Parada ${index + 1}`;
-                        L.marker([destino.latitude, destino.longitude]).addTo(map)
-                         .bindPopup(`<b>${label}:</b><br>${destino.endereco}`);
+                        L.marker([destino.latitude, destino.longitude])
+                            .addTo(map)
+                            .bindPopup(`<b>${label}:</b><br>${destino.endereco}`);
                     }
                 });
             } catch (e) { 
@@ -499,25 +564,33 @@
             }
         }
         
-        navigator.geolocation.watchPosition(position => {
-            const { latitude, longitude } = position.coords;
-            const latLng = [latitude, longitude];
+        // Real-time driver location tracking
+        navigator.geolocation.watchPosition(
+            position => {
+                const { latitude, longitude } = position.coords;
+                const latLng = [latitude, longitude];
 
-            if (!driverMarker) {
-                driverMarker = L.marker(latLng, { icon: driverIcon }).addTo(map).bindPopup("Você está aqui!");
-                map.setView(latLng, 16);
-            } else {
-                driverMarker.setLatLng(latLng);
-            }
-            if (autoRecenter) {
-                map.panTo(latLng);
-            }
-        }, () => {
-            showToast('Não foi possível obter a sua localização para o mapa.', 'error');
-        }, { enableHighAccuracy: true });
+                if (!driverMarker) {
+                    driverMarker = L.marker(latLng, { icon: driverIcon })
+                        .addTo(map)
+                        .bindPopup("Você está aqui!");
+                    map.setView(latLng, 16);
+                } else {
+                    driverMarker.setLatLng(latLng);
+                }
+                
+                if (autoRecenter) {
+                    map.panTo(latLng);
+                }
+            },
+            () => {
+                showToast('Não foi possível obter a sua localização para o mapa.', 'error');
+            },
+            { enableHighAccuracy: true }
+        );
     }
 
-    // --- RASTREAMENTO E COMUNICAÇÃO COM BACKEND ---
+    // === REAL-TIME TRACKING ===
     function startRealTimeTracking() {
         const socket = io();
         const locationDisplay = document.getElementById('location-display');
@@ -526,37 +599,52 @@
         
         socket.on('localizacao_atualizada', data => {
             if (data.viagem_id === VIAGEM_ATIVA_ID && data.endereco) {
-                locationDisplay.innerHTML = `<img src="{{ url_for('static', filename='11188726.gif') }}" alt="Rastreamento" class="h-6"> ${data.endereco}`;
+                locationDisplay.innerHTML = `<img src="{{ url_for('static', filename='11188726.gif') }}" alt="Rastreamento" class="h-6"> <span>${data.endereco}</span>`;
             }
         });
 
         const sendPosition = () => {
-            if (!navigator.geolocation) { return; }
+            if (!navigator.geolocation) return;
+            
             navigator.geolocation.getCurrentPosition(
                 position => {
+                    const lat = position.coords.latitude.toFixed(6);
+                    const lng = position.coords.longitude.toFixed(6);
+                    
+                    // Update display with coordinates immediately
+                    locationDisplay.innerHTML = `<img src="{{ url_for('static', filename='11188726.gif') }}" alt="Rastreamento" class="h-6"> <span>Rastreando: ${lat}, ${lng}</span>`;
+                    
+                    // Send to backend
                     socket.emit('atualizar_localizacao_socket', { 
                         viagem_id: VIAGEM_ATIVA_ID, 
                         latitude: position.coords.latitude, 
                         longitude: position.coords.longitude 
                     });
+                },
+                (error) => {
+                    locationDisplay.innerHTML = `<i class="fas fa-exclamation-triangle text-red-500"></i> <span>Erro ao obter localização</span>`;
+                    console.error('Erro de geolocalização:', error);
                 }
             );
         };
         
         sendPosition();
-        setInterval(sendPosition, 30000);
+        setInterval(sendPosition, 30000); // Send every 30 seconds
         showToast('Rastreamento da viagem iniciado.', 'info');
     }
 
-    // --- FUNÇÕES DE LÓGICA DA APLICAÇÃO ---
+    // === MODAL FUNCTIONS ===
     async function openModalWithData(modalId) {
         const modal = document.getElementById(modalId);
         if (!modal) return;
+        
         const form = modal.querySelector('form');
         if (form) form.reset();
         openModal(modalId);
+        
         if (!VIAGEM_ATIVA_ID) return;
         
+        // Load existing data for expense modal
         if (modalId === 'despesaModal') {
             try {
                 const response = await fetch(`/api/viagem/${VIAGEM_ATIVA_ID}/despesas`);
@@ -573,7 +661,9 @@
             } catch (e) {
                 console.log('Erro ao carregar despesas:', e);
             }
-        } else if (modalId === 'abastecimentoModal') {
+        } 
+        // Load existing data for fuel modal
+        else if (modalId === 'abastecimentoModal') {
             try {
                 const response = await fetch(`/api/viagem/${VIAGEM_ATIVA_ID}/abastecimentos`);
                 if (response.ok) {
@@ -591,14 +681,17 @@
         }
     }
     
+    // === PENDING TRIPS ===
     async function loadPendingTrips() {
         const list = document.getElementById('pending-trips-list');
         try {
             const response = await fetch("{{ url_for('viagens_pendentes') }}");
             const data = await response.json();
+            
             if (data.success && data.viagens.length) {
                 list.innerHTML = data.viagens.map(v => {
-                    const destinosHtml = v.destinos.map(d => `<li>${d}</li>`).join('') || `<li>${v.endereco_destino || 'N/A'}</li>`;
+                    const destinosHtml = v.destinos.map(d => `<li>${d}</li>`).join('') || 
+                                        `<li>${v.endereco_destino || 'N/A'}</li>`;
                     return `
                     <div class="bg-white p-4 rounded-xl shadow-lg space-y-3 floating-card">
                         <p class="font-bold text-lg text-slate-800">${v.cliente}</p>
@@ -607,7 +700,10 @@
                             <p class="font-semibold mt-1">Para:</p>
                             <ul class="list-disc list-inside ml-4 font-normal">${destinosHtml}</ul>
                         </div>
-                        <button onclick="handleStartTripClick(${v.id})" class="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md text-lg">Iniciar Viagem</button>
+                        <button onclick="handleStartTripClick(${v.id})" 
+                                class="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md text-lg transition-all duration-300">
+                            Iniciar Viagem
+                        </button>
                     </div>`;
                 }).join('');
             } else {
@@ -618,6 +714,7 @@
         }
     }
 
+    // === TRIP ACTIONS ===
     function handleStartTripClick(tripId) {
         const modal = document.getElementById('odometerModal');
         const form = modal.querySelector('form');
@@ -644,18 +741,26 @@
         event.preventDefault();
         const { actionType, tripId } = event.target.dataset;
         const odometer = document.getElementById('odometer_km').value;
+        
         if (!odometer || odometer.trim() === '' || isNaN(parseFloat(odometer)) || parseFloat(odometer) < 0) {
             return showToast('Por favor, informe uma quilometragem numérica e válida.', 'error');
         }
+        
         closeModal('odometerModal');
-        const url = actionType === 'start' ? `/viagem/${tripId}/iniciar` : `/viagem/${tripId}/finalizar`;
+        
+        const url = actionType === 'start' 
+            ? `/viagem/${tripId}/iniciar` 
+            : `/viagem/${tripId}/finalizar`;
+        
         try {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ odometer: parseFloat(odometer) })
             });
+            
             const data = await response.json();
+            
             if (response.ok && data.success) {
                 showToast(data.message, 'success');
                 setTimeout(() => window.location.reload(), 1500);
@@ -667,7 +772,8 @@
         }
     }
 
-    function updateFuelCost(){
+    // === FUEL FUNCTIONS ===
+    function updateFuelCost() {
         const litros = parseFloat(document.getElementById('fuel-litros')?.value) || 0;
         const preco = parseFloat(document.getElementById('fuel-preco_litro')?.value) || 0;
         const custoTotalEl = document.getElementById('fuel-custo_total');
@@ -679,13 +785,23 @@
         const form = event.target;
         const formData = new FormData(form);
         const submitButton = form.querySelector('button[type="submit"]');
+        
         submitButton.disabled = true;
         submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Enviando...';
+        
         try {
-            const response = await fetch("{{ url_for('registrar_abastecimento') }}", { method: 'POST', body: formData });
+            const response = await fetch("{{ url_for('registrar_abastecimento') }}", { 
+                method: 'POST', 
+                body: formData 
+            });
+            
             const data = await response.json();
             showToast(data.message, data.success ? 'success' : 'error');
-            if (data.success) { closeModal('abastecimentoModal'); form.reset(); }
+            
+            if (data.success) { 
+                closeModal('abastecimentoModal'); 
+                form.reset(); 
+            }
         } catch (e) {
             showToast('Erro ao enviar dados de abastecimento.', 'error');
         } finally {
@@ -694,18 +810,28 @@
         }
     }
 
+    // === EXPENSE FUNCTIONS ===
     async function handleExpenseSubmit(event) {
         event.preventDefault();
         const form = event.target;
         const formData = new FormData(form);
         const submitButton = form.querySelector('button[type="submit"]');
+        
         submitButton.disabled = true;
         submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Enviando...';
+        
         try {
-            const response = await fetch("{{ url_for('salvar_custo_viagem') }}", { method: 'POST', body: formData });
+            const response = await fetch("{{ url_for('salvar_custo_viagem') }}", { 
+                method: 'POST', 
+                body: formData 
+            });
+            
             const data = await response.json();
             showToast(data.message, data.success ? 'success' : 'error');
-            if (data.success) { closeModal('despesaModal'); }
+            
+            if (data.success) { 
+                closeModal('despesaModal'); 
+            }
         } catch (e) {
             showToast('Erro ao enviar despesas.', 'error');
         } finally {
@@ -714,7 +840,8 @@
         }
     }
 
-    // Função global para iniciar viagens (chamada pelos botões dinamicamente criados)
+    // === GLOBAL FUNCTIONS ===
+    // Make handleStartTripClick available globally for dynamically created buttons
     window.handleStartTripClick = handleStartTripClick;
 </script>
 {% endblock %}

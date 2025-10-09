@@ -96,8 +96,12 @@
 
         <div class="hidden md:flex flex-col w-64 bg-gradient-to-b from-[#2e7d32] to-[#1b5e20] text-white flex-shrink-0">
             <div class="flex flex-col items-center justify-center h-24 border-b border-white/10 p-2">
-                <a href="{{ url_for('painel') }}" class="flex items-center gap-3">
-                    <img src="{{ url_for('static', filename='brasão.png') }}" alt="Logo TrackBras" class="h-10 w-10 rounded-full object-cover">
+                {% if current_user.is_authenticated and current_user.role == 'Motorista' %}
+                    <a href="{{ url_for('motorista_dashboard') }}" class="flex items-center gap-3">
+                {% else %}
+                    <a href="{{ url_for('painel') }}" class="flex items-center gap-3">
+                {% endif %}
+                <img src="{{ url_for('static', filename='brasão.png') }}" alt="Logo TrackBras" class="h-10 w-10 rounded-full object-cover">
                     <span class="font-bold text-xl">TrackBras</span>
                 </a>
                 <div x-ref="companyNameContainer" class="w-full text-center mt-2 text-white text-sm overflow-hidden marquee-container">
@@ -135,6 +139,13 @@
             </div>
 
             <nav class="flex-1 px-4 pb-4 space-y-2 nav-panel overflow-y-auto" x-data="{ openSection: '' }">
+                {% if current_user.is_authenticated and current_user.role == 'Motorista' %}
+                <a href="{{ url_for('motorista_dashboard') }}" class="flex items-center gap-3 p-2 rounded-lg bg-white/10">
+                    <i class="fas fa-road w-5 text-center"></i>
+                    <span>Minhas Viagens</span>
+                </a>
+                {% endif %}
+                {% if current_user.is_authenticated and current_user.role != 'Motorista' %}
                 <div>
                     <button @click="openSection = (openSection === 'cadastros' ? '' : 'cadastros')" class="w-full flex items-center justify-between p-2 rounded-lg hover:bg-white/10 transition-colors">
                         <div class="flex items-center gap-3">
@@ -215,13 +226,17 @@
                         <a href="{{ url_for('relatorio_contas_a_receber') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Contas a Receber</a>
                         <a href="{{ url_for('relatorio_rentabilidade_veiculo') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Rentabilidade por Veículo</a>
                     </div>
+                </div>
+                {% endif %}
                 </nav>
 
             <div class="p-4 border-t border-white/10">
+                {% if current_user.is_authenticated and current_user.role != 'Motorista' %}
                 <a href="{{ url_for('configuracoes') }}" class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/10 transition-colors">
                     <i class="fas fa-user-cog w-5 text-center"></i>
                     <span>Configurações</span>
                 </a>
+                {% endif %}
                 <a href="{{ url_for('logout') }}" class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/10 transition-colors">
                     <i class="fas fa-sign-out-alt w-5 text-center"></i>
                     <span>Sair</span>
@@ -262,6 +277,15 @@
                  x-cloak>
                  <h3 class="text-2xl font-bold mb-6">Menu</h3>
                  <div class="space-y-6">
+                    {% if current_user.is_authenticated and current_user.role == 'Motorista' %}
+                     <div>
+                         <h4 class="font-semibold mb-2 text-white">Principal</h4>
+                         <ul class="space-y-2">
+                             <li><a href="{{ url_for('motorista_dashboard') }}" class="block p-2 rounded hover:bg-white/10 transition">Minhas Viagens</a></li>
+                         </ul>
+                     </div>
+                    {% endif %}
+                    {% if current_user.is_authenticated and current_user.role != 'Motorista' %}
                      <div>
                          <h4 class="font-semibold mb-2 text-white">Cadastros</h4>
                          <ul class="space-y-2">
@@ -308,8 +332,11 @@
                             <li><a href="{{ url_for('relatorio_rentabilidade_veiculo') }}" class="block p-2 rounded hover:bg-white/10 transition">Rentabilidade por Veículo</a></li>
                         </ul>
                      </div>
-                     <div class="border-t border-white/20 pt-6 space-y-2">
+                    {% endif %}
+                    <div class="border-t border-white/20 pt-6 space-y-2">
+                          {% if current_user.is_authenticated and current_user.role != 'Motorista' %}
                           <a href="{{ url_for('configuracoes') }}" class="block p-2 rounded hover:bg-white/10 transition">Configurações</a>
+                          {% endif %}
                           <a href="{{ url_for('logout') }}" class="block p-2 rounded hover:bg-white/10 transition">Sair</a>
                      </div>
                  </div>
