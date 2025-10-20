@@ -135,11 +135,11 @@ endblock %} {% block styles %}
   }
 
   .btn-header.primary {
-    background: var(--danger-red);
+    background: var(--accent-yellow);
     border: 1px solid rgba(255, 255, 255, 0.3);
   }
   .btn-header.primary:hover {
-    background: #b91c1c; /* red-800 */
+    background: #d97706; /* Amarelo mais escuro */
   }
 
   /* Cards de Estatísticas */
@@ -404,12 +404,12 @@ endblock %} {% block styles %}
   .status-disponível {
     background-color: var(--success-green);
   }
-  .status-em_rota {
+  .status-em_rota,
+  .status-em_viagem {
     background-color: #3b82f6;
   }
   .status-em_manutenção {
-    background-color: var(--accent-yellow);
-    color: var(--gray-900);
+    background-color: #a855f7; /* Roxo mais claro */
   }
   .status-concluída {
     background-color: var(--gray-600);
@@ -419,6 +419,10 @@ endblock %} {% block styles %}
   }
   .status-em_andamento {
     background-color: var(--purple-500);
+  }
+  .status-aguardando_aprovação {
+    background-color: var(--accent-yellow);
+    color: var(--gray-900);
   }
 
   /* Botões de Ação */
@@ -457,6 +461,20 @@ endblock %} {% block styles %}
   }
   .btn-action.warning:hover {
     background: #d97706;
+  }
+  .btn-action.danger {
+    background-color: var(--danger-red);
+    color: white;
+  }
+  .btn-action.danger:hover {
+    background-color: #b91c1c;
+  }
+  .btn-action.success {
+    background-color: var(--success-green);
+    color: white;
+  }
+  .btn-action.success:hover {
+    background-color: #059669;
   }
 
   /* Barras de Progresso */
@@ -613,6 +631,31 @@ endblock %} {% block styles %}
     animation: count-up 0.5s ease-out forwards;
   }
 
+  /* Estilos para o Dropdown de Busca */
+  .searchable-dropdown {
+    position: relative;
+  }
+  .searchable-dropdown-panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: white;
+    border: 1px solid var(--gray-300);
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .searchable-dropdown-item {
+    padding: 10px 15px;
+    cursor: pointer;
+  }
+  .searchable-dropdown-item:hover {
+    background-color: var(--gray-100);
+  }
+
   /* Responsividade */
   @media (max-width: 768px) {
     .header-content {
@@ -656,11 +699,19 @@ endblock %} {% block styles %}
       <div class="header-actions">
         <button
           type="button"
+          onclick="abrirModal('modal-ordem-servico-lista')"
+          class="btn-header primary"
+        >
+          <i class="fas fa-file-invoice"></i>
+          <span>Ordens de Serviço</span>
+        </button>
+        <button
+          type="button"
           onclick="abrirModalNovaManutencao(null, null, null)"
           class="btn-header"
         >
           <i class="fas fa-screwdriver-wrench"></i>
-          <span>Registrar Corretiva</span>
+          <span>Registrar Manutenção</span>
         </button>
         <a href="{{ url_for('gerenciar_planos_page') }}" class="btn-header">
           <i class="fas fa-tasks"></i>
@@ -695,7 +746,7 @@ endblock %} {% block styles %}
         <div class="stat-header">
           <div class="stat-info">
             <h3>Em Manutenção</h3>
-            <p class="stat-number">{{ manutencoes_em_andamento|length }}</p>
+            <p class="stat-number">{{ manutencoes_ativas|length }}</p>
           </div>
           <div class="stat-icon em-manutencao">
             <i class="fas fa-tools"></i>
@@ -733,9 +784,10 @@ endblock %} {% block styles %}
       <div class="nav-tabs">
         <button class="nav-tab active" data-tab="em-andamento">
           <i class="fas fa-spinner fa-spin"></i>
-          Em Andamento & Agendados {% if manutencoes_em_andamento|length > 0
-          %}<span class="badge">{{ manutencoes_em_andamento|length }}</span>{%
-          endif %}
+          Ativas & Agendadas {% if manutencoes_ativas|length > 0 %}<span
+            class="badge"
+            >{{ manutencoes_ativas|length }}</span
+          >{% endif %}
         </button>
         <button class="nav-tab" data-tab="alertas-frota">
           <i class="fas fa-triangle-exclamation"></i>
@@ -746,6 +798,10 @@ endblock %} {% block styles %}
         <button class="nav-tab" data-tab="frota-completa">
           <i class="fas fa-truck"></i>
           Gerenciamento Completo
+        </button>
+        <button class="nav-tab" data-tab="finalizados">
+          <i class="fas fa-check-double"></i>
+          Finalizados
         </button>
         <button class="nav-tab" data-tab="alertas-estoque">
           <i class="fas fa-boxes-stacked"></i>
@@ -762,7 +818,7 @@ endblock %} {% block styles %}
         <h2 class="section-title">
           <i class="fas fa-tools"></i>Veículos em Manutenção ou Agendados
         </h2>
-        {% if manutencoes_em_andamento %}
+        {% if manutencoes_ativas %}
         <div class="table-wrapper">
           <table class="styled-table">
             <thead>
@@ -771,15 +827,21 @@ endblock %} {% block styles %}
                 <th>Tipo</th>
                 <th>Data de Entrada / Agendamento</th>
                 <th>Status</th>
-                <th class="text-center">Ação</th>
+                <th class="text-center">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {% for manutencao in manutencoes_em_andamento %}
+              {% for manutencao in manutencoes_ativas %}
               <tr>
                 <td>
-                  <strong>{{ manutencao.veiculo.modelo }}</strong><br />
-                  <span class="plate-tag">{{ manutencao.veiculo.placa }}</span>
+                  <strong
+                    >{{ manutencao.veiculo.modelo if manutencao.veiculo else
+                    'Item Removido' }}</strong
+                  ><br />
+                  <span class="plate-tag"
+                    >{{ manutencao.veiculo.placa if manutencao.veiculo else
+                    'N/A' }}</span
+                  >
                 </td>
                 <td>{{ manutencao.tipo_manutencao }}</td>
                 <td>{{ manutencao.data_entrada.strftime('%d/%m/%Y') }}</td>
@@ -790,12 +852,21 @@ endblock %} {% block styles %}
                   >
                 </td>
                 <td class="text-center">
-                  <button
-                    onclick="abrirModalGerenciarManutencao('{{ manutencao.id }}', '{{ manutencao.veiculo.placa }}')"
-                    class="btn-action secondary"
-                  >
-                    <i class="fas fa-edit"></i> Gerenciar
-                  </button>
+                  <div class="flex justify-center items-center gap-2">
+                    <button
+                      onclick="abrirModalGerenciarManutencao('{{ manutencao.id }}', '{{ manutencao.veiculo.placa if manutencao.veiculo }}')"
+                      class="btn-action secondary"
+                    >
+                      <i class="fas fa-edit"></i> Gerenciar
+                    </button>
+                    <button
+                      onclick="excluirManutencao('{{ manutencao.id }}', '{{ manutencao.veiculo.placa if manutencao.veiculo }}')"
+                      class="btn-action danger"
+                      title="Excluir Lançamento"
+                    >
+                      <i class="fas fa-trash-alt"></i> Excluir
+                    </button>
+                  </div>
                 </td>
               </tr>
               {% endfor %}
@@ -883,18 +954,39 @@ endblock %} {% block styles %}
         <h2 class="section-title">
           <i class="fas fa-truck-moving"></i>Gerenciamento da Frota
         </h2>
+
+        <div class="mb-4 flex gap-4 items-center">
+          <div class="relative flex-grow">
+            <i
+              class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            ></i>
+            <input
+              type="text"
+              id="filtro-frota"
+              placeholder="Buscar por modelo ou placa..."
+              class="w-full md:w-1/2 pl-10 p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+            />
+          </div>
+          <button
+            onclick="limparFiltroFrota()"
+            class="text-sm text-gray-600 hover:text-red-600 font-semibold"
+          >
+            Limpar Filtro
+          </button>
+        </div>
+
         <div class="table-wrapper">
           <table class="styled-table">
             <thead>
               <tr>
-                <th>Veículo</th>
+                <th>Veículo / Carreta</th>
                 <th>Placa</th>
                 <th>Status</th>
                 <th style="width: 25%">Progresso Próxima Manutenção</th>
                 <th class="text-center">Ações</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="tabela-frota-completa">
               {% for veiculo in todos_veiculos %}
               <tr>
                 <td class="font-medium text-gray-900">{{ veiculo.modelo }}</td>
@@ -931,7 +1023,7 @@ endblock %} {% block styles %}
                   </div>
                   {% else %}
                   <span class="text-xs text-gray-500"
-                    >Nenhum plano definido</span
+                    >N/A (Carreta ou sem plano)</span
                   >
                   {% endif %}
                 </td>
@@ -949,6 +1041,64 @@ endblock %} {% block styles %}
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div class="tab-pane" id="finalizados">
+        <h2 class="section-title">
+          <i class="fas fa-check-double"></i>Manutenções Concluídas
+        </h2>
+        {% if manutencoes_concluidas %}
+        <div class="table-wrapper">
+          <table class="styled-table">
+            <thead>
+              <tr>
+                <th>Veículo (Placa)</th>
+                <th>Data de Conclusão</th>
+                <th>Custo Total</th>
+                <th class="text-center">Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for manutencao in manutencoes_concluidas %}
+              <tr>
+                <td>
+                  <strong
+                    >{{ manutencao.veiculo.modelo if manutencao.veiculo else
+                    'N/A' }}</strong
+                  ><br />
+                  <span class="plate-tag"
+                    >{{ manutencao.veiculo.placa if manutencao.veiculo else
+                    'N/A' }}</span
+                  >
+                </td>
+                <td>
+                  {{ manutencao.data_saida.strftime('%d/%m/%Y %H:%M') if
+                  manutencao.data_saida else 'N/A' }}
+                </td>
+                <td>
+                  R$ {{ "{:,.2f}".format(manutencao.custo_total or
+                  0).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                </td>
+                <td class="text-center">
+                  <button
+                    onclick="reabrirServico({{ manutencao.id }})"
+                    class="btn-action warning"
+                  >
+                    <i class="fas fa-undo"></i> Reabrir
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <i class="fas fa-folder-open"></i>
+          <h3>Nenhum serviço concluído</h3>
+          <p>O histórico de manutenções finalizadas aparecerá aqui.</p>
+        </div>
+        {% endif %}
       </div>
 
       <div class="tab-pane" id="alertas-estoque">
@@ -997,6 +1147,114 @@ endblock %} {% block styles %}
         </div>
         {% endif %}
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="modal-ordem-servico-lista" class="modal">
+  <div class="modal-content max-w-3xl">
+    <div class="modal-header">
+      <h2>Serviços Ativos e Pendentes</h2>
+      <button
+        onclick="fecharModal('modal-ordem-servico-lista')"
+        class="btn-close"
+      >
+        &times;
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="text-sm text-gray-600 mb-4">
+        Selecione uma manutenção para gerar a OS ou aprovar a finalização do
+        mecânico.
+      </p>
+      {% if manutencoes_ativas or manutencoes_para_aprovar %}
+      <div class="table-wrapper">
+        <table class="styled-table">
+          <thead>
+            <tr>
+              <th>Veículo (Placa)</th>
+              <th>Data de Entrada</th>
+              <th>Status</th>
+              <th class="text-center" style="width: 40%">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {# Loop para manutenções que aguardam aprovação #} {% for manutencao
+            in manutencoes_para_aprovar %}
+            <tr class="bg-yellow-50">
+              <td>
+                <strong
+                  >{{ manutencao.veiculo.modelo if manutencao.veiculo else 'N/A'
+                  }}</strong
+                ><br />
+                <span class="plate-tag"
+                  >{{ manutencao.veiculo.placa if manutencao.veiculo else 'N/A'
+                  }}</span
+                >
+              </td>
+              <td>{{ manutencao.data_entrada.strftime('%d/%m/%Y') }}</td>
+              <td>
+                <span class="status status-aguardando_aprovação"
+                  >{{ manutencao.status }}</span
+                >
+              </td>
+              <td class="text-center space-x-2">
+                <button
+                  onclick="aprovarFinalizacao({{ manutencao.id }}, '{{ manutencao.veiculo.placa if manutencao.veiculo }}')"
+                  class="btn-action success"
+                >
+                  <i class="fas fa-check"></i> Aprovar
+                </button>
+                <a
+                  href="{{ url_for('gerar_ordem_servico_pdf', manutencao_id=manutencao.id) }}"
+                  target="_blank"
+                  class="btn-action primary"
+                >
+                  <i class="fas fa-print"></i> Ver OS
+                </a>
+              </td>
+            </tr>
+            {% endfor %} {# Loop para manutenções ativas e agendadas #} {% for
+            manutencao in manutencoes_ativas %}
+            <tr>
+              <td>
+                <strong
+                  >{{ manutencao.veiculo.modelo if manutencao.veiculo else 'N/A'
+                  }}</strong
+                ><br />
+                <span class="plate-tag"
+                  >{{ manutencao.veiculo.placa if manutencao.veiculo else 'N/A'
+                  }}</span
+                >
+              </td>
+              <td>{{ manutencao.data_entrada.strftime('%d/%m/%Y') }}</td>
+              <td>
+                <span
+                  class="status status-{{ manutencao.status.lower().replace(' ', '_') }}"
+                  >{{ manutencao.status }}</span
+                >
+              </td>
+              <td class="text-center">
+                <a
+                  href="{{ url_for('gerar_ordem_servico_pdf', manutencao_id=manutencao.id) }}"
+                  target="_blank"
+                  class="btn-action primary"
+                >
+                  <i class="fas fa-print"></i> Gerar OS
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <i class="fas fa-check-circle"></i>
+        <h3>Nenhuma manutenção ativa ou pendente</h3>
+        <p>Não há Ordens de Serviço para gerar ou aprovar no momento.</p>
+      </div>
+      {% endif %}
     </div>
   </div>
 </div>
@@ -1086,8 +1344,13 @@ endblock %} {% block styles %}
       action="{{ url_for('iniciar_manutencao_oficina') }}"
       method="POST"
     >
-      <div class="modal-body">
-        <input type="hidden" id="nova-veiculo-id" name="veiculo_id" />
+      <div class="modal-body" x-data="searchableDropdown()">
+        <input
+          type="hidden"
+          id="nova-veiculo-id"
+          name="veiculo_id"
+          x-model="selectedItem.id"
+        />
         <input type="hidden" id="nova-plano-id" name="plano_id" />
         <div
           id="veiculo-selecionado-display"
@@ -1097,26 +1360,40 @@ endblock %} {% block styles %}
           <strong>Veículo:</strong>
           <span id="nova-veiculo-placa" class="font-mono"></span>
         </div>
+
         <div id="veiculo-selecao-dropdown" class="mb-4" style="display: none">
-          <label for="nova-veiculo-select" class="block text-gray-700"
-            >Selecione o Veículo*</label
+          <label for="search-input" class="block text-gray-700"
+            >Selecione o Veículo/Carreta*</label
           >
-          <select
-            id="nova-veiculo-select"
-            class="w-full p-2 border rounded"
-            required
-          >
-            <option value="" data-hodometro="">-- Escolha um veículo --</option>
-            {% for veiculo in todos_veiculos %}
-            <option
-              value="{{ veiculo.id }}"
-              data-hodometro="{{ veiculo.km_rodados | int }}"
-            >
-              {{ veiculo.modelo }} ({{ veiculo.placa }})
-            </option>
-            {% endfor %}
-          </select>
+          <div class="searchable-dropdown" @click.away="isOpen = false">
+            <input
+              type="text"
+              id="search-input"
+              class="w-full p-2 border rounded"
+              placeholder="Digite para buscar a placa ou modelo..."
+              x-model="searchTerm"
+              @focus="isOpen = true"
+              @input="isOpen = true"
+              autocomplete="off"
+              required
+            />
+            <div x-show="isOpen" x-transition class="searchable-dropdown-panel">
+              <template x-if="filteredItems.length === 0">
+                <div class="searchable-dropdown-item text-gray-500">
+                  Nenhum item encontrado.
+                </div>
+              </template>
+              <template x-for="item in filteredItems" :key="item.id">
+                <div
+                  @click="selectItem(item)"
+                  class="searchable-dropdown-item"
+                  x-text="item.display_name"
+                ></div>
+              </template>
+            </div>
+          </div>
         </div>
+
         <div class="mb-4">
           <label for="nova-status" class="block text-gray-700">Status</label>
           <select
@@ -1586,11 +1863,78 @@ endblock %} {% block styles %}
   </div>
 </div>
 {% endblock %} {% block scripts %} {{ super() }}
+<script
+  src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
+  defer
+></script>
 <script>
-  // ▼▼▼ PASSO 1 DA CORREÇÃO DEFINITIVA ▼▼▼
-  const TODOS_VEICULOS = {{ todos_veiculos|tojson|safe }};
+    // --- FUNÇÃO DE EXCLUSÃO (SEM TOKEN) ---
+    async function excluirManutencao(manutencaoId, veiculoPlaca) {
+        if (!confirm(`Tem certeza que deseja excluir permanentemente a manutenção #${manutencaoId} para o veículo ${veiculoPlaca}? Esta ação não pode ser desfeita.`)) {
+            return;
+        }
+        try {
+            const response = await fetch(`/api/manutencao/excluir/${manutencaoId}`, {
+                method: 'POST'
+            });
+            const result = await response.json();
 
-  // --- Script para Tabs e Animações (do layout borracharia) ---
+            if (result.success) {
+                alert(result.message);
+                window.location.reload();
+            } else {
+                alert('Erro: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Erro ao excluir manutenção:', error);
+            alert('Erro de comunicação ao tentar excluir a manutenção.');
+        }
+    }
+
+
+    // --- FUNÇÕES DE APROVAÇÃO E REABERTURA (SEM TOKEN) ---
+    async function aprovarFinalizacao(manutencaoId, veiculoPlaca) {
+        if (!confirm(`Tem certeza que deseja aprovar a finalização da manutenção para o veículo ${veiculoPlaca}? Esta ação dará baixa no estoque.`)) {
+            return;
+        }
+        try {
+            const response = await fetch(`/api/manutencao/aprovar_finalizacao/${manutencaoId}`, {
+                method: 'POST'
+            });
+            const result = await response.json();
+            alert(result.message);
+            if (result.success) {
+                window.location.reload();
+            }
+        } catch (error) {
+            alert('Erro de comunicação ao aprovar a finalização.');
+        }
+    }
+
+    async function reabrirServico(manutencaoId) {
+        if (!confirm(`Tem certeza que deseja reabrir a manutenção #${manutencaoId}? O status voltará para "Em Andamento".`)) {
+            return;
+        }
+        try {
+            const response = await fetch(`/api/manutencao/reabrir/${manutencaoId}`, {
+                method: 'POST'
+            });
+            const result = await response.json();
+            alert(result.message);
+            if (result.success) {
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error('Erro ao reabrir serviço:', error);
+            alert('Erro de comunicação ao reabrir o serviço.');
+        }
+    }
+
+
+  // --- SCRIPTS EXISTENTES ---
+  const TODOS_VEICULOS_E_CARRETAS = {{ todos_veiculos|tojson|safe }};
+  const FROTA_PARA_MODAL = {{ frota_para_modal|tojson|safe }};
+
   document.addEventListener('DOMContentLoaded', function() {
       // Configurar navegação por tabs
       const tabButtons = document.querySelectorAll('.nav-tab');
@@ -1599,50 +1943,77 @@ endblock %} {% block styles %}
       tabButtons.forEach(button => {
           button.addEventListener('click', function() {
               const targetTab = this.dataset.tab;
-
               tabButtons.forEach(btn => btn.classList.remove('active'));
               tabPanes.forEach(pane => pane.classList.remove('active'));
-
               this.classList.add('active');
               document.getElementById(targetTab).classList.add('active');
           });
       });
 
-      // Animação de contadores
-      const counters = document.querySelectorAll('.stat-number');
-      counters.forEach(counter => {
-          const target = parseFloat(counter.textContent.replace('R$', '').replace('.', '').replace(',', '.'));
-          if (isNaN(target)) return;
-
-          const isCurrency = counter.classList.contains('currency');
-          let current = 0;
-          const duration = 1500;
-          const increment = target / (duration / 16);
-
-          const updateCounter = () => {
-              current += increment;
-              if (current >= target) {
-                  if(isCurrency) {
-                      counter.textContent = 'R$ ' + target.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      // Lógica do filtro da frota
+      const filtroInput = document.getElementById('filtro-frota');
+      const tabelaBody = document.getElementById('tabela-frota-completa');
+      if (filtroInput && tabelaBody) {
+          const linhas = tabelaBody.getElementsByTagName('tr');
+          filtroInput.addEventListener('keyup', function() {
+              const termo = this.value.toLowerCase().trim();
+              for (let i = 0; i < linhas.length; i++) {
+                  const textoModelo = linhas[i].cells[0].textContent.toLowerCase();
+                  const textoPlaca = linhas[i].cells[1].textContent.toLowerCase();
+                  if (textoModelo.includes(termo) || textoPlaca.includes(termo)) {
+                      linhas[i].style.display = '';
                   } else {
-                      counter.textContent = Math.round(target).toLocaleString('pt-BR');
+                      linhas[i].style.display = 'none';
                   }
-              } else {
-                   if(isCurrency) {
-                      counter.textContent = 'R$ ' + current.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                  } else {
-                      counter.textContent = Math.floor(current).toLocaleString('pt-BR');
-                  }
-                  requestAnimationFrame(updateCounter);
               }
-          };
-          requestAnimationFrame(updateCounter);
-      });
+          });
+      }
   });
 
+  function limparFiltroFrota() {
+      const filtroInput = document.getElementById('filtro-frota');
+      if (filtroInput) {
+          filtroInput.value = '';
+          filtroInput.dispatchEvent(new Event('keyup'));
+      }
+  }
 
-  // --- LÓGICA ORIGINAL DA OFICINA (MODAIS E AÇÕES) ---
-  // --- Funções Globais e Utilitários ---
+  // Lógica do dropdown de busca com Alpine.js
+    function searchableDropdown() {
+        return {
+            isOpen: false,
+            searchTerm: '',
+            selectedItem: { id: null, display_name: '', tipo: '', km_rodados: '' },
+            allItems: FROTA_PARA_MODAL,
+
+            get filteredItems() {
+                if (this.searchTerm === '') {
+                    return this.allItems;
+                }
+                return this.allItems.filter(item =>
+                    item.display_name.toLowerCase().includes(this.searchTerm.toLowerCase())
+                );
+            },
+
+            selectItem(item) {
+                this.selectedItem = item;
+                this.searchTerm = item.display_name;
+                this.isOpen = false;
+
+                const hodometroInput = document.getElementById('nova-hodometro');
+                hodometroInput.value = item.km_rodados || '0';
+                hodometroInput.readOnly = (item.tipo === 'carreta');
+            },
+
+            reset() {
+                this.selectedItem = { id: null, display_name: '', tipo: '', km_rodados: '' };
+                this.searchTerm = '';
+                this.isOpen = false;
+            }
+        }
+    }
+
+    // --- LÓGICA ORIGINAL DA OFICINA (MODAIS E AÇÕES) ---
     const hoje = new Date().toISOString().slice(0, 10);
     let todosOsPlanosGerais = [];
     let planosAtribuidosCache = [];
@@ -1653,7 +2024,6 @@ endblock %} {% block styles %}
         }
     });
 
-    // --- Funções Gerais de Modal ---
     function fecharModal(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) modal.classList.remove('flex');
@@ -1670,9 +2040,8 @@ endblock %} {% block styles %}
         if (modal) modal.classList.add('flex');
     }
 
-    // ### FUNÇÃO COM A CORREÇÃO DEFINITIVA ###
     function abrirModalDetalhesVeiculo(veiculoId) {
-        const veiculo = TODOS_VEICULOS.find(v => v.id == veiculoId);
+        const veiculo = TODOS_VEICULOS_E_CARRETAS.find(v => v.id == veiculoId);
         if (!veiculo) {
             alert("Erro: Veículo com ID " + veiculoId + " não encontrado!");
             return;
@@ -1686,7 +2055,14 @@ endblock %} {% block styles %}
         statusBadge.className = `status status-${veiculo.status.toLowerCase().replace(' ', '_')}`;
         statusBadge.textContent = veiculo.status;
 
-        document.getElementById('detalhes-btn-planos').onclick = () => abrirModalGerenciarPlanos(veiculo.id, veiculo.placa);
+        const btnPlanos = document.getElementById('detalhes-btn-planos');
+        if (veiculo.modelo.includes('Carreta')) {
+            btnPlanos.style.display = 'none';
+        } else {
+            btnPlanos.style.display = 'block';
+            btnPlanos.onclick = () => abrirModalGerenciarPlanos(veiculo.id, veiculo.placa);
+        }
+
         document.getElementById('detalhes-btn-historico').onclick = () => {
             const url = `{{ url_for('api_historico_veiculo', veiculo_id=0) }}`.replace('0', veiculo.id);
             abrirModalHistorico(veiculo.placa, url);
@@ -1731,11 +2107,15 @@ endblock %} {% block styles %}
         abrirModal('modal-detalhes-veiculo');
     }
 
-    // --- LÓGICA PARA MODAL DE NOVA MANUTENÇÃO (Corretiva/Preventiva) ---
     function abrirModalNovaManutencao(veiculoId, veiculoPlaca, hodometro, planoId = '') {
         const form = document.getElementById('form-nova-manutencao');
         if (!form) return;
         form.reset();
+
+        const alpineComponent = document.querySelector('[x-data="searchableDropdown()"]');
+        if (alpineComponent.__x) {
+            alpineComponent.__x.getUnwrappedDataForMagic('data').reset();
+        }
 
         const veiculoIdInput = document.getElementById('nova-veiculo-id');
         const planoIdInput = document.getElementById('nova-plano-id');
@@ -1743,47 +2123,37 @@ endblock %} {% block styles %}
         const displayVeiculo = document.getElementById('veiculo-selecionado-display');
         const placaSpan = document.getElementById('nova-veiculo-placa');
         const dropdownVeiculo = document.getElementById('veiculo-selecao-dropdown');
-        const selectVeiculo = document.getElementById('nova-veiculo-select');
+        const searchInput = document.getElementById('search-input');
 
         planoIdInput.value = planoId || '';
 
-        if (veiculoId) { // Veículo pré-selecionado de um alerta
+        if (veiculoId) {
             displayVeiculo.style.display = 'block';
             dropdownVeiculo.style.display = 'none';
-            placaSpan.textContent = veiculoPlaca;
+            placaSpan.textContent = `${veiculoPlaca}`;
             veiculoIdInput.value = veiculoId;
             hodometroInput.value = Math.round(hodometro || 0);
-            selectVeiculo.removeAttribute('required');
-        } else { // Corretiva geral, usuário precisa escolher o veículo
+            hodometroInput.readOnly = false;
+        } else {
             displayVeiculo.style.display = 'none';
             dropdownVeiculo.style.display = 'block';
-            selectVeiculo.value = '';
             veiculoIdInput.value = '';
             hodometroInput.value = '';
-            selectVeiculo.setAttribute('required', 'required');
         }
 
         const statusSelect = document.getElementById('nova-status');
         const descricaoField = document.getElementById('nova-descricao').closest('div');
-        if (!planoId) { // Corretiva
+        if (!planoId) {
             statusSelect.value = 'Em Andamento';
-            statusSelect.closest('div').style.display = 'none';
+            statusSelect.closest('div').style.display = 'block';
             descricaoField.style.display = 'block';
-        } else { // Preventiva
+        } else {
             statusSelect.closest('div').style.display = 'block';
             descricaoField.style.display = 'none';
         }
         abrirModal('modal-nova');
     }
 
-    document.getElementById('nova-veiculo-select').addEventListener('change', function () {
-        const selectedOption = this.options[this.selectedIndex];
-        document.getElementById('nova-veiculo-id').value = selectedOption.value;
-        document.getElementById('nova-hodometro').value = selectedOption.getAttribute('data-hodometro') || '';
-    });
-
-
-    // --- LÓGICA PARA MODAL FINALIZAR MANUTENÇÃO ---
     function abrirModalFinalizar(manutencaoId, veiculoPlaca, custoCalculado) {
         const form = document.getElementById('form-finalizar-manutencao');
         form.reset();
@@ -1807,7 +2177,6 @@ endblock %} {% block styles %}
         abrirModalFinalizar(manutencaoId, placa, custoTexto);
     }
 
-    // --- LÓGICA PARA MODAL DE HISTÓRICO INDIVIDUAL ---
     async function abrirModalHistorico(veiculoPlaca, url) {
         document.getElementById('historico-veiculo-placa').textContent = veiculoPlaca;
         const historicoContent = document.getElementById('historico-content');
@@ -1838,7 +2207,6 @@ endblock %} {% block styles %}
         }
     }
 
-    // --- LÓGICA PARA MODAL GERENCIAR PLANOS ---
     async function abrirModalGerenciarPlanos(veiculoId, veiculoPlaca) {
         document.getElementById('planos-veiculo-id').value = veiculoId;
         document.getElementById('planos-veiculo-placa').textContent = veiculoPlaca;
@@ -1948,13 +2316,9 @@ endblock %} {% block styles %}
 
     function moverPlano(descricao, acao) {
         if (acao === 'atribuir') {
-            // Encontra o plano completo na nossa lista de planos gerais
             const plano = todosOsPlanosGerais.find(p => p.descricao === descricao);
-
-            // Adiciona ao cache, PUXANDO OS VALORES PADRÃO
             planosAtribuidosCache.push({
                 descricao: plano.descricao,
-                // A mágica acontece aqui:
                 intervalo_km: plano.intervalo_km_padrao || '',
                 intervalo_meses: plano.intervalo_meses_padrao || ''
             });
@@ -1990,7 +2354,9 @@ endblock %} {% block styles %}
         try {
             const response = await fetch(`{{ url_for('api_gerenciar_planos_veiculo', veiculo_id=0) }}`.replace('0', veiculoId), {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify(planosParaSalvar)
             });
             if (!response.ok) {
@@ -2010,8 +2376,6 @@ endblock %} {% block styles %}
         }
     }
 
-
-    // --- LÓGICA PARA MODAL GERENCIAR MANUTENÇÃO (Adicionar Itens) ---
     async function abrirModalGerenciarManutencao(manutencaoId, veiculoPlaca) {
         document.getElementById('gerenciar-manutencao-id').value = manutencaoId;
         document.getElementById('gerenciar-manutencao-placa').textContent = veiculoPlaca;
@@ -2064,7 +2428,9 @@ endblock %} {% block styles %}
         try {
             const response = await fetch(`/api/manutencao/${manutencaoId}/adicionar_item`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify(itemData)
             });
             const result = await response.json();
@@ -2080,8 +2446,6 @@ endblock %} {% block styles %}
         }
     });
 
-
-    // --- LÓGICA PARA MODAL DE HISTÓRICO COMPLETO ---
     function abrirModalHistoricoCompleto() {
         document.getElementById('form-filtrar-historico').reset();
         document.getElementById('historico-completo-content').innerHTML = '';
@@ -2146,7 +2510,6 @@ endblock %} {% block styles %}
         const planoNoCache = planosAtribuidosCache.find(p => p.descricao === descricaoPlano);
 
         if (planoNoCache) {
-            // Atualiza os dados diretamente na variável de cache
             planoNoCache.data_ultima_manutencao = data;
             planoNoCache.km_ultima_manutencao = km;
         }
@@ -2159,8 +2522,7 @@ endblock %} {% block styles %}
         if (isChecked) {
             document.getElementById('hist-inicial-data').value = hoje;
             const veiculoId = document.getElementById('planos-veiculo-id').value;
-            // ▼▼▼ PASSO 2 DA CORREÇÃO DEFINITIVA ▼▼▼
-            const veiculo = TODOS_VEICULOS.find(v => v.id == veiculoId);
+            const veiculo = TODOS_VEICULOS_E_CARRETAS.find(v => v.id == veiculoId);
             if (veiculo) {
                 document.getElementById('hist-inicial-km').value = veiculo.km_rodados;
             }

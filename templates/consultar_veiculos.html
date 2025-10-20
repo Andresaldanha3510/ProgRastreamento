@@ -1,7 +1,7 @@
 {% extends "base.html" %} {% block title %}Frota de Veículos - TrackGo{%
 endblock %} {% block styles %} {{ super() }}
 <style>
-  /* Estilos adaptados de 'consultar_clientes' para consistência visual */
+  /* Estilos padronizados para consistência visual */
   :root {
     --primary-green: #2e7d32;
     --primary-green-dark: #1b5e20;
@@ -9,11 +9,9 @@ endblock %} {% block styles %} {{ super() }}
     --gray-100: #f1f5f9;
     --gray-200: #e2e8f0;
     --gray-600: #475569;
-    --gray-700: #334155;
     --gray-900: #0f172a;
     --red-600: #dc2626;
   }
-
   .veiculos-container {
     background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
     border-radius: 16px;
@@ -21,7 +19,6 @@ endblock %} {% block styles %} {{ super() }}
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
     border: 1px solid var(--gray-200);
   }
-
   .section-header {
     display: flex;
     align-items: center;
@@ -31,12 +28,10 @@ endblock %} {% block styles %} {{ super() }}
     font-size: 1.25rem;
     font-weight: 600;
   }
-
   .section-header i {
     color: var(--primary-green);
     font-size: 1.5rem;
   }
-
   .btn-green {
     background: linear-gradient(
       135deg,
@@ -62,13 +57,8 @@ endblock %} {% block styles %} {{ super() }}
     color: white;
     text-decoration: none;
   }
-
   .btn-secondary {
-    background: linear-gradient(
-      135deg,
-      var(--gray-600) 0%,
-      var(--gray-700) 100%
-    );
+    background: linear-gradient(135deg, var(--gray-600) 0%, #334155 100%);
     color: white;
     padding: 10px 20px;
     border: none;
@@ -85,7 +75,6 @@ endblock %} {% block styles %} {{ super() }}
     color: white;
     text-decoration: none;
   }
-
   .search-section {
     background: white;
     border-radius: 12px;
@@ -94,7 +83,6 @@ endblock %} {% block styles %} {{ super() }}
     border: 1px solid var(--gray-200);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   }
-
   .search-box {
     position: relative;
     flex: 1;
@@ -122,7 +110,6 @@ endblock %} {% block styles %} {{ super() }}
     color: var(--gray-600);
     font-size: 1.125rem;
   }
-
   .veiculos-table-container {
     background: white;
     border-radius: 12px;
@@ -157,7 +144,6 @@ endblock %} {% block styles %} {{ super() }}
   .veiculos-table tr:hover {
     background: var(--gray-50);
   }
-
   .btn-table {
     padding: 8px 12px;
     border: none;
@@ -181,25 +167,15 @@ endblock %} {% block styles %} {{ super() }}
     color: white;
     text-decoration: none;
   }
-  .btn-table.btn-dashboard {
+  .btn-table.btn-edit {
     background: #3b82f6;
     color: white;
   }
-  .btn-table.btn-dashboard:hover {
+  .btn-table.btn-edit:hover {
     background: #1d4ed8;
     color: white;
     text-decoration: none;
   }
-  .btn-table.btn-edit {
-    background: #6366f1;
-    color: white;
-  }
-  .btn-table.btn-edit:hover {
-    background: #4338ca;
-    color: white;
-    text-decoration: none;
-  }
-
   .status-badge {
     padding: 0.375rem 1rem;
     border-radius: 9999px;
@@ -212,22 +188,21 @@ endblock %} {% block styles %} {{ super() }}
     gap: 0.375rem;
     color: white;
   }
-  .status-disponivel {
+  .status-Disponível {
     background: linear-gradient(135deg, #10b981, #059669);
   }
-  .status-em-rota {
+  .status-Em-Rota {
     background: linear-gradient(135deg, #3b82f6, #2563eb);
   }
-  .status-em-manutencao {
+  .status-Em-Manutenção {
     background: linear-gradient(135deg, #f59e0b, #d97706);
   }
-  .status-inativo {
+  .status-Inativo {
     background: linear-gradient(135deg, #ef4444, #dc2626);
   }
-  .status-vendido {
+  .status-Vendido {
     background: linear-gradient(135deg, #6b7280, #4b5563);
   }
-
   .empty-state {
     text-align: center;
     padding: 4rem 1.5rem;
@@ -238,7 +213,6 @@ endblock %} {% block styles %} {{ super() }}
     margin-bottom: 1.5rem;
     color: var(--gray-200);
   }
-
   .fade-in {
     animation: fadeIn 0.5s ease-in;
   }
@@ -252,20 +226,10 @@ endblock %} {% block styles %} {{ super() }}
       transform: translateY(0);
     }
   }
-
-  /* Estilos do Modal */
   .tab-button.active {
     border-bottom: 2px solid var(--primary-green);
     color: var(--primary-green);
     font-weight: 600;
-  }
-  .attachment-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem;
-    border-radius: 8px;
-    transition: background-color 0.2s;
   }
   .attachment-item:hover {
     background-color: var(--gray-100);
@@ -283,29 +247,19 @@ endblock %} {% block styles %} {{ super() }}
     text-decoration: underline;
     color: var(--primary-green);
   }
-  .btn-delete-attachment {
-    background: none;
-    border: none;
-    color: var(--gray-600);
-    cursor: pointer;
-    font-size: 1rem;
-  }
-  .btn-delete-attachment:hover {
-    color: var(--red-600);
-  }
 </style>
 {% endblock %} {% block content %} {% set stats = { 'total': veiculos|length,
 'disponivel': veiculos|selectattr('status', 'equalto',
 'Disponível')|list|length, 'em_rota': veiculos|selectattr('status', 'equalto',
 'Em Rota')|list|length, 'em_manutencao': veiculos|selectattr('status',
 'equalto', 'Em Manutenção')|list|length } %}
+
 <div class="space-y-6">
   <div
     class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 shadow-lg"
   >
     <h1 class="text-3xl font-bold flex items-center gap-3">
-      <i class="fas fa-truck"></i>
-      Frota de Veículos
+      <i class="fas fa-truck"></i> Frota de Veículos
     </h1>
     <p class="text-green-100 mt-2">
       Gerencie todos os veículos da sua frota de forma eficiente.
@@ -315,35 +269,33 @@ endblock %} {% block styles %} {{ super() }}
   <div class="veiculos-container fade-in">
     <div class="flex flex-col md:flex-row justify-between items-center">
       <div class="section-header !mb-4 md:!mb-0">
-        <i class="fas fa-chart-bar"></i>
-        Visão Geral da Frota
+        <i class="fas fa-chart-bar"></i> Visão Geral da Frota
       </div>
       <div class="flex gap-2 w-full md:w-auto">
         <a
           href="{{ url_for('cadastrar_veiculo') }}"
           class="btn-green flex-grow md:flex-grow-0"
+          ><i class="fas fa-plus"></i> Novo Veículo</a
         >
-          <i class="fas fa-plus"></i> Novo Veículo
-        </a>
         <button id="export-btn" class="btn-secondary flex-grow md:flex-grow-0">
-          <i class="fas fa-file-excel"></i> Exportar para Excel
+          <i class="fas fa-file-excel"></i> Exportar
         </button>
       </div>
     </div>
     <div
       class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mt-4 text-center"
     >
-      <div class="bg-indigo-100 p-4 rounded-lg">
-        <p class="text-2xl font-bold text-indigo-800">{{ stats.total }}</p>
-        <p class="text-sm text-indigo-600">Total de Veículos</p>
+      <div class="bg-blue-100 p-4 rounded-lg">
+        <p class="text-2xl font-bold text-blue-800">{{ stats.total }}</p>
+        <p class="text-sm text-blue-600">Total de Veículos</p>
       </div>
       <div class="bg-green-100 p-4 rounded-lg">
         <p class="text-2xl font-bold text-green-800">{{ stats.disponivel }}</p>
         <p class="text-sm text-green-600">Disponíveis</p>
       </div>
-      <div class="bg-blue-100 p-4 rounded-lg">
-        <p class="text-2xl font-bold text-blue-800">{{ stats.em_rota }}</p>
-        <p class="text-sm text-blue-600">Em Rota</p>
+      <div class="bg-purple-100 p-4 rounded-lg">
+        <p class="text-2xl font-bold text-purple-800">{{ stats.em_rota }}</p>
+        <p class="text-sm text-purple-600">Em Rota</p>
       </div>
       <div class="bg-yellow-100 p-4 rounded-lg">
         <p class="text-2xl font-bold text-yellow-800">
@@ -356,8 +308,7 @@ endblock %} {% block styles %} {{ super() }}
 
   <div class="search-section fade-in">
     <div class="section-header">
-      <i class="fas fa-filter"></i>
-      Buscar e Filtrar Veículos
+      <i class="fas fa-filter"></i> Buscar e Filtrar Veículos
     </div>
     <form method="GET">
       <div class="flex flex-col md:flex-row gap-4 items-center">
@@ -436,22 +387,21 @@ endblock %} {% block styles %} {{ super() }}
                 </div>
               </div>
             </td>
-            <td>{{ veiculo.ano or 'N/A' }}</td>
+            <td>{{ veiculo.ano_modelo or veiculo.ano_fabricacao or 'N/A' }}</td>
             <td>
               <div class="flex items-center gap-2">
                 <i class="fas fa-tachometer-alt text-gray-400"></i>
                 <span
-                  >{{ "{:,.0f}".format(veiculo.quilometragem).replace(",", ".")
-                  if veiculo.quilometragem else 'Não informado' }} km</span
+                  >{{ "{:,.0f}".format(veiculo.km_atual).replace(",", ".") if
+                  veiculo.km_atual else 'Não informado' }} km</span
                 >
               </div>
             </td>
             <td class="text-center">
               <span
-                class="status-badge {% if veiculo.status == 'Disponível' %}status-disponivel {% elif veiculo.status == 'Em Rota' %}status-em-rota {% elif veiculo.status == 'Em Manutenção' %}status-em-manutencao {% elif veiculo.status == 'Inativo' %}status-inativo {% elif veiculo.status == 'Vendido' %}status-vendido {% endif %}"
+                class="status-badge status-{{ veiculo.status|replace(' ', '-') }}"
+                >{{ veiculo.status }}</span
               >
-                {{ veiculo.status }}
-              </span>
             </td>
             <td class="p-4">
               <div class="flex gap-2 justify-center">
@@ -460,22 +410,14 @@ endblock %} {% block styles %} {{ super() }}
                   class="btn-table btn-view"
                   title="Ver Detalhes e Anexos"
                 >
-                  <i class="fas fa-eye"></i>
-                </button>
-                <a
-                  href="{{ url_for('veiculo_dashboard', veiculo_id=veiculo.id) }}"
-                  class="btn-table btn-dashboard"
-                  title="Dashboard Financeiro e Despesas"
-                >
                   <i class="fas fa-chart-line"></i>
-                </a>
+                </button>
                 <a
                   href="{{ url_for('editar_veiculo', veiculo_id=veiculo.id) }}"
                   class="btn-table btn-edit"
                   title="Editar Cadastro"
-                >
-                  <i class="fas fa-edit"></i>
-                </a>
+                  ><i class="fas fa-edit"></i
+                ></a>
               </div>
             </td>
           </tr>
@@ -538,17 +480,16 @@ endblock %} {% block styles %} {{ super() }}
   </div>
 </div>
 {% endblock %} {% block scripts %} {{ super() }}
-<!-- Adicionar a biblioteca SheetJS via CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
   document.getElementById('export-btn').addEventListener('click', function() {
-      const veiculos = {{ veiculos|tojson|safe }};
-
+      // Usa a nova variável 'veiculos_json' que vem do backend
+      const veiculos = {{ veiculos_json|tojson|safe }};
       if (!veiculos || veiculos.length === 0) {
           alert('Não há dados para exportar.');
           return;
       }
-
+      // O resto da função de exportação permanece igual e agora funciona
       const exportData = veiculos.map(v => ({
           'Placa': v.placa,
           'Veículo': v.modelo,
@@ -558,16 +499,13 @@ endblock %} {% block styles %} {{ super() }}
           'Status': v.status,
           'Data de Cadastro': v.created_at ? new Date(v.created_at).toLocaleDateString('pt-BR') : 'N/A'
       }));
-
       const worksheet = XLSX.utils.json_to_sheet(exportData);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Frota de Veículos");
-
       const today = new Date().toISOString().slice(0, 10);
       XLSX.writeFile(workbook, `Relatorio_Frota_${today}.xlsx`);
   });
 
-  // --- Lógica do Modal ---
   function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
   function switchTab(tabName) {
       document.querySelectorAll('#vehicleModal .tab-content').forEach(c => c.classList.add('hidden'));
@@ -588,7 +526,6 @@ endblock %} {% block styles %} {{ super() }}
       kpisContainer.innerHTML = '<p class="text-center text-gray-500">Carregando KPIs...</p>';
       historicoContainer.innerHTML = '<p class="text-center text-gray-500">Carregando histórico...</p>';
       anexosContainer.innerHTML = '<p class="text-center text-gray-500">Carregando anexos...</p>';
-
       document.getElementById('modal-vehicle-plate').innerText = 'Carregando...';
 
       try {
@@ -598,88 +535,60 @@ endblock %} {% block styles %} {{ super() }}
 
           document.getElementById('modal-vehicle-plate').innerText = data.veiculo.placa;
 
-          // Render KPIs
-          const kpis = data.kpis;
-          kpisContainer.innerHTML = `
-              <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
-                  <div class="bg-blue-100 p-4 rounded-lg"><p class="text-2xl font-bold text-blue-800">${kpis.total_viagens}</p><p class="text-sm text-blue-600">Total de Viagens</p></div>
-                  <div class="bg-indigo-100 p-4 rounded-lg"><p class="text-2xl font-bold text-indigo-800">${kpis.total_km.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} km</p><p class="text-sm text-indigo-600">KM Rodados</p></div>
-                  <div class="bg-red-100 p-4 rounded-lg"><p class="text-2xl font-bold text-red-800">R$ ${kpis.custo_geral.toFixed(2).replace('.', ',')}</p><p class="text-sm text-red-600">Custo Geral</p></div>
-                  <div class="bg-yellow-100 p-4 rounded-lg"><p class="text-2xl font-bold text-yellow-800">R$ ${kpis.custo_por_km.toFixed(2).replace('.', ',')}</p><p class="text-sm text-yellow-600">Custo por KM</p></div>
-              </div>`;
-
-          // Render History
-          const manutencoes = data.manutencoes;
-          if (manutencoes.length > 0) {
-              let historyHtml = '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="bg-gray-100"><th class="p-2 text-left">Data</th><th class="p-2 text-left">Tipo</th><th class="p-2 text-left">Descrição</th><th class="p-2 text-right">Custo</th></tr></thead><tbody>';
-              manutencoes.forEach(m => {
-                  historyHtml += `<tr class="border-b"><td class="p-2">${m.data}</td><td class="p-2">${m.tipo}</td><td class="p-2">${m.descricao}</td><td class="p-2 text-right">R$ ${m.custo ? m.custo.toFixed(2).replace('.', ',') : '0,00'}</td></tr>`;
-              });
-              historyHtml += '</tbody></table></div>';
-              historicoContainer.innerHTML = historyHtml;
-          } else {
-              historicoContainer.innerHTML = '<p class="text-center text-gray-500">Nenhum histórico de manutenção encontrado.</p>';
-          }
-
-          // Render Attachments
-          renderAnexos(veiculoId, data.anexos, anexosContainer);
+          renderVehicleKpis(data.kpis, kpisContainer);
+          // ### CORREÇÃO 1: MUDANÇA DE 'manutencoes' PARA 'historico' ###
+          renderVehicleHistory(data.historico, historicoContainer);
+          renderVehicleAnnexes(veiculoId, data.anexos, anexosContainer);
 
       } catch (error) {
           console.error("Erro no modal do veículo:", error);
           kpisContainer.innerHTML = `<p class="text-center text-red-500">${error.message}</p>`;
-          historicoContainer.innerHTML = '';
-          anexosContainer.innerHTML = '';
       }
   }
 
-  function renderAnexos(veiculoId, anexos, container) {
+  function renderVehicleKpis(kpis, container) {
+      container.innerHTML = `
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
+              <div class="bg-blue-100 p-4 rounded-lg"><p class="text-2xl font-bold text-blue-800">${kpis.total_viagens}</p><p class="text-sm text-blue-600">Total de Viagens</p></div>
+              <div class="bg-indigo-100 p-4 rounded-lg"><p class="text-2xl font-bold text-indigo-800">${kpis.total_km.toLocaleString('pt-BR')} km</p><p class="text-sm text-indigo-600">KM Rodados</p></div>
+              <div class="bg-red-100 p-4 rounded-lg"><p class="text-2xl font-bold text-red-800">R$ ${kpis.custo_geral.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p><p class="text-sm text-red-600">Custo Geral</p></div>
+              <div class="bg-yellow-100 p-4 rounded-lg"><p class="text-2xl font-bold text-yellow-800">R$ ${kpis.custo_por_km.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p><p class="text-sm text-yellow-600">Custo por KM</p></div>
+          </div>`;
+  }
+
+  function renderVehicleHistory(historico, container) {
+      if (historico && historico.length > 0) {
+          let historyHtml = '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="bg-gray-100"><th class="p-2 text-left">Data</th><th class="p-2 text-left">Tipo</th><th class="p-2 text-left">Descrição</th><th class="p-2 text-right">Custo</th></tr></thead><tbody>';
+          historico.forEach(m => {
+              historyHtml += `<tr class="border-b"><td class="p-2">${m.data}</td><td class="p-2">${m.tipo}</td><td class="p-2">${m.descricao}</td><td class="p-2 text-right font-mono">R$ ${m.custo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td></tr>`;
+          });
+          historyHtml += '</tbody></table></div>';
+          container.innerHTML = historyHtml;
+      } else {
+          container.innerHTML = '<p class="text-center text-gray-500">Nenhum histórico de manutenção encontrado.</p>';
+      }
+  }
+
+  function renderVehicleAnnexes(veiculoId, anexos, container) {
       if (anexos && anexos.length > 0) {
-          let anexosHtml = '<div class="space-y-2">';
+          let anexosHtml = '<div class="grid grid-cols-2 md:grid-cols-4 gap-4">';
           anexos.forEach(anexoUrl => {
               const fileName = anexoUrl.split('/').pop().split('-').slice(1).join('-') || 'Arquivo de imagem';
               anexosHtml += `
-                  <div class="attachment-item" id="anexo-${btoa(anexoUrl)}">
-                      <div class="flex items-center">
-                           <i class="fas fa-image attachment-icon"></i>
-                           <a href="${anexoUrl}" target="_blank" class="attachment-name" title="${fileName}">${fileName}</a>
+                  <a href="${anexoUrl}" target="_blank" class="block group">
+                      <div class="relative aspect-square rounded-lg overflow-hidden border border-gray-200">
+                          <img src="${anexoUrl}" alt="${fileName}" class="w-full h-full object-cover transition-transform group-hover:scale-105">
+                          <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center">
+                              <i class="fas fa-search-plus text-white text-2xl opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                          </div>
                       </div>
-                      <button onclick="deleteVehicleAttachment(${veiculoId}, '${anexoUrl}')" class="btn-delete-attachment" title="Excluir anexo">
-                          <i class="fas fa-times"></i>
-                      </button>
-                  </div>
-              `;
+                      <p class="text-xs text-center mt-2 text-gray-600 truncate" title="${fileName}">${fileName}</p>
+                  </a>`;
           });
-          anexosHtml += '</div><p class="text-xs text-gray-500 mt-4">Para adicionar novas fotos, acesse a tela de <a href="/editar_veiculo/' + veiculoId + '" class="text-blue-600 hover:underline">edição de veículo</a>.</p>';
+          anexosHtml += '</div><p class="text-xs text-gray-500 mt-4 text-center">Para adicionar novas fotos, acesse a tela de <a href="/editar_veiculo/' + veiculoId + '" class="text-blue-600 hover:underline">edição de veículo</a>.</p>';
           container.innerHTML = anexosHtml;
       } else {
           container.innerHTML = '<p class="text-center text-gray-500">Nenhuma foto ou anexo encontrado. Você pode adicionar na tela de edição do veículo.</p>';
-      }
-  }
-
-  async function deleteVehicleAttachment(veiculoId, fotoUrl) {
-      if (!confirm('Tem certeza que deseja excluir esta foto/anexo? A ação não pode ser desfeita.')) {
-          return;
-      }
-
-      try {
-          const response = await fetch('/api/veiculo/excluir_foto', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ veiculo_id: veiculoId, foto_url: fotoUrl })
-          });
-          const result = await response.json();
-
-          if (response.ok && result.success) {
-              const elementId = btoa(fotoUrl);
-              document.getElementById(`anexo-${elementId}`).remove();
-              // Opcional: mostrar uma notificação de sucesso
-              alert('Anexo excluído com sucesso!');
-          } else {
-              throw new Error(result.message || 'Erro ao excluir anexo.');
-          }
-      } catch (error) {
-          console.error("Erro ao excluir anexo:", error);
-          alert(error.message);
       }
   }
 </script>

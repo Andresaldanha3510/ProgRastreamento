@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Finalizar OS #{{ manutencao.id }}</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      #reader {
+        width: 100%;
+        max-width: 500px;
+        border: 2px solid #2e7d32;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4"
+  >
+    <div class="bg-white p-8 rounded-lg shadow-lg text-center w-full max-w-md">
+      <i class="fas fa-wrench text-5xl text-green-700 mb-4"></i>
+      <h1 class="text-2xl font-bold text-gray-800">Finalizar Manutenção</h1>
+      <p class="text-gray-600 mt-2">
+        OS #{{ manutencao.id }} - {{ manutencao.veiculo.placa }}
+      </p>
+
+      <div id="scanner-container" class="my-6" style="display: none">
+        <div id="reader"></div>
+      </div>
+
+      <p id="status-message" class="my-4 text-gray-700">
+        Aponte a câmera para o QR Code da Ordem de Serviço para confirmar a
+        finalização.
+      </p>
+
+      <button
+        id="start-scan-button"
+        class="bg-green-700 text-white font-bold py-3 px-6 rounded-lg w-full text-lg hover:bg-green-800 transition"
+      >
+        <i class="fas fa-qrcode mr-2"></i> Iniciar Leitura do QR Code
+      </button>
+
+      <a
+        href="{{ url_for('oficina') }}"
+        class="mt-4 inline-block text-sm text-gray-600 hover:text-black"
+        >Voltar ao Dashboard</a
+      >
+    </div>
+
+    <script
+      src="https://unpkg.com/html5-qrcode"
+      type="text/javascript"
+    ></script>
+    <script>
+      document
+        .getElementById("start-scan-button")
+        .addEventListener("click", () => {
+          document.getElementById("scanner-container").style.display = "block";
+          document.getElementById("start-scan-button").style.display = "none";
+          document.getElementById("status-message").textContent =
+            "Procurando QR Code...";
+
+          const html5QrCode = new Html5Qrcode("reader");
+          const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+            html5QrCode.stop().then(() => {
+              document.getElementById("status-message").textContent =
+                "QR Code lido com sucesso!";
+
+              // Verifica se o QR Code corresponde à OS atual
+              if (
+                decodedText.includes(
+                  "/oficina/finalizar_mobile/{{ manutencao.id }}"
+                )
+              ) {
+                if (
+                  confirm(
+                    `Deseja realmente sinalizar a finalização da OS #${"{{ manutencao.id }}"} para o veículo ${"{{ manutencao.veiculo.placa }}"}?`
+                  )
+                ) {
+                  finalizarManutencao();
+                } else {
+                  window.location.reload();
+                }
+              } else {
+                alert(
+                  "QR Code inválido! Este código não pertence a esta Ordem de Serviço."
+                );
+                window.location.reload();
+              }
+            });
+          };
+
+          const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+          html5QrCode
+            .start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+            .catch((err) => {
+              console.error("Erro ao iniciar a câmera", err);
+              document.getElementById("status-message").textContent =
+                "Não foi possível acessar a câmera. Verifique as permissões.";
+            });
+        });
+
+      async function finalizarManutencao() {
+        const url = `/api/manutencao/finalizar_mecanico/${"{{ manutencao.id }}"}`;
+        try {
+          const response = await fetch(url, { method: "POST" });
+          const result = await response.json();
+          alert(result.message);
+          if (result.success) {
+            window.location.href = "{{ url_for('oficina') }}";
+          }
+        } catch (error) {
+          alert("Ocorreu um erro de comunicação com o servidor.");
+        }
+      }
+    </script>
+  </body>
+</html>

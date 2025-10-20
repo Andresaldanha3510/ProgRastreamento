@@ -73,16 +73,107 @@
         transition: all 0.3s;
         text-decoration: none;
     }
-    .btn-secondary:hover { background-color: var(--gray-300); }
+    .btn-secondary:hover { background-color: #d1d5db; }
 
-    /* Estilos para a lista de anexos */
-    .attachment-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-radius: 8px; transition: background-color 0.2s; border: 1px solid var(--gray-200); }
-    .attachment-item:hover { background-color: var(--gray-100); }
-    .attachment-icon { color: var(--gray-600); margin-right: 0.75rem; }
-    .attachment-name { color: var(--gray-900); text-decoration: none; font-weight: 500; word-break: break-all; }
-    .attachment-name:hover { text-decoration: underline; color: var(--primary-green); }
-    .btn-delete-attachment { background: none; border: none; color: var(--gray-600); cursor: pointer; font-size: 1rem; padding: 0.5rem; }
-    .btn-delete-attachment:hover { color: var(--red-600); }
+    /* === NOVOS ESTILOS PARA A CENTRAL DE ANEXOS === */
+    #drop-zone {
+        border: 2px dashed #cbd5e1;
+        border-radius: 0.75rem;
+        padding: 2.5rem;
+        text-align: center;
+        color: #64748b;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        background-color: #f8fafc;
+    }
+    #drop-zone.drag-over {
+        border-color: var(--primary-green);
+        background-color: #f0fdf4;
+        color: #166534;
+    }
+    #drop-zone i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+
+    .file-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        margin-top: 0.75rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .file-preview {
+        width: 48px;
+        height: 48px;
+        border-radius: 0.375rem;
+        background-color: #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: #64748b;
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+    .file-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 0.375rem;
+    }
+    .file-details {
+        flex-grow: 1;
+        overflow: hidden;
+    }
+    .file-name {
+        font-weight: 500;
+        color: var(--gray-900);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-decoration: none;
+    }
+    .file-name:hover {
+        text-decoration: underline;
+        color: var(--primary-green);
+    }
+    .file-size {
+        font-size: 0.875rem;
+        color: var(--gray-600);
+    }
+    .file-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-left: 1rem;
+    }
+    .file-status-icon {
+        font-size: 1.25rem;
+    }
+    .status-uploading { color: var(--gray-600); animation: spin 1s linear infinite; }
+    .status-success { color: #22c55e; }
+    .status-error { color: var(--red-600); }
+
+    .btn-icon {
+        background: none; border: none; cursor: pointer; padding: 0.5rem; border-radius: 50%;
+        color: #94a3b8; transition: all 0.2s;
+    }
+    .btn-icon:hover { background-color: var(--gray-100); color: var(--gray-700); }
+    .btn-icon-delete:hover { background-color: #fee2e2; color: var(--red-600); }
+
+    .progress-bar {
+        position: absolute; bottom: 0; left: 0; height: 4px;
+        background-color: #3b82f6; width: 0%; transition: width 0.3s ease;
+    }
+    .file-item.error .progress-bar { background-color: var(--red-600); }
+    .file-item.success .progress-bar { background-color: #22c55e; }
+
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 </style>
 {% endblock %}
 
@@ -96,8 +187,7 @@
         <p class="text-green-100 mt-2">Atualize as informações de <span class="font-semibold">{{ cliente.nome_razao_social }}</span></p>
     </div>
 
-    <form method="POST" enctype="multipart/form-data" class="form-container">
-        
+    <form method="POST" class="form-container">
         <h2 class="form-section-header"><i class="fas fa-id-card"></i>Dados Gerais</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div class="md:col-span-2">
@@ -124,7 +214,7 @@
                 <input type="text" name="inscricao_estadual" id="inscricao_estadual" class="form-input" value="{{ cliente.inscricao_estadual or '' }}">
             </div>
         </div>
-
+        
         <h2 class="form-section-header"><i class="fas fa-map-marker-alt"></i>Endereço</h2>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div class="md:col-span-1">
@@ -153,7 +243,7 @@
             </div>
             <div class="md:col-span-1">
                 <label for="estado" class="block text-sm font-medium text-gray-700 mb-1">Estado (UF)</label>
-                <input type="text" id="estado" name="estado" required class="form-input" value="{{ cliente.estado }}">
+                <input type="text" id="estado" name="estado" required class="form-input" maxlength="2" value="{{ cliente.estado }}">
             </div>
         </div>
         
@@ -169,48 +259,40 @@
             </div>
         </div>
 
-        <h2 class="form-section-header"><i class="fas fa-paperclip"></i>Anexos</h2>
-        <div class="mb-8">
-            <div id="anexos-list" class="space-y-2 mb-4">
-                {% if cliente.anexos %}
-                    {% for anexo_url in cliente.anexos.split(',') %}
-                    {% if anexo_url %}
-                        <div class="attachment-item" id="anexo-{{ loop.index }}">
-                            <div class="flex items-center">
-                                <i class="fas fa-paperclip attachment-icon"></i>
-                                <a href="{{ anexo_url }}" target="_blank" class="attachment-name" title="{{ anexo_url.split('/')[-1].split('-', 1)[-1] }}">
-                                    {{ anexo_url.split('/')[-1].split('-', 1)[-1] }}
-                                </a>
-                            </div>
-                            <button type="button" onclick="deleteAttachment('{{ anexo_url }}', 'anexo-{{ loop.index }}')" class="btn-delete-attachment" title="Excluir anexo">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    {% endif %}
-                    {% endfor %}
-                {% else %}
-                    <p id="no-attachments-msg" class="text-sm text-gray-500">Nenhum anexo cadastrado.</p>
-                {% endif %}
-            </div>
-            <div>
-                <label for="anexos" class="block text-sm font-medium text-gray-700 mb-1">Adicionar Novos Anexos</label>
-                <input type="file" name="anexos" id="anexos" multiple class="form-input">
-            </div>
-        </div>
-
-
         <div class="mt-8 flex justify-end gap-4">
             <a href="{{ url_for('consultar_clientes') }}" class="btn-secondary">Cancelar</a>
-            <button type="submit" class="btn-green">Salvar Alterações</button>
+            <button type="submit" class="btn-green">
+                <i class="fas fa-save mr-2"></i>
+                Salvar Alterações
+            </button>
         </div>
     </form>
+
+    <div class="form-container">
+        <h2 class="form-section-header"><i class="fas fa-paperclip"></i>Central de Anexos</h2>
+        
+        <div id="drop-zone">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p class="font-semibold">Arraste e solte os arquivos aqui</p>
+            <p class="text-sm">ou</p>
+            <button type="button" onclick="document.getElementById('file-input').click()" class="mt-2 bg-white text-gray-700 font-semibold py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50">
+                Selecione os Arquivos
+            </button>
+        </div>
+        <input type="file" id="file-input" multiple class="hidden">
+
+        <div id="file-list" class="mt-4">
+            </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
 <script>
+// --- SEU SCRIPT ORIGINAL (INTACTO) ---
 document.addEventListener('DOMContentLoaded', function() {
+    // ... (toda a sua lógica de ajuste de campos, busca de CEP, etc., permanece aqui sem alteração)
     const pessoaTipo = document.getElementById('pessoa_tipo');
     const cpfCnpjLabel = document.getElementById('cpf_cnpj_label');
     const cpfCnpjInput = document.getElementById('cpf_cnpj');
@@ -257,36 +339,193 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-async function deleteAttachment(anexoUrl, elementId) {
-    if (!confirm('Tem certeza que deseja excluir este anexo? Esta ação não pode ser desfeita.')) {
-        return;
+// --- SCRIPT DA CENTRAL DE ANEXOS (COM TODAS AS CORREÇÕES) ---
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const fileList = document.getElementById('file-list');
+const clienteId = {{ cliente.id }};
+const existingFiles = {{ (cliente.anexos.split(',') if cliente.anexos else [])|tojson }};
+
+const activeUploads = {};
+
+// Funções de Drag and Drop
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('drag-over'); });
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+
+// Lida com a seleção de arquivos
+function handleFiles(files) {
+    [...files].forEach(file => {
+        const fileId = `file-${Date.now()}${Math.floor(Math.random() * 1000)}`;
+        const fileElement = createFileElement(fileId, file);
+        fileList.prepend(fileElement);
+        uploadFile(fileId, file);
+    });
+    fileInput.value = '';
+}
+
+// Cria o elemento visual para cada arquivo
+function createFileElement(fileId, file, existingUrl = null) {
+    const fileElement = document.createElement('div');
+    fileElement.className = 'file-item';
+    fileElement.id = fileId;
+
+    const isImage = file ? file.type.startsWith('image/') : false;
+    const fileName = file ? file.name : (existingUrl.split('/').pop().split('-').slice(1).join('-') || 'Arquivo');
+    const fileSize = file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : '';
+
+    fileElement.innerHTML = `
+        <div class="file-preview">
+            ${isImage ? `<img id="preview-${fileId}" src="" alt="preview">` : '<i class="fas fa-file-alt"></i>'}
+        </div>
+        <div class="file-details">
+            <a href="${existingUrl || '#'}" target="_blank" class="file-name" title="${fileName}">${fileName}</a>
+            <div class="file-size">${fileSize}</div>
+        </div>
+        <div class="file-actions">
+            <i id="status-${fileId}" class="file-status-icon"></i>
+            <button id="action-${fileId}" class="btn-icon"></button>
+        </div>
+        <div id="progress-${fileId}" class="progress-bar"></div>
+    `;
+
+    if (isImage && file) {
+        const reader = new FileReader();
+        reader.onload = (e) => { document.getElementById(`preview-${fileId}`).src = e.target.result; };
+        reader.readAsDataURL(file);
     }
+    
+    if (existingUrl) {
+        fileElement.dataset.url = existingUrl;
+    }
+    return fileElement;
+}
+
+// Faz o upload do arquivo
+function uploadFile(fileId, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const xhr = new XMLHttpRequest();
+    activeUploads[fileId] = xhr;
+
+    xhr.open('POST', `/api/cliente/${clienteId}/upload_anexo`, true);
+
+    xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+            updateProgressBar(fileId, (e.loaded / e.total) * 100);
+        }
+    };
+
+    xhr.onload = () => {
+        delete activeUploads[fileId];
+        if (xhr.status === 200) {
+            const response = JSON.parse(xhr.responseText);
+            document.querySelector(`#${fileId} .file-name`).href = response.file_url;
+            document.getElementById(fileId).dataset.url = response.file_url;
+            setFileState(fileId, 'success');
+        } else {
+            setFileState(fileId, 'error', 'Falha no upload');
+        }
+    };
+    xhr.onerror = () => { delete activeUploads[fileId]; setFileState(fileId, 'error', 'Erro de conexão'); };
+    xhr.onabort = () => { delete activeUploads[fileId]; document.getElementById(fileId).remove(); }
+
+    setFileState(fileId, 'uploading');
+    xhr.send(formData);
+}
+
+// Deleta um arquivo
+async function deleteFile(fileId) {
+    const fileElement = document.getElementById(fileId);
+    const fileUrl = fileElement.dataset.url;
+
+    if (!fileUrl || !confirm('Tem certeza que deseja excluir este anexo permanentemente?')) return;
 
     try {
         const response = await fetch('/api/cliente/excluir_anexo', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cliente_id: {{ cliente.id }}, anexo_url: anexoUrl })
+            body: JSON.stringify({ cliente_id: clienteId, anexo_url: fileUrl })
         });
         const result = await response.json();
-
-        if (response.ok && result.success) {
-            const element = document.getElementById(elementId);
-            if (element) {
-                element.remove();
-            }
-            // Verifica se ainda existem anexos
-            if (document.querySelectorAll('.attachment-item').length === 0) {
-                 document.getElementById('no-attachments-msg').style.display = 'block';
-            }
-            alert('Anexo excluído com sucesso!');
+        if (result.success) {
+            fileElement.remove();
         } else {
-            throw new Error(result.message || 'Erro ao excluir anexo.');
+            alert('Erro ao excluir: ' + result.message);
         }
     } catch (error) {
-        console.error("Erro ao excluir anexo:", error);
-        alert(error.message);
+        alert('Erro de conexão ao tentar excluir o arquivo.');
     }
 }
+
+// Funções de UI
+function updateProgressBar(fileId, percent) {
+    document.getElementById(`progress-${fileId}`).style.width = `${percent}%`;
+}
+
+function setFileState(fileId, state, message = '') {
+    const statusIcon = document.getElementById(`status-${fileId}`);
+    const actionButton = document.getElementById(`action-${fileId}`);
+    const progressBar = document.getElementById(`progress-${fileId}`);
+
+    if (!statusIcon || !actionButton || !progressBar) return; // Checagem de segurança
+
+    statusIcon.className = 'file-status-icon';
+    actionButton.innerHTML = '';
+    actionButton.onclick = null;
+
+    switch (state) {
+        case 'uploading':
+            statusIcon.classList.add('fas', 'fa-spinner', 'status-uploading');
+            actionButton.innerHTML = '<i class="fas fa-times"></i>';
+            actionButton.title = 'Cancelar Upload';
+            actionButton.onclick = () => activeUploads[fileId]?.abort();
+            break;
+        case 'success':
+            statusIcon.classList.add('fas', 'fa-check-circle', 'status-success');
+            progressBar.style.width = '100%';
+            actionButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+            actionButton.title = 'Excluir Arquivo';
+            actionButton.classList.add('btn-icon-delete');
+            actionButton.onclick = () => deleteFile(fileId);
+            break;
+        case 'error':
+            statusIcon.classList.add('fas', 'fa-exclamation-circle', 'status-error');
+            progressBar.style.width = '100%';
+            document.getElementById(fileId).classList.add('error');
+            actionButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+            actionButton.title = 'Remover da lista';
+            actionButton.classList.add('btn-icon-delete');
+            actionButton.onclick = () => document.getElementById(fileId).remove();
+            document.querySelector(`#${fileId} .file-size`).textContent = message;
+            break;
+    }
+}
+
+// *** FUNÇÃO CORRIGIDA ***
+function loadInitialFiles() {
+    existingFiles.forEach(url => {
+        if(!url) return;
+        const safeIdPart = btoa(url).replace(/[/+=]/g, ''); 
+        const fileId = `file-existing-${safeIdPart}`;
+        const fileElement = createFileElement(fileId, null, url);
+        
+        // 1. Adiciona o elemento à página PRIMEIRO
+        fileList.appendChild(fileElement);
+        
+        // 2. AGORA, com o elemento já na página, modifica seu estado
+        setFileState(fileId, 'success');
+    });
+}
+
+// Inicia a página
+document.addEventListener('DOMContentLoaded', loadInitialFiles);
+
 </script>
 {% endblock %}

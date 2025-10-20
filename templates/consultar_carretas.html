@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Frota de Carretas - TrackGo{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+  /* Estilos para consistência visual */
+  :root { --primary-green: #2e7d32; --primary-green-dark: #1b5e20; --gray-50: #f8fafc; --gray-100: #f1f5f9; --gray-200: #e2e8f0; --gray-600: #475569; --gray-900: #0f172a; }
+  .veiculos-container { background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%); border-radius: 16px; padding: 2rem; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); border: 1px solid var(--gray-200); }
+  .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; color: var(--primary-green-dark); font-size: 1.25rem; font-weight: 600; }
+  .section-header i { color: var(--primary-green); font-size: 1.5rem; }
+  .btn-green { background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-dark) 100%); color: white; padding: 12px 24px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3); text-decoration: none; }
+  .btn-green:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(46, 125, 50, 0.4); color: white; text-decoration: none; }
+  .search-box input { width: 100%; padding: 12px 16px 12px 48px; border: 2px solid var(--gray-200); border-radius: 25px; font-size: 1rem; transition: all 0.3s; background: white; }
+  .search-box input:focus { outline: none; border-color: var(--primary-green); box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1); }
+  .search-box i { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: var(--gray-600); font-size: 1.125rem; }
+  .veiculos-table th { background: linear-gradient(135deg, var(--primary-green-dark) 0%, var(--primary-green) 100%); color: white; padding: 1rem; text-align: left; font-weight: 600; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.5px; }
+  .veiculos-table td { padding: 1rem; border-bottom: 1px solid var(--gray-100); vertical-align: middle; font-size: 0.875rem; }
+  .veiculos-table tr:hover { background: var(--gray-50); }
+  .btn-table { padding: 8px 12px; border: none; border-radius: 8px; font-size: 0.75rem; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease; }
+  .btn-table.btn-edit { background: #3b82f6; color: white; } .btn-table.btn-edit:hover { background: #1d4ed8; color: white; }
+  .btn-table.btn-delete { background: #ef4444; color: white; } .btn-table.btn-delete:hover { background: #b91c1c; color: white; }
+  .status-badge { padding: 0.375rem 1rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.375rem; color: white; }
+  .status-Disponível { background: linear-gradient(135deg, #10b981, #059669); }
+  .status-Em-Viagem { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+  .status-Em-Manutenção { background: linear-gradient(135deg, #f59e0b, #d97706); }
+  .empty-state { text-align: center; padding: 4rem 1.5rem; color: var(--gray-600); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 shadow-lg">
+    <h1 class="text-3xl font-bold flex items-center gap-3"><i class="fas fa-trailer"></i> Frota de Carretas</h1>
+    <p class="text-green-100 mt-2">Gerencie todos os implementos da sua frota.</p>
+  </div>
+
+  <div class="veiculos-container fade-in">
+    <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+        <div class="section-header !mb-4 md:!mb-0">
+            <i class="fas fa-chart-bar"></i> Visão Geral das Carretas
+        </div>
+        <a href="{{ url_for('cadastrar_veiculo') }}" class="btn-green">
+            <i class="fas fa-plus"></i> Novo Ativo da Frota
+        </a>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 text-center">
+      <div class="bg-blue-100 p-4 rounded-lg">
+        <p class="text-2xl font-bold text-blue-800">{{ stats.total }}</p>
+        <p class="text-sm text-blue-600">Total de Carretas</p>
+      </div>
+      <div class="bg-green-100 p-4 rounded-lg">
+        <p class="text-2xl font-bold text-green-800">{{ stats.disponivel }}</p>
+        <p class="text-sm text-green-600">Disponíveis</p>
+      </div>
+      <div class="bg-purple-100 p-4 rounded-lg">
+        <p class="text-2xl font-bold text-purple-800">{{ stats.em_viagem }}</p>
+        <p class="text-sm text-purple-600">Em Viagem</p>
+      </div>
+      <div class="bg-yellow-100 p-4 rounded-lg">
+        <p class="text-2xl font-bold text-yellow-800">{{ stats.em_manutencao }}</p>
+        <p class="text-sm text-yellow-600">Em Manutenção</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="veiculos-container fade-in">
+    <div class="section-header">
+      <i class="fas fa-list"></i>
+      Lista de Carretas
+      {% if carretas %}<span class="text-base font-normal text-gray-600">({{ carretas|length }} carreta{{ 's' if carretas|length != 1 }})</span>{% endif %}
+    </div>
+
+    {% if not carretas and not search_query %}
+    <div class="empty-state">
+      <i class="fas fa-trailer"></i>
+      <h3>Nenhuma carreta encontrada</h3>
+      <p>Use a "Central de Cadastro de Frota" para adicionar a primeira.</p>
+    </div>
+    {% else %}
+    <div class="veiculos-table-container">
+      <table class="veiculos-table w-full">
+        <thead>
+          <tr>
+            <th>Placa</th>
+            <th>Implemento</th>
+            <th>Ano</th>
+            <th class="text-center">Nº de Eixos</th>
+            <th class="text-center">Status</th>
+            <th class="text-center">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for carreta in carretas %}
+          <tr>
+            <td><div class="font-bold text-gray-900 font-mono bg-gray-100 px-3 py-1 rounded inline-block">{{ carreta.placa }}</div></td>
+            <td>
+              <div>
+                <div class="font-semibold text-gray-900">{{ carreta.modelo or 'Não informado' }}</div>
+                <div class="text-sm text-gray-500">{{ carreta.marca or 'Marca não informada' }}</div>
+              </div>
+            </td>
+            <td>{{ carreta.ano or 'N/A' }}</td>
+            <td class="text-center">{{ carreta.eixos or 'N/A' }}</td>
+            <td class="text-center"><span class="status-badge status-{{ carreta.status|replace(' ', '-') }}">{{ carreta.status }}</span></td>
+            <td class="p-4 text-center">
+                <div class="flex gap-2 justify-center">
+                    <a href="{{ url_for('editar_carreta', carreta_id=carreta.id) }}" class="btn-table btn-edit" title="Editar Cadastro"><i class="fas fa-edit"></i></a>
+                    <a href="{{ url_for('excluir_carreta', carreta_id=carreta.id) }}" class="btn-table btn-delete" title="Excluir Carreta" onclick="return confirm('Tem certeza que deseja excluir a carreta {{ carreta.placa }}? Esta ação não pode ser desfeita.')"><i class="fas fa-trash"></i></a>
+                </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

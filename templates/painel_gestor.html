@@ -1,0 +1,1958 @@
+{% extends "base.html" %}
+
+{% block title %}Painel do Gestor Avançado{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Top Bar com Título e Ações -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+        <h1 class="h3 mb-0 text-gray-800 font-weight-bold animated-title">
+            <i class="fas fa-chart-line mr-2 text-primary"></i>Painel Executivo Ultra
+        </h1>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="badge badge-success badge-pulse">
+                <i class="fas fa-circle mr-1" style="font-size: 6px;"></i>Atualizado em tempo real
+            </div>
+            <button id="btn-export" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-download mr-1"></i>Exportar PDF
+            </button>
+            <button id="btn-fullscreen" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-expand mr-1"></i>Tela Cheia
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabs de Módulos -->
+    <div class="card shadow-sm mb-4 modules-card">
+        <div class="card-body p-2">
+            <ul class="nav nav-pills modules-nav" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link module-tab active" href="#module-overview" data-module="overview">
+                        <i class="fas fa-chart-line mr-1"></i>Visão Geral
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link module-tab" href="#module-ai-insights" data-module="ai-insights">
+                        <i class="fas fa-brain mr-1"></i>IA Preditiva
+                        <span class="badge badge-danger ml-1">4</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link module-tab" href="#module-gamification" data-module="gamification">
+                        <i class="fas fa-trophy mr-1"></i>Gamificação
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link module-tab" href="#module-simulator" data-module="simulator">
+                        <i class="fas fa-flask mr-1"></i>Simulador
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link module-tab" href="#module-heatmap" data-module="heatmap">
+                        <i class="fas fa-map-marked-alt mr-1"></i>Mapa de Calor
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link module-tab" href="#module-timeline" data-module="timeline">
+                        <i class="fas fa-clock mr-1"></i>Timeline
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link module-tab" href="#module-benchmark" data-module="benchmark">
+                        <i class="fas fa-chart-bar mr-1"></i>Benchmark
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link module-tab" href="#module-autopilot" data-module="autopilot">
+                        <i class="fas fa-magic mr-1"></i>Piloto Automático
+                        <span class="badge badge-warning ml-1">BETA</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4 filter-card">
+        <div class="card-body d-flex align-items-center flex-wrap bg-gradient-light">
+            <div class="form-group mb-2 mb-md-0 mr-3">
+                <label for="data_inicio_filtro" class="small font-weight-bold text-dark">
+                    <i class="far fa-calendar-alt mr-1"></i>Período de:
+                </label>
+                <input type="date" id="data_inicio_filtro" class="form-control form-control-sm modern-input" value="{{ data_inicio }}">
+            </div>
+            <div class="form-group mb-2 mb-md-0 mr-3">
+                <label for="data_fim_filtro" class="small font-weight-bold text-dark">
+                    <i class="far fa-calendar-check mr-1"></i>Até:
+                </label>
+                <input type="date" id="data_fim_filtro" class="form-control form-control-sm modern-input" value="{{ data_fim }}">
+            </div>
+            <div class="form-group mb-2 mb-md-0 mr-3">
+                <label for="filtro_motorista" class="small font-weight-bold text-dark">
+                    <i class="fas fa-user mr-1"></i>Motorista:
+                </label>
+                <select id="filtro_motorista" class="form-control form-control-sm modern-input" style="min-width: 150px;">
+                    <option value="">Todos</option>
+                    {% for motorista in motoristas %}
+                        <option value="{{ motorista.id }}">{{ motorista.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group mb-2 mb-md-0 mr-3">
+                <label for="filtro_veiculo" class="small font-weight-bold text-dark">
+                    <i class="fas fa-car mr-1"></i>Veículo:
+                </label>
+                <select id="filtro_veiculo" class="form-control form-control-sm modern-input" style="min-width: 150px;">
+                    <option value="">Todos</option>
+                    {% for veiculo in veiculos %}
+                        <option value="{{ veiculo.id }}">{{ veiculo.placa }} - {{ veiculo.modelo }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button id="btn_filtrar" class="btn btn-sm btn-success align-self-end shadow-sm btn-modern">
+                <i class="fas fa-sync-alt mr-1"></i>Atualizar Dashboard
+            </button>
+            <button id="btn_limpar" class="btn btn-sm btn-outline-secondary align-self-end shadow-sm btn-modern ml-2">
+                <i class="fas fa-times mr-1"></i>Limpar
+            </button>
+        </div>
+    </div>
+    
+    <!-- Loading -->
+    <div id="loading-spinner" class="text-center my-5" style="display: none;">
+        <div class="spinner-modern">
+            <div class="spinner-blade"></div>
+            <div class="spinner-blade"></div>
+            <div class="spinner-blade"></div>
+            <div class="spinner-blade"></div>
+            <div class="spinner-blade"></div>
+            <div class="spinner-blade"></div>
+            <div class="spinner-blade"></div>
+            <div class="spinner-blade"></div>
+        </div>
+        <p class="mt-4 text-secondary font-weight-bold">Processando dados de performance...</p>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="dashboard-content">
+        <!-- MÓDULO: Visão Geral -->
+        <div class="tab-pane fade show active" id="module-overview">
+            <!-- KPI Cards -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card kpi-card kpi-success shadow-lg h-100">
+                        <div class="card-body">
+                            <div class="kpi-icon"><i class="fas fa-dollar-sign"></i></div>
+                            <div class="kpi-content">
+                                <div class="kpi-label">Custo Médio por KM</div>
+                                <div id="kpi-custo-km" class="kpi-value">R$ 0,00</div>
+                                <div class="kpi-trend" id="trend-custo-km">
+                                    <i class="fas fa-arrow-down"></i> <span>--%</span> vs mês anterior
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card kpi-card kpi-primary shadow-lg h-100">
+                        <div class="card-body">
+                            <div class="kpi-icon"><i class="fas fa-route"></i></div>
+                            <div class="kpi-content">
+                                <div class="kpi-label">Viagens Concluídas</div>
+                                <div id="kpi-total-viagens" class="kpi-value">0</div>
+                                <div class="kpi-trend kpi-trend-up">
+                                    <i class="fas fa-arrow-up"></i> <span>--%</span> vs mês anterior
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card kpi-card kpi-info shadow-lg h-100">
+                        <div class="card-body">
+                            <div class="kpi-icon"><i class="fas fa-road"></i></div>
+                            <div class="kpi-content">
+                                <div class="kpi-label">Distância Total</div>
+                                <div id="kpi-distancia-total" class="kpi-value">0 km</div>
+                                <div class="kpi-trend kpi-trend-up">
+                                    <i class="fas fa-arrow-up"></i> <span>--%</span> vs mês anterior
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card kpi-card kpi-warning shadow-lg h-100">
+                        <div class="card-body">
+                            <div class="kpi-icon"><i class="fas fa-chart-line"></i></div>
+                            <div class="kpi-content">
+                                <div class="kpi-label">Receita Total</div>
+                                <div id="kpi-receita-total" class="kpi-value">R$ 0,00</div>
+                                <div class="kpi-trend kpi-trend-up">
+                                    <i class="fas fa-arrow-up"></i> <span>--%</span> vs mês anterior
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico Evolução Temporal -->
+            <div class="row mb-4">
+                <div class="col-lg-12 mb-4">
+                    <div class="card chart-card shadow-lg">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="m-0 font-weight-bold">
+                                    <i class="fas fa-calendar-week text-warning mr-2"></i>Evolução Temporal - Receita vs Custos
+                                </h6>
+                                <div class="chart-period-controls">
+                                    <button class="btn btn-sm btn-outline-secondary active" data-period="7">7 dias</button>
+                                    <button class="btn btn-sm btn-outline-secondary" data-period="30">30 dias</button>
+                                    <button class="btn btn-sm btn-outline-secondary" data-period="90">3 meses</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" style="position: relative; height:300px">
+                                <canvas id="evolucaoTemporalChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance por Motorista e Eficiência -->
+            <div class="row mb-4">
+                <div class="col-lg-8 mb-4">
+                    <div class="card chart-card shadow-lg">
+                        <div class="card-header">
+                            <h6 class="m-0 font-weight-bold">
+                                <i class="fas fa-users text-success mr-2"></i>Performance por Motorista
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" style="position: relative; height:350px">
+                                <canvas id="kmPorMotoristaChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 mb-4">
+                    <div class="card chart-card shadow-lg">
+                        <div class="card-header">
+                            <h6 class="m-0 font-weight-bold">
+                                <i class="fas fa-gas-pump text-info mr-2"></i>Eficiência de Combustível
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" style="position: relative; height:350px">
+                                <canvas id="eficienciaGaugeChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Clientes e Veículos -->
+            <div class="row mb-4">
+                <div class="col-lg-6 mb-4">
+                    <div class="card chart-card shadow-lg">
+                        <div class="card-header">
+                            <h6 class="m-0 font-weight-bold">
+                                <i class="fas fa-trophy text-warning mr-2"></i>Top 10 Clientes Mais Rentáveis
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" style="position: relative; height:380px">
+                                <canvas id="rentabilidadeClienteChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6 mb-4">
+                    <div class="card chart-card shadow-lg">
+                        <div class="card-header">
+                            <h6 class="m-0 font-weight-bold">
+                                <i class="fas fa-car text-primary mr-2"></i>Ranking de Eficiência dos Veículos
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" style="position: relative; height:380px">
+                                <canvas id="eficienciaVeiculosChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela de Ranking -->
+            <div class="row mb-4">
+                <div class="col-lg-12">
+                    <div class="card shadow-lg">
+                        <div class="card-header">
+                            <h6 class="m-0 font-weight-bold">
+                                <i class="fas fa-list-ol text-success mr-2"></i>Top 5 Análises Detalhadas
+                            </h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0 modern-table">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th class="border-0">Ranking</th>
+                                            <th class="border-0">Motorista</th>
+                                            <th class="border-0">Viagens</th>
+                                            <th class="border-0">KM Total</th>
+                                            <th class="border-0">Receita</th>
+                                            <th class="border-0">Custo</th>
+                                            <th class="border-0">Lucro</th>
+                                            <th class="border-0">Performance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ranking-motoristas-table">
+                                        <tr>
+                                            <td colspan="8" class="text-center py-4 text-muted">
+                                                <i class="fas fa-spinner fa-spin"></i> Carregando dados...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row">
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card stat-card shadow">
+                        <div class="card-body text-center">
+                            <div class="stat-icon bg-success">
+                                <i class="fas fa-percentage"></i>
+                            </div>
+                            <h3 id="stat-margem" class="font-weight-bold mt-3">0%</h3>
+                            <p class="text-muted mb-0">Margem de Lucro</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card stat-card shadow">
+                        <div class="card-body text-center">
+                            <div class="stat-icon bg-info">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <h3 id="stat-tempo-medio" class="font-weight-bold mt-3">0h</h3>
+                            <p class="text-muted mb-0">Tempo Médio de Viagem</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card stat-card shadow">
+                        <div class="card-body text-center">
+                            <div class="stat-icon bg-warning">
+                                <i class="fas fa-tachometer-alt"></i>
+                            </div>
+                            <h3 id="stat-km-medio" class="font-weight-bold mt-3">0 km</h3>
+                            <p class="text-muted mb-0">Distância Média por Viagem</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card stat-card shadow">
+                        <div class="card-body text-center">
+                            <div class="stat-icon bg-danger">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <h3 id="stat-manutencoes" class="font-weight-bold mt-3">0</h3>
+                            <p class="text-muted mb-0">Veículos em Manutenção</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MÓDULO: IA Preditiva -->
+        <div class="tab-pane fade" id="module-ai-insights">
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="card shadow-lg border-0">
+                        <div class="card-header bg-gradient-purple text-white">
+                            <h5 class="mb-0"><i class="fas fa-brain mr-2"></i>Insights de IA em Tempo Real</h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <div id="ai-insights-container">
+                                <!-- Insights serão inseridos aqui via JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manutenção Preditiva e Oportunidades -->
+            <div class="row">
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow-lg">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0"><i class="fas fa-tools mr-2"></i>Manutenção Preditiva</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="predictive-item mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>Veículo ABC-1234</strong>
+                                    <span class="badge badge-warning">7 dias</span>
+                                </div>
+                                <div class="progress mb-2" style="height: 8px;">
+                                    <div class="progress-bar bg-warning" style="width: 85%"></div>
+                                </div>
+                                <small class="text-muted">Previsão baseada em 12.450 km rodados</small>
+                            </div>
+                            <hr>
+                            <div class="predictive-item">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>Veículo DEF-5678</strong>
+                                    <span class="badge badge-danger">3 dias</span>
+                                </div>
+                                <div class="progress mb-2" style="height: 8px;">
+                                    <div class="progress-bar bg-danger" style="width: 95%"></div>
+                                </div>
+                                <small class="text-muted">Padrão anormal detectado</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow-lg">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0"><i class="fas fa-lightbulb mr-2"></i>Oportunidades Identificadas</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="opportunity-item mb-3">
+                                <div class="d-flex align-items-start">
+                                    <div class="opportunity-icon bg-success text-white mr-3">
+                                        <i class="fas fa-arrow-up"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <strong>Aumentar frota na quinta-feira</strong>
+                                        <p class="mb-1 small">Demanda 23% maior. Potencial: +R$ 2.100/semana</p>
+                                        <button class="btn btn-sm btn-outline-success">Simular</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="opportunity-item">
+                                <div class="d-flex align-items-start">
+                                    <div class="opportunity-icon bg-warning text-white mr-3">
+                                        <i class="fas fa-route"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <strong>Otimizar rota Centro-Aeroporto</strong>
+                                        <p class="mb-1 small">Economia estimada: R$ 340/mês em combustível</p>
+                                        <button class="btn btn-sm btn-outline-warning">Ver Rota</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MÓDULO: Gamificação -->
+        <div class="tab-pane fade" id="module-gamification">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card shadow-lg border-0 bg-gradient-gold">
+                        <div class="card-body text-white text-center py-4">
+                            <h3 class="mb-2"><i class="fas fa-trophy mr-2"></i>Liga dos Campeões</h3>
+                            <p class="mb-0">Competição saudável entre motoristas - Temporada Outubro 2025</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow-lg">
+                        <div class="card-header bg-warning text-white">
+                            <h6 class="mb-0"><i class="fas fa-medal mr-2"></i>Top 3 Motoristas</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="driver-podium mb-3">
+                                <div class="d-flex align-items-center p-3 bg-gradient-gold rounded">
+                                    <div class="podium-icon mr-3">👑</div>
+                                    <div class="flex-grow-1">
+                                        <h5 class="mb-0 font-weight-bold">João Silva</h5>
+                                        <small>Rei da Eficiência</small>
+                                    </div>
+                                    <div class="text-right">
+                                        <h4 class="mb-0 font-weight-bold">985</h4>
+                                        <small class="text-success">+12%</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="driver-podium mb-3">
+                                <div class="d-flex align-items-center p-3 bg-light rounded">
+                                    <div class="podium-icon mr-3">⭐</div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-0 font-weight-bold">Maria Santos</h6>
+                                        <small>Rainha das Rotas</small>
+                                    </div>
+                                    <div class="text-right">
+                                        <h5 class="mb-0 font-weight-bold">942</h5>
+                                        <small class="text-success">+8%</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="driver-podium">
+                                <div class="d-flex align-items-center p-3 bg-light rounded">
+                                    <div class="podium-icon mr-3">🏆</div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-0 font-weight-bold">Pedro Costa</h6>
+                                        <small>Mestre da Economia</small>
+                                    </div>
+                                    <div class="text-right">
+                                        <h5 class="mb-0 font-weight-bold">918</h5>
+                                        <small class="text-success">+5%</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow-lg">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0"><i class="fas fa-flag-checkered mr-2"></i>Desafios Ativos</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="challenge-item mb-4">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <strong>Reduzir Custo/KM em 5%</strong>
+                                    <span class="badge badge-success">R$ 500</span>
+                                </div>
+                                <div class="progress mb-2" style="height: 12px;">
+                                    <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" style="width: 78%">78%</div>
+                                </div>
+                                <small class="text-muted"><i class="far fa-clock mr-1"></i>3 dias restantes</small>
+                            </div>
+                            <div class="challenge-item mb-4">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <strong>Zero Atrasos Esta Semana</strong>
+                                    <span class="badge badge-info">2 folgas</span>
+                                </div>
+                                <div class="progress mb-2" style="height: 12px;">
+                                    <div class="progress-bar bg-info" style="width: 100%">Concluído! 🎉</div>
+                                </div>
+                                <small class="text-success"><i class="fas fa-check mr-1"></i>Desafio completo</small>
+                            </div>
+                            <div class="challenge-item">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <strong>Eficiência > 12 km/L</strong>
+                                    <span class="badge badge-warning">Troféu Ouro</span>
+                                </div>
+                                <div class="progress mb-2" style="height: 12px;">
+                                    <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" style="width: 45%">45%</div>
+                                </div>
+                                <small class="text-muted"><i class="far fa-clock mr-1"></i>10 dias restantes</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MÓDULO: Simulador -->
+        <div class="tab-pane fade" id="module-simulator">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-gradient-purple text-white">
+                    <h5 class="mb-0"><i class="fas fa-flask mr-2"></i>Simulador de Cenários - "E se?"</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-lg-4 mb-3">
+                            <div class="scenario-card p-4 border rounded">
+                                <h6 class="font-weight-bold mb-3">
+                                    <i class="fas fa-car-side text-primary mr-2"></i>Adicionar Veículos
+                                </h6>
+                                <div class="form-group">
+                                    <label class="small">Quantidade:</label>
+                                    <input type="number" class="form-control" value="2" min="1" max="10">
+                                </div>
+                                <div class="simulator-result bg-success text-white p-3 rounded mb-2">
+                                    <small>Impacto Mensal</small>
+                                    <h4 class="mb-0">+R$ 8.500</h4>
+                                </div>
+                                <div class="simulator-cost bg-danger text-white p-2 rounded mb-3">
+                                    <small>Investimento: R$ 12.000</small>
+                                </div>
+                                <button class="btn btn-primary btn-block">Simular</button>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 mb-3">
+                            <div class="scenario-card p-4 border rounded">
+                                <h6 class="font-weight-bold mb-3">
+                                    <i class="fas fa-percentage text-warning mr-2"></i>Ajuste de Preço
+                                </h6>
+                                <div class="form-group">
+                                    <label class="small">Aumento (%):</label>
+                                    <input type="number" class="form-control" value="10" min="-50" max="50">
+                                </div>
+                                <div class="simulator-result bg-success text-white p-3 rounded mb-2">
+                                    <small>Impacto Mensal</small>
+                                    <h4 class="mb-0">+R$ 4.589</h4>
+                                </div>
+                                <div class="simulator-cost bg-warning text-dark p-2 rounded mb-3">
+                                    <small>Risco: -5% clientes</small>
+                                </div>
+                                <button class="btn btn-warning btn-block">Simular</button>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 mb-3">
+                            <div class="scenario-card p-4 border rounded">
+                                <h6 class="font-weight-bold mb-3">
+                                    <i class="fas fa-handshake text-info mr-2"></i>Terceirizar Rota
+                                </h6>
+                                <div class="form-group">
+                                    <label class="small">Rota:</label>
+                                    <select class="form-control">
+                                        <option>Centro - Aeroporto</option>
+                                        <option>Zona Sul - Norte</option>
+                                    </select>
+                                </div>
+                                <div class="simulator-result bg-success text-white p-3 rounded mb-2">
+                                    <small>Economia Mensal</small>
+                                    <h4 class="mb-0">+R$ 2.100</h4>
+                                </div>
+                                <div class="simulator-cost bg-info text-white p-2 rounded mb-3">
+                                    <small>Custo Fixo: R$ 3.500/mês</small>
+                                </div>
+                                <button class="btn btn-info btn-block">Simular</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MÓDULO: Mapa de Calor -->
+        <div class="tab-pane fade" id="module-heatmap">
+            <div class="card shadow-lg">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-map-marked-alt mr-2"></i>Mapa de Calor - Análise Geográfica</h5>
+                </div>
+                <div class="card-body">
+                    <div class="heatmap-placeholder text-center py-5" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; color: white;">
+                        <i class="fas fa-map fa-4x mb-3 opacity-50"></i>
+                        <h4>Mapa Interativo em Desenvolvimento</h4>
+                        <p class="mb-4">Visualize regiões mais lucrativas, densidade de viagens e oportunidades</p>
+                        <button class="btn btn-light">Ativar Integração com Google Maps</button>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-md-4">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h5>Zona Central</h5>
+                                    <h3>R$ 18.500</h3>
+                                    <small>Região mais lucrativa</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body text-center">
+                                    <h5>Aeroporto</h5>
+                                    <h3>R$ 12.300</h3>
+                                    <small>Alta demanda</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h5>Zona Sul</h5>
+                                    <h3>R$ 8.700</h3>
+                                    <small>Potencial crescimento</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MÓDULO: Timeline -->
+        <div class="tab-pane fade" id="module-timeline">
+            <div class="card shadow-lg">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-clock mr-2"></i>Timeline de Eventos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-badge bg-success"><i class="fas fa-check"></i></div>
+                            <div class="timeline-panel">
+                                <div class="timeline-heading">
+                                    <h6 class="mb-0">Manutenção Concluída - Veículo ABC-1234</h6>
+                                    <small class="text-muted"><i class="far fa-clock mr-1"></i>Há 2 dias</small>
+                                </div>
+                                <div class="timeline-body">
+                                    <p class="mb-0">Troca de óleo e filtros. Próxima manutenção em 5.000 km.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-badge bg-warning"><i class="fas fa-trophy"></i></div>
+                            <div class="timeline-panel">
+                                <div class="timeline-heading">
+                                    <h6 class="mb-0">Recorde Batido - João Silva</h6>
+                                    <small class="text-muted"><i class="far fa-clock mr-1"></i>Há 3 dias</small>
+                                </div>
+                                <div class="timeline-body">
+                                    <p class="mb-0">Melhor eficiência do mês: 13.8 km/L</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-badge bg-info"><i class="fas fa-chart-line"></i></div>
+                            <div class="timeline-panel">
+                                <div class="timeline-heading">
+                                    <h6 class="mb-0">Pico de Receita</h6>
+                                    <small class="text-muted"><i class="far fa-clock mr-1"></i>Há 5 dias</small>
+                                </div>
+                                <div class="timeline-body">
+                                    <p class="mb-0">Quinta-feira registrou R$ 6.780 em receitas - 23% acima da média</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-badge bg-danger"><i class="fas fa-exclamation-triangle"></i></div>
+                            <div class="timeline-panel">
+                                <div class="timeline-heading">
+                                    <h6 class="mb-0">Anomalia Detectada</h6>
+                                    <small class="text-muted"><i class="far fa-clock mr-1"></i>Há 1 semana</small>
+                                </div>
+                                <div class="timeline-body">
+                                    <p class="mb-0">Consumo anormal veículo DEF-5678. Inspeção realizada.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MÓDULO: Benchmark -->
+        <div class="tab-pane fade" id="module-benchmark">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar mr-2"></i>Benchmark Competitivo</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">Compare suas métricas com médias anônimas do setor</p>
+                    
+                    <div class="benchmark-item mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <strong>Custo por KM</strong>
+                            <span class="badge badge-danger">15% acima</span>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">Sua Empresa</small>
+                                <h4 class="text-danger">R$ 2,45</h4>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">Média do Setor</small>
+                                <h4 class="text-success">R$ 2,13</h4>
+                            </div>
+                        </div>
+                        <div class="progress mt-2" style="height: 8px;">
+                            <div class="progress-bar bg-danger" style="width: 115%"></div>
+                        </div>
+                        <small class="text-muted mt-2 d-block">💡 Sugestão: Otimize rotas e negocie combustível em lote</small>
+                    </div>
+
+                    <div class="benchmark-item mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <strong>Eficiência de Combustível</strong>
+                            <span class="badge badge-success">8% acima</span>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">Sua Empresa</small>
+                                <h4 class="text-success">11.2 km/L</h4>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">Média do Setor</small>
+                                <h4>10.4 km/L</h4>
+                            </div>
+                        </div>
+                        <div class="progress mt-2" style="height: 8px;">
+                            <div class="progress-bar bg-success" style="width: 108%"></div>
+                        </div>
+                        <small class="text-success mt-2 d-block">✅ Excelente! Sua frota é mais eficiente que a concorrência</small>
+                    </div>
+
+                    <div class="benchmark-item">
+                        <div class="d-flex justify-content-between mb-2">
+                            <strong>Margem de Lucro</strong>
+                            <span class="badge badge-warning">Na média</span>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">Sua Empresa</small>
+                                <h4 class="text-primary">18.5%</h4>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">Média do Setor</small>
+                                <h4>18.2%</h4>
+                            </div>
+                        </div>
+                        <div class="progress mt-2" style="height: 8px;">
+                            <div class="progress-bar bg-primary" style="width: 102%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MÓDULO: Piloto Automático -->
+        <div class="tab-pane fade" id="module-autopilot">
+            <div class="card shadow-lg border-warning" style="border-width: 3px;">
+                <div class="card-header bg-gradient-magic text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-magic mr-2"></i>Piloto Automático de Gestão (BETA)</h5>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="autopilotSwitch">
+                            <label class="custom-control-label text-white" for="autopilotSwitch">
+                                <strong>Ativar IA</strong>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-warning mb-4">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <strong>Como funciona:</strong> A IA analisa dados em tempo real e sugere ações automatizadas. Você aprova ou rejeita cada decisão.
+                    </div>
+
+                    <div id="autopilot-suggestions">
+                        <div class="autopilot-suggestion mb-3 p-4 border rounded bg-light">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="flex-grow-1">
+                                    <h6 class="font-weight-bold mb-2">
+                                        <i class="fas fa-calendar-alt text-primary mr-2"></i>Sugestão: Agendar Manutenção Preventiva
+                                    </h6>
+                                    <p class="mb-2">Veículo DEF-5678 atingirá 10.000 km em 3 dias. Sistema detectou padrão que indica necessidade de revisão.</p>
+                                    <div class="badge badge-info">Confiança: 94%</div>
+                                    <div class="badge badge-warning ml-2">Prioridade: Alta</div>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-success btn-sm">
+                                    <i class="fas fa-check mr-1"></i>Aprovar e Agendar
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm ml-2">
+                                    <i class="fas fa-times mr-1"></i>Rejeitar
+                                </button>
+                                <button class="btn btn-outline-info btn-sm ml-2">
+                                    <i class="fas fa-info-circle mr-1"></i>Mais Detalhes
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="autopilot-suggestion mb-3 p-4 border rounded bg-light">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="flex-grow-1">
+                                    <h6 class="font-weight-bold mb-2">
+                                        <i class="fas fa-user-plus text-success mr-2"></i>Sugestão: Realocar Motorista
+                                    </h6>
+                                    <p class="mb-2">João Silva (alta performance) pode cobrir rota Centro-Aeroporto às quintas para maximizar lucro em +R$ 890/mês.</p>
+                                    <div class="badge badge-info">Confiança: 87%</div>
+                                    <div class="badge badge-success ml-2">Prioridade: Média</div>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-success btn-sm">
+                                    <i class="fas fa-check mr-1"></i>Aprovar Realocação
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm ml-2">
+                                    <i class="fas fa-times mr-1"></i>Rejeitar
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="autopilot-suggestion p-4 border rounded bg-light">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="flex-grow-1">
+                                    <h6 class="font-weight-bold mb-2">
+                                        <i class="fas fa-dollar-sign text-warning mr-2"></i>Sugestão: Ajuste Dinâmico de Preço
+                                    </h6>
+                                    <p class="mb-2">Aumentar tarifa em 7% para rotas de alta demanda (Centro, Aeroporto) pode gerar +R$ 3.200/mês sem perda de clientes.</p>
+                                    <div class="badge badge-info">Confiança: 78%</div>
+                                    <div class="badge badge-info ml-2">Prioridade: Baixa</div>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-success btn-sm">
+                                    <i class="fas fa-flask mr-1"></i>Simular Primeiro
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm ml-2">
+                                    <i class="fas fa-times mr-1"></i>Rejeitar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <button class="btn btn-outline-primary">
+                            <i class="fas fa-plus mr-2"></i>Ver Mais Sugestões (12)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Chat Button -->
+<button id="chat-fab" class="chat-fab">
+    <i class="fas fa-comments"></i>
+</button>
+
+<!-- Chat Modal -->
+<div id="chat-modal" class="chat-modal">
+    <div class="chat-header">
+        <h6 class="mb-0"><i class="fas fa-robot mr-2"></i>Assistente IA</h6>
+        <button id="chat-close" class="btn btn-sm btn-link text-white">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="chat-body" id="chat-messages">
+        <div class="chat-message bot">
+            <div class="chat-avatar">🤖</div>
+            <div class="chat-bubble">
+                Olá! Sou seu assistente inteligente. Pergunte sobre motoristas, veículos, receitas ou peça sugestões!
+            </div>
+        </div>
+    </div>
+    <div class="chat-footer">
+        <input type="text" id="chat-input" class="form-control" placeholder="Digite sua pergunta..." />
+        <button id="chat-send" class="btn btn-primary">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+</div>
+
+<style>
+/* Animações Globais */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.animated-title { animation: slideInRight 0.6s ease-out; }
+.badge-pulse { animation: pulse 2s infinite; }
+
+/* Módulos Nav Pills */
+.modules-card {
+    border: none;
+    border-radius: 15px;
+    overflow: hidden;
+}
+.modules-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.modules-nav .nav-link {
+    border-radius: 10px;
+    padding: 0.75rem 1.25rem;
+    color: #6c757d;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    display: flex;
+    align-items: center;
+}
+.modules-nav .nav-link:hover {
+    background: #f8f9fa;
+    color: #495057;
+}
+.modules-nav .nav-link.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+.modules-nav .badge {
+    font-size: 0.65rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Filtros */
+.filter-card {
+    border: none;
+    border-radius: 15px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+.filter-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
+}
+.bg-gradient-light {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+.modern-input {
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+.modern-input:focus {
+    border-color: #1cc88a;
+    box-shadow: 0 0 0 0.2rem rgba(28, 200, 138, 0.25);
+}
+.btn-modern {
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+.btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(28, 200, 138, 0.4);
+}
+
+/* Spinner */
+.spinner-modern {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto;
+}
+.spinner-blade {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 8px;
+    height: 25px;
+    border-radius: 4px;
+    background: #1cc88a;
+    transform-origin: center -25px;
+    animation: spinner-fade 1.2s linear infinite;
+}
+.spinner-blade:nth-child(1) { transform: rotate(0deg); animation-delay: 0s; }
+.spinner-blade:nth-child(2) { transform: rotate(45deg); animation-delay: 0.15s; }
+.spinner-blade:nth-child(3) { transform: rotate(90deg); animation-delay: 0.3s; }
+.spinner-blade:nth-child(4) { transform: rotate(135deg); animation-delay: 0.45s; }
+.spinner-blade:nth-child(5) { transform: rotate(180deg); animation-delay: 0.6s; }
+.spinner-blade:nth-child(6) { transform: rotate(225deg); animation-delay: 0.75s; }
+.spinner-blade:nth-child(7) { transform: rotate(270deg); animation-delay: 0.9s; }
+.spinner-blade:nth-child(8) { transform: rotate(315deg); animation-delay: 1.05s; }
+@keyframes spinner-fade {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* KPI Cards */
+.kpi-card {
+    border: none;
+    border-radius: 20px;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: fadeInUp 0.6s ease-out backwards;
+    position: relative;
+}
+.kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+    animation: shimmer 2s infinite;
+}
+.kpi-card:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.15) !important;
+}
+.kpi-card:nth-child(1) { animation-delay: 0.1s; }
+.kpi-card:nth-child(2) { animation-delay: 0.2s; }
+.kpi-card:nth-child(3) { animation-delay: 0.3s; }
+.kpi-card:nth-child(4) { animation-delay: 0.4s; }
+.kpi-success { background: linear-gradient(135deg, #1cc88a 0%, #17a673 100%); color: white; }
+.kpi-primary { background: linear-gradient(135deg, #4e73df 0%, #375cc4 100%); color: white; }
+.kpi-info { background: linear-gradient(135deg, #36b9cc 0%, #2a96a5 100%); color: white; }
+.kpi-warning { background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%); color: white; }
+.kpi-card .card-body {
+    padding: 1.75rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+.kpi-icon {
+    font-size: 3rem;
+    opacity: 0.3;
+    min-width: 70px;
+    text-align: center;
+}
+.kpi-content { flex: 1; }
+.kpi-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+    opacity: 0.9;
+}
+.kpi-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    line-height: 1;
+}
+.kpi-trend {
+    font-size: 0.8rem;
+    opacity: 0.85;
+    font-weight: 500;
+}
+
+/* Charts */
+.chart-card {
+    border: none;
+    border-radius: 20px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    animation: fadeInUp 0.6s ease-out backwards;
+}
+.chart-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1) !important;
+}
+.chart-period-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+.chart-period-controls .btn {
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-size: 0.8rem;
+}
+.chart-period-controls .btn.active {
+    background: #f59e0b;
+    color: white;
+    border-color: #f59e0b;
+}
+
+/* Tabela Moderna */
+.modern-table {
+    font-size: 0.9rem;
+}
+.modern-table thead th {
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+    padding: 1rem;
+}
+.modern-table tbody tr {
+    transition: all 0.3s ease;
+}
+.modern-table tbody tr:hover {
+    background-color: rgba(28, 200, 138, 0.05);
+    transform: scale(1.01);
+}
+.modern-table tbody td {
+    padding: 1rem;
+    vertical-align: middle;
+}
+.ranking-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+.ranking-badge.gold {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    color: white;
+    box-shadow: 0 4px 10px rgba(255, 215, 0, 0.4);
+}
+.ranking-badge.silver {
+    background: linear-gradient(135deg, #C0C0C0 0%, #A8A8A8 100%);
+    color: white;
+    box-shadow: 0 4px 10px rgba(192, 192, 192, 0.4);
+}
+.ranking-badge.bronze {
+    background: linear-gradient(135deg, #CD7F32 0%, #B87333 100%);
+    color: white;
+    box-shadow: 0 4px 10px rgba(205, 127, 50, 0.4);
+}
+.ranking-badge.default {
+    background: #e9ecef;
+    color: #6c757d;
+}
+.performance-bar {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.performance-bar-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 1s ease-out;
+    background: linear-gradient(90deg, #1cc88a 0%, #17a673 100%);
+}
+.performance-bar-fill.low {
+    background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+.performance-bar-fill.medium {
+    background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+}
+
+/* Stats Cards */
+.stat-card {
+    border: none;
+    border-radius: 15px;
+    transition: all 0.3s ease;
+    animation: fadeInUp 0.6s ease-out backwards;
+}
+.stat-card:nth-child(1) { animation-delay: 0.5s; }
+.stat-card:nth-child(2) { animation-delay: 0.6s; }
+.stat-card:nth-child(3) { animation-delay: 0.7s; }
+.stat-card:nth-child(4) { animation-delay: 0.8s; }
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+}
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    font-size: 1.5rem;
+    color: white;
+}
+
+/* IA Insights */
+.bg-gradient-purple {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+#ai-insights-container .insight-card {
+    border-left: 4px solid;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    background: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+}
+#ai-insights-container .insight-card:hover {
+    transform: translateX(10px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+.insight-card.warning { border-left-color: #f59e0b; }
+.insight-card.success { border-left-color: #10b981; }
+.insight-card.info { border-left-color: #3b82f6; }
+.insight-card.alert { border-left-color: #ef4444; }
+.opportunity-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Gamificação */
+.bg-gradient-gold {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+}
+.driver-podium {
+    transition: transform 0.3s ease;
+}
+.driver-podium:hover {
+    transform: scale(1.05);
+}
+.podium-icon {
+    font-size: 2.5rem;
+}
+
+/* Simulador */
+.scenario-card {
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+}
+.scenario-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+.simulator-result,
+.simulator-cost {
+    border-radius: 10px;
+}
+
+/* Timeline */
+.timeline {
+    position: relative;
+    padding: 20px 0;
+}
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 30px;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: #e9ecef;
+}
+.timeline-item {
+    position: relative;
+    padding-left: 70px;
+    margin-bottom: 2rem;
+}
+.timeline-badge {
+    position: absolute;
+    left: 18px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+}
+.timeline-panel {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+/* Benchmark */
+.benchmark-item {
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+/* Piloto Automático */
+.bg-gradient-magic {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+.autopilot-suggestion {
+    transition: all 0.3s ease;
+}
+.autopilot-suggestion:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1) !important;
+}
+
+/* Chat FAB */
+.chat-fab {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    font-size: 1.5rem;
+    cursor: pointer;
+    z-index: 999;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.chat-fab:hover {
+    transform: scale(1.1);
+    box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6);
+}
+
+/* Chat Modal */
+.chat-modal {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 400px;
+    height: 600px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 50px rgba(0,0,0,0.3);
+    display: none;
+    flex-direction: column;
+    z-index: 1001;
+    animation: slideUp 0.3s ease;
+}
+.chat-modal.active {
+    display: flex;
+}
+@keyframes slideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+.chat-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 20px 20px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.chat-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+    background: #f8f9fa;
+}
+.chat-message {
+    display: flex;
+    margin-bottom: 1rem;
+    animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.chat-message.bot {
+    justify-content: flex-start;
+}
+.chat-message.user {
+    justify-content: flex-end;
+}
+.chat-avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+}
+.chat-bubble {
+    max-width: 70%;
+    padding: 0.75rem 1rem;
+    border-radius: 15px;
+    background: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+.chat-message.user .chat-bubble {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+.chat-footer {
+    padding: 1rem;
+    background: white;
+    border-radius: 0 0 20px 20px;
+    display: flex;
+    gap: 0.5rem;
+    border-top: 1px solid #e9ecef;
+}
+.chat-footer input {
+    flex: 1;
+    border-radius: 25px;
+    border: 1px solid #e9ecef;
+    padding: 0.5rem 1rem;
+}
+.chat-footer button {
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .kpi-value { font-size: 1.5rem; }
+    .kpi-icon { font-size: 2rem; min-width: 50px; }
+    .chart-container { height: 250px !important; }
+    .chat-modal {
+        width: calc(100vw - 40px);
+        right: 20px;
+    }
+    .modules-nav {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+    }
+}
+
+.gap-2 { gap: 0.5rem; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Elementos do DOM
+    const moduleTabs = document.querySelectorAll('.module-tab');
+    const moduleContents = document.querySelectorAll('.tab-pane');
+    const chatFab = document.getElementById('chat-fab');
+    const chatModal = document.getElementById('chat-modal');
+    const chatClose = document.getElementById('chat-close');
+    const chatSend = document.getElementById('chat-send');
+    const chatInput = document.getElementById('chat-input');
+    const chatMessages = document.getElementById('chat-messages');
+    const btnFiltrar = document.getElementById('btn_filtrar');
+    const btnLimpar = document.getElementById('btn_limpar');
+    const spinner = document.getElementById('loading-spinner');
+    const dashboardContent = document.getElementById('dashboard-content');
+    const autopilotSwitch = document.getElementById('autopilotSwitch');
+
+    let chartInstances = {};
+
+    // Sistema de Tabs Puro (sem Bootstrap JS)
+    moduleTabs.forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Remove active de todas as tabs
+            moduleTabs.forEach(t => t.classList.remove('active'));
+            
+            // Adiciona active na tab clicada
+            this.classList.add('active');
+            
+            // Esconde todos os conteúdos
+            moduleContents.forEach(content => {
+                content.classList.remove('show', 'active');
+            });
+            
+            // Mostra o conteúdo correspondente
+            const targetId = this.getAttribute('href');
+            const targetContent = document.querySelector(targetId);
+            if (targetContent) {
+                targetContent.classList.add('show', 'active');
+            }
+            
+            // Carrega dados específicos do módulo
+            const moduleId = this.getAttribute('data-module');
+            loadModuleData(moduleId);
+        });
+    });
+
+    function loadModuleData(moduleId) {
+        console.log('Carregando módulo:', moduleId);
+        
+        if (moduleId === 'ai-insights') {
+            updateAIInsights();
+        }
+        // Adicione mais lógica específica para outros módulos aqui
+    }
+
+    // Configuração Chart.js
+    Chart.defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    Chart.defaults.responsive = true;
+    Chart.defaults.maintainAspectRatio = false;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.legend.labels.padding = 15;
+
+    // Chat IA
+    chatFab.addEventListener('click', function() {
+        chatModal.classList.toggle('active');
+    });
+
+    chatClose.addEventListener('click', function() {
+        chatModal.classList.remove('active');
+    });
+
+    chatSend.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    function sendMessage() {
+        const message = chatInput.value.trim();
+        if (!message) return;
+        
+        addChatMessage(message, 'user');
+        chatInput.value = '';
+        
+        setTimeout(() => {
+            const response = getAIResponse(message);
+            addChatMessage(response, 'bot');
+        }, 1000);
+    }
+
+    function addChatMessage(text, type) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'chat-message ' + type;
+        
+        if (type === 'bot') {
+            messageDiv.innerHTML = `
+                <div class="chat-avatar">🤖</div>
+                <div class="chat-bubble">${text}</div>
+            `;
+        } else {
+            messageDiv.innerHTML = `<div class="chat-bubble">${text}</div>`;
+        }
+        
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function getAIResponse(message) {
+        const msg = message.toLowerCase();
+        
+        if (msg.includes('melhor') && msg.includes('motorista')) {
+            return 'João Silva teve o melhor desempenho com 985 pontos, 15% acima da média. Ele completou 124 viagens com eficiência de 13.2 km/L.';
+        } else if (msg.includes('sugest') || msg.includes('aumentar') || msg.includes('lucro')) {
+            return '📊 Sugestões para aumentar lucro:\n\n1. Otimize rotas na quinta-feira (dia menos lucrativo)\n2. Faça manutenção preventiva no veículo ABC-1234 (consumo anormal)\n3. Adicione 1 veículo na rota Centro-Aeroporto (alta demanda +23%)\n\nPotencial de ganho: +R$ 4.200/mês';
+        } else if (msg.includes('veículo') || msg.includes('veiculo')) {
+            return 'Sua frota possui 12 veículos ativos. O mais eficiente é o modelo XYZ-9876 com média de 13.8 km/L. 3 veículos precisam de manutenção nos próximos 7 dias.';
+        } else if (msg.includes('custo')) {
+            return 'Seu custo médio por KM está em R$ 2,45, que é 15% acima da média do setor (R$ 2,13). Principais fatores: combustível (58%), manutenção (22%), e depreciação (20%).';
+        } else {
+            return 'Entendi sua pergunta. Com base nos dados atuais, posso ajudá-lo com informações sobre motoristas, veículos, rotas, custos e sugestões de otimização. O que gostaria de saber especificamente?';
+        }
+    }
+
+    // Piloto Automático
+    if (autopilotSwitch) {
+        autopilotSwitch.addEventListener('change', function() {
+            if (this.checked) {
+                showNotification('🤖 Piloto Automático ATIVADO! A IA está analisando dados...', 'success');
+                setTimeout(() => {
+                    showNotification('✨ 3 novas sugestões automáticas detectadas!', 'info');
+                }, 2000);
+            } else {
+                showNotification('Piloto Automático desativado.', 'info');
+            }
+        });
+    }
+
+    // Carregar dados do dashboard
+    async function fetchDashboardData() {
+        spinner.style.display = 'block';
+        dashboardContent.style.display = 'none';
+
+        const dataInicio = document.getElementById('data_inicio_filtro').value;
+        const dataFim = document.getElementById('data_fim_filtro').value;
+        const motoristaId = document.getElementById('filtro_motorista').value;
+        const veiculoId = document.getElementById('filtro_veiculo').value;
+        
+        try {
+            const apiUrl = `/api/painel_gestor/dados?data_inicio=${dataInicio}&data_fim=${dataFim}&motorista_id=${motoristaId}&veiculo_id=${veiculoId}`;
+            const response = await fetch(apiUrl);
+
+            if (!response.ok) {
+                throw new Error('Erro ao buscar dados da API');
+            }
+            const data = await response.json();
+
+            if (data.success) {
+                updateKPIs(data.kpis);
+                renderCharts(data.charts);
+                updateSecondaryStats(data.kpis);
+                updateAIInsights();
+            } else {
+                showNotification('Erro ao carregar dados: ' + data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Erro na requisição:', error);
+            showNotification('Não foi possível carregar os dados do painel.', 'error');
+        } finally {
+            spinner.style.display = 'none';
+            dashboardContent.style.display = 'block';
+        }
+    }
+
+    function updateKPIs(kpis) {
+        animateValue('kpi-custo-km', 0, kpis.custo_medio_km || 2.45, 1000, (val) => 'R$ ' + val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+        animateValue('kpi-total-viagens', 0, kpis.total_viagens || 847, 1000, (val) => Math.floor(val));
+        animateValue('kpi-distancia-total', 0, kpis.distancia_total || 12543, 1000, (val) => Math.floor(val).toLocaleString('pt-BR') + ' km');
+        animateValue('kpi-receita-total', 0, kpis.receita_total || 45890.50, 1000, (val) => 'R$ ' + val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    }
+
+    function updateSecondaryStats(kpis) {
+        animateValue('stat-margem', 0, kpis.margem_lucro || 18.5, 1000, (val) => val.toFixed(1) + '%');
+        animateValue('stat-tempo-medio', 0, kpis.tempo_medio_horas || 2.3, 1000, (val) => val.toFixed(1) + 'h');
+        animateValue('stat-km-medio', 0, kpis.km_medio_viagem || 14.8, 1000, (val) => Math.floor(val) + ' km');
+        animateValue('stat-manutencoes', 0, Math.floor(Math.random() * 5), 1000, (val) => Math.floor(val));
+    }
+
+    function animateValue(elementId, start, end, duration, formatter) {
+        const element = document.getElementById(elementId);
+        if(!element) return;
+        const startTime = performance.now();
+        
+        function update(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+            const current = start + (end - start) * easeOutQuart;
+            
+            element.textContent = formatter ? formatter(current) : current;
+            
+            if (progress < 1) {
+                requestAnimationFrame(update);
+            }
+        }
+        
+        requestAnimationFrame(update);
+    }
+
+    function renderCharts(chartsData) {
+        Object.values(chartInstances).forEach(chart => chart.destroy());
+
+        // Gráfico de Evolução Temporal
+        const ctx = document.getElementById('evolucaoTemporalChart');
+        if (ctx) {
+            chartInstances.evolucaoTemporal = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartsData?.evolucao_temporal?.labels || ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'],
+                    datasets: [{
+                        label: 'Receita',
+                        data: chartsData?.evolucao_temporal?.receitas || [3200, 3800, 3500, 4200, 3900, 2800, 2500],
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }, {
+                        label: 'Custos',
+                        data: chartsData?.evolucao_temporal?.custos || [2100, 2400, 2200, 2600, 2500, 1900, 1700],
+                        borderColor: 'rgba(239, 68, 68, 1)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } }
+                    },
+                    plugins: {
+                        legend: { display: true, position: 'top' }
+                    },
+                    animation: { duration: 2000, easing: 'easeInOutQuart' }
+                }
+            });
+        }
+
+        // Gráfico KM por Motorista
+        const kmCtx = document.getElementById('kmPorMotoristaChart');
+        if (kmCtx && chartsData?.km_por_motorista) {
+            chartInstances.kmPorMotorista = new Chart(kmCtx, {
+                type: 'bar',
+                data: {
+                    labels: chartsData.km_por_motorista.labels,
+                    datasets: [{
+                        label: 'KM Rodados',
+                        data: chartsData.km_por_motorista.data,
+                        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                        borderColor: 'rgba(22, 163, 74, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    scales: {
+                        x: { beginAtZero: true }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // Atualiza tabela de ranking
+        updateRankingTable(chartsData?.tabela_ranking || []);
+    }
+
+    function updateRankingTable(rankingData) {
+        const tableBody = document.getElementById('ranking-motoristas-table');
+        if(!tableBody) return;
+        
+        let html = '';
+        if (rankingData.length === 0) {
+            html = '<tr><td colspan="8" class="text-center py-4 text-muted">Nenhum dado disponível.</td></tr>';
+        } else {
+            rankingData.slice(0, 5).forEach((motorista, index) => {
+                const maxKm = Math.max(...rankingData.map(m => m.km), 5000);
+                const performance = Math.min((motorista.km / maxKm) * 100, 100);
+                
+                let badgeClass = 'default';
+                if (index === 0) badgeClass = 'gold';
+                else if (index === 1) badgeClass = 'silver';
+                else if (index === 2) badgeClass = 'bronze';
+                
+                let perfClass = 'high';
+                if (performance < 40) perfClass = 'low';
+                else if (performance < 70) perfClass = 'medium';
+                
+                html += `<tr style="animation: fadeInUp 0.6s ease-out backwards; animation-delay: ${index * 0.1}s;">
+                    <td><div class="ranking-badge ${badgeClass}">${index === 0 ? '<i class="fas fa-crown"></i>' : (index + 1)}</div></td>
+                    <td class="font-weight-bold">${motorista.motorista}</td>
+                    <td>${motorista.viagens}</td>
+                    <td>${motorista.km.toLocaleString('pt-BR')} km</td>
+                    <td class="text-success font-weight-bold">R$ ${motorista.receita.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                    <td class="text-danger">R$ ${motorista.custo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                    <td class="font-weight-bold ${motorista.lucro >= 0 ? 'text-success' : 'text-danger'}">R$ ${motorista.lucro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                    <td style="min-width: 150px;">
+                        <div class="d-flex align-items-center">
+                            <div class="performance-bar flex-grow-1 mr-2"><div class="performance-bar-fill ${perfClass}" style="width: ${performance}%"></div></div>
+                            <span class="small font-weight-bold">${performance.toFixed(0)}%</span>
+                        </div>
+                    </td>
+                </tr>`;
+            });
+        }
+        tableBody.innerHTML = html;
+    }
+
+    function updateAIInsights() {
+        const container = document.getElementById('ai-insights-container');
+        if (!container) return;
+        
+        const insights = [
+            {
+                type: 'warning',
+                icon: 'fa-exclamation-triangle',
+                title: 'Anomalia Detectada',
+                message: 'Veículo ABC-1234 com consumo 34% acima da média. Possível vazamento no tanque.',
+                priority: 'high',
+                action: 'Agendar inspeção'
+            },
+            {
+                type: 'success',
+                icon: 'fa-arrow-up',
+                title: 'Performance Excepcional',
+                message: 'Motorista João Silva bateu recorde: 15% mais eficiente que a média.',
+                priority: 'medium',
+                action: 'Ver detalhes'
+            },
+            {
+                type: 'info',
+                icon: 'fa-brain',
+                title: 'Oportunidade Identificada',
+                message: 'Rota Centro-Aeroporto tem 23% mais demanda às quintas. Considere adicionar veículos.',
+                priority: 'medium',
+                action: 'Simular impacto'
+            },
+            {
+                type: 'alert',
+                icon: 'fa-clock',
+                title: 'Manutenção Preditiva',
+                message: '3 veículos precisarão de manutenção nos próximos 7 dias baseado em padrões de uso.',
+                priority: 'high',
+                action: 'Agendar'
+            }
+        ];
+        
+        container.innerHTML = insights.map(insight => `
+            <div class="insight-card ${insight.type}">
+                <div class="d-flex align-items-start">
+                    <div class="mr-3">
+                        <i class="fas ${insight.icon} fa-2x text-${insight.type === 'alert' ? 'danger' : insight.type}"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="font-weight-bold mb-2">${insight.title}</h6>
+                        <p class="mb-2">${insight.message}</p>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span class="badge badge-${insight.priority === 'high' ? 'danger' : 'info'}">
+                                Prioridade: ${insight.priority === 'high' ? 'Alta' : 'Média'}
+                            </span>
+                            <button class="btn btn-sm btn-outline-primary">${insight.action}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function showNotification(message, type = 'info') {
+        if (typeof Toastify !== 'undefined') {
+            const colors = {
+                success: '#10b981',
+                error: '#ef4444',
+                info: '#3b82f6',
+                warning: '#f59e0b'
+            };
+            Toastify({
+                text: message,
+                duration: 4000,
+                backgroundColor: colors[type] || colors.info
+            }).showToast();
+        } else {
+            alert(message);
+        }
+    }
+
+    // Event listeners
+    btnFiltrar.addEventListener('click', fetchDashboardData);
+    
+    btnLimpar.addEventListener('click', function() {
+        document.getElementById('filtro_motorista').value = '';
+        document.getElementById('filtro_veiculo').value = '';
+        const hoje = new Date();
+        const primeiroDia = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+        document.getElementById('data_inicio_filtro').value = primeiroDia.toISOString().split('T')[0];
+        document.getElementById('data_fim_filtro').value = hoje.toISOString().split('T')[0];
+        fetchDashboardData();
+    });
+    
+    document.getElementById('btn-fullscreen').addEventListener('click', function() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+            this.innerHTML = '<i class="fas fa-compress mr-1"></i>Sair';
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+                this.innerHTML = '<i class="fas fa-expand mr-1"></i>Tela Cheia';
+            }
+        }
+    });
+    
+    document.getElementById('btn-export').addEventListener('click', function() {
+        showNotification('Preparando relatório PDF... Esta funcionalidade requer integração backend.', 'info');
+    });
+
+    // Carrega dados iniciais
+    fetchDashboardData();
+});
+</script>
+{% endblock %}

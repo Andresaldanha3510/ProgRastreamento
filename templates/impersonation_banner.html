@@ -1,0 +1,13 @@
+{% if session.get('_impersonating') %}
+<div class="fixed top-0 left-0 right-0 bg-amber-400 text-amber-900 text-sm font-bold p-2 text-center z-50 shadow-lg">
+    <i class="fas fa-exclamation-triangle mr-2"></i>
+    Você está visualizando o sistema como <strong>{{ current_user.nome }}</strong>.
+    <a href="{{ url_for('stop_impersonating') }}" class="ml-4 underline hover:text-amber-700">
+        Sair do modo de visualização <i class="fas fa-times-circle ml-1"></i>
+    </a>
+</div>
+<style>
+    /* Adiciona um espaço no topo do body para não cobrir o conteúdo */
+    body { padding-top: 40px !important; } 
+</style>
+{% endif %}

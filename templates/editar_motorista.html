@@ -1,462 +1,835 @@
-{% extends "base.html" %}
-
-{% block title %}Editar Motorista - {{ motorista.nome }}{% endblock %}
-
-{% block styles %}
+{% extends "base.html" %} {% block title %}Editar Motorista - {{ motorista.nome
+}}{% endblock %} {% block styles %} {{ super() }}
 <style>
-    /* Estilos idênticos ao de cadastro para manter a consistência visual */
-    .form-container {
-        background-color: #ffffff; padding: 1.5rem; border-radius: 0.5rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  /* Estilos padronizados, idênticos aos de 'editar_cliente.html' */
+  :root {
+    --primary-green: #2e7d32;
+    --primary-green-dark: #1b5e20;
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-600: #475569;
+    --gray-700: #334155;
+    --gray-900: #0f172a;
+    --red-600: #dc2626;
+  }
+  .form-container,
+  .kpi-container {
+    background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--gray-200);
+  }
+  .form-section-header {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--primary-green-dark);
+    border-bottom: 2px solid var(--primary-green);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .form-input,
+  .form-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--gray-200);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s;
+    background: white;
+  }
+  .form-input[type="date"] {
+    color-scheme: light;
+  }
+  .form-input:focus,
+  .form-select:focus {
+    outline: none;
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+  }
+  label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--gray-700);
+  }
+  .tab-link {
+    padding: 0.75rem 1.25rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--gray-600);
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s;
+  }
+  .tab-link.active {
+    color: var(--primary-green-dark);
+    border-bottom-color: var(--primary-green);
+  }
+  .tab-content {
+    display: none;
+  }
+  .tab-content.active {
+    display: block;
+    animation: fadeIn 0.5s;
+  }
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
     }
-    @media (min-width: 768px) { .form-container { padding: 2rem; } }
-    .form-input, .form-select {
-        width: 100%; padding: 0.75rem; border: 1px solid #d1d5db;
-        border-radius: 0.375rem; transition: all 0.2s; font-size: 0.9rem;
+    to {
+      opacity: 1;
     }
-    .form-input:focus, .form-select:focus {
-        outline: 2px solid transparent; outline-offset: 2px;
-        border-color: #2563eb; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+  }
+
+  .btn-green {
+    background: linear-gradient(
+      135deg,
+      var(--primary-green) 0%,
+      var(--primary-green-dark) 100%
+    );
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+    text-decoration: none;
+  }
+  .btn-green:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(46, 125, 50, 0.4);
+    color: white;
+    text-decoration: none;
+  }
+  .btn-secondary {
+    background-color: var(--gray-200);
+    color: var(--gray-700);
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+  }
+  .btn-secondary:hover {
+    background-color: #d1d5db;
+  }
+  #drop-zone {
+    border: 2px dashed #cbd5e1;
+    border-radius: 0.75rem;
+    padding: 2.5rem;
+    text-align: center;
+    color: #64748b;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    background-color: #f8fafc;
+  }
+  #drop-zone.drag-over {
+    border-color: var(--primary-green);
+    background-color: #f0fdf4;
+    color: #166534;
+  }
+  #drop-zone i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+  .file-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    margin-top: 0.75rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .file-preview {
+    width: 48px;
+    height: 48px;
+    border-radius: 0.375rem;
+    background-color: #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: #64748b;
+    margin-right: 1rem;
+    flex-shrink: 0;
+  }
+  .file-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0.375rem;
+  }
+  .file-details {
+    flex-grow: 1;
+    overflow: hidden;
+  }
+  .file-name {
+    font-weight: 500;
+    color: var(--gray-900);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-decoration: none;
+  }
+  .file-name:hover {
+    text-decoration: underline;
+    color: var(--primary-green);
+  }
+  .file-size {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+  }
+  .file-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: 1rem;
+  }
+  .file-status-icon {
+    font-size: 1.25rem;
+  }
+  .status-uploading {
+    color: var(--gray-600);
+    animation: spin 1s linear infinite;
+  }
+  .status-success {
+    color: #22c55e;
+  }
+  .status-error {
+    color: var(--red-600);
+  }
+  .btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    color: #94a3b8;
+    transition: all 0.2s;
+  }
+  .btn-icon:hover {
+    background-color: var(--gray-100);
+    color: var(--gray-700);
+  }
+  .btn-icon-delete:hover {
+    background-color: #fee2e2;
+    color: var(--red-600);
+  }
+  .progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 4px;
+    background-color: #3b82f6;
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+  .file-item.error .progress-bar {
+    background-color: var(--red-600);
+  }
+  .file-item.success .progress-bar {
+    background-color: #22c55e;
+  }
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
     }
-    .tab-container { display: flex; flex-wrap: wrap; border-bottom: 2px solid #e5e7eb; margin-bottom: 1.5rem; }
-    .tab-link {
-        padding: 0.75rem 1rem; cursor: pointer; border-bottom: 2px solid transparent;
-        margin-bottom: -2px; font-weight: 600; color: #6b7280;
-        transition: all 0.2s; white-space: nowrap;
+    to {
+      transform: rotate(360deg);
     }
-    .tab-link.active { color: #1d4ed8; border-color: #1d4ed8; }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-    .btn {
-        padding: 0.75rem 1.5rem; border-radius: 0.375rem; color: white;
-        display: inline-flex; align-items: center; justify-content: center;
-        border: none; cursor: pointer; font-weight: 600; transition: background-color 0.3s;
-    }
-    .btn-submit { background-color: #2563eb; } .btn-submit:hover { background-color: #1d4ed8; }
-    .btn-back { background-color: #6b7280; } .btn-back:hover { background-color: #4b5563; }
-    label { display: block; color: #374151; font-weight: 500; margin-bottom: 0.5rem; font-size: 0.875rem; }
+  }
 </style>
-{% endblock %}
+{% endblock %} {% block content %}
+<div class="space-y-6">
+  <div
+    class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 shadow-lg"
+  >
+    <h1 class="text-3xl font-bold flex items-center gap-3">
+      <i class="fas fa-user-edit"></i>
+      Editar Motorista
+    </h1>
+    <p class="text-green-100 mt-2">
+      Atualize as informações de
+      <span class="font-semibold">{{ motorista.nome }}</span>
+    </p>
+  </div>
 
-{% block content %}
-<div class="form-container" x-data="{ isAnexosModalOpen: false }">
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Editar Motorista: {{ motorista.nome }}</h1>
-        <a href="{{ url_for('perfil_motorista', motorista_id=motorista.id) }}" class="btn bg-blue-100 text-blue-800 hover:bg-blue-200 text-sm">
-            <i class="fas fa-chart-bar mr-2"></i>Ver Perfil e Estatísticas
-        </a>
+  <div class="kpi-container">
+    <h2 class="form-section-header">
+      <i class="fas fa-chart-line"></i>Desempenho Geral
+    </h2>
+    <div
+      id="kpi-content"
+      class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center"
+    >
+      <div class="bg-gray-100 p-4 rounded-lg animate-pulse">
+        <p class="h-6 bg-gray-300 rounded"></p>
+        <p class="h-4 mt-2 bg-gray-300 rounded w-2/3 mx-auto"></p>
+      </div>
+      <div class="bg-gray-100 p-4 rounded-lg animate-pulse">
+        <p class="h-6 bg-gray-300 rounded"></p>
+        <p class="h-4 mt-2 bg-gray-300 rounded w-2/3 mx-auto"></p>
+      </div>
+      <div class="bg-gray-100 p-4 rounded-lg animate-pulse">
+        <p class="h-6 bg-gray-300 rounded"></p>
+        <p class="h-4 mt-2 bg-gray-300 rounded w-2/3 mx-auto"></p>
+      </div>
+    </div>
+  </div>
+
+  <form
+    id="motorista-form"
+    method="POST"
+    action="{{ url_for('editar_motorista', motorista_id=motorista.id) }}"
+    novalidate
+    class="form-container"
+  >
+    <div class="flex border-b-2 border-gray-200 mb-6">
+      <button
+        type="button"
+        class="tab-link active"
+        onclick="openTab(event, 'pessoais')"
+      >
+        Dados Pessoais
+      </button>
+      <button
+        type="button"
+        class="tab-link"
+        onclick="openTab(event, 'endereco')"
+      >
+        Endereço
+      </button>
+      <button
+        type="button"
+        class="tab-link"
+        onclick="openTab(event, 'documentacao')"
+      >
+        Documentação
+      </button>
+      <button
+        type="button"
+        class="tab-link"
+        onclick="openTab(event, 'contatos')"
+      >
+        Contato
+      </button>
     </div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-            <div class="mb-4 px-4 py-3 rounded relative {{ 'bg-red-100 border-red-400 text-red-700' if category == 'error' else 'bg-green-100 border-green-400 text-green-700' }}" role="alert">
-                <span class="block sm:inline">{{ message }}</span>
-            </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-
-    <form id="motorista-form" method="POST" action="{{ url_for('editar_motorista', motorista_id=motorista.id) }}" enctype="multipart/form-data" novalidate>
-        
-        <div class="tab-container">
-            <div class="tab-link active" onclick="openTab(event, 'pessoais')">Dados Pessoais</div>
-            <div class="tab-link" onclick="openTab(event, 'endereco')">Endereço</div>
-            <div class="tab-link" onclick="openTab(event, 'documentacao')">Documentação</div>
-            <div class="tab-link" onclick="openTab(event, 'contatos')">Contato</div>
+    <div id="pessoais" class="tab-content active">
+      <h2 class="form-section-header">
+        <i class="fas fa-user"></i>Informações Pessoais
+      </h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div>
+          <label for="nome">Nome Completo*</label>
+          <input
+            type="text"
+            name="nome"
+            id="nome"
+            required
+            class="form-input"
+            value="{{ motorista.nome or '' }}"
+          />
         </div>
-
-        <div id="pessoais" class="tab-content active">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div>
-                    <label for="nome">Nome Completo*</label>
-                    <input type="text" name="nome" id="nome" required class="form-input" value="{{ motorista.nome or '' }}">
-                </div>
-                <div>
-                    <label for="telefone">Telefone Principal</label>
-                    <input type="text" name="telefone" id="telefone" class="form-input" placeholder="(00) 00000-0000" value="{{ motorista.telefone or '' }}">
-                </div>
-                <div>
-                    <label for="cpf">CPF*</label>
-                    <input type="text" name="cpf" id="cpf" required class="form-input" placeholder="000.000.000-00" value="{{ motorista.cpf or '' }}">
-                </div>
-                <div>
-                    <label for="data_nascimento">Data de Nascimento</label>
-                    <input type="date" name="data_nascimento" id="data_nascimento" class="form-input" value="{{ motorista.data_nascimento | dateformat }}">
-                </div>
-                <div>
-                    <label for="nacionalidade">Nacionalidade</label>
-                    <select name="nacionalidade" id="nacionalidade" class="form-select">
-                        <option value="Nacional" {% if motorista.nacionalidade=='Nacional' %}selected{% endif %}>Nacional</option>
-                        <option value="Estrangeira" {% if motorista.nacionalidade=='Estrangeira' %}selected{% endif %}>Estrangeira</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="naturalidade">Naturalidade</label>
-                    <input type="text" name="naturalidade" id="naturalidade" class="form-input" placeholder="Ex: Curitiba - PR" value="{{ motorista.naturalidade or '' }}">
-                </div>
-                <div>
-                    <label for="estado_civil">Estado Civil</label>
-                    <select name="estado_civil" id="estado_civil" class="form-select">
-                        <option value="">Selecione</option>
-                        <option value="Solteiro(a)" {% if motorista.estado_civil=='Solteiro(a)' %}selected{% endif %}>Solteiro(a)</option>
-                        <option value="Casado(a)" {% if motorista.estado_civil=='Casado(a)' %}selected{% endif %}>Casado(a)</option>
-                        <option value="Divorciado(a)" {% if motorista.estado_civil=='Divorciado(a)' %}selected{% endif %}>Divorciado(a)</option>
-                        <option value="Viúvo(a)" {% if motorista.estado_civil=='Viúvo(a)' %}selected{% endif %}>Viúvo(a)</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="sexo">Sexo</label>
-                    <select name="sexo" id="sexo" class="form-select">
-                        <option value="">Selecione</option>
-                        <option value="Masculino" {% if motorista.sexo=='Masculino' %}selected{% endif %}>Masculino</option>
-                        <option value="Feminino" {% if motorista.sexo=='Feminino' %}selected{% endif %}>Feminino</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="pai">Nome do Pai</label>
-                    <input type="text" name="pai" id="pai" class="form-input" value="{{ motorista.pai or '' }}">
-                </div>
-                <div>
-                    <label for="mae">Nome da Mãe</label>
-                    <input type="text" name="mae" id="mae" class="form-input" value="{{ motorista.mae or '' }}">
-                </div>
-                <div>
-                    <label for="data_admissao">Data Admissão</label>
-                    <input type="date" name="data_admissao" id="data_admissao" class="form-input" value="{{ motorista.data_admissao | dateformat }}">
-                </div>
-                <div>
-                    <label for="situacao">Situação</label>
-                    <select name="situacao" id="situacao" class="form-select">
-                        <option value="NORMAL / LIBERADO" {% if motorista.situacao=='NORMAL / LIBERADO' %}selected{% endif %}>NORMAL / LIBERADO</option>
-                        <option value="INATIVO" {% if motorista.situacao=='INATIVO' %}selected{% endif %}>INATIVO</option>
-                        <option value="BLOQUEADO" {% if motorista.situacao=='BLOQUEADO' %}selected{% endif %}>BLOQUEADO</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="data_desativacao">Data Desativação</label>
-                    <input type="date" name="data_desativacao" id="data_desativacao" class="form-input" value="{{ motorista.data_desativacao | dateformat }}">
-                </div>
-                <div>
-                    <label for="classificacao">Classificação</label>
-                    <select name="classificacao" id="classificacao" class="form-select">
-                        <option value="PSA" {% if motorista.classificacao=='PSA' %}selected{% endif %}>PSA</option>
-                        <option value="Outro" {% if motorista.classificacao=='Outro' %}selected{% endif %}>Outro</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="cod_departamento">Cód. Departamento</label>
-                    <input type="text" name="cod_departamento" id="cod_departamento" class="form-input" value="{{ motorista.cod_departamento or '' }}">
-                </div>
-                <div>
-                    <label for="numero_ficha">Nº Ficha</label>
-                    <input type="text" name="numero_ficha" id="numero_ficha" class="form-input" value="{{ motorista.numero_ficha or '' }}">
-                </div>
-                <div class="sm:col-span-2 lg:col-span-3">
-                    <label>Documentos</label>
-                    <button type="button" @click="isAnexosModalOpen = true" class="btn bg-gray-600 hover:bg-gray-700">
-                        <i class="fas fa-paperclip mr-2"></i>
-                        Gerenciar Anexos
-                        {% set anexo_count = motorista.anexos.split(',')|select('string')|list|length if motorista.anexos else 0 %}
-                        <span class="ml-2 bg-gray-800 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">{{ anexo_count }}</span>
-                    </button>
-                </div>
-            </div>
+        <div>
+          <label for="cpf">CPF*</label>
+          <input
+            type="text"
+            name="cpf"
+            id="cpf"
+            required
+            class="form-input"
+            value="{{ motorista.cpf or '' }}"
+          />
         </div>
-
-        <div id="endereco" class="tab-content">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                 <div>
-                    <label for="cep">CEP</label>
-                    <input type="text" name="cep" id="cep" class="form-input" placeholder="00000-000" value="{{ motorista.cep or '' }}">
-                </div>
-                <div>
-                    <label for="tipo_logradouro">Tipo</label>
-                    <select name="tipo_logradouro" id="tipo_logradouro" class="form-select">
-                        <option value="AVENIDA" {% if motorista.tipo_logradouro=='AVENIDA' %}selected{% endif %}>AVENIDA</option>
-                        <option value="RUA" {% if not motorista.tipo_logradouro or motorista.tipo_logradouro=='RUA' %}selected{% endif %}>RUA</option>
-                        <option value="TRAVESSA" {% if motorista.tipo_logradouro=='TRAVESSA' %}selected{% endif %}>TRAVESSA</option>
-                        <option value="ALAMEDA" {% if motorista.tipo_logradouro=='ALAMEDA' %}selected{% endif %}>ALAMEDA</option>
-                    </select>
-                </div>
-                <div class="sm:col-span-2 lg:col-span-1">
-                    <label for="logradouro">Logradouro</label>
-                    <input type="text" name="logradouro" id="logradouro" class="form-input" value="{{ motorista.logradouro or '' }}">
-                </div>
-                <div>
-                    <label for="numero">Número</label>
-                    <input type="text" name="numero" id="numero" class="form-input" value="{{ motorista.numero or '' }}">
-                </div>
-                <div>
-                    <label for="complemento">Complemento</label>
-                    <input type="text" name="complemento" id="complemento" class="form-input" value="{{ motorista.complemento or '' }}">
-                </div>
-                <div>
-                    <label for="bairro">Bairro</label>
-                    <input type="text" name="bairro" id="bairro" class="form-input" value="{{ motorista.bairro or '' }}">
-                </div>
-                <div>
-                    <label for="cidade">Cidade</label>
-                    <input type="text" name="cidade" id="cidade" class="form-input" value="{{ motorista.cidade or '' }}">
-                </div>
-                <div>
-                    <label for="uf">UF</label>
-                    <select name="uf" id="uf" class="form-select" data-selected-uf="{{ motorista.uf or '' }}"></select>
-                </div>
-                <div>
-                    <label for="email">E-mail</label>
-                    <input type="email" name="email" id="email" class="form-input" value="{{ motorista.email or '' }}">
-                </div>
-                <div>
-                    <label for="tipo_imovel">Tipo Imóvel</label>
-                    <select name="tipo_imovel" id="tipo_imovel" class="form-select">
-                        <option value="">Selecione</option>
-                        <option value="Próprio" {% if motorista.tipo_imovel=='Próprio' %}selected{% endif %}>Próprio</option>
-                        <option value="Alugado" {% if motorista.tipo_imovel=='Alugado' %}selected{% endif %}>Alugado</option>
-                        <option value="Cedido" {% if motorista.tipo_imovel=='Cedido' %}selected{% endif %}>Cedido</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="tempo_residencia">Tempo Residência</label>
-                    <input type="text" name="tempo_residencia" id="tempo_residencia" class="form-input" placeholder="Ex: 5 anos" value="{{ motorista.tempo_residencia or '' }}">
-                </div>
-            </div>
+        <div>
+          <label for="data_nascimento">Data de Nascimento</label>
+          <input
+            type="date"
+            name="data_nascimento"
+            id="data_nascimento"
+            class="form-input"
+            value="{{ motorista.data_nascimento|dateformat }}"
+          />
         </div>
-
-        <div id="documentacao" class="tab-content">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div>
-                    <label for="cnh_numero">Nº Registro CNH*</label>
-                    <input type="text" name="cnh_numero" id="cnh_numero" required class="form-input" placeholder="11 dígitos" value="{{ motorista.cnh_numero or '' }}">
-                </div>
-                <div>
-                    <label for="cnh_data_primeira">1ª Habilitação</label>
-                    <input type="date" name="cnh_data_primeira" id="cnh_data_primeira" class="form-input" value="{{ motorista.cnh_data_primeira | dateformat }}">
-                </div>
-                <div>
-                    <label for="cnh_data_vencimento">Vencimento CNH*</label>
-                    <input type="date" name="cnh_data_vencimento" id="cnh_data_vencimento" required class="form-input" value="{{ motorista.cnh_data_vencimento | dateformat }}">
-                </div>
-                <div>
-                    <label for="cnh_categoria">Categoria CNH*</label>
-                    <input type="text" name="cnh_categoria" id="cnh_categoria" required class="form-input" placeholder="AB" value="{{ motorista.cnh_categoria or '' }}">
-                </div>
-                <div>
-                    <label for="cnh_cod_seguranca">Cód. Segurança CNH</label>
-                    <input type="text" name="cnh_cod_seguranca" id="cnh_cod_seguranca" class="form-input" value="{{ motorista.cnh_cod_seguranca or '' }}">
-                </div>
-                <div>
-                    <label for="rg">Nº RG / UF</label>
-                    <div class="flex gap-2">
-                        <input type="text" name="rg" id="rg" class="form-input flex-grow" value="{{ motorista.rg or '' }}">
-                        <select name="rg_uf" id="rg_uf" class="form-select w-24" data-selected-uf="{{ motorista.rg_uf or '' }}"></select>
-                    </div>
-                </div>
-                <div>
-                    <label for="pis">Nº PIS</label>
-                    <input type="text" name="pis" id="pis" class="form-input" value="{{ motorista.pis or '' }}">
-                </div>
-                <div>
-                    <label for="inss">Nº INSS</label>
-                    <input type="text" name="inss" id="inss" class="form-input" value="{{ motorista.inss or '' }}">
-                </div>
-                <div>
-                    <label for="titulo_eleitor">Nº Título de Eleitor</label>
-                    <input type="text" name="titulo_eleitor" id="titulo_eleitor" class="form-input" value="{{ motorista.titulo_eleitor or '' }}">
-                </div>
-                <div>
-                    <label for="ctps">Nº CTPS</label>
-                    <input type="text" name="ctps" id="ctps" class="form-input" value="{{ motorista.ctps or '' }}">
-                </div>
-                <div>
-                    <label for="funcao">Função</label>
-                    <input type="text" name="funcao" id="funcao" value="{{ motorista.funcao or 'Motorista' }}" class="form-input">
-                </div>
-                <div>
-                    <label for="salario_base">Salário Base (R$)</label>
-                    <input type="number" step="0.01" name="salario_base" id="salario_base" class="form-input" placeholder="0.00" value="{{ motorista.salario_base or '' }}">
-                </div>
-                <div>
-                    <label for="mopp_numero">Nº MOPP</label>
-                    <input type="text" name="mopp_numero" id="mopp_numero" class="form-input" value="{{ motorista.mopp_numero or '' }}">
-                </div>
-                <div>
-                    <label for="mopp_vencimento">Vencimento MOPP</label>
-                    <input type="date" name="mopp_vencimento" id="mopp_vencimento" class="form-input" value="{{ motorista.mopp_vencimento | dateformat }}">
-                </div>
-            </div>
+        <div>
+          <label for="telefone">Telefone</label>
+          <input
+            type="text"
+            name="telefone"
+            id="telefone"
+            class="form-input"
+            value="{{ motorista.telefone or '' }}"
+          />
         </div>
-
-        <div id="contatos" class="tab-content">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div>
-                    <label for="contato_nome">Nome do Contato</label>
-                    <input type="text" name="contato_nome" id="contato_nome" class="form-input" value="{{ motorista.contato_nome or '' }}">
-                </div>
-                <div>
-                    <label for="contato_tipo_ref">Tipo de Referência</label>
-                    <select name="contato_tipo_ref" id="contato_tipo_ref" class="form-select">
-                        <option value="Pessoal" {% if motorista.contato_tipo_ref=='Pessoal' %}selected{% endif %}>Pessoal</option>
-                        <option value="Comercial" {% if motorista.contato_tipo_ref=='Comercial' %}selected{% endif %}>Comercial</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="contato_tipo_fone">Tipo Fone</label>
-                    <select name="contato_tipo_fone" id="contato_tipo_fone" class="form-select">
-                        <option value="Celular" {% if motorista.contato_tipo_fone=='Celular' %}selected{% endif %}>Celular</option>
-                        <option value="Fixo" {% if motorista.contato_tipo_fone=='Fixo' %}selected{% endif %}>Fixo</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="contato_telefone">Telefone do Contato</label>
-                    <input type="text" name="contato_telefone" id="contato_telefone" class="form-input" value="{{ motorista.contato_telefone or '' }}">
-                </div>
-                <div>
-                    <label for="contato_operadora">Operadora</label>
-                    <input type="text" name="contato_operadora" id="contato_operadora" class="form-input" value="{{ motorista.contato_operadora or '' }}">
-                </div>
-                <div class="sm:col-span-2 lg:col-span-1">
-                    <label for="contato_obs">Observação</label>
-                    <input type="text" name="contato_obs" id="contato_obs" class="form-input" value="{{ motorista.contato_obs or '' }}">
-                </div>
-            </div>
+        <div>
+          <label for="email">E-mail</label>
+          <input
+            type="email"
+            name="email"
+            id="email"
+            class="form-input"
+            value="{{ motorista.email or '' }}"
+          />
         </div>
-
-        <div class="mt-8 flex items-center justify-end gap-4">
-            <a href="{{ url_for('consultar_motoristas') }}" class="btn btn-back">Voltar</a>
-            <button type="submit" class="btn btn-submit">Salvar Alterações</button>
+        <div>
+          <label for="data_admissao">Data de Admissão</label>
+          <input
+            type="date"
+            name="data_admissao"
+            id="data_admissao"
+            class="form-input"
+            value="{{ motorista.data_admissao|dateformat }}"
+          />
         </div>
-    </form>
-    
-    <div x-show="isAnexosModalOpen" 
-         x-transition:enter="ease-out duration-300" enter-start-class="opacity-0" enter-end-class="opacity-100"
-         x-transition:leave="ease-in duration-200" leave-start-class="opacity-100" leave-end-class="opacity-0"
-         class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50" 
-         style="display: none;">
-        
-        <div @click.away="isAnexosModalOpen = false" 
-             class="bg-white rounded-lg shadow-xl w-full max-w-2xl">
-            
-            <header class="flex justify-between items-center p-4 border-b">
-                <h2 class="text-xl font-bold text-gray-800">Gerenciar Arquivos</h2>
-                <button type="button" @click="isAnexosModalOpen = false" class="text-gray-400 hover:text-gray-700 text-3xl">&times;</button>
-            </header>
-            
-            <div class="p-6 max-h-[60vh] overflow-y-auto">
-                <form method="POST" action="{{ url_for('adicionar_anexo_motorista', motorista_id=motorista.id) }}" enctype="multipart/form-data" class="mb-4">
-                    <label for="anexos-input-modal" class="btn bg-blue-600 hover:bg-blue-700 w-full cursor-pointer">
-                        <i class="fas fa-plus mr-2"></i> Adicionar novos arquivos
-                    </label>
-                    <input type="file" name="anexos" id="anexos-input-modal" multiple class="hidden" onchange="this.form.submit()">
-                </form>
-
-                <p class="text-sm text-gray-500 mt-4 mb-2">Arquivos existentes:</p>
-                {% if motorista.anexos %}
-                    <ul class="space-y-2">
-                    {% for anexo_url in motorista.anexos.split(',') %}
-                        {% if anexo_url %}
-                            {% set filename = anexo_url.split('/')[-1].split('-', 1)[-1] if '-' in anexo_url.split('/')[-1] else anexo_url.split('/')[-1] %}
-                            <li class="flex justify-between items-center bg-gray-50 p-2 rounded-md border group">
-                                <a href="{{ anexo_url }}" download="{{ filename }}" target="_blank" class="text-blue-600 hover:underline font-medium truncate pr-4" title="{{ filename }}">
-                                    <i class="fas fa-download mr-2 text-gray-400"></i>{{ filename }}
-                                </a>
-                                <form method="POST" action="{{ url_for('excluir_anexo_motorista', motorista_id=motorista.id) }}" onsubmit="return confirm('Tem certeza que deseja excluir este anexo?');">
-                                    <input type="hidden" name="anexo_url" value="{{ anexo_url }}">
-                                    <button type="submit" class="text-gray-400 hover:text-red-600" title="Excluir Anexo">
-                                        <i class="fas fa-times-circle fa-lg"></i>
-                                    </button>
-                                </form>
-                            </li>
-                        {% endif %}
-                    {% endfor %}
-                    </ul>
-                {% else %}
-                    <p class="text-center text-gray-500 py-8">Nenhum anexo encontrado.</p>
-                {% endif %}
-            </div>
-
-            <footer class="p-4 bg-gray-50 border-t text-right">
-                <button type="button" @click="isAnexosModalOpen = false" class="btn bg-gray-500 hover:bg-gray-600">
-                    Fechar
-                </button>
-            </footer>
+        <div>
+          <label for="funcao">Função</label>
+          <input
+            type="text"
+            name="funcao"
+            id="funcao"
+            class="form-input"
+            value="{{ motorista.funcao or '' }}"
+          />
         </div>
+        <div>
+          <label for="salario_base">Salário Base (R$)</label>
+          <input
+            type="number"
+            step="0.01"
+            name="salario_base"
+            id="salario_base"
+            class="form-input"
+            value="{{ motorista.salario_base or '' }}"
+          />
+        </div>
+      </div>
     </div>
+    <div id="endereco" class="tab-content">
+      <h2 class="form-section-header">
+        <i class="fas fa-map-marked-alt"></i>Endereço
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="md:col-span-1">
+          <label for="cep">CEP</label>
+          <input
+            type="text"
+            name="cep"
+            id="cep"
+            class="form-input"
+            value="{{ motorista.cep or '' }}"
+          />
+        </div>
+        <div class="md:col-span-3">
+          <label for="logradouro">Logradouro</label>
+          <input
+            type="text"
+            name="logradouro"
+            id="logradouro"
+            class="form-input"
+            value="{{ motorista.logradouro or '' }}"
+          />
+        </div>
+        <div>
+          <label for="numero">Número</label>
+          <input
+            type="text"
+            name="numero"
+            id="numero"
+            class="form-input"
+            value="{{ motorista.numero or '' }}"
+          />
+        </div>
+        <div>
+          <label for="complemento">Complemento</label>
+          <input
+            type="text"
+            name="complemento"
+            id="complemento"
+            class="form-input"
+            value="{{ motorista.complemento or '' }}"
+          />
+        </div>
+        <div class="md:col-span-2">
+          <label for="bairro">Bairro</label>
+          <input
+            type="text"
+            name="bairro"
+            id="bairro"
+            class="form-input"
+            value="{{ motorista.bairro or '' }}"
+          />
+        </div>
+        <div class="md:col-span-2">
+          <label for="cidade">Cidade</label>
+          <input
+            type="text"
+            name="cidade"
+            id="cidade"
+            class="form-input"
+            value="{{ motorista.cidade or '' }}"
+          />
+        </div>
+        <div class="md:col-span-2">
+          <label for="uf">UF</label>
+          <input
+            type="text"
+            name="uf"
+            id="uf"
+            class="form-input"
+            maxlength="2"
+            value="{{ motorista.uf or '' }}"
+          />
+        </div>
+      </div>
+    </div>
+    <div id="documentacao" class="tab-content">
+      <h2 class="form-section-header">
+        <i class="fas fa-id-card-alt"></i>Documentos
+      </h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div>
+          <label for="rg">RG</label>
+          <input
+            type="text"
+            name="rg"
+            id="rg"
+            class="form-input"
+            value="{{ motorista.rg or '' }}"
+          />
+        </div>
+        <div>
+          <label for="rg_uf">UF do RG</label>
+          <input
+            type="text"
+            name="rg_uf"
+            id="rg_uf"
+            class="form-input"
+            maxlength="2"
+            value="{{ motorista.rg_uf or '' }}"
+          />
+        </div>
+        <div>
+          <label for="cnh_numero">Número CNH*</label>
+          <input
+            type="text"
+            name="cnh_numero"
+            id="cnh_numero"
+            required
+            class="form-input"
+            value="{{ motorista.cnh_numero or '' }}"
+          />
+        </div>
+        <div>
+          <label for="cnh_categoria">Categoria CNH</label>
+          <input
+            type="text"
+            name="cnh_categoria"
+            id="cnh_categoria"
+            class="form-input"
+            value="{{ motorista.cnh_categoria or '' }}"
+          />
+        </div>
+        <div>
+          <label for="cnh_data_vencimento">Vencimento CNH</label>
+          <input
+            type="date"
+            name="cnh_data_vencimento"
+            id="cnh_data_vencimento"
+            class="form-input"
+            value="{{ motorista.cnh_data_vencimento|dateformat }}"
+          />
+        </div>
+        <div>
+          <label for="mopp_vencimento">Vencimento MOPP</label>
+          <input
+            type="date"
+            name="mopp_vencimento"
+            id="mopp_vencimento"
+            class="form-input"
+            value="{{ motorista.mopp_vencimento|dateformat }}"
+          />
+        </div>
+      </div>
+    </div>
+    <div id="contatos" class="tab-content">
+      <h2 class="form-section-header">
+        <i class="fas fa-address-book"></i>Contatos de Referência
+      </h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div>
+          <label for="contato_nome">Nome do Contato</label>
+          <input
+            type="text"
+            name="contato_nome"
+            id="contato_nome"
+            class="form-input"
+            value="{{ motorista.contato_nome or '' }}"
+          />
+        </div>
+        <div>
+          <label for="contato_telefone">Telefone do Contato</label>
+          <input
+            type="text"
+            name="contato_telefone"
+            id="contato_telefone"
+            class="form-input"
+            value="{{ motorista.contato_telefone or '' }}"
+          />
+        </div>
+        <div class="sm:col-span-2 lg:col-span-3">
+          <label for="contato_obs">Observações</label>
+          <input
+            type="text"
+            name="contato_obs"
+            id="contato_obs"
+            class="form-input"
+            value="{{ motorista.contato_obs or '' }}"
+          />
+        </div>
+      </div>
+    </div>
+    <div class="mt-8 flex justify-end gap-4">
+      <a href="{{ url_for('consultar_motoristas') }}" class="btn-secondary"
+        >Voltar</a
+      >
+      <button type="submit" class="btn-green">
+        <i class="fas fa-save mr-2"></i>
+        Salvar Alterações
+      </button>
+    </div>
+  </form>
+
+  <div class="form-container">
+    <h2 class="form-section-header">
+      <i class="fas fa-paperclip"></i>Central de Anexos
+    </h2>
+    <div id="drop-zone">
+      <i class="fas fa-cloud-upload-alt"></i>
+      <p class="font-semibold">Arraste e solte os arquivos aqui</p>
+      <p class="text-sm">ou</p>
+      <button
+        type="button"
+        onclick="document.getElementById('file-input').click()"
+        class="mt-2 bg-white text-gray-700 font-semibold py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50"
+      >
+        Selecione os Arquivos
+      </button>
+    </div>
+    <input type="file" id="file-input" multiple class="hidden" />
+    <div id="file-list" class="mt-4"></div>
+  </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-{{ super() }}
+{% endblock %} {% block scripts %} {{ super() }}
 <script>
-    function openTab(event, tabName) {
-        let i, tabcontent, tablinks;
-        tabcontent = document.getElementsByClassName("tab-content");
-        for (i = 0; i < tabcontent.length; i++) { tabcontent[i].classList.remove("active"); }
-        tablinks = document.getElementsByClassName("tab-link");
-        for (i = 0; i < tablinks.length; i++) { tablinks[i].classList.remove("active"); }
-        document.getElementById(tabName).classList.add("active");
-        event.currentTarget.classList.add("active");
-    }
+  // --- SCRIPTS DE UI (ABAS, MÁSCARAS, ETC) ---
+  function openTab(event, tabName) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab-link').forEach(link => link.classList.remove('active'));
+      document.getElementById(tabName).classList.add('active');
+      event.currentTarget.classList.add('active');
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+      // Lógica de máscaras (exemplo para CPF, pode adicionar mais)
+      const cpfInput = document.getElementById('cpf');
+      if (cpfInput) {
+          cpfInput.addEventListener('input', (e) => {
+              e.target.value = e.target.value.replace(/\D/g, '');
+          });
+      }
+  });
 
-    function preencherEndereco(cepInput) { /* ... (código sem alterações) ... */ }
+  // --- SCRIPT PARA CARREGAR KPIs ---
+  async function loadKpis() {
+      const kpiContainer = document.getElementById('kpi-content');
+      try {
+          const response = await fetch(`/api/motorista/{{ motorista.id }}/kpis`);
+          const data = await response.json();
+          if (data.success) {
+              const kpis = data.kpis;
+              kpiContainer.innerHTML = `
+                  <div class="bg-blue-100 p-4 rounded-lg">
+                      <p class="text-2xl font-bold text-blue-800">${kpis.total_viagens}</p>
+                      <p class="text-sm text-blue-600">Total de Viagens</p>
+                  </div>
+                  <div class="bg-purple-100 p-4 rounded-lg">
+                      <p class="text-2xl font-bold text-purple-800">${kpis.total_distancia.toLocaleString('pt-BR')} km</p>
+                      <p class="text-sm text-purple-600">Distância Percorrida</p>
+                  </div>
+                  <div class="bg-green-100 p-4 rounded-lg">
+                      <p class="text-2xl font-bold text-green-800">R$ ${kpis.total_receita.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                      <p class="text-sm text-green-600">Receita Gerada</p>
+                  </div>
+              `;
+          } else {
+              kpiContainer.innerHTML = '<p class="text-red-500 col-span-3">Não foi possível carregar os indicadores.</p>';
+          }
+      } catch (error) {
+          kpiContainer.innerHTML = '<p class="text-red-500 col-span-3">Erro de conexão ao buscar indicadores.</p>';
+      }
+  }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('motorista-form');
-        if (form) {
-            form.addEventListener('submit', function(event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    const firstInvalidField = form.querySelector(':invalid');
-                    if (firstInvalidField) {
-                        const label = document.querySelector(`label[for='${firstInvalidField.id}']`);
-                        const fieldName = label ? label.innerText.replace('*', '').trim() : 'Um campo obrigatório';
-                        Toastify({
-                            text: `Por favor, preencha o campo "${fieldName}".`,
-                            duration: 5000, close: true, gravity: "top", position: "center", stopOnFocus: true,
-                            style: { background: "linear-gradient(to right, #ef4444, #f87171)", borderRadius: "0.5rem" },
-                        }).showToast();
-                        const tabPane = firstInvalidField.closest('.tab-content');
-                        if (tabPane) {
-                            document.querySelector(`.tab-link[onclick*="'${tabPane.id}'"]`).click();
-                            setTimeout(() => firstInvalidField.focus(), 100);
-                        }
-                    }
-                }
-            });
-        }
-        
-        document.querySelector('.tab-link').click();
-        const ufs = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"];
-        function populateSelect(selectElement) {
-            if (!selectElement) return;
-            const selectedValue = selectElement.getAttribute('data-selected-uf');
-            ufs.forEach(uf => {
-                const option = document.createElement('option');
-                option.value = uf; option.text = uf;
-                if (uf === selectedValue) option.selected = true;
-                selectElement.appendChild(option);
-            });
-            if (!selectedValue) selectElement.value = "PR";
-        }
-        populateSelect(document.getElementById('uf'));
-        populateSelect(document.getElementById('rg_uf'));
+  // --- SCRIPT DA CENTRAL DE ANEXOS ---
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+  const fileList = document.getElementById('file-list');
+  const motoristaId = {{ motorista.id }};
+  const existingFiles = {{ (motorista.anexos.split(',') if motorista.anexos else [])|tojson }};
+  const activeUploads = {};
 
-        const inputCPF = document.getElementById('cpf');
-        if (inputCPF) {
-            inputCPF.addEventListener('input', function (e) {
-                let value = e.target.value.replace(/\D/g, '');
-                if (value.length > 11) value = value.slice(0, 11);
-                value = value.replace(/(\d{3})(\d)/, '$1.$2');
-                value = value.replace(/(\d{3})(\d)/, '$1.$2');
-                value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-                e.target.value = value;
-            });
-        }
-        const cepInput = document.getElementById('cep');
-        if (cepInput) {
-            cepInput.addEventListener('blur', () => preencherEndereco(cepInput));
-        }
-    });
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('drag-over'); });
+  dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+  fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+
+  function handleFiles(files) {
+      [...files].forEach(file => {
+          const fileId = `file-${Date.now()}${Math.floor(Math.random() * 1000)}`;
+          const fileElement = createFileElement(fileId, file);
+          fileList.prepend(fileElement);
+          uploadFile(fileId, file);
+      });
+      fileInput.value = '';
+  }
+
+  function createFileElement(fileId, file, existingUrl = null) {
+      const fileElement = document.createElement('div');
+      fileElement.className = 'file-item';
+      fileElement.id = fileId;
+      const isImage = file ? file.type.startsWith('image/') : false;
+      const fileName = file ? file.name : (existingUrl.split('/').pop().split('-').slice(1).join('-') || 'Arquivo');
+      const fileSize = file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : '';
+      fileElement.innerHTML = `
+          <div class="file-preview">${isImage ? `<img id="preview-${fileId}" src="" alt="preview">` : '<i class="fas fa-file-alt"></i>'}</div>
+          <div class="file-details">
+              <a href="${existingUrl || '#'}" target="_blank" class="file-name" title="${fileName}">${fileName}</a>
+              <div class="file-size">${fileSize}</div>
+          </div>
+          <div class="file-actions">
+              <i id="status-${fileId}" class="file-status-icon"></i>
+              <button id="action-${fileId}" class="btn-icon"></button>
+          </div>
+          <div id="progress-${fileId}" class="progress-bar"></div>`;
+      if (isImage && file) {
+          const reader = new FileReader();
+          reader.onload = (e) => { document.getElementById(`preview-${fileId}`).src = e.target.result; };
+          reader.readAsDataURL(file);
+      }
+      if (existingUrl) { fileElement.dataset.url = existingUrl; }
+      return fileElement;
+  }
+
+  function uploadFile(fileId, file) {
+      const formData = new FormData();
+      formData.append('file', file);
+      const xhr = new XMLHttpRequest();
+      activeUploads[fileId] = xhr;
+      xhr.open('POST', `/api/motorista/${motoristaId}/upload_anexo`, true);
+      xhr.upload.onprogress = (e) => { if (e.lengthComputable) { updateProgressBar(fileId, (e.loaded / e.total) * 100); } };
+      xhr.onload = () => {
+          delete activeUploads[fileId];
+          if (xhr.status === 200) {
+              const response = JSON.parse(xhr.responseText);
+              document.querySelector(`#${fileId} .file-name`).href = response.file_url;
+              document.getElementById(fileId).dataset.url = response.file_url;
+              setFileState(fileId, 'success');
+          } else { setFileState(fileId, 'error', 'Falha no upload'); }
+      };
+      xhr.onerror = () => { delete activeUploads[fileId]; setFileState(fileId, 'error', 'Erro de conexão'); };
+      xhr.onabort = () => { delete activeUploads[fileId]; document.getElementById(fileId).remove(); }
+      setFileState(fileId, 'uploading');
+      xhr.send(formData);
+  }
+
+  async function deleteFile(fileId) {
+      const fileElement = document.getElementById(fileId);
+      const fileUrl = fileElement.dataset.url;
+      if (!fileUrl || !confirm('Tem certeza que deseja excluir este anexo permanentemente?')) return;
+      try {
+          const response = await fetch('/api/motorista/excluir_anexo', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ motorista_id: motoristaId, anexo_url: fileUrl })
+          });
+          const result = await response.json();
+          if (result.success) { fileElement.remove(); }
+          else { alert('Erro ao excluir: ' + result.message); }
+      } catch (error) { alert('Erro de conexão ao tentar excluir o arquivo.'); }
+  }
+
+  function updateProgressBar(fileId, percent) {
+      const progressBar = document.getElementById(`progress-${fileId}`);
+      if (progressBar) progressBar.style.width = `${percent}%`;
+  }
+
+  function setFileState(fileId, state, message = '') {
+      const statusIcon = document.getElementById(`status-${fileId}`);
+      const actionButton = document.getElementById(`action-${fileId}`);
+      const progressBar = document.getElementById(`progress-${fileId}`);
+      if (!statusIcon || !actionButton || !progressBar) return;
+      statusIcon.className = 'file-status-icon';
+      actionButton.innerHTML = '';
+      actionButton.onclick = null;
+      switch (state) {
+          case 'uploading':
+              statusIcon.classList.add('fas', 'fa-spinner', 'status-uploading');
+              actionButton.innerHTML = '<i class="fas fa-times"></i>';
+              actionButton.title = 'Cancelar Upload';
+              actionButton.onclick = () => activeUploads[fileId]?.abort();
+              break;
+          case 'success':
+              statusIcon.classList.add('fas', 'fa-check-circle', 'status-success');
+              progressBar.style.width = '100%';
+              actionButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+              actionButton.title = 'Excluir Arquivo';
+              actionButton.classList.add('btn-icon-delete');
+              actionButton.onclick = () => deleteFile(fileId);
+              break;
+          case 'error':
+              statusIcon.classList.add('fas', 'fa-exclamation-circle', 'status-error');
+              progressBar.style.width = '100%';
+              document.getElementById(fileId).classList.add('error');
+              actionButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+              actionButton.title = 'Remover da lista';
+              actionButton.classList.add('btn-icon-delete');
+              actionButton.onclick = () => document.getElementById(fileId).remove();
+              document.querySelector(`#${fileId} .file-size`).textContent = message;
+              break;
+      }
+  }
+
+  function loadInitialFiles() {
+      existingFiles.forEach(url => {
+          if(!url) return;
+          const safeIdPart = btoa(url).replace(/[/+=]/g, '');
+          const fileId = `file-existing-${safeIdPart}`;
+          const fileElement = createFileElement(fileId, null, url);
+          fileList.appendChild(fileElement);
+          setFileState(fileId, 'success');
+      });
+  }
+
+  // Inicia a página
+  document.addEventListener('DOMContentLoaded', () => {
+      loadInitialFiles();
+      loadKpis();
+  });
 </script>
 {% endblock %}

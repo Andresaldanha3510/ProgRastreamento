@@ -1,11 +1,11 @@
 {
-  "name": "TrackGo - Dashboard do Motorista",
-  "short_name": "TrackGo",
-  "description": "Dashboard para motoristas acompanharem suas viagens e despesas.",
-  "start_url": "/motorista_dashboard",
+  "name": "TrackBras - Gestão de Frota",
+  "short_name": "TrackBras",
+  "description": "Sistema completo para gestão de frotas, viagens e manutenção.",
+  "start_url": "/login",
   "display": "standalone",
   "background_color": "#1e293b",
-  "theme_color": "#4A773C",
+  "theme_color": "#2e7d32",
   "orientation": "portrait-primary",
   "icons": [
     {

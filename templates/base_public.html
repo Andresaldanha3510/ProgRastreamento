@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TrackGo{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { background-color: #f1f5f9; }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+    <main class="w-full max-w-md bg-white p-8 rounded-xl shadow-lg">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="p-4 mb-4 text-sm rounded-lg 
+                        {% if category == 'error' %} bg-red-100 text-red-700 
+                        {% else %} bg-green-100 text-green-700 {% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+        
+        <div class="mt-6 text-center">
+            <a href="{{ url_for('login') }}" class="text-sm text-indigo-600 hover:underline">Já tem uma conta? Faça login</a>
+        </div>
+    </main>
+</body>
+</html>

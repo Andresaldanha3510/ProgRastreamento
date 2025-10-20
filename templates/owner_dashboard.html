@@ -8,102 +8,167 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { background: #f4f7fa; color: #1e293b; font-family: 'Inter', sans-serif; }
-        .card { background-color: #fff; border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding: 1.5rem; }
-        .btn-primary { background-color: #4f46e5; color: white; }
-        .btn-primary:hover { background-color: #4338ca; }
+        body { background-color: #f1f5f9; color: #1e293b; font-family: 'Inter', sans-serif; }
+        .card { background-color: #fff; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
         .form-input {
-            width: 100%; padding: 0.75rem; border: 1px solid #d1d5db;
+            width: 100%; padding: 0.625rem 0.75rem; border: 1px solid #cbd5e1;
             border-radius: 0.375rem; transition: border-color 0.2s, box-shadow 0.2s;
         }
         .form-input:focus {
             outline: none; border-color: #4f46e5;
-            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
         }
     </style>
 </head>
-<body>
-    <header class="bg-indigo-700 shadow-md p-4 flex justify-between items-center">
-        <div class="flex items-center gap-3">
-            <i class="fas fa-crown text-yellow-300 text-2xl"></i>
+<body class="min-h-screen">
+
+    <header class="bg-slate-800 shadow-md p-4 flex justify-between items-center sticky top-0 z-10">
+        <div class="flex items-center gap-4">
+            <i class="fas fa-crown text-amber-400 text-2xl"></i>
             <h1 class="text-xl font-bold text-white">Painel do Proprietário</h1>
         </div>
-        <a href="{{ url_for('logout') }}" class="text-white hover:text-gray-200 transition-colors">Sair</a>
+        <a href="{{ url_for('logout') }}" class="text-slate-300 hover:text-white transition-colors text-sm font-medium">
+            <i class="fas fa-sign-out-alt mr-2"></i>Sair
+        </a>
     </header>
 
-    <div class="container mx-auto px-4 py-8 max-w-7xl">
-        <div class="card mb-8">
-            <h3 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Passo 1: Cadastrar Novo Cliente</h3>
-            <p class="text-sm text-gray-600 mb-4">Crie a empresa e o primeiro usuário Admin para o seu novo cliente. Um e-mail de boas-vindas com um link para criação de senha será enviado automaticamente.</p>
-            
-            <form method="POST" action="{{ url_for('owner_create_client') }}" class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label for="razao_social" class="block text-sm font-medium text-gray-700">Razão Social da Empresa</label>
-                        <input type="text" name="razao_social" id="razao_social" required class="form-input mt-1">
+    <main class="container mx-auto px-4 py-8 max-w-7xl">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="p-4 mb-6 text-sm rounded-lg 
+                        {% if category == 'error' %} bg-red-100 text-red-800 
+                        {% elif category == 'success' %} bg-green-100 text-green-800
+                        {% else %} bg-blue-100 text-blue-800 {% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <section class="mb-8">
+            <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 gap-4">
+                <h2 class="text-2xl font-bold text-slate-700">Visão Geral da Plataforma</h2>
+                <a href="{{ url_for('owner_gerenciar_usuarios') }}" class="bg-slate-700 hover:bg-slate-800 text-white font-bold py-2 px-4 rounded-lg inline-flex items-center transition-colors">
+                    <i class="fas fa-users-cog mr-2"></i>
+                    Gerenciar Todos os Usuários
+                </a>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="card p-6 flex items-center gap-5">
+                    <div class="bg-blue-100 text-blue-600 rounded-full p-4">
+                        <i class="fas fa-building fa-2x"></i>
                     </div>
                     <div>
-                        <label for="cnpj" class="block text-sm font-medium text-gray-700">CNPJ da Empresa</label>
-                        <input type="text" name="cnpj" id="cnpj" required class="form-input mt-1" placeholder="Apenas números" maxlength="14">
+                        <p class="text-slate-500 text-sm font-medium">Total de Empresas</p>
+                        <p class="text-3xl font-bold text-slate-800">{{ kpis.total_empresas }}</p>
                     </div>
                 </div>
+                <div class="card p-6 flex items-center gap-5">
+                    <div class="bg-green-100 text-green-600 rounded-full p-4">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                    <div>
+                        <p class="text-slate-500 text-sm font-medium">Total de Usuários</p>
+                        <p class="text-3xl font-bold text-slate-800">{{ kpis.total_usuarios }}</p>
+                    </div>
+                </div>
+                <div class="card p-6 flex items-center gap-5">
+                    <div class="bg-indigo-100 text-indigo-600 rounded-full p-4">
+                        <i class="fas fa-truck fa-2x"></i>
+                    </div>
+                    <div>
+                        <p class="text-slate-500 text-sm font-medium">Total de Veículos</p>
+                        <p class="text-3xl font-bold text-slate-800">{{ kpis.total_veiculos }}</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1 card p-6 h-fit">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-3">Cadastrar Nova Empresa</h3>
+                <p class="text-sm text-gray-600 mb-6">Crie a empresa e o primeiro usuário Admin. Um e-mail de convite será enviado automaticamente.</p>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t mt-4">
-                     <div>
-                        <label for="admin_email" class="block text-sm font-medium text-gray-700">E-mail do Administrador</label>
-                        <input type="email" name="admin_email" id="admin_email" required class="form-input mt-1">
+                <form method="POST" action="{{ url_for('owner_create_empresa') }}" class="space-y-5">
+                    <div>
+                        <label for="razao_social" class="block text-sm font-medium text-gray-700 mb-1">Razão Social</label>
+                        <input type="text" name="razao_social" id="razao_social" required class="form-input">
                     </div>
                     <div>
-                        <label for="admin_nome" class="block text-sm font-medium text-gray-700">Nome do Administrador</label>
-                        <input type="text" name="admin_nome" id="admin_nome" required class="form-input mt-1">
+                        <label for="cnpj" class="block text-sm font-medium text-gray-700 mb-1">CNPJ</label>
+                        <input type="text" name="cnpj" id="cnpj" required class="form-input" placeholder="Apenas números" maxlength="14">
                     </div>
-                </div>
+                    <div>
+                        <label for="admin_nome" class="block text-sm font-medium text-gray-700 mb-1">Nome do Admin</label>
+                        <input type="text" name="admin_nome" id="admin_nome" required class="form-input">
+                    </div>
+                    <div>
+                        <label for="admin_email" class="block text-sm font-medium text-gray-700 mb-1">E-mail do Admin</label>
+                        <input type="email" name="admin_email" id="admin_email" required class="form-input">
+                    </div>
+                    <div class="flex justify-end pt-2">
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-md font-semibold transition-transform transform hover:scale-105">
+                            <i class="fas fa-plus-circle mr-2"></i>Criar e Enviar Convite
+                        </button>
+                    </div>
+                </form>
+            </div>
 
-                <div class="flex justify-end">
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-semibold">Criar Cliente e Enviar Convite</button>
+            <div class="lg:col-span-2 card p-6">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-3">Gerenciar Empresas e Licenças</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-100 text-slate-600">
+                            <tr>
+                                <th class="p-3 text-left font-semibold">Razão Social</th>
+                                <th class="p-3 text-left font-semibold">CNPJ</th>
+                                <th class="p-3 text-center font-semibold">Plano</th>
+                                <th class="p-3 text-center font-semibold">Status</th>
+                                <th class="p-3 text-center font-semibold">Usuários</th>
+                                <th class="p-3 text-center font-semibold">Ações</th>
+                                <th class="p-3 text-center font-semibold">Excluir</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for empresa in empresas %}
+                            <tr class="border-b border-slate-200 hover:bg-slate-50">
+                                <td class="p-3 font-medium">{{ empresa.razao_social }}</td>
+                                <td class="p-3 text-slate-500">{{ empresa.cnpj | format_cnpj }}</td>
+                                <td class="p-3 text-center"><span class="px-2 py-1 text-xs font-semibold leading-tight text-blue-700 bg-blue-100 rounded-full">{{ empresa.licenca.plano if empresa.licenca else 'N/A' }}</span></td>
+                                <td class="p-3 text-center">
+                                    {% if empresa.licenca and empresa.licenca.ativo %}
+                                        <span class="px-2 py-1 text-xs font-semibold leading-tight text-green-700 bg-green-100 rounded-full">Ativa</span>
+                                    {% else %}
+                                        <span class="px-2 py-1 text-xs font-semibold leading-tight text-red-700 bg-red-100 rounded-full">Inativa</span>
+                                    {% endif %}
+                                </td>
+                                <td class="p-3 text-center font-medium">{{ empresa.usuarios|length }} / {{ empresa.licenca.max_usuarios if empresa.licenca else 'N/A' }}</td>
+                                <td class="p-3 text-center space-x-3">
+                                    <a href="{{ url_for('owner_empresa_detalhes', empresa_id=empresa.id) }}" class="text-slate-500 hover:text-indigo-600" title="Gerenciar Licença">
+                                        <i class="fas fa-cogs"></i>
+                                    </a>
+                                    <a href="{{ url_for('owner_listar_usuarios', empresa_id=empresa.id) }}" class="text-slate-500 hover:text-indigo-600" title="Ver Usuários da Empresa e Acessar Como">
+                                        <i class="fas fa-users"></i>
+                                    </a>
+                                </td>
+                                <td class="p-3 text-center">
+                                    <form action="{{ url_for('owner_delete_empresa', empresa_id=empresa.id) }}" method="POST" onsubmit="return confirm('ATENÇÃO:\n\nExcluir esta empresa removerá PERMANENTEMENTE todos os seus usuários, convites, veículos, viagens e dados financeiros.\n\nEsta ação não pode ser desfeita. Deseja continuar?');">
+                                        <button type="submit" class="text-red-500 hover:text-red-700" title="Excluir Empresa e Todos os seus Dados">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="7" class="text-center p-6 text-slate-500">Nenhuma empresa cadastrada.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-            </form>
-        </div>
-
-        <div class="card">
-            <h3 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Passo 2: Gerenciar Empresas e Licenças</h3>
-            <div class="overflow-x-auto">
-                <table class="w-full border-collapse">
-                    <thead>
-                        <tr class="bg-gray-100 text-gray-700">
-                            <th class="border p-3 text-left">Razão Social</th>
-                            <th class="border p-3 text-left">CNPJ</th>
-                            <th class="border p-3 text-center">Plano</th>
-                            <th class="border p-3 text-center">Status</th>
-                            <th class="border p-3 text-center">Usuários</th>
-                            <th class="border p-3 text-center">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for empresa in empresas %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="border p-3">{{ empresa.razao_social }}</td>
-                            <td class="border p-3">{{ empresa.cnpj }}</td>
-                            <td class="border p-3 text-center"><span class="px-2 py-1 font-semibold leading-tight text-blue-700 bg-blue-100 rounded-full">{{ empresa.licenca.plano if empresa.licenca else 'N/A' }}</span></td>
-                            <td class="border p-3 text-center">
-                                {% if empresa.licenca and empresa.licenca.ativo %}
-                                    <span class="px-2 py-1 font-semibold leading-tight text-green-700 bg-green-100 rounded-full">Ativa</span>
-                                {% else %}
-                                    <span class="px-2 py-1 font-semibold leading-tight text-red-700 bg-red-100 rounded-full">Inativa</span>
-                                {% endif %}
-                            </td>
-                            <td class="border p-3 text-center">{{ empresa.usuarios|length }} / {{ empresa.licenca.max_usuarios if empresa.licenca else 'N/A' }}</td>
-                            <td class="border p-3 text-center">
-                                <a href="{{ url_for('owner_empresa_detalhes', empresa_id=empresa.id) }}" class="text-indigo-600 hover:underline font-medium">Gerenciar</a>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="6" class="text-center p-4 text-gray-500">Nenhuma empresa cadastrada.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
             </div>
         </div>
-    </div>
+    </main>
 </body>
 </html>

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Carreta - {{ carreta.placa }}{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    /* Estilos adaptados de cadastrar_veiculo.html para consistência */
+    .form-container { background-color: #f8f9fa; padding: 2rem; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
+    .form-container h1 { text-align: center; }
+    .form-section { background: white; padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1.5rem; border-left: 4px solid #2e7d32; }
+    .section-title { font-size: 1.125rem; font-weight: 600; color: #374151; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .form-input, .form-select { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; transition: border-color 0.2s, box-shadow 0.2s; }
+    .form-input:focus, .form-select:focus { outline: none; border-color: #2e7d32; box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2); }
+    .required-field::after { content: " *"; color: #dc2626; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800 flex items-center justify-center gap-3">
+        <i class="fas fa-trailer text-gray-700"></i>
+        Editar Carreta
+    </h1>
+
+    <form action="{{ url_for('editar_carreta', carreta_id=carreta.id) }}" method="POST">
+        
+        <div class="form-section">
+            <h2 class="section-title"><i class="fas fa-id-card text-gray-500"></i>Informações de Identificação</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label for="placa" class="block text-gray-700 font-medium mb-2 required-field">Placa</label>
+                    <input type="text" name="placa" id="placa" required class="form-input" pattern="[A-Z]{3}[0-9][A-Z0-9][0-9]{2}" placeholder="ABC1D23" maxlength="7" value="{{ carreta.placa or '' }}">
+                </div>
+                <div>
+                    <label for="marca" class="block text-gray-700 font-medium mb-2">Marca</label>
+                    <input type="text" name="marca" id="marca" class="form-input" placeholder="Ex: Randon" value="{{ carreta.marca or '' }}">
+                </div>
+                <div>
+                    <label for="modelo" class="block text-gray-700 font-medium mb-2">Modelo</label>
+                    <input type="text" name="modelo" id="modelo" class="form-input" placeholder="Ex: Graneleira" value="{{ carreta.modelo or '' }}">
+                </div>
+                 <div>
+                    <label for="ano" class="block text-gray-700 font-medium mb-2">Ano</label>
+                    <input type="number" name="ano" id="ano" class="form-input" placeholder="Ex: 2022" value="{{ carreta.ano or '' }}">
+                </div>
+                <div>
+                    <label for="renavam" class="block text-gray-700 font-medium mb-2">RENAVAM</label>
+                    <input type="text" name="renavam" id="renavam" class="form-input" placeholder="11 dígitos" maxlength="11" value="{{ carreta.renavam or '' }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2 class="section-title"><i class="fas fa-cogs text-gray-500"></i>Especificações e Status</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label for="eixos" class="block text-gray-700 font-medium mb-2">Nº de Eixos</label>
+                    <input type="number" name="eixos" id="eixos" class="form-input" min="1" max="9" value="{{ carreta.eixos or '' }}">
+                </div>
+                <div>
+                    <label for="status" class="block text-gray-700 font-medium mb-2 required-field">Status</label>
+                    <select name="status" id="status" required class="form-select">
+                        <option value="Disponível" {% if carreta.status == 'Disponível' %}selected{% endif %}>Disponível</option>
+                        <option value="Em Viagem" {% if carreta.status == 'Em Viagem' %}selected{% endif %}>Em Viagem</option>
+                        <option value="Em Manutenção" {% if carreta.status == 'Em Manutenção' %}selected{% endif %}>Em Manutenção</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-6 flex items-center justify-end gap-4">
+            <a href="{{ url_for('consultar_carretas') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left mr-2"></i> Voltar para Lista
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save mr-2"></i> Salvar Alterações
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

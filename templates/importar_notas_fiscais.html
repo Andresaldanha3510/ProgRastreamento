@@ -1,7 +1,5 @@
-{% extends "base.html" %} 
-{% block title %}Importação NFe SEFAZ - TrackBras{% endblock %} 
-
-{% block styles %}
+{% extends "base.html" %} {% block title %}Importação NFe SEFAZ - TrackBras{%
+endblock %} {% block styles %}
 <style>
   :root {
     --primary-green: #2e7d32;
@@ -149,8 +147,12 @@
   }
 
   @keyframes notificationProgress {
-    from { width: 100%; }
-    to { width: 0%; }
+    from {
+      width: 100%;
+    }
+    to {
+      width: 0%;
+    }
   }
 
   @keyframes slideInRight {
@@ -213,7 +215,11 @@
   }
 
   .btn-green {
-    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-dark) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--primary-green) 0%,
+      var(--primary-green-dark) 100%
+    );
     color: white;
     padding: 12px 24px;
     border: none;
@@ -239,7 +245,11 @@
   }
 
   .btn-secondary {
-    background: linear-gradient(135deg, var(--gray-600) 0%, var(--gray-700) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--gray-600) 0%,
+      var(--gray-700) 100%
+    );
     color: white;
     padding: 10px 20px;
     border: none;
@@ -277,7 +287,9 @@
   }
 
   @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .stats-grid {
@@ -417,7 +429,11 @@
 
   .progress-fill {
     height: 100%;
-    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--primary-green) 0%,
+      var(--primary-green-light) 100%
+    );
     width: 0%;
     transition: width 0.3s ease;
   }
@@ -460,7 +476,11 @@
   }
 
   .modal-header {
-    background: linear-gradient(135deg, var(--primary-green-dark) 0%, var(--primary-green) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--primary-green-dark) 0%,
+      var(--primary-green) 100%
+    );
     color: white;
     padding: 1.5rem 2rem;
     display: flex;
@@ -575,17 +595,21 @@
     color: var(--red-600);
   }
 
-  .radio-option input[type="radio"]:checked+.radio-label {
+  .radio-option input[type="radio"]:checked + .radio-label {
     border-color: var(--primary-green);
-    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--primary-green) 0%,
+      var(--primary-green-light) 100%
+    );
     color: white;
   }
 
-  .radio-option input[type="radio"]:checked+.radio-label i {
+  .radio-option input[type="radio"]:checked + .radio-label i {
     color: white;
   }
 
-  .radio-option input[type="radio"]:checked+.radio-label small {
+  .radio-option input[type="radio"]:checked + .radio-label small {
     color: rgba(255, 255, 255, 0.9);
   }
 
@@ -691,10 +715,25 @@
   }
 
   @keyframes shake {
-    0%, 20%, 40%, 60%, 80% { transform: translateX(0); }
-    10%, 30%, 50%, 70% { transform: translateX(-5px); }
-    90% { transform: translateX(5px); }
-    100% { transform: translateX(0); }
+    0%,
+    20%,
+    40%,
+    60%,
+    80% {
+      transform: translateX(0);
+    }
+    10%,
+    30%,
+    50%,
+    70% {
+      transform: translateX(-5px);
+    }
+    90% {
+      transform: translateX(5px);
+    }
+    100% {
+      transform: translateX(0);
+    }
   }
 
   .totalizacao {
@@ -783,9 +822,15 @@
   }
 
   @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.7); }
-    70% { box-shadow: 0 0 0 10px rgba(46, 125, 50, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0); }
+    0% {
+      box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(46, 125, 50, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(46, 125, 50, 0);
+    }
   }
 
   .nfe-table-container {
@@ -802,7 +847,11 @@
   }
 
   .nfe-table th {
-    background: linear-gradient(135deg, var(--primary-green-dark) 0%, var(--primary-green) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--primary-green-dark) 0%,
+      var(--primary-green) 100%
+    );
     color: white;
     padding: 1rem;
     text-align: left;
@@ -843,7 +892,11 @@
   }
 
   .status-badge.processado {
-    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--primary-green) 0%,
+      var(--primary-green-light) 100%
+    );
     color: white;
   }
 
@@ -1107,12 +1160,24 @@
     color: var(--blue-600);
   }
 
-  .text-green-600 { color: var(--green-600); }
-  .text-red-600 { color: var(--red-600); }
-  .text-orange-600 { color: #ea580c; }
-  .ml-auto { margin-left: auto; }
-  .ml-2 { margin-left: 0.5rem; }
-  .text-xs { font-size: 0.75rem; }
+  .text-green-600 {
+    color: var(--green-600);
+  }
+  .text-red-600 {
+    color: var(--red-600);
+  }
+  .text-orange-600 {
+    color: #ea580c;
+  }
+  .ml-auto {
+    margin-left: auto;
+  }
+  .ml-2 {
+    margin-left: 0.5rem;
+  }
+  .text-xs {
+    font-size: 0.75rem;
+  }
 
   .underline {
     text-decoration: underline;
@@ -1310,11 +1375,11 @@
     font-size: 1rem;
   }
 </style>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="space-y-6">
-  <div class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 shadow-lg">
+  <div
+    class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 shadow-lg"
+  >
     <h1 class="text-3xl font-bold flex items-center gap-3">
       <i class="fas fa-file-invoice"></i>
       Importação de Notas Fiscais SEFAZ
@@ -1334,18 +1399,22 @@
 
     <div class="stats-grid">
       <div class="stat-card">
-        <span class="stat-number" id="totalNotas">{{ notas|length if notas else 0 }}</span>
+        <span class="stat-number" id="totalNotas"
+          >{{ notas|length if notas else 0 }}</span
+        >
         <span class="stat-label">Notas Importadas</span>
       </div>
       <div class="stat-card">
         <span class="stat-number" id="notasProcessadas">
-          {{ notas|selectattr('status', 'equalto', 'PROCESSADA')|list|length if notas else 0 }}
+          {{ notas|selectattr('status', 'equalto', 'PROCESSADA')|list|length if
+          notas else 0 }}
         </span>
         <span class="stat-label">Processadas</span>
       </div>
       <div class="stat-card">
         <span class="stat-number" id="valorTotal">
-          R$ {{ "%.2f"|format(notas|sum(attribute='valor_total') if notas else 0)|replace('.', ',')|replace(',', '.', 1) }}
+          R$ {{ "%.2f"|format(notas|sum(attribute='valor_total') if notas else
+          0)|replace('.', ',')|replace(',', '.', 1) }}
         </span>
         <span class="stat-label">Valor Total</span>
       </div>
@@ -1383,8 +1452,13 @@
       <div class="flex-1 min-w-0">
         <label class="form-label">Chave de Acesso (44 dígitos)</label>
         <div class="search-box">
-          <input type="text" id="chaveAcessoInput" placeholder="Digite ou escaneie a chave de acesso da NFe..."
-            class="chave-input" maxlength="44" />
+          <input
+            type="text"
+            id="chaveAcessoInput"
+            placeholder="Digite ou escaneie a chave de acesso da NFe..."
+            class="chave-input"
+            maxlength="44"
+          />
           <i class="fas fa-key"></i>
         </div>
       </div>
@@ -1397,7 +1471,8 @@
 
     <div class="text-sm text-gray-600">
       <i class="fas fa-info-circle"></i>
-      Digite a chave de acesso de 44 dígitos ou use um leitor de código para capturar automaticamente
+      Digite a chave de acesso de 44 dígitos ou use um leitor de código para
+      capturar automaticamente
     </div>
   </div>
 
@@ -1408,8 +1483,16 @@
     </div>
     <div class="flex gap-4 flex-wrap items-end mb-4">
       <div class="flex-1 min-w-0">
-        <label for="xmlFilesInput" class="form-label">Selecione os arquivos XML</label>
-        <input type="file" id="xmlFilesInput" class="form-control" multiple accept=".xml">
+        <label for="xmlFilesInput" class="form-label"
+          >Selecione os arquivos XML</label
+        >
+        <input
+          type="file"
+          id="xmlFilesInput"
+          class="form-control"
+          multiple
+          accept=".xml"
+        />
       </div>
       <button class="btn-green" id="btnImportarXmls">
         <i class="fas fa-upload"></i>
@@ -1419,7 +1502,8 @@
     </div>
     <div class="text-sm text-gray-600">
       <i class="fas fa-info-circle"></i>
-      Selecione um ou mais arquivos .xml da sua pasta. O sistema irá verificar e adicionar apenas as notas que ainda não foram importadas.
+      Selecione um ou mais arquivos .xml da sua pasta. O sistema irá verificar e
+      adicionar apenas as notas que ainda não foram importadas.
     </div>
   </div>
 
@@ -1431,7 +1515,12 @@
 
     <div class="search-controls">
       <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Buscar por CNPJ, nome, chave..." class="search-input" />
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Buscar por CNPJ, nome, chave..."
+          class="search-input"
+        />
         <i class="fas fa-search"></i>
       </div>
 
@@ -1449,12 +1538,26 @@
       </select>
 
       <div class="flex items-center gap-2">
-        <label for="startDateFilter" class="text-sm font-medium text-gray-600">De:</label>
-        <input type="date" id="startDateFilter" class="form-select" style="padding: 8px" />
+        <label for="startDateFilter" class="text-sm font-medium text-gray-600"
+          >De:</label
+        >
+        <input
+          type="date"
+          id="startDateFilter"
+          class="form-select"
+          style="padding: 8px"
+        />
       </div>
       <div class="flex items-center gap-2">
-        <label for="endDateFilter" class="text-sm font-medium text-gray-600">Até:</label>
-        <input type="date" id="endDateFilter" class="form-select" style="padding: 8px" />
+        <label for="endDateFilter" class="text-sm font-medium text-gray-600"
+          >Até:</label
+        >
+        <input
+          type="date"
+          id="endDateFilter"
+          class="form-select"
+          style="padding: 8px"
+        />
       </div>
 
       <button class="btn-secondary" id="btnLimparFiltros">
@@ -1471,10 +1574,17 @@
     </div>
     <div class="flex flex-wrap gap-4 items-center">
       <div>
-        <label for="tipoExportacao" class="form-label">Tipo de Exportação</label>
+        <label for="tipoExportacao" class="form-label"
+          >Tipo de Exportação</label
+        >
         <select id="tipoExportacao" class="form-select">
           <option value="todas">Exportar seleção atual</option>
-          <option value="processadas">Exportar apenas Processadas da seleção atual</option>
+          <option value="processadas">
+            Exportar apenas Processadas da seleção atual
+          </option>
+          <option value="nao_lancadas">
+            Exportar apenas Não Lançadas da seleção atual
+          </option>
         </select>
       </div>
       <button class="btn-green" id="btnExportarDocumentos">
@@ -1485,7 +1595,8 @@
     </div>
     <p class="text-sm text-gray-600 mt-3">
       <i class="fas fa-info-circle"></i>
-      Será gerado um arquivo .zip contendo um relatório em Excel e uma pasta com os arquivos XML.
+      Será gerado um arquivo .zip contendo um relatório em Excel e uma pasta com
+      os arquivos XML.
     </p>
   </div>
 
@@ -1493,7 +1604,10 @@
     <div class="section-header">
       <i class="fas fa-list"></i>
       Notas Fiscais Importadas
-      <span id="contadorNotas" class="text-base font-normal text-gray-600"></span>
+      <span
+        id="contadorNotas"
+        class="text-base font-normal text-gray-600"
+      ></span>
     </div>
 
     <div id="nfeContainer">
@@ -1501,7 +1615,9 @@
       <div class="empty-state" id="emptyState">
         <i class="fas fa-file-invoice"></i>
         <h3>Nenhuma nota encontrada</h3>
-        <p>Clique em "Buscar Novas NFe na SEFAZ" para importar suas notas fiscais</p>
+        <p>
+          Clique em "Buscar Novas NFe na SEFAZ" para importar suas notas fiscais
+        </p>
       </div>
       {% else %}
       <div class="nfe-table-container" id="nfeTableContainer">
@@ -1560,7 +1676,7 @@
     <div class="loading-spinner-large"></div>
     <div class="loading-modal-title">Processando XMLs...</div>
     <div class="loading-modal-text">
-      Por favor, aguarde enquanto processamos os arquivos.<br>
+      Por favor, aguarde enquanto processamos os arquivos.<br />
       Isso pode levar alguns instantes.
     </div>
     <div class="loading-modal-details">
@@ -1593,10 +1709,20 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="unidadeNegocioLancamento">Unidade de Negócio *</label>
+        <label class="form-label" for="unidadeNegocioLancamento"
+          >Unidade de Negócio *</label
+        >
         <select id="unidadeNegocioLancamento" class="form-control" required>
           {% for unidade in unidades_negocio %}
-          <option value="{{ unidade.id }}" {% if unidade.is_matriz %}selected{% endif %}>
+          <option
+            value="{{ unidade.id }}"
+            {%
+            if
+            unidade.is_matriz
+            %}selected{%
+            endif
+            %}
+          >
             {{ unidade.nome }} {% if unidade.is_matriz %}(Matriz){% endif %}
           </option>
           {% endfor %}
@@ -1605,17 +1731,41 @@
 
       <div class="form-group">
         <label class="form-label">Parcelamento do Pagamento</label>
-        <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end; margin-bottom: 1rem;">
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 1rem;
+            align-items: end;
+            margin-bottom: 1rem;
+          "
+        >
           <div>
-            <label for="quantidadeParcelas" style="font-size: 0.875rem; color: var(--gray-600)">Quantidade de Parcelas</label>
-            <input type="number" id="quantidadeParcelas" min="1" max="36" value="1" class="form-control" style="padding: 8px 12px" />
+            <label
+              for="quantidadeParcelas"
+              style="font-size: 0.875rem; color: var(--gray-600)"
+              >Quantidade de Parcelas</label
+            >
+            <input
+              type="number"
+              id="quantidadeParcelas"
+              min="1"
+              max="36"
+              value="1"
+              class="form-control"
+              style="padding: 8px 12px"
+            />
           </div>
           <button type="button" id="btnGerarParcelas" class="btn-secondary">
             <i class="fas fa-calendar-alt"></i> Gerar Parcelas
           </button>
         </div>
 
-        <div class="parcelamento-container" id="parcelamentoContainer" style="display: none">
+        <div
+          class="parcelamento-container"
+          id="parcelamentoContainer"
+          style="display: none"
+        >
           <div class="parcelamento-header">
             <i class="fas fa-calendar-check"></i>
             <span>Cronograma de Pagamento</span>
@@ -1629,11 +1779,15 @@
               </div>
               <div class="totalizacao-item">
                 <span class="totalizacao-label">Total das Parcelas</span>
-                <span class="totalizacao-valor" id="totalParcelas">R$ 0,00</span>
+                <span class="totalizacao-valor" id="totalParcelas"
+                  >R$ 0,00</span
+                >
               </div>
               <div class="totalizacao-item">
                 <span class="totalizacao-label">Diferença</span>
-                <span class="totalizacao-valor" id="diferencaValor">R$ 0,00</span>
+                <span class="totalizacao-valor" id="diferencaValor"
+                  >R$ 0,00</span
+                >
               </div>
             </div>
           </div>
@@ -1651,7 +1805,13 @@
         <label class="form-label">Rateio da Despesa</label>
         <div class="tipo-movimento-container">
           <div class="radio-option">
-            <input type="radio" id="semRateio" name="tipo_rateio" value="sem_rateio" checked />
+            <input
+              type="radio"
+              id="semRateio"
+              name="tipo_rateio"
+              value="sem_rateio"
+              checked
+            />
             <label for="semRateio" class="radio-label despesa">
               <i class="fas fa-file-invoice-dollar"></i>
               <span>Despesa Geral</span>
@@ -1659,7 +1819,12 @@
             </label>
           </div>
           <div class="radio-option">
-            <input type="radio" id="comRateio" name="tipo_rateio" value="com_rateio" />
+            <input
+              type="radio"
+              id="comRateio"
+              name="tipo_rateio"
+              value="com_rateio"
+            />
             <label for="comRateio" class="radio-label despesa">
               <i class="fas fa-truck-moving"></i>
               <span>Ratear por Veículo</span>
@@ -1671,18 +1836,29 @@
 
       <div id="containerRateio" style="display: none">
         <div class="form-group">
-          <label class="form-label">Buscar Veículos (Placa ou Modelo) para despesas não relacionadas a veiculos (ADMIN)</label>
+          <label class="form-label"
+            >Buscar Veículos (Placa ou Modelo) para despesas não relacionadas a
+            veiculos (ADMIN)</label
+          >
           <div class="search-box">
-            <input type="text" id="veiculoSearchInput"
-              placeholder="Digite para buscar e adicionar múltiplos veículos..." autocomplete="off"
-              class="form-control" />
+            <input
+              type="text"
+              id="veiculoSearchInput"
+              placeholder="Digite para buscar e adicionar múltiplos veículos..."
+              autocomplete="off"
+              class="form-control"
+            />
             <i class="fas fa-search" style="right: 15px; left: auto"></i>
           </div>
-          <div id="veiculoSearchResults" class="list-group mt-2 position-absolute bg-white shadow-lg rounded"
-            style="z-index: 1001; width: calc(100% - 4rem)"></div>
+          <div
+            id="veiculoSearchResults"
+            class="list-group mt-2 position-absolute bg-white shadow-lg rounded"
+            style="z-index: 1001; width: calc(100% - 4rem)"
+          ></div>
           <div class="text-sm text-gray-600 mt-2">
             <i class="fas fa-info-circle"></i>
-            Você pode adicionar quantos veículos precisar para dividir o custo da nota fiscal
+            Você pode adicionar quantos veículos precisar para dividir o custo
+            da nota fiscal
           </div>
         </div>
 
@@ -1691,23 +1867,38 @@
             <i class="fas fa-list-ul"></i>
             <span>Veículos para Rateio</span>
             <div class="ml-auto" id="rateioControles" style="display: none">
-              <button type="button" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem"
-                onclick="distribuirIgualmente()">
+              <button
+                type="button"
+                class="btn-secondary"
+                style="padding: 6px 12px; font-size: 0.75rem"
+                onclick="distribuirIgualmente()"
+              >
                 <i class="fas fa-equals"></i> Dividir Igual
               </button>
-              <button type="button" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem"
-                onclick="ajustarAutomaticamente()">
+              <button
+                type="button"
+                class="btn-secondary"
+                style="padding: 6px 12px; font-size: 0.75rem"
+                onclick="ajustarAutomaticamente()"
+              >
                 <i class="fas fa-magic"></i> Ajustar Auto
               </button>
-              <button type="button" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem"
-                onclick="limparRateio()">
+              <button
+                type="button"
+                class="btn-secondary"
+                style="padding: 6px 12px; font-size: 0.75rem"
+                onclick="limparRateio()"
+              >
                 <i class="fas fa-trash"></i> Limpar
               </button>
             </div>
           </div>
           <div id="veiculosRateioContainer" class="mt-3">
             <div class="text-center text-gray-500 my-4" id="rateioEmpty">
-              <i class="fas fa-truck" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.3"></i>
+              <i
+                class="fas fa-truck"
+                style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.3"
+              ></i>
               <p>Nenhum veículo selecionado</p>
               <small>Use a busca acima para adicionar veículos ao rateio</small>
             </div>
@@ -1716,23 +1907,40 @@
             <div class="totalizacao-content">
               <div class="totalizacao-item">
                 <span class="totalizacao-label">Valor da Nota</span>
-                <span class="totalizacao-valor" id="rateioValorNota">R$ 0,00</span>
+                <span class="totalizacao-valor" id="rateioValorNota"
+                  >R$ 0,00</span
+                >
               </div>
               <div class="totalizacao-item">
                 <span class="totalizacao-label">Total Rateado</span>
-                <span class="totalizacao-valor" id="rateioTotalAlocado">R$ 0,00</span>
+                <span class="totalizacao-valor" id="rateioTotalAlocado"
+                  >R$ 0,00</span
+                >
               </div>
               <div class="totalizacao-item">
                 <span class="totalizacao-label">Diferença</span>
-                <span class="totalizacao-valor" id="rateioDiferenca">R$ 0,00</span>
+                <span class="totalizacao-valor" id="rateioDiferenca"
+                  >R$ 0,00</span
+                >
               </div>
             </div>
             <div class="mt-3" id="rateioStatusContainer">
-              <div class="progress-bar" id="rateioProgressBar" style="display: block; height: 6px">
-                <div class="progress-fill" id="rateioProgressFill" style="width: 0%"></div>
+              <div
+                class="progress-bar"
+                id="rateioProgressBar"
+                style="display: block; height: 6px"
+              >
+                <div
+                  class="progress-fill"
+                  id="rateioProgressFill"
+                  style="width: 0%"
+                ></div>
               </div>
               <div class="text-center mt-2" id="rateioStatus">
-                <small class="text-gray-600">Adicione veículos e distribua os valores para confirmar o lançamento</small>
+                <small class="text-gray-600"
+                  >Adicione veículos e distribua os valores para confirmar o
+                  lançamento</small
+                >
               </div>
             </div>
           </div>
@@ -1779,12 +1987,12 @@
   function mostrarNotificacao(tipo, mensagem) {
     const container = document.getElementById('notifications');
     const notification = document.createElement('div');
-    
+
     // Extrair apenas o texto da mensagem (remover tags HTML para o conteúdo)
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = mensagem;
     const textoLimpo = tempDiv.textContent || tempDiv.innerText;
-    
+
     // Determinar o ícone baseado no tipo
     const icones = {
       'success': 'fas fa-check-circle',
@@ -2862,50 +3070,31 @@
 
     try {
       const response = await fetch(`/api/fiscal/buscar_dados_nota/${chaveAcesso}`);
-      console.log('Response status:', response.status);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
+      // Tenta ler a resposta da API, seja ela de sucesso ou erro
       const result = await response.json();
-      console.log('Result:', result);
 
-      if (result.success) {
-        abrirModalLancamento(result.nota, chaveAcesso);
-      } else {
-        mostrarNotificacao('error', result.message);
+      // Se a resposta NÃO for OK (ex: erro 404, 409), exibe a mensagem de erro vinda da API
+      if (!response.ok) {
+        mostrarNotificacao('error', result.message || 'Ocorreu um erro no servidor.');
+        return; // Interrompe a execução para não abrir o modal
       }
+
+      // Se a resposta for OK (código 200), mas o sucesso for falso
+      if (!result.success) {
+          mostrarNotificacao('error', result.message || 'Resposta inesperada do servidor.');
+          return; // Interrompe a execução
+      }
+
+      // Se tudo correu bem, abre o modal de lançamento
+      abrirModalLancamento(result.nota, chaveAcesso);
+
     } catch (error) {
-      console.error('Erro na requisição:', error);
-
-      console.log('API não disponível, usando dados mock para demonstração');
-
-      const notaLocal = notasData.find(n => n.chave_acesso === chaveAcesso);
-
-      let dadosMock;
-      if (notaLocal) {
-        dadosMock = {
-          chave_acesso: chaveAcesso,
-          emitente_nome: notaLocal.emitente_nome,
-          emitente_cnpj: notaLocal.emitente_cnpj,
-          valor_total: notaLocal.valor_total,
-          data_emissao: notaLocal.data_emissao
-        };
-      } else {
-        dadosMock = {
-          chave_acesso: chaveAcesso,
-          emitente_nome: 'Empresa Exemplo LTDA',
-          emitente_cnpj: '12.345.678/0001-99',
-          valor_total: 1500.00,
-          data_emissao: new Date().toISOString()
-        };
-      }
-
-      mostrarNotificacao('info', 'Usando modo demonstração (API não disponível)');
-      abrirModalLancamento(dadosMock, chaveAcesso);
+      // Este bloco agora só será ativado em caso de erro de rede (API offline)
+      console.error('Erro de conexão ou de parsing na resposta:', error);
+      mostrarNotificacao('error', 'Não foi possível conectar ao servidor para verificar a nota.');
     }
   }
+
 
   function abrirModalLancamento(dadosNota, chaveAcesso) {
     console.log('Abrindo modal para a nota:', dadosNota);
@@ -3047,7 +3236,7 @@
           valor: v.valor,
           percentual: (v.valor / valorTotalNota) * 100
         }));
-        
+
         console.log('Payload com rateio:', JSON.stringify(payload, null, 2));
         console.log(`Enviando 1 lançamento com ${payload.rateios.length} rateios de veículos`);
       } else {
@@ -3182,7 +3371,15 @@
     let notasParaExportar = [];
     if (tipoExportacao === 'processadas') {
       notasParaExportar = notasFiltradas.filter(nota => nota.status === 'PROCESSADA');
-    } else {
+    }
+
+    else if (tipoExportacao === 'nao_lancadas') {
+      notasParaExportar = notasFiltradas.filter(nota => nota.status === 'BAIXADA');
+
+    }
+
+
+    else {
       notasParaExportar = [...notasFiltradas];
     }
 

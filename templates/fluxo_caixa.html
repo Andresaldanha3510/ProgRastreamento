@@ -23,6 +23,97 @@
         --gray-900: #0f172a;
     }
 
+    .vencidos-notification-bar {
+        display: none; /* Inicia oculto */        
+        top: 80px; /* Ajuste conforme a altura do seu header */
+        z-index: 998;
+        background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+        color: #92400e;
+        padding: 1rem 1.5rem;
+        border-bottom: 3px solid #f59e0b;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+    }
+    .vencidos-notification-bar.visible {
+        display: flex;
+    }
+    .vencidos-notification-content {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        font-weight: 600;
+    }
+    .vencidos-notification-content i {
+        font-size: 1.5rem;
+    }
+    .vencidos-notification-actions .btn {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 0.875rem;
+    }
+
+    /* Modal de Títulos Vencidos */
+    #vencidosModal .modal-body {
+        padding: 0;
+    }
+    .lista-titulos-vencidos {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+    .titulo-vencido-item {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--gray-200);
+        cursor: pointer;
+        transition: background-color 0.2s;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .titulo-vencido-item:hover {
+        background-color: var(--gray-100);
+    }
+    .titulo-vencido-item:last-child {
+        border-bottom: none;
+    }
+    .titulo-vencido-info {
+        display: flex;
+        flex-direction: column;
+    }
+    .titulo-vencido-descricao {
+        font-weight: 600;
+        color: var(--gray-800);
+    }
+    .titulo-vencido-detalhes {
+        font-size: 0.8rem;
+        color: var(--gray-600);
+    }
+    .titulo-vencido-valor {
+        font-weight: 700;
+        color: var(--red-600);
+        font-size: 1.1rem;
+        text-align: right;
+    }
+    .titulo-vencido-dias {
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--red-600);
+    }
+
+    /* Destaque da Linha na Tabela Principal */
+    @keyframes highlight-fade {
+        from { background-color: #fef9c3; }
+        to { background-color: transparent; }
+    }
+    .highlight-row {
+        animation: highlight-fade 3s ease-out forwards;
+    }
+
     .fluxo-container {
         background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
         border-radius: 16px;
@@ -1291,6 +1382,7 @@
 {% endblock %}
 
 {% block content %}
+
 <div class="space-y-6">
     <div class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 shadow-lg">
         <h1 class="text-3xl font-bold flex items-center gap-3">
@@ -1299,6 +1391,17 @@
         </h1>
         <p class="text-green-100 mt-2">Controle completo das suas receitas e despesas</p>
     </div>
+    <div id="vencidosNotification" class="vencidos-notification-bar fade-in">
+        <div class="vencidos-notification-content">
+            <i class="fas fa-exclamation-circle"></i>
+            <span id="vencidosCountText">Você possui títulos vencidos!</span>
+        </div>
+        <div class="vencidos-notification-actions">
+            <button class="btn btn-secondary" id="btnIgnorarVencidos">Ignorar</button>
+            <button class="btn btn-warning" id="btnVerVencidos">Ver Títulos</button>
+        </div>
+    </div>
+    
 
     <div id="notifications"></div>
 
@@ -1484,8 +1587,8 @@
                 </thead>
                 <tbody>
                     {% for item in fluxo_consolidado %}
-                    <tr class="{% if item.is_vencido %}vencido{% elif item.status in ['PAGO', 'Pago'] %}pago{% elif item.data_vencimento == hoje %}hoje{% endif %} table-row"
-                        data-search="{{ (item.descricao or '') + ' ' + (item.fornecedor_cliente or '') + ' ' + (item.documento or '') + ' ' + (item.categoria or '') }}">
+                    <tr id="row-{{ item.id }}" class="{% if item.is_vencido %}vencido{% elif item.status in ['PAGO', 'Pago'] %}pago{% elif item.data_vencimento == hoje %}hoje{% endif %} table-row"
+                         data-search="{{ (item.descricao or '') + ' ' + (item.fornecedor_cliente or '') + ' ' + (item.documento or '') + ' ' + (item.categoria or '') }}">
                         <td style="width: 50px; text-align: center;">
                             {# ### ALTERAÇÃO PRINCIPAL AQUI ### #}
                             {% if item.status not in ['PAGO', 'Pago'] %}
@@ -2075,6 +2178,21 @@
                 </button>
             </div>
         </form>
+    </div>
+</div>
+<div id="vencidosModal" class="modal">
+    <div class="modal-content large">
+        <div class="modal-header" style="background: linear-gradient(135deg, #b91c1c 0%, #ef4444 100%);">
+            <h2 class="modal-title"><i class="fas fa-calendar-times"></i>Títulos Vencidos</h2>
+            <span class="close" onclick="closeModal('vencidosModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <ul id="listaTitulosVencidos" class="lista-titulos-vencidos">
+                </ul>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="closeModal('vencidosModal')">Fechar</button>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -3455,6 +3573,96 @@
 
         nlValidarRateio();
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const titulosVencidos = JSON.parse('{{ titulos_vencidos_json|safe }}');
+
+        const notificationBar = document.getElementById('vencidosNotification');
+        const vencidosCountText = document.getElementById('vencidosCountText');
+        const btnVerVencidos = document.getElementById('btnVerVencidos');
+        const btnIgnorarVencidos = document.getElementById('btnIgnorarVencidos');
+        const vencidosModal = document.getElementById('vencidosModal');
+        const listaTitulosVencidos = document.getElementById('listaTitulosVencidos');
+
+        if (titulosVencidos && titulosVencidos.length > 0) {
+            vencidosCountText.textContent = `Atenção: Você possui ${titulosVencidos.length} título(s) vencido(s).`;
+            notificationBar.classList.add('visible');
+        }
+
+        btnIgnorarVencidos.addEventListener('click', () => {
+            notificationBar.style.display = 'none';
+        });
+
+        btnVerVencidos.addEventListener('click', () => {
+            
+            listaTitulosVencidos.innerHTML = '';
+
+            titulosVencidos.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'titulo-vencido-item';
+                li.dataset.id = item.id;
+                li.dataset.vencimentoUrl = item.data_vencimento_url;
+
+                li.innerHTML = `
+                    <div class="titulo-vencido-info">
+                        <span class="titulo-vencido-descricao">${item.descricao}</span>
+                        <span class="titulo-vencido-detalhes">Venceu em: ${item.data_vencimento_br}</span>
+                    </div>
+                    <div class="titulo-vencido-valor">
+                        <span>R$ ${formatarMoeda(item.valor)}</span>
+                        <div class="titulo-vencido-dias">${item.dias_atraso} dia(s) atrás</div>
+                    </div>
+                `;
+                listaTitulosVencidos.appendChild(li);
+            });
+            openModal('vencidosModal');
+        });
+
+        listaTitulosVencidos.addEventListener('click', (event) => {
+            const itemClicado = event.target.closest('.titulo-vencido-item');
+            if (!itemClicado) return;
+
+            const lancamentoId = itemClicado.dataset.id;
+            const dataVencimentoUrl = itemClicado.dataset.vencimentoUrl;
+            
+            closeModal('vencidosModal');
+
+            const linhaDaTabela = document.getElementById(`row-${lancamentoId}`);
+
+            if (linhaDaTabela) {
+                linhaDaTabela.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                linhaDaTabela.classList.add('highlight-row');
+                setTimeout(() => linhaDaTabela.classList.remove('highlight-row'), 3000);
+            } else {
+                const url = new URL("{{ url_for('fluxo_caixa', _external=True) }}");
+                url.searchParams.set('data_inicio', dataVencimentoUrl);
+                url.searchParams.set('data_fim', dataVencimentoUrl);
+                url.searchParams.set('highlight', lancamentoId);
+                window.location.href = url.toString();
+            }
+        });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const highlightId = urlParams.get('highlight');
+        
+        if (highlightId) {
+            const linhaParaDestacar = document.getElementById(`row-${highlightId}`);
+            if (linhaParaDestacar) {
+                setTimeout(() => {
+                    linhaParaDestacar.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    linhaParaDestacar.classList.add('highlight-row');
+                    setTimeout(() => linhaParaDestacar.classList.remove('highlight-row'), 3000);
+
+                    const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + window.location.search.replace(/&?highlight=[^&]*/, '');
+                    window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+                }, 200);
+            }
+        }
+    });
+
+ 
+
+  
 
     function nlAtualizarPercentual(veiculoId, percentual) {
         const v = nlVeiculosRateio.get(veiculoId);

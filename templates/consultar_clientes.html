@@ -448,11 +448,18 @@ endblock %} {% block styles %} {{ super() }}
           Estatísticas
         </button>
         <button
+          id="tab-atendimentos"
+          class="tab-button py-3 px-4"
+          onclick="switchTab('atendimentos')"
+        >
+          Histórico de Atendimentos
+        </button>
+        <button
           id="tab-viagens"
           class="tab-button py-3 px-4"
           onclick="switchTab('viagens')"
         >
-          Histórico de Viagens
+          Histórico Financeiro
         </button>
         <button
           id="tab-anexos"
@@ -465,6 +472,7 @@ endblock %} {% block styles %} {{ super() }}
     </div>
     <div class="p-6 overflow-y-auto">
       <div id="content-stats" class="tab-content"></div>
+      <div id="content-atendimentos" class="tab-content hidden"></div>
       <div id="content-viagens" class="tab-content hidden"></div>
       <div id="content-anexos" class="tab-content hidden"></div>
     </div>
@@ -475,6 +483,7 @@ endblock %} {% block styles %} {{ super() }}
   function closeModal(modalId) {
     document.getElementById(modalId).classList.add("hidden");
   }
+
   function switchTab(tabName) {
     document
       .querySelectorAll("#clientModal .tab-content")
@@ -486,6 +495,85 @@ endblock %} {% block styles %} {{ super() }}
     document.getElementById(`tab-${tabName}`).classList.add("active");
   }
 
+  // NOVA FUNÇÃO PARA RENDERIZAR O HISTÓRICO DE ATENDIMENTOS
+  function renderAtendimentos(atendimentos, container) {
+    if (atendimentos && atendimentos.length > 0) {
+      let atendimentosHtml = `
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="p-2 text-left">Data</th>
+                            <th class="p-2 text-left">Motorista</th>
+                            <th class="p-2 text-left">Veículo</th>
+                            <th class="p-2 text-left">Trajeto</th>
+                            <th class="p-2 text-center">Status</th>
+                            <th class="p-2 text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+      atendimentos.forEach((a) => {
+        atendimentosHtml += `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="p-2 whitespace-nowrap">${a.data_viagem}</td>
+                    <td class="p-2">${a.motorista_nome}</td>
+                    <td class="p-2">${a.veiculo_placa} (${a.veiculo_modelo})</td>
+                    <td class="p-2">${a.origem} &rarr; ${a.destino}</td>
+                    <td class="p-2 text-center"><span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">${a.status}</span></td>
+                    <td class="p-2 text-center">
+                        <a href="/editar_viagem/${a.viagem_id}" class="text-blue-600 hover:text-blue-800" title="Ver Detalhes da Viagem">
+                            <i class="fas fa-search"></i>
+                        </a>
+                    </td>
+                </tr>
+            `;
+      });
+      atendimentosHtml += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+      container.innerHTML = atendimentosHtml;
+    } else {
+      container.innerHTML =
+        '<p class="text-center text-gray-500">Nenhum histórico de atendimento encontrado para este cliente.</p>';
+    }
+  }
+
+  function renderAnexos(clienteId, anexos, container) {
+    if (anexos && anexos.length > 0) {
+      let anexosHtml = '<div class="space-y-2">';
+      anexos.forEach((anexoUrl) => {
+        const fileName = anexoUrl
+          .split("/")
+          .pop()
+          .split("-")
+          .slice(1)
+          .join("-");
+        anexosHtml += `
+                <div class="attachment-item" id="anexo-${btoa(anexoUrl)}">
+                    <div class="flex items-center">
+                         <i class="fas fa-paperclip attachment-icon"></i>
+                         <a href="${anexoUrl}" target="_blank" class="attachment-name" title="${fileName}">${fileName}</a>
+                    </div>
+                    <button onclick="deleteClientAttachment(${clienteId}, '${anexoUrl}')" class="btn-delete-attachment" title="Excluir anexo">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+      });
+      anexosHtml +=
+        '</div><p class="text-xs text-gray-500 mt-4">Para adicionar novos arquivos, acesse a tela de <a href="/editar_cliente/' +
+        clienteId +
+        '" class="text-blue-600 hover:underline">edição de cliente</a>.</p>';
+      container.innerHTML = anexosHtml;
+    } else {
+      container.innerHTML =
+        '<p class="text-center text-gray-500">Nenhum anexo encontrado. Você pode adicionar arquivos na tela de edição do cliente.</p>';
+    }
+  }
+
   async function openClientModal(clienteId) {
     const modal = document.getElementById("clientModal");
     modal.classList.remove("hidden");
@@ -494,13 +582,19 @@ endblock %} {% block styles %} {{ super() }}
     const statsContainer = document.getElementById("content-stats");
     const tripsContainer = document.getElementById("content-viagens");
     const anexosContainer = document.getElementById("content-anexos");
+    const atendimentosContainer = document.getElementById(
+      "content-atendimentos"
+    ); // <-- Adicionado
 
+    // Limpa todos os containers
     statsContainer.innerHTML =
       '<p class="text-center text-gray-500">Carregando estatísticas...</p>';
     tripsContainer.innerHTML =
       '<p class="text-center text-gray-500">Carregando histórico...</p>';
     anexosContainer.innerHTML =
       '<p class="text-center text-gray-500">Carregando anexos...</p>';
+    atendimentosContainer.innerHTML =
+      '<p class="text-center text-gray-500">Carregando atendimentos...</p>'; // <-- Adicionado
 
     document.getElementById("modal-client-name").innerText = "Carregando...";
 
@@ -539,7 +633,7 @@ endblock %} {% block styles %} {{ super() }}
                   )}</p><p class="text-sm text-yellow-600">Lucro Total</p></div>
             </div>`;
 
-      // Preenche a aba de Histórico de Viagens
+      // Preenche a aba de Histórico Financeiro
       const viagens = data.viagens;
       if (viagens.length > 0) {
         let tripsHtml =
@@ -557,49 +651,20 @@ endblock %} {% block styles %} {{ super() }}
         tripsContainer.innerHTML = tripsHtml;
       } else {
         tripsContainer.innerHTML =
-          '<p class="text-center text-gray-500">Nenhum histórico de viagem para este cliente.</p>';
+          '<p class="text-center text-gray-500">Nenhum histórico financeiro para este cliente.</p>';
       }
 
       // Preenche a aba de Anexos
       renderAnexos(clienteId, data.anexos, anexosContainer);
+
+      // CHAMA A NOVA FUNÇÃO PARA RENDERIZAR O HISTÓRICO DE ATENDIMENTOS
+      renderAtendimentos(data.atendimentos, atendimentosContainer);
     } catch (error) {
       console.error("Erro no modal do cliente:", error);
       statsContainer.innerHTML = `<p class="text-center text-red-500">${error.message}</p>`;
       tripsContainer.innerHTML = "";
       anexosContainer.innerHTML = "";
-    }
-  }
-
-  function renderAnexos(clienteId, anexos, container) {
-    if (anexos && anexos.length > 0) {
-      let anexosHtml = '<div class="space-y-2">';
-      anexos.forEach((anexoUrl) => {
-        const fileName = anexoUrl
-          .split("/")
-          .pop()
-          .split("-")
-          .slice(1)
-          .join("-");
-        anexosHtml += `
-                <div class="attachment-item" id="anexo-${btoa(anexoUrl)}">
-                    <div class="flex items-center">
-                         <i class="fas fa-paperclip attachment-icon"></i>
-                         <a href="${anexoUrl}" target="_blank" class="attachment-name" title="${fileName}">${fileName}</a>
-                    </div>
-                    <button onclick="deleteClientAttachment(${clienteId}, '${anexoUrl}')" class="btn-delete-attachment" title="Excluir anexo">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            `;
-      });
-      anexosHtml +=
-        '</div><p class="text-xs text-gray-500 mt-4">Para adicionar novos arquivos, acesse a tela de <a href="/editar_cliente/' +
-        clienteId +
-        '" class="text-blue-600 hover:underline">edição de cliente</a>.</p>';
-      container.innerHTML = anexosHtml;
-    } else {
-      container.innerHTML =
-        '<p class="text-center text-gray-500">Nenhum anexo encontrado. Você pode adicionar arquivos na tela de edição do cliente.</p>';
+      atendimentosContainer.innerHTML = ""; // <-- Adicionado
     }
   }
 
@@ -621,7 +686,6 @@ endblock %} {% block styles %} {{ super() }}
       const result = await response.json();
 
       if (response.ok && result.success) {
-        // Remove o elemento do DOM
         const elementId = btoa(anexoUrl);
         document.getElementById(`anexo-${elementId}`).remove();
         alert("Anexo excluído com sucesso!");

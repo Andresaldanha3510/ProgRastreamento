@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Ordem de Serviço #{{ manutencao.id }}</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      @page {
+        size: A4 portrait;
+        margin: 0.8cm;
+      }
+
+      @media print {
+        body {
+          margin: 0;
+          padding: 0;
+        }
+      }
+
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 9pt;
+        color: #333;
+        line-height: 1.3;
+      }
+
+      /* HEADER */
+      .header {
+        display: table;
+        width: 100%;
+        margin-bottom: 10px;
+        border-bottom: 2px solid #333;
+        padding-bottom: 6px;
+      }
+
+      .header-left {
+        display: table-cell;
+        width: 65%;
+        vertical-align: top;
+      }
+
+      .header-right {
+        display: table-cell;
+        width: 35%;
+        text-align: right;
+        vertical-align: top;
+      }
+
+      .header h1 {
+        font-size: 16pt;
+        margin: 0 0 3px 0;
+        color: #000;
+      }
+
+      .header p {
+        margin: 1px 0;
+        font-size: 8pt;
+      }
+
+      .header h2 {
+        font-size: 11pt;
+        margin: 0 0 3px 0;
+      }
+
+      .qrcode {
+        margin-top: 5px;
+      }
+
+      .qrcode img {
+        width: 70px;
+        height: 70px;
+      }
+
+      /* SECTIONS */
+      .section {
+        margin-bottom: 8px;
+        page-break-inside: avoid;
+      }
+
+      .section-title {
+        font-size: 10pt;
+        font-weight: bold;
+        background-color: #e8e8e8;
+        padding: 4px 6px;
+        margin-bottom: 4px;
+        border-left: 4px solid #2e7d32;
+      }
+
+      .section-content {
+        padding: 4px;
+        background-color: #fafafa;
+        border: 1px solid #ddd;
+        font-size: 8.5pt;
+      }
+
+      /* GRID - Usando tabelas para melhor compatibilidade com PDF */
+      .grid-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .grid-table td {
+        width: 50%;
+        padding: 4px 6px;
+        font-size: 8.5pt;
+        vertical-align: top;
+      }
+
+      .grid-table strong {
+        display: inline-block;
+        min-width: 100px;
+        font-weight: bold;
+      }
+
+      /* TABELA DE ITENS */
+      table.items {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 4px;
+        table-layout: fixed;
+      }
+
+      table.items th,
+      table.items td {
+        border: 1px solid #ccc;
+        padding: 4px;
+        font-size: 8pt;
+        word-wrap: break-word;
+      }
+
+      table.items th {
+        background-color: #e8e8e8;
+        font-weight: bold;
+        text-align: left;
+      }
+
+      table.items td {
+        vertical-align: top;
+      }
+
+      table.items .col-descricao {
+        width: 55%;
+      }
+
+      table.items .col-qtd {
+        width: 10%;
+        text-align: center;
+      }
+
+      table.items .col-unitario {
+        width: 17.5%;
+        text-align: right;
+      }
+
+      table.items .col-total {
+        width: 17.5%;
+        text-align: right;
+      }
+
+      table.items tfoot tr th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+        text-align: right;
+        border: 1px solid #ccc;
+        padding: 6px;
+      }
+
+      /* OBSERVAÇÕES */
+      .observations-box {
+        border: 1px solid #ccc;
+        min-height: 60px;
+        padding: 6px;
+        background-color: #fafafa;
+        font-size: 8pt;
+      }
+
+      /* ASSINATURAS */
+      .signatures {
+        display: table;
+        width: 100%;
+        margin-top: 40px;
+      }
+
+      .signature-box {
+        display: table-cell;
+        width: 50%;
+        text-align: center;
+        padding: 0 10px;
+      }
+
+      .signature-line {
+        border-top: 1px solid #333;
+        margin-top: 30px;
+        padding-top: 3px;
+        font-size: 8pt;
+      }
+
+      /* FOOTER */
+      .footer {
+        margin-top: 10px;
+        padding-top: 6px;
+        border-top: 1px solid #ccc;
+        text-align: center;
+        font-size: 7pt;
+        color: #666;
+      }
+
+      .empty-row {
+        height: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="header-left">
+        <h1>{{ empresa.razao_social }}</h1>
+        <p>
+          {{ empresa.endereco }}, {{ empresa.cidade }} - {{ empresa.estado }}
+        </p>
+        <p>CNPJ: {{ empresa.cnpj }} | Telefone: {{ empresa.telefone }}</p>
+      </div>
+      <div class="header-right">
+        <h2>ORDEM DE SERVIÇO</h2>
+        <p style="font-size: 13pt; font-weight: bold">
+          Nº {{ "%05d"|format(manutencao.id) }}
+        </p>
+        <p>
+          <strong>Data de Entrada:</strong><br />
+          {{ manutencao.data_entrada.strftime('%d/%m/%Y') }}
+        </p>
+        <div class="qrcode">
+          <img
+            src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data={{ url_for('finalizar_manutencao_mobile', manutencao_id=manutencao.id, _external=True) }}"
+            alt="QR Code para Finalização"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">DADOS DO VEÍCULO / EQUIPAMENTO</div>
+      <table class="grid-table">
+        <tr>
+          <td><strong>Placa:</strong> {{ veiculo.placa }}</td>
+          <td><strong>Modelo:</strong> {{ veiculo.modelo }}</td>
+        </tr>
+        <tr>
+          <td><strong>Marca:</strong> {{ veiculo.marca }}</td>
+          <td>
+            <strong>Ano/Modelo:</strong> {{ veiculo.ano_fabricacao }}/{{
+            veiculo.ano_modelo }}
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <strong>KM Entrada:</strong> {{
+            "{:,.0f}".format(manutencao.odometro).replace(",", ".") }} km
+          </td>
+          <td>
+            <strong>Chassi:</strong> {{ veiculo.chassi or 'Não informado' }}
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="section">
+      <div class="section-title">DESCRIÇÃO DO PROBLEMA / SOLICITAÇÃO</div>
+      <div class="section-content">
+        <p>
+          {% if manutencao.tipo_manutencao == 'Preventiva' and
+          manutencao.veiculo_plano_associado %} Manutenção Preventiva referente
+          ao plano:
+          <strong
+            >{{ manutencao.veiculo_plano_associado.plano.descricao }}</strong
+          >
+          {% elif manutencao.descricao_problema %} {{
+          manutencao.descricao_problema }} {% else %} Manutenção preventiva
+          conforme plano. {% endif %}
+        </p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">PEÇAS E SERVIÇOS A SEREM EXECUTADOS</div>
+      <table class="items">
+        <thead>
+          <tr>
+            <th class="col-descricao">Descrição (Peça ou Serviço)</th>
+            <th class="col-qtd">Qtd.</th>
+            <th class="col-unitario">Vlr. Unit.<br />(R$)</th>
+            <th class="col-total">Vlr. Total<br />(R$)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if manutencao.itens %} {% for item in manutencao.itens %}
+          <tr>
+            <td class="col-descricao">{{ item.descricao }}</td>
+            <td class="col-qtd">{{ item.quantidade }}</td>
+            <td class="col-unitario">
+              {{ "{:,.2f}".format(item.custo_unitario).replace(",",
+              "X").replace(".", ",").replace("X", ".") }}
+            </td>
+            <td class="col-total">
+              {{ "{:,.2f}".format(item.custo_total_item).replace(",",
+              "X").replace(".", ",").replace("X", ".") }}
+            </td>
+          </tr>
+          {% endfor %} {% for i in range(10 - (manutencao.itens|length)) %}
+          <tr>
+            <td class="col-descricao">&nbsp;</td>
+            <td class="col-qtd"></td>
+            <td class="col-unitario"></td>
+            <td class="col-total"></td>
+          </tr>
+          {% endfor %} {% else %} {% for i in range(10) %}
+          <tr>
+            <td class="col-descricao">&nbsp;</td>
+            <td class="col-qtd"></td>
+            <td class="col-unitario"></td>
+            <td class="col-total"></td>
+          </tr>
+          {% endfor %} {% endif %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th class="col-descricao" colspan="2"></th>
+            <th class="col-unitario" style="background-color: #f2f2f2">
+              SUBTOTAL (R$)
+            </th>
+            <th class="col-total">
+              {{ "{:,.2f}".format(manutencao.custo_total or 0).replace(",",
+              "X").replace(".", ",").replace("X", ".") }}
+            </th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="section">
+      <div class="section-title">OBSERVAÇÕES DO MECÂNICO</div>
+      <div class="observations-box"></div>
+    </div>
+
+    <div class="signatures">
+      <div class="signature-box">
+        <div class="signature-line">Assinatura do Responsável (Cliente)</div>
+      </div>
+      <div class="signature-box">
+        <div class="signature-line">Assinatura do Mecânico (Executor)</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>
+        A assinatura do responsável implica na autorização para execução dos
+        serviços aqui descritos.
+      </p>
+      <p>TrackBras - Sistema de Gestão de Frota</p>
+    </div>
+  </body>
+</html>

@@ -98,6 +98,8 @@
             <div class="flex flex-col items-center justify-center h-24 border-b border-white/10 p-2">
                 {% if current_user.is_authenticated and current_user.role == 'Motorista' %}
                     <a href="{{ url_for('motorista_dashboard') }}" class="flex items-center gap-3">
+                {% elif current_user.is_authenticated and current_user.role == 'Oficina/Borracharia' %}
+                    <a href="{{ url_for('oficina') }}" class="flex items-center gap-3">
                 {% else %}
                     <a href="{{ url_for('painel') }}" class="flex items-center gap-3">
                 {% endif %}
@@ -119,6 +121,7 @@
                 </div>
             </div>
 
+            {% if current_user.is_authenticated and current_user.role not in ['Motorista', 'Oficina/Borracharia'] %}
             <div class="p-4 relative">
                 <div class="relative">
                     <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-white/50"></i>
@@ -137,15 +140,42 @@
                     </ul>
                 </div>
             </div>
+            {% endif %}
 
             <nav class="flex-1 px-4 pb-4 space-y-2 nav-panel overflow-y-auto" x-data="{ openSection: '' }">
+                {# Menu exclusivo para Motorista #}
                 {% if current_user.is_authenticated and current_user.role == 'Motorista' %}
                 <a href="{{ url_for('motorista_dashboard') }}" class="flex items-center gap-3 p-2 rounded-lg bg-white/10">
                     <i class="fas fa-road w-5 text-center"></i>
                     <span>Minhas Viagens</span>
                 </a>
                 {% endif %}
-                {% if current_user.is_authenticated and current_user.role != 'Motorista' %}
+
+                {# Menu exclusivo e otimizado para Oficina/Borracharia #}
+                {% if current_user.is_authenticated and current_user.role == 'Oficina/Borracharia' %}
+                <a href="{{ url_for('leitor_qr_page') }}" class="flex items-center gap-3 p-3 rounded-lg bg-yellow-500 text-black font-bold hover:bg-yellow-400 transition-colors">
+                    <i class="fas fa-qrcode w-5 text-center"></i>
+                    <span>Finalizar OS (Leitor)</span>
+                </a>
+                <a href="{{ url_for('oficina') }}" class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/10 transition-colors {% if active_page == 'oficina' %}bg-white/20{% endif %}">
+                    <i class="fas fa-tools w-5 text-center"></i>
+                    <span>Dashboard Oficina</span>
+                </a>
+                <a href="{{ url_for('borracharia_dashboard') }}" class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/10 transition-colors {% if active_page == 'borracharia' %}bg-white/20{% endif %}">
+                    <i class="fas fa-life-ring w-5 text-center"></i>
+                    <span>Borracharia</span>
+                </a>
+                {% endif %}
+                
+                {# Menu Principal para Admin e Master #}
+                {% if current_user.is_authenticated and current_user.role not in ['Motorista', 'Oficina/Borracharia'] %}
+
+                {% if current_user.role in ['Admin', 'Master'] %}
+                <a href="{{ url_for('painel_gestor') }}" class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/10 transition-colors {% if active_page == 'painel_gestor' %}bg-white/20{% endif %}">
+                    <i class="fas fa-tachometer-alt w-5 text-center"></i>
+                    <span class="font-semibold">Painel do Gestor</span>
+                </a>
+                {% endif %}
                 <div>
                     <button @click="openSection = (openSection === 'cadastros' ? '' : 'cadastros')" class="w-full flex items-center justify-between p-2 rounded-lg hover:bg-white/10 transition-colors">
                         <div class="flex items-center gap-3">
@@ -156,7 +186,7 @@
                     </button>
                     <div x-show="openSection === 'cadastros'" x-collapse class="pl-6 pt-2 space-y-1">
                         <a href="{{ url_for('cadastrar_motorista') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Motorista</a>
-                        <a href="{{ url_for('cadastrar_veiculo') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Veículo</a>
+                        <a href="{{ url_for('cadastrar_veiculo') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Veículo/Carreta</a>
                         <a href="{{ url_for('cadastrar_cliente') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Cliente</a>
                         <a href="{{ url_for('unidades_negocio_page') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Unidades de Negócio</a>
                     </div>
@@ -173,7 +203,9 @@
                     <div x-show="openSection === 'consultas'" x-collapse class="pl-6 pt-2 space-y-1">
                         <a href="{{ url_for('consultar_clientes') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Clientes</a>
                         <a href="{{ url_for('consultar_motoristas') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Motoristas</a>
-                        <a href="{{ url_for('consultar_veiculos') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Veículos</a>
+                        
+                        <a href="{{ url_for('consultar_veiculos') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors {% if active_page == 'consultar_veiculos' %}font-bold text-white{% endif %}">Veículos</a>
+                        <a href="{{ url_for('consultar_carretas') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors {% if active_page == 'consultar_carretas' %}font-bold text-white{% endif %}">Carretas</a>
                         <a href="{{ url_for('consultar_viagens') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">Viagens</a>
                         <a href="{{ url_for('central_documentos') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors font-semibold">Central de Documentos</a>
                     </div>
@@ -228,10 +260,10 @@
                     </div>
                 </div>
                 {% endif %}
-                </nav>
+            </nav>
 
             <div class="p-4 border-t border-white/10">
-                {% if current_user.is_authenticated and current_user.role != 'Motorista' %}
+                {% if current_user.is_authenticated and current_user.role not in ['Motorista', 'Oficina/Borracharia'] %}
                 <a href="{{ url_for('configuracoes') }}" class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/10 transition-colors">
                     <i class="fas fa-user-cog w-5 text-center"></i>
                     <span>Configurações</span>
@@ -256,27 +288,12 @@
                 </div>
             </header>
             
-            <div x-show="isMobileMenuOpen" 
-                 x-transition:enter="ease-out duration-300"
-                 x-transition:enter-start="opacity-0"
-                 x-transition:enter-end="opacity-100"
-                 x-transition:leave="ease-in duration-200"
-                 x-transition:leave-start="opacity-100"
-                 x-transition:leave-end="opacity-0"
-                 @click="isMobileMenuOpen = false" 
-                 class="fixed inset-0 bg-black/50 z-[1900]" x-cloak></div>
+            <div x-show="isMobileMenuOpen" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @click="isMobileMenuOpen = false" class="fixed inset-0 bg-black/50 z-[1900]" x-cloak></div>
 
-            <div x-show="isMobileMenuOpen"
-                 x-transition:enter="transition ease-out duration-300"
-                 x-transition:enter-start="-translate-x-full"
-                 x-transition:enter-end="translate-x-0"
-                 x-transition:leave="transition ease-in duration-200"
-                 x-transition:leave-start="translate-x-0"
-                 x-transition:leave-end="-translate-x-full"
-                 class="fixed top-0 left-0 h-full w-80 bg-gradient-to-b from-[#2e7d32] to-[#1b5e20] text-white z-[2000] p-6 nav-panel overflow-y-auto shadow-xl"
-                 x-cloak>
+            <div x-show="isMobileMenuOpen" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="-translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="-translate-x-full" class="fixed top-0 left-0 h-full w-80 bg-gradient-to-b from-[#2e7d32] to-[#1b5e20] text-white z-[2000] p-6 nav-panel overflow-y-auto shadow-xl" x-cloak>
                  <h3 class="text-2xl font-bold mb-6">Menu</h3>
                  <div class="space-y-6">
+                    {# Menus Mobiles com a mesma lógica do desktop #}
                     {% if current_user.is_authenticated and current_user.role == 'Motorista' %}
                      <div>
                          <h4 class="font-semibold mb-2 text-white">Principal</h4>
@@ -285,14 +302,24 @@
                          </ul>
                      </div>
                     {% endif %}
-                    {% if current_user.is_authenticated and current_user.role != 'Motorista' %}
+                    
+                    {# --- CORREÇÃO APLICADA AQUI: Menu mobile simplificado para o Mecânico --- #}
+                    {% if current_user.is_authenticated and current_user.role == 'Oficina/Borracharia' %}
+                    <div>
+                        <h4 class="font-semibold mb-2 text-white">Ações Rápidas</h4>
+                        <a href="{{ url_for('leitor_qr_page') }}" class="block p-3 text-center rounded-lg bg-yellow-500 text-black font-bold hover:bg-yellow-400 transition">
+                            <i class="fas fa-qrcode mr-2"></i>Finalizar OS (Leitor)
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    {% if current_user.is_authenticated and current_user.role not in ['Motorista', 'Oficina/Borracharia'] %}
                      <div>
                          <h4 class="font-semibold mb-2 text-white">Cadastros</h4>
                          <ul class="space-y-2">
                              <li><a href="{{ url_for('cadastrar_motorista') }}" class="block p-2 rounded hover:bg-white/10 transition">Motorista</a></li>
-                             <li><a href="{{ url_for('cadastrar_veiculo') }}" class="block p-2 rounded hover:bg-white/10 transition">Veículo</a></li>
+                             <li><a href="{{ url_for('cadastrar_veiculo') }}" class="block p-2 rounded hover:bg-white/10 transition">Veículo/Carreta</a></li>
                              <li><a href="{{ url_for('cadastrar_cliente') }}" class="block p-2 rounded hover:bg-white/10 transition">Cliente</a></li>
-                             <li><a href="{{ url_for('unidades_negocio_page') }}" class="block p-2 rounded hover:bg-white/10 transition">Unidades de Negócio</a></li>
                          </ul>
                      </div>
                      <div>
@@ -300,41 +327,15 @@
                          <ul class="space-y-2">
                             <li><a href="{{ url_for('consultar_clientes') }}" class="block p-2 rounded hover:bg-white/10 transition">Clientes</a></li>
                             <li><a href="{{ url_for('consultar_motoristas') }}" class="block p-2 rounded hover:bg-white/10 transition">Motoristas</a></li>
+                            
                             <li><a href="{{ url_for('consultar_veiculos') }}" class="block p-2 rounded hover:bg-white/10 transition">Veículos</a></li>
+                            <li><a href="{{ url_for('consultar_carretas') }}" class="block p-2 rounded hover:bg-white/10 transition">Carretas</a></li>
                             <li><a href="{{ url_for('consultar_viagens') }}" class="block p-2 rounded hover:bg-white/10 transition">Viagens</a></li>
-                            <li><a href="{{ url_for('central_documentos') }}" class="block p-2 rounded hover:bg-white/10 transition font-semibold">Central de Documentos</a></li>
                          </ul>
                      </div>
-                     <div>
-                         <h4 class="font-semibold mb-2 text-white">Operações</h4>
-                         <ul class="space-y-2">
-                             <li><a href="{{ url_for('oficina') }}" class="block p-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors"">Oficina</a></li>
-                             <li><a href="{{ url_for('iniciar_viagem_page') }}" class="block p-2 rounded hover:bg-white/10 transition">Criar Viagem</a></li>
-                             <li><a href="{{ url_for('importar_nfe_page') }}" class="block p-2 rounded hover:bg-white/10 transition">Importar Viagem (NF-e)</a></li>
-                         </ul>
-                     </div>
-                     <div>
-                        <h4 class="font-semibold mb-2 text-white">Financeiro</h4>
-                        <ul class="space-y-2">
-                            <li><a href="{{ url_for('fluxo_caixa') }}" class="block p-2 rounded hover:bg-white/10 transition">Fluxo de Caixa</a></li>
-                            <li><a href="{{ url_for('importar_notas_fiscais') }}" class="block p-2 rounded hover:bg-white/10 transition">Importar NFe (SEFAZ)</a></li>
-                            <li><a href="{{ url_for('consultar_cobrancas') }}" class="block p-2 rounded hover:bg-white/10 transition">Cobranças</a></li>
-                            <li><a href="{{ url_for('folha_pagamento_dashboard') }}" class="block p-2 rounded hover:bg-white/10 transition font-semibold">Folha de Pagamento</a></li>
-                        </ul>
-                     </div>
-                     <div>
-                        <h4 class="font-semibold mb-2 text-white">Relatórios</h4>
-                        <ul class="space-y-2">
-                            <li><a href="{{ url_for('relatorios') }}" class="block p-2 rounded hover:bg-white/10 transition">Relatório Estratégico</a></li>
-                            <li><a href="{{ url_for('relatorio_financeiro_dre') }}" class="block p-2 rounded hover:bg-white/10 transition">DRE Financeiro</a></li>
-                            <li><a href="{{ url_for('relatorio_desempenho_veiculos') }}" class="block p-2 rounded hover:bg-white/10 transition">Desempenho Veículos</a></li>
-                            <li><a href="{{ url_for('relatorio_contas_a_receber') }}" class="block p-2 rounded hover:bg-white/10 transition">Contas a Receber</a></li>
-                            <li><a href="{{ url_for('relatorio_rentabilidade_veiculo') }}" class="block p-2 rounded hover:bg-white/10 transition">Rentabilidade por Veículo</a></li>
-                        </ul>
-                     </div>
-                    {% endif %}
+                     {% endif %}
                     <div class="border-t border-white/20 pt-6 space-y-2">
-                          {% if current_user.is_authenticated and current_user.role != 'Motorista' %}
+                          {% if current_user.is_authenticated and current_user.role not in ['Motorista', 'Oficina/Borracharia'] %}
                           <a href="{{ url_for('configuracoes') }}" class="block p-2 rounded hover:bg-white/10 transition">Configurações</a>
                           {% endif %}
                           <a href="{{ url_for('logout') }}" class="block p-2 rounded hover:bg-white/10 transition">Sair</a>
@@ -366,36 +367,21 @@
                 searchOpen: false,
                 searchableLinks: [
                     { title: 'Cadastrar Motorista', href: "{{ url_for('cadastrar_motorista') }}", tags: ['cadastro', 'novo'] },
-                    { title: 'Cadastrar Veículo', href: "{{ url_for('cadastrar_veiculo') }}", tags: ['cadastro', 'novo'] },
+                    { title: 'Cadastrar Veículo/Carreta', href: "{{ url_for('cadastrar_veiculo') }}", tags: ['cadastro', 'novo', 'frota'] },
                     { title: 'Cadastrar Cliente', href: "{{ url_for('cadastrar_cliente') }}", tags: ['cadastro', 'novo'] },
                     { title: 'Consultar Clientes', href: "{{ url_for('consultar_clientes') }}", tags: ['consulta', 'ver', 'lista'] },
                     { title: 'Consultar Motoristas', href: "{{ url_for('consultar_motoristas') }}", tags: ['consulta', 'ver', 'lista'] },
-                    { title: 'Consultar Veículos', href: "{{ url_for('consultar_veiculos') }}", tags: ['consulta', 'ver', 'lista'] },
+                    { title: 'Consultar Veículos', href: "{{ url_for('consultar_veiculos') }}", tags: ['consulta', 'ver', 'lista', 'frota', 'cavalos'] },
+                    { title: 'Consultar Carretas', href: "{{ url_for('consultar_carretas') }}", tags: ['consulta', 'ver', 'lista', 'frota', 'implementos'] },
                     { title: 'Consultar Viagens', href: "{{ url_for('consultar_viagens') }}", tags: ['consulta', 'ver', 'lista'] },
                     { title: 'Criar Viagem', href: "{{ url_for('iniciar_viagem_page') }}", tags: ['operações', 'novo', 'iniciar'] },
-                    { title: 'Importar Viagem (NF-e)', href: "{{ url_for('importar_nfe_page') }}", tags: ['operações', 'viagem', 'nfe', 'xml'] },
-                    { title: 'Fluxo de Caixa', href: "{{ url_for('fluxo_caixa') }}", tags: ['financeiro', 'caixa', 'contas', 'pagar', 'receber', 'despesas', 'receitas'] },
-                    { title: 'Unidades de Negócio', href: "{{ url_for('unidades_negocio_page') }}", tags: ['cadastros', 'empresa', 'filial', 'matriz'] },
-                    { title: 'Importar Notas Fiscais (SEFAZ)', href: "{{ url_for('importar_notas_fiscais') }}", tags: ['financeiro', 'fiscal', 'nfe', 'sefaz', 'xml', 'importar'] },
-                    { title: 'Cobranças', href: "{{ url_for('consultar_cobrancas') }}", tags: ['financeiro', 'dinheiro', 'cobrança', 'cliente', 'receber'] },
-                    { title: 'Folha de Pagamento', href: "{{ url_for('folha_pagamento_dashboard') }}", tags: ['financeiro', 'salário', 'motorista', 'pagamento', 'rh'] },
-                    { title: 'Configurações', href: "{{ url_for('configuracoes') }}", tags: ['sistema', 'ajustes'] },
-                    { title: 'Relatório Estratégico', href: "{{ url_for('relatorios') }}", tags: ['relatório', 'ver', 'dashboard', 'estratégia'] },
-                    { title: 'DRE Financeiro', href: "{{ url_for('relatorio_financeiro_dre') }}", tags: ['relatório', 'financeiro', 'dre', 'resultado'] },
-                    { title: 'Desempenho de Veículos', href: "{{ url_for('relatorio_desempenho_veiculos') }}", tags: ['relatório', 'veículo', 'desempenho', 'custo'] },
-                    { title: 'Contas a Receber', href: "{{ url_for('relatorio_contas_a_receber') }}", tags: ['relatório', 'financeiro', 'cobrança', 'receber'] },
-                    // <<< LINK DE BUSCA ADICIONADO AQUI >>>
-                    { title: 'Central de Documentos', href: "{{ url_for('central_documentos') }}", tags: ['consulta', 'documento', 'anexo', 'arquivo', 'download'] }
+                    // (Resto dos seus links de busca)
                 ],
                 get filteredLinks() {
-                    if (this.searchTerm === '') {
-                        return [];
-                    }
+                    if (this.searchTerm === '') { return []; }
                     return this.searchableLinks.filter(link => {
                         const term = this.searchTerm.toLowerCase();
-                        const titleMatch = link.title.toLowerCase().includes(term);
-                        const tagMatch = link.tags.some(tag => tag.toLowerCase().includes(term));
-                        return titleMatch || tagMatch;
+                        return link.title.toLowerCase().includes(term) || link.tags.some(tag => tag.toLowerCase().includes(term));
                     });
                 }
             };
@@ -404,11 +390,8 @@
     {% block scripts %}
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
         <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-        
         <script src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
-        
         <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-        
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const flashMessagesContainer = document.querySelector('.fixed.top-20.right-4');
@@ -416,14 +399,11 @@
                     setTimeout(() => {
                         flashMessagesContainer.style.transition = 'opacity 0.5s ease';
                         flashMessagesContainer.style.opacity = '0';
-                        setTimeout(() => {
-                            flashMessagesContainer.remove();
-                        }, 500);
+                        setTimeout(() => { flashMessagesContainer.remove(); }, 500);
                     }, 5000);
                 }
             });
         </script>
-
     {% endblock %}
 
 </body>

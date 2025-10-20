@@ -3,229 +3,410 @@
 {% block title %}Editar Veículo - {{ veiculo.placa }}{% endblock %}
 
 {% block styles %}
-{# Estilos idênticos ao de cadastro para manter a consistência visual #}
+{{ super() }}
 <style>
-    .form-container { background-color: #e9ecef; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); margin: 0; }
-    .form-container h1 { text-align: center; }
-    .form-section { background: white; padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1.5rem; border-left: 4px solid #1d4ed8; }
-    .section-title { font-size: 1.1rem; font-weight: 600; color: #1d4ed8; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
-    .form-input, .form-select, .form-textarea { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; transition: border-color 0.2s, box-shadow 0.2s; }
-    .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2); }
-    .btn-submit { background-color: #16a34a; color: white; padding: 0.75rem 1.5rem; border-radius: 0.375rem; }
-    .btn-submit:hover { background-color: #15803d; }
-    .btn-back { background-color: #6b7280; color: white; padding: 0.75rem 1.5rem; border-radius: 0.375rem; }
-    .btn-back:hover { background-color: #4b5563; }
-    .file-upload-area { border: 2px dashed #d1d5db; border-radius: 0.5rem; padding: 2rem; text-align: center; transition: all 0.3s; cursor: pointer; }
-    .file-upload-area:hover, .file-upload-area.dragover { border-color: #2563eb; background-color: #f0f9ff; }
-    .required-field::after { content: " *"; color: #dc2626; }
+    /* Estilos 100% padronizados com 'editar_cliente.html' */
+    :root {
+        --primary-green: #2e7d32;
+        --primary-green-dark: #1b5e20;
+        --gray-50: #f8fafc;
+        --gray-100: #f1f5f9;
+        --gray-200: #e2e8f0;
+        --gray-600: #475569;
+        --gray-700: #334155;
+        --gray-900: #0f172a;
+        --red-600: #dc2626;
+    }
+    .form-container, .kpi-container {
+        background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
+        border-radius: 16px; padding: 2rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid var(--gray-200);
+    }
+    .form-section-header {
+        font-size: 1.25rem; font-weight: 600; color: var(--primary-green-dark);
+        border-bottom: 2px solid var(--primary-green); padding-bottom: 0.5rem;
+        margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;
+    }
+    .form-input, .form-select, .form-textarea {
+        width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--gray-200);
+        border-radius: 8px; font-size: 1rem; transition: all 0.3s; background: white;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+        outline: none; border-color: var(--primary-green);
+        box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+    }
+    .btn-green {
+        background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-dark) 100%);
+        color: white; padding: 12px 24px; border: none; border-radius: 12px; font-weight: 600;
+        cursor: pointer; transition: all 0.3s; display: inline-flex; align-items: center;
+        gap: 8px; box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3); text-decoration: none;
+    }
+    .btn-green:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(46, 125, 50, 0.4); color: white; text-decoration: none; }
+    .btn-secondary {
+        background-color: var(--gray-200); color: var(--gray-700); padding: 12px 24px;
+        border: none; border-radius: 12px; font-weight: 600; cursor: pointer;
+        transition: all 0.3s; text-decoration: none;
+    }
+    .btn-secondary:hover { background-color: #d1d5db; }
+    #drop-zone {
+        border: 2px dashed #cbd5e1; border-radius: 0.75rem; padding: 2.5rem;
+        text-align: center; color: #64748b; transition: all 0.3s ease;
+        cursor: pointer; background-color: #f8fafc;
+    }
+    #drop-zone.drag-over { border-color: var(--primary-green); background-color: #f0fdf4; color: #166534; }
+    #drop-zone i { font-size: 3rem; margin-bottom: 1rem; }
+    .file-item {
+        display: flex; align-items: center; padding: 0.75rem; background-color: #f8fafc;
+        border: 1px solid #e2e8f0; border-radius: 0.5rem; margin-top: 0.75rem;
+        position: relative; overflow: hidden;
+    }
+    .file-preview {
+        width: 48px; height: 48px; border-radius: 0.375rem; background-color: #e2e8f0;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; color: #64748b; margin-right: 1rem; flex-shrink: 0;
+    }
+    .file-details { flex-grow: 1; overflow: hidden; }
+    .file-name {
+        font-weight: 500; color: var(--gray-900); white-space: nowrap;
+        overflow: hidden; text-overflow: ellipsis; text-decoration: none;
+    }
+    .file-name:hover { text-decoration: underline; color: var(--primary-green); }
+    .file-size { font-size: 0.875rem; color: var(--gray-600); }
+    .file-actions { display: flex; align-items: center; gap: 0.5rem; margin-left: 1rem; }
+    .file-status-icon { font-size: 1.25rem; }
+    .status-uploading { color: var(--gray-600); animation: spin 1s linear infinite; }
+    .status-success { color: #22c55e; }
+    .status-error { color: var(--red-600); }
+    .btn-icon {
+        background: none; border: none; cursor: pointer; padding: 0.5rem; border-radius: 50%;
+        color: #94a3b8; transition: all 0.2s;
+    }
+    .btn-icon:hover { background-color: var(--gray-100); color: var(--gray-700); }
+    .btn-icon-delete:hover { background-color: #fee2e2; color: var(--red-600); }
+    .progress-bar {
+        position: absolute; bottom: 0; left: 0; height: 4px; background-color: #3b82f6;
+        width: 0%; transition: width 0.3s ease;
+    }
+    .file-item.error .progress-bar { background-color: var(--red-600); }
+    .file-item.success .progress-bar { background-color: #22c55e; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="form-container">
-    <h1 class="text-3xl font-bold mb-6 text-gray-800">Editar Veículo: {{ veiculo.placa }}</h1>
+<div class="space-y-6">
+    <div class="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 shadow-lg">
+        <h1 class="text-3xl font-bold flex items-center gap-3">
+            <i class="fas fa-truck-pickup"></i>
+            Editar Veículo
+        </h1>
+        <p class="text-green-100 mt-2">Atualize as informações do veículo de placa <span class="font-semibold">{{ veiculo.placa }}</span></p>
+    </div>
 
-    <form method="POST" action="{{ url_for('editar_veiculo', veiculo_id=veiculo.id) }}" enctype="multipart/form-data" id="vehicleForm">
-        
-        <div class="form-section">
-            <h2 class="section-title"><i class="fas fa-truck"></i>Informações Básicas</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-gray-700 font-medium mb-2 required-field">Placa</label>
-                    <input type="text" class="form-input bg-gray-200" value="{{ veiculo.placa }}" readonly>
-                </div>
-                <div>
-                    <label for="categoria" class="block text-gray-700 font-medium mb-2 required-field">Categoria</label>
-                    <select name="categoria" id="categoria" required class="form-select">
-                        <option value="Caminhão" {% if veiculo.categoria == 'Caminhão' %}selected{% endif %}>Caminhão</option>
-                        <option value="Van" {% if veiculo.categoria == 'Van' %}selected{% endif %}>Van</option>
-                        <option value="Utilitário" {% if veiculo.categoria == 'Utilitário' %}selected{% endif %}>Utilitário</option>
-                        <option value="Carreta" {% if veiculo.categoria == 'Carreta' %}selected{% endif %}>Carreta</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="status" class="block text-gray-700 font-medium mb-2 required-field">Status</label>
-                    <select name="status" id="status" required class="form-select">
-                        <option value="Disponível" {% if veiculo.status == 'Disponível' %}selected{% endif %}>Disponível</option>
-                        <option value="Em Rota" {% if veiculo.status == 'Em Rota' %}selected{% endif %}>Em Rota</option>
-                        <option value="Em Manutenção" {% if veiculo.status == 'Em Manutenção' %}selected{% endif %}>Em Manutenção</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="modelo" class="block text-gray-700 font-medium mb-2 required-field">Modelo</label>
-                    <input type="text" name="modelo" id="modelo" required class="form-input" value="{{ veiculo.modelo or '' }}">
-                </div>
-                <div>
-                    <label for="marca" class="block text-gray-700 font-medium mb-2 required-field">Marca</label>
-                    <input type="text" name="marca" id="marca" required class="form-input" value="{{ veiculo.marca or '' }}">
-                </div>
-                <div>
-                    <label class="block text-gray-700 font-medium mb-2 required-field">Ano/Modelo</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <select name="ano_fabricacao" id="ano_fabricacao" required class="form-select"></select>
-                        <select name="ano_modelo" id="ano_modelo" required class="form-select"></select>
-                    </div>
-                </div>
-                <div>
-                    <label for="cor" class="block text-gray-700 font-medium mb-2">Cor</label>
-                    <input type="text" name="cor" id="cor" class="form-input" value="{{ veiculo.cor or '' }}">
-                </div>
-                <div>
-                    <label for="combustivel" class="block text-gray-700 font-medium mb-2">Combustível</label>
-                    <select name="combustivel" id="combustivel" class="form-select">
-                        <option value="Diesel" {% if veiculo.combustivel == 'Diesel' %}selected{% endif %}>Diesel</option>
-                        <option value="Gasolina" {% if veiculo.combustivel == 'Gasolina' %}selected{% endif %}>Gasolina</option>
-                        <option value="Flex" {% if veiculo.combustivel == 'Flex' %}selected{% endif %}>Flex</option>
-                    </select>
-                </div>
-            </div>
+    <div class="kpi-container">
+        <h2 class="form-section-header">Desempenho Geral</h2>
+        <div id="kpi-content" class="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
+            <div class="bg-gray-100 p-4 rounded-lg animate-pulse"><p class="h-6 bg-gray-300 rounded"></p><p class="h-4 mt-2 bg-gray-300 rounded w-2/3 mx-auto"></p></div>
+            <div class="bg-gray-100 p-4 rounded-lg animate-pulse"><p class="h-6 bg-gray-300 rounded"></p><p class="h-4 mt-2 bg-gray-300 rounded w-2/3 mx-auto"></p></div>
+            <div class="bg-gray-100 p-4 rounded-lg animate-pulse"><p class="h-6 bg-gray-300 rounded"></p><p class="h-4 mt-2 bg-gray-300 rounded w-2/3 mx-auto"></p></div>
+            <div class="bg-gray-100 p-4 rounded-lg animate-pulse"><p class="h-6 bg-gray-300 rounded"></p><p class="h-4 mt-2 bg-gray-300 rounded w-2/3 mx-auto"></p></div>
         </div>
+    </div>
 
-        <div class="form-section">
-            <h2 class="section-title"><i class="fas fa-file-alt"></i>Documentação</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                    <label for="renavam" class="block text-gray-700 font-medium mb-2">RENAVAM</label>
-                    <input type="text" name="renavam" id="renavam" class="form-input" value="{{ veiculo.renavam or '' }}">
-                </div>
-                <div>
-                    <label for="chassi" class="block text-gray-700 font-medium mb-2">Chassi</label>
-                    <input type="text" name="chassi" id="chassi" class="form-input" value="{{ veiculo.chassi or '' }}">
-                </div>
-                <div>
-                    <label for="crlv_numero" class="block text-gray-700 font-medium mb-2">Número CRLV</label>
-                    <input type="text" name="crlv_numero" id="crlv_numero" class="form-input" value="{{ veiculo.crlv_numero or '' }}">
-                </div>
-                <div>
-                    <label for="crlv_vencimento" class="block text-gray-700 font-medium mb-2">Vencimento CRLV</label>
-                    <input type="date" name="crlv_vencimento" id="crlv_vencimento" class="form-input" value="{{ veiculo.crlv_vencimento | dateformat }}">
-                </div>
-            </div>
-        </div>
-
-        <div class="form-section">
-            <h2 class="section-title"><i class="fas fa-road"></i>Informações Operacionais</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                    <label for="km_atual" class="block text-gray-700 font-medium mb-2 required-field">Km Atual</label>
-                    <input type="number" name="km_atual" id="km_atual" required class="form-input" value="{{ veiculo.km_atual or '' }}">
-                </div>
-                <div>
-                    <label for="motorista_padrao" class="block text-gray-700 font-medium mb-2">Motorista Padrão</label>
-                    <select name="motorista_padrao_id" id="motorista_padrao" class="form-select">
-                        <option value="">Nenhum</option>
-                        {% for motorista in motoristas %}
-                            <option value="{{ motorista.id }}" {% if veiculo.motorista_padrao_id == motorista.id %}selected{% endif %}>
-                                {{ motorista.nome }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <div class="form-section">
-            <h2 class="section-title"><i class="fas fa-paperclip"></i>Observações e Anexos</h2>
+    <form method="POST" action="{{ url_for('editar_veiculo', veiculo_id=veiculo.id) }}" id="vehicleForm" class="form-container">
+        <h2 class="form-section-header">Informações Básicas</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <div>
-                <label for="observacoes" class="block text-gray-700 font-medium mb-2">Observações</label>
-                <textarea name="observacoes" id="observacoes" class="form-textarea" rows="3">{{ veiculo.observacoes or '' }}</textarea>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Placa</label>
+                <input type="text" class="form-input bg-gray-200" value="{{ veiculo.placa }}" readonly>
             </div>
-            <div class="mt-4">
-                <h3 class="block text-gray-700 font-medium mb-2">Fotos Atuais</h3>
-                {% if veiculo.fotos_urls %}
-                    <div class="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-                        {% for url in veiculo.fotos_urls.split(',') %}
-                            <div class="relative group">
-                                <img src="{{ url }}" alt="Foto do Veículo" class="w-full h-20 object-cover rounded border">
-                                {# Futuramente, pode adicionar um botão de exclusão aqui #}
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-gray-500 text-sm">Nenhuma foto cadastrada.</p>
-                {% endif %}
+            <div>
+                <label for="categoria" class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                <select name="categoria" id="categoria" class="form-select">
+                    <option value="Caminhão" {% if veiculo.categoria == 'Caminhão' %}selected{% endif %}>Caminhão</option>
+                    <option value="Van" {% if veiculo.categoria == 'Van' %}selected{% endif %}>Van</option>
+                    <option value="Utilitário" {% if veiculo.categoria == 'Utilitário' %}selected{% endif %}>Utilitário</option>
+                    <option value="Carreta" {% if veiculo.categoria == 'Carreta' %}selected{% endif %}>Carreta</option>
+                </select>
             </div>
-            <div class="mt-4">
-                <label class="block text-gray-700 font-medium mb-2">Adicionar Novas Fotos</label>
-                <div class="file-upload-area" id="fileUploadArea">
-                    <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
-                    <p class="text-gray-600 mb-2">Clique ou arraste novas fotos aqui</p>
-                    <input type="file" name="fotos[]" id="fotos" multiple accept="image/*" class="hidden">
+            <div>
+                <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select name="status" id="status" class="form-select">
+                    <option value="Disponível" {% if veiculo.status == 'Disponível' %}selected{% endif %}>Disponível</option>
+                    <option value="Em Rota" {% if veiculo.status == 'Em Rota' %}selected{% endif %}>Em Rota</option>
+                    <option value="Em Manutenção" {% if veiculo.status == 'Em Manutenção' %}selected{% endif %}>Em Manutenção</option>
+                    <option value="Inativo" {% if veiculo.status == 'Inativo' %}selected{% endif %}>Inativo</option>
+                    <option value="Vendido" {% if veiculo.status == 'Vendido' %}selected{% endif %}>Vendido</option>
+                </select>
+            </div>
+            <div>
+                <label for="modelo" class="block text-sm font-medium text-gray-700 mb-1">Modelo</label>
+                <input type="text" name="modelo" id="modelo" required class="form-input" value="{{ veiculo.modelo or '' }}">
+            </div>
+            <div>
+                <label for="marca" class="block text-sm font-medium text-gray-700 mb-1">Marca</label>
+                <input type="text" name="marca" id="marca" required class="form-input" value="{{ veiculo.marca or '' }}">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Ano/Modelo</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <select name="ano_fabricacao" id="ano_fabricacao" class="form-select"></select>
+                    <select name="ano_modelo" id="ano_modelo" class="form-select"></select>
                 </div>
-                <div id="previewContainer" class="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2"></div>
+            </div>
+            <div>
+                <label for="cor" class="block text-sm font-medium text-gray-700 mb-1">Cor</label>
+                <input type="text" name="cor" id="cor" class="form-input" value="{{ veiculo.cor or '' }}">
+            </div>
+            <div>
+                <label for="combustivel" class="block text-sm font-medium text-gray-700 mb-1">Combustível</label>
+                <select name="combustivel" id="combustivel" class="form-select">
+                    <option value="Diesel" {% if veiculo.combustivel == 'Diesel' %}selected{% endif %}>Diesel</option>
+                    <option value="Gasolina" {% if veiculo.combustivel == 'Gasolina' %}selected{% endif %}>Gasolina</option>
+                    <option value="Flex" {% if veiculo.combustivel == 'Flex' %}selected{% endif %}>Flex</option>
+                </select>
             </div>
         </div>
 
-        <div class="mt-6 flex items-center justify-end gap-4">
-            <a href="{{ url_for('consultar_veiculos') }}" class="btn-back">Cancelar</a>
-            <button type="submit" class="btn-submit">Salvar Alterações</button>
+        <h2 class="form-section-header">Documentação</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div>
+                <label for="renavam" class="block text-sm font-medium text-gray-700 mb-1">RENAVAM</label>
+                <input type="text" name="renavam" id="renavam" class="form-input" value="{{ veiculo.renavam or '' }}">
+            </div>
+            <div>
+                <label for="chassi" class="block text-sm font-medium text-gray-700 mb-1">Chassi</label>
+                <input type="text" name="chassi" id="chassi" class="form-input" value="{{ veiculo.chassi or '' }}">
+            </div>
+            <div>
+                <label for="crlv_numero" class="block text-sm font-medium text-gray-700 mb-1">Número CRLV</label>
+                <input type="text" name="crlv_numero" id="crlv_numero" class="form-input" value="{{ veiculo.crlv_numero or '' }}">
+            </div>
+            <div>
+                <label for="crlv_vencimento" class="block text-sm font-medium text-gray-700 mb-1">Vencimento CRLV</label>
+                <input type="date" name="crlv_vencimento" id="crlv_vencimento" class="form-input" value="{{ veiculo.crlv_vencimento | dateformat }}">
+            </div>
+        </div>
+
+        <h2 class="form-section-header">Informações Operacionais</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div>
+                <label for="km_atual" class="block text-sm font-medium text-gray-700 mb-1">Km Atual</label>
+                <input type="number" name="km_atual" id="km_atual" class="form-input" value="{{ veiculo.km_atual or '' }}">
+            </div>
+            <div>
+                <label for="motorista_padrao_id" class="block text-sm font-medium text-gray-700 mb-1">Motorista Padrão</label>
+                <select name="motorista_padrao_id" id="motorista_padrao_id" class="form-select">
+                    <option value="">Nenhum</option>
+                    {% for motorista in motoristas %}
+                        <option value="{{ motorista.id }}" {% if veiculo.motorista_padrao_id == motorista.id %}selected{% endif %}>
+                            {{ motorista.nome }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <h2 class="form-section-header">Observações</h2>
+        <div>
+            <textarea name="observacoes" id="observacoes" class="form-textarea" rows="3">{{ veiculo.observacoes or '' }}</textarea>
+        </div>
+
+        <div class="mt-8 flex items-center justify-end gap-4">
+            <a href="{{ url_for('consultar_veiculos') }}" class="btn-secondary">Cancelar</a>
+            <button type="submit" class="btn-green"><i class="fas fa-save mr-2"></i>Salvar Alterações</button>
         </div>
     </form>
+    
+    <div class="form-container">
+        <h2 class="form-section-header">Central de Anexos</h2>
+        <div id="drop-zone">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p class="font-semibold">Arraste e solte os arquivos aqui</p>
+            <p class="text-sm">ou</p>
+            <button type="button" onclick="document.getElementById('file-input').click()" class="mt-2 bg-white text-gray-700 font-semibold py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50">
+                Selecione os Arquivos
+            </button>
+        </div>
+        <input type="file" id="file-input" multiple class="hidden">
+        <div id="file-list" class="mt-4"></div>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    
-    // Popula os selects de ano
-    const selectAnoFab = document.getElementById('ano_fabricacao');
-    const selectAnoMod = document.getElementById('ano_modelo');
-    
-    if (selectAnoFab && selectAnoMod) {
-        const anoAtual = new Date().getFullYear();
-        
-        // Adiciona a opção "vazia"
-        selectAnoFab.innerHTML = '<option value="">Ano Fab.</option>';
-        selectAnoMod.innerHTML = '<option value="">Ano Mod.</option>';
-        
-        for (let ano = anoAtual; ano >= 1980; ano--) {
-            selectAnoFab.add(new Option(ano, ano));
+    document.addEventListener('DOMContentLoaded', function () {
+        const selectAnoFab = document.getElementById('ano_fabricacao');
+        const selectAnoMod = document.getElementById('ano_modelo');
+        if (selectAnoFab && selectAnoMod) {
+            const anoAtual = new Date().getFullYear();
+            selectAnoFab.innerHTML = '<option value="">Ano Fab.</option>';
+            selectAnoMod.innerHTML = '<option value="">Ano Mod.</option>';
+            for (let ano = anoAtual; ano >= 1980; ano--) { selectAnoFab.add(new Option(ano, ano)); }
+            for (let ano = anoAtual + 1; ano >= 1980; ano--) { selectAnoMod.add(new Option(ano, ano)); }
+            const savedAnoFab = "{{ veiculo.ano_fabricacao or '' }}";
+            const savedAnoMod = "{{ veiculo.ano_modelo or '' }}";
+            if (savedAnoFab) selectAnoFab.value = savedAnoFab;
+            if (savedAnoMod) selectAnoMod.value = savedAnoMod;
         }
-        for (let ano = anoAtual + 1; ano >= 1980; ano--) {
-            selectAnoMod.add(new Option(ano, ano));
-        }
+    });
 
-        // *** ADIÇÃO IMPORTANTE: Define o valor salvo após popular ***
-        const savedAnoFab = "{{ veiculo.ano_fabricacao or '' }}";
-        const savedAnoMod = "{{ veiculo.ano_modelo or '' }}";
-        if (savedAnoFab) selectAnoFab.value = savedAnoFab;
-        if (savedAnoMod) selectAnoMod.value = savedAnoMod;
+    async function loadKpis() {
+        const kpiContainer = document.getElementById('kpi-content');
+        try {
+            const response = await fetch(`/api/veiculo/{{ veiculo.id }}/kpis`);
+            const data = await response.json();
+            if (data.success) {
+                const kpis = data.kpis;
+                kpiContainer.innerHTML = `
+                    <div class="bg-blue-100 p-4 rounded-lg"><p class="text-2xl font-bold text-blue-800">${kpis.total_viagens}</p><p class="text-sm text-blue-600">Total de Viagens</p></div>
+                    <div class="bg-indigo-100 p-4 rounded-lg"><p class="text-2xl font-bold text-indigo-800">${kpis.total_km.toLocaleString('pt-BR')} km</p><p class="text-sm text-indigo-600">KM Rodados</p></div>
+                    <div class="bg-red-100 p-4 rounded-lg"><p class="text-2xl font-bold text-red-800">R$ ${kpis.custo_geral.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p><p class="text-sm text-red-600">Custo Geral</p></div>
+                    <div class="bg-yellow-100 p-4 rounded-lg"><p class="text-2xl font-bold text-yellow-800">R$ ${kpis.custo_por_km.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p><p class="text-sm text-yellow-600">Custo por KM</p></div>`;
+            } else { kpiContainer.innerHTML = '<p class="text-red-500 col-span-4">Não foi possível carregar os indicadores.</p>'; }
+        } catch (error) { kpiContainer.innerHTML = '<p class="text-red-500 col-span-4">Erro de conexão ao buscar indicadores.</p>'; }
     }
 
-    // Lógica de upload de fotos (copiada do cadastrar_veiculo.html)
-    const fileUploadArea = document.getElementById('fileUploadArea');
-    const fileInput = document.getElementById('fotos');
-    const previewContainer = document.getElementById('previewContainer');
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const fileList = document.getElementById('file-list');
+    const veiculoId = {{ veiculo.id }};
+    const existingFiles = {{ (veiculo.fotos_urls.split(',') if veiculo.fotos_urls else [])|tojson }};
+    const activeUploads = {};
+    const csrf_token = "{{ csrf_token }}";
 
-    if (fileUploadArea && fileInput && previewContainer) {
-        fileUploadArea.addEventListener('click', () => fileInput.click());
-        fileUploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            fileUploadArea.classList.add('dragover');
-        });
-        fileUploadArea.addEventListener('dragleave', () => fileUploadArea.classList.remove('dragover'));
-        fileUploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            fileUploadArea.classList.remove('dragover');
-            handleFiles(Array.from(e.dataTransfer.files));
-        });
-        fileInput.addEventListener('change', (e) => handleFiles(Array.from(e.target.files)));
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('drag-over'); });
+    dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+    fileInput.addEventListener('change', () => handleFiles(fileInput.files));
 
-        function handleFiles(files) {
-            previewContainer.innerHTML = '';
-            files.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const previewDiv = document.createElement('div');
-                    previewDiv.innerHTML = `<img src="${e.target.result}" class="w-full h-20 object-cover rounded border">`;
-                    previewContainer.appendChild(previewDiv);
-                };
-                reader.readAsDataURL(file);
+    function handleFiles(files) {
+        [...files].forEach(file => {
+            const fileId = `file-${Date.now()}${Math.floor(Math.random() * 1000)}`;
+            const fileElement = createFileElement(fileId, file);
+            fileList.prepend(fileElement);
+            uploadFile(fileId, file);
+        });
+        fileInput.value = '';
+    }
+
+    function createFileElement(fileId, file, existingUrl = null) {
+        const fileElement = document.createElement('div');
+        fileElement.className = 'file-item';
+        fileElement.id = fileId;
+        const fileName = file ? file.name : (existingUrl.split('/').pop().split('-').slice(1).join('-') || 'Arquivo');
+        const fileSize = file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : '';
+        fileElement.innerHTML = `
+            <div class="file-preview"><i class="fas fa-file-alt"></i></div>
+            <div class="file-details">
+                <a href="${existingUrl || '#'}" target="_blank" class="file-name" title="${fileName}">${fileName}</a>
+                <div class="file-size">${fileSize}</div>
+            </div>
+            <div class="file-actions">
+                <i id="status-${fileId}" class="file-status-icon"></i>
+                <button id="action-${fileId}" class="btn-icon"></button>
+            </div>
+            <div id="progress-${fileId}" class="progress-bar"></div>`;
+        if (existingUrl) { fileElement.dataset.url = existingUrl; }
+        return fileElement;
+    }
+
+    function uploadFile(fileId, file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const xhr = new XMLHttpRequest();
+        activeUploads[fileId] = xhr;
+        xhr.open('POST', `/api/veiculo/${veiculoId}/upload_anexo`, true);
+        xhr.setRequestHeader('X-CSRFToken', csrf_token);
+        xhr.upload.onprogress = (e) => { if (e.lengthComputable) { updateProgressBar(fileId, (e.loaded / e.total) * 100); } };
+        xhr.onload = () => {
+            delete activeUploads[fileId];
+            if (xhr.status === 200) {
+                const response = JSON.parse(xhr.responseText);
+                document.querySelector(`#${fileId} .file-name`).href = response.file_url;
+                document.getElementById(fileId).dataset.url = response.file_url;
+                setFileState(fileId, 'success');
+            } else { setFileState(fileId, 'error', 'Falha no upload'); }
+        };
+        xhr.onerror = () => { delete activeUploads[fileId]; setFileState(fileId, 'error', 'Erro de conexão'); };
+        xhr.onabort = () => { delete activeUploads[fileId]; document.getElementById(fileId).remove(); }
+        setFileState(fileId, 'uploading');
+        xhr.send(formData);
+    }
+
+    async function deleteFile(fileId) {
+        const fileElement = document.getElementById(fileId);
+        const fileUrl = fileElement.dataset.url;
+        if (!fileUrl || !confirm('Tem certeza que deseja excluir este anexo permanentemente?')) return;
+        try {
+            const response = await fetch('/api/veiculo/excluir_foto', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf_token },
+                body: JSON.stringify({ veiculo_id: veiculoId, foto_url: fileUrl })
             });
+            const result = await response.json();
+            if (result.success) { fileElement.remove(); } 
+            else { alert('Erro ao excluir: ' + result.message); }
+        } catch (error) { alert('Erro de conexão ao tentar excluir o arquivo.'); }
+    }
+
+    function updateProgressBar(fileId, percent) {
+        const progressBar = document.getElementById(`progress-${fileId}`);
+        if (progressBar) progressBar.style.width = `${percent}%`;
+    }
+
+    function setFileState(fileId, state, message = '') {
+        const statusIcon = document.getElementById(`status-${fileId}`);
+        const actionButton = document.getElementById(`action-${fileId}`);
+        const progressBar = document.getElementById(`progress-${fileId}`);
+        if (!statusIcon || !actionButton || !progressBar) return;
+        statusIcon.className = 'file-status-icon';
+        actionButton.innerHTML = '';
+        actionButton.onclick = null;
+        switch (state) {
+            case 'uploading':
+                statusIcon.classList.add('fas', 'fa-spinner', 'status-uploading');
+                actionButton.innerHTML = '<i class="fas fa-times"></i>';
+                actionButton.title = 'Cancelar Upload';
+                actionButton.onclick = () => activeUploads[fileId]?.abort();
+                break;
+            case 'success':
+                statusIcon.classList.add('fas', 'fa-check-circle', 'status-success');
+                progressBar.style.width = '100%';
+                actionButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                actionButton.title = 'Excluir Arquivo';
+                actionButton.classList.add('btn-icon-delete');
+                actionButton.onclick = () => deleteFile(fileId);
+                break;
+            case 'error':
+                statusIcon.classList.add('fas', 'fa-exclamation-circle', 'status-error');
+                progressBar.style.width = '100%';
+                document.getElementById(fileId).classList.add('error');
+                actionButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                actionButton.title = 'Remover da lista';
+                actionButton.classList.add('btn-icon-delete');
+                actionButton.onclick = () => document.getElementById(fileId).remove();
+                document.querySelector(`#${fileId} .file-size`).textContent = message;
+                break;
         }
     }
-});
+
+    function loadInitialFiles() {
+        existingFiles.forEach(url => {
+            if(!url) return;
+            const safeIdPart = btoa(url).replace(/[/+=]/g, ''); 
+            const fileId = `file-existing-${safeIdPart}`;
+            const fileElement = createFileElement(fileId, null, url);
+            fileList.appendChild(fileElement);
+            setFileState(fileId, 'success');
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadInitialFiles();
+        loadKpis();
+    });
 </script>
 {% endblock %}

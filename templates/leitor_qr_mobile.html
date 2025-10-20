@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>Leitor de OS</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      #reader {
+        width: 90vw; /* Ocupa 90% da largura da tela */
+        max-width: 400px;
+        border: 3px solid #2e7d32;
+        border-radius: 12px;
+        overflow: hidden; /* Garante que o vídeo não vaze */
+      }
+    </style>
+  </head>
+  <body
+    class="bg-gray-800 flex flex-col items-center justify-center min-h-screen p-4 text-white"
+  >
+    <div class="text-center w-full max-w-md">
+      <i class="fas fa-qrcode text-6xl text-green-400 mb-4"></i>
+      <h1 class="text-3xl font-bold">Leitor de Ordem de Serviço</h1>
+      <p id="status-message" class="text-gray-300 mt-2 mb-6">
+        Aponte a câmera para o QR Code da OS para iniciar a finalização.
+      </p>
+
+      <div id="reader" class="mx-auto"></div>
+
+      <a
+        href="{{ url_for('oficina') }}"
+        class="mt-8 inline-block text-sm text-gray-400 hover:text-white"
+        >Voltar ao Início</a
+      >
+    </div>
+
+    <script
+      src="https://unpkg.com/html5-qrcode"
+      type="text/javascript"
+    ></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const statusMessage = document.getElementById("status-message");
+        const html5QrCode = new Html5Qrcode("reader");
+
+        const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+          // Para o scanner assim que um código é lido
+          html5QrCode
+            .stop()
+            .then(() => {
+              statusMessage.textContent =
+                "QR Code lido com sucesso! Redirecionando...";
+              statusMessage.classList.add("text-green-400", "font-bold");
+
+              // Redireciona para a URL encontrada no QR Code
+              window.location.href = decodedText;
+            })
+            .catch((err) => console.error("Falha ao parar o scanner.", err));
+        };
+
+        const config = {
+          fps: 10,
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            // Torna a caixa de leitura responsiva e quadrada
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            const qrboxSize = Math.floor(minEdge * 0.7);
+            return { width: qrboxSize, height: qrboxSize };
+          },
+        };
+
+        // Inicia o scanner
+        html5QrCode
+          .start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+          .catch((err) => {
+            console.error("Erro ao iniciar a câmera", err);
+            statusMessage.textContent =
+              "Erro ao acessar a câmera. Verifique as permissões do seu navegador.";
+            statusMessage.classList.add("text-red-400", "font-bold");
+          });
+      });
+    </script>
+  </body>
+</html>
