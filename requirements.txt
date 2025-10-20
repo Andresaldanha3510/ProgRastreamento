@@ -21,6 +21,8 @@ lxml
 zeep
 xmlsec
 xhtml2pdf
+Flask-WTF==1.2.1
+
 
 
 
