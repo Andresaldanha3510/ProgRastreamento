@@ -1,0 +1,755 @@
+{% extends "base.html" %}
+{% block title %}Criar Viagens em Lote{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.css"/>
+{# Inclui Alpine.js para o x-data #}
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<style>
+    /* Estilos (mantidos da versão anterior, adicione/ajuste conforme necessário) */
+    .form-container { background-color: #f8f9fa; padding: 2rem; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid #dee2e6; }
+    .form-input, .form-select { width: 100%; padding: 0.75rem; border: 1px solid #ced4da; border-radius: 0.375rem; transition: border-color 0.2s, box-shadow 0.2s; font-size: 1rem; }
+    .form-input[readonly] { background-color: #e9ecef; cursor: not-allowed; } /* Estilo para campos readonly */
+    .form-input:focus, .form-select:focus { outline: none; border-color: #2e7d32; box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.2); }
+    .btn-primary { background-color: #16a34a; color: white; border: none;} .btn-primary:hover { background-color: #15803d; }
+    .btn-secondary { background-color: #6c757d; color: white; border: none;} .btn-secondary:hover { background-color: #5a6268; }
+    .btn-danger { background-color: #dc2626; color: white; border: none;} .btn-danger:hover { background-color: #b91c1c; }
+    .btn-add { background-color: #2563eb; color: white; border: none;} .btn-add:hover { background-color: #1d4ed8; }
+    #secao-grid-preview { margin-top: 2rem; }
+    #preview-table th, #preview-table td { padding: 0.5rem; text-align: left; vertical-align: middle; font-size: 0.875rem; white-space: nowrap; }
+    #preview-table td { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+     #preview-table td:nth-child(6), /* Coluna Origem */
+     #preview-table td:nth-child(7) { /* Coluna Destinos (Endereços) */
+        max-width: 200px; /* Um pouco mais largas */
+        white-space: normal; /* Permite quebra de linha */
+     }
+    #preview-table input { padding: 0.4rem; font-size: 0.8rem; width: 100%; box-sizing: border-box;}
+    .loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #16a34a; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; margin-right: 5px; vertical-align: middle;}
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .address-group { display: flex; gap: 0.5rem; width: 100%; }
+    .street-input { flex-grow: 1; }
+    .number-input { width: 90px; flex-shrink: 0; }
+    .destino-item { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .destino-item > .btn-danger { flex-shrink: 0; margin-top: 2.2rem; } /* Alinha botão de deletar */
+    .card-section { background: white; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
+    .section-title { font-size: 1.125rem; font-weight: 600; color: #374151; margin-bottom: 1rem; }
+    .awesomplete > ul { z-index: 1052 !important; border-radius: 0.375rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid #ccc; }
+    .awesomplete > ul > li { padding: 0.5rem 0.75rem; }
+    .awesomplete > ul > li[aria-selected="true"] { background: #16a34a; color: white; }
+</style>
+{% endblock %}
+
+{% block content %}
+{# Usando Alpine.js para controlar a visibilidade da seção de frete #}
+<div class="form-container" x-data="{ temFrete: false }">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800 text-center">Criar Viagens em Lote</h1>
+
+    <form id="form-lote-inicial" class="space-y-6">
+         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div class="card-section">
+            <h2 class="section-title"><i class="fas fa-info-circle text-blue-500 mr-2"></i>Informações Base</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="motorista_id" class="block text-gray-700 font-medium mb-1">Motorista</label>
+                    <select id="motorista_id" name="motorista_id" required class="form-select">
+                        <option value="">Selecione...</option>
+                        {% for motorista in motoristas %}
+                        <option value="{{ motorista.id }}">{{ motorista.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="veiculo_id" class="block text-gray-700 font-medium mb-1">Veículo (Cavalo)</label>
+                    <select id="veiculo_id" name="veiculo_id" required class="form-select">
+                        <option value="">Selecione...</option>
+                        {% for veiculo in veiculos %}
+                        <option value="{{ veiculo.id }}">{{ veiculo.placa }} - {{ veiculo.modelo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                 <div>
+                    <label for="carreta_id" class="block text-gray-700 font-medium mb-1">Carreta (Opcional)</label>
+                    <select id="carreta_id" name="carreta_id" class="form-select">
+                        <option value="">Nenhuma</option>
+                        {% for carreta in carretas %}
+                        <option value="{{ carreta.id }}">{{ carreta.placa }} - {{ carreta.modelo or 'Sem modelo' }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+             </div>
+
+        <div class="card-section">
+             <h2 class="section-title"><i class="fas fa-map-marked-alt text-green-500 mr-2"></i>Endereços Modelo</h2>
+             <div class="mb-4">
+                <label for="endereco_saida" class="block text-gray-700 font-medium mb-1">Origem Padrão</label>
+                 <div class="address-group">
+                    <input type="text" id="endereco_saida" name="endereco_saida" value="{{ endereco_origem_padrao }}" required class="form-input street-input awesomplete" placeholder="Digite a rua, bairro, cidade..." autocomplete="off">
+                    <input type="text" class="form-input number-input" id="endereco_saida_numero" placeholder="Nº">
+                </div>
+                 <small class="text-gray-500">Este endereço será usado como ponto de partida para todas as viagens geradas.</small>
+            </div>
+             <div>
+                <label class="block text-gray-700 font-medium mb-2">Endereços de Destino (Clientes)</label>
+                <div id="destinos-container-lote">
+                    <div class="destino-item border border-gray-200 p-3 rounded mb-3 bg-gray-50">
+                        <div class="flex-grow space-y-2">
+                             <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Cliente Destino</label>
+                                <select name="cliente_destino_id[]" class="form-select cliente-destino-select" required onchange="carregarEnderecoCliente(this)">
+                                    <option value="">Selecione um cliente...</option>
+                                    {# Preenche o select com os clientes passados pela rota Python #}
+                                    {% for cliente in clientes %}
+                                    <option value="{{ cliente.id }}"
+                                            data-nome="{{ cliente.nome_razao_social }}"
+                                            data-logradouro="{{ cliente.logradouro }}"
+                                            data-numero="{{ cliente.numero }}"
+                                            data-bairro="{{ cliente.bairro }}"
+                                            data-cidade="{{ cliente.cidade }}"
+                                            data-estado="{{ cliente.estado }}">
+                                        {{ cliente.nome_razao_social }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Endereço Carregado</label>
+                                <div class="address-group">
+                                    {# Inputs para exibir o endereço (readonly) #}
+                                    <input type="text" class="form-input street-input street-destino" name="rua_destino_display[]" placeholder="Rua, Bairro, Cidade..." readonly>
+                                    <input type="text" class="form-input number-input number-destino" name="numero_destino_display[]" placeholder="Nº" readonly>
+                                    {# Input oculto para guardar o endereço completo formatado para a API #}
+                                    <input type="hidden" class="full-address-destino" name="full_address_destino[]">
+                                </div>
+                            </div>
+                        </div>
+                        {# Botão de remover o item de destino #}
+                        <button type="button" class="btn-danger p-2 rounded-md self-center ml-2" onclick="removerDestinoLote(this)">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    </div>
+                <button type="button" class="btn-add px-4 py-2 mt-2 rounded" id="adicionar-destino-lote">
+                    <i class="fas fa-plus mr-2"></i>Adicionar Outro Destino (Cliente)
+                </button>
+                 <small class="block text-gray-500 mt-1">Selecione o cliente e o endereço será preenchido. A rota final será otimizada.</small>
+            </div>
+        </div>
+
+        {# Seção Financeira (sem alterações) #}
+        <div class="card-section">
+            <h2 class="section-title"><i class="fas fa-dollar-sign text-yellow-500 mr-2"></i>Informações Financeiras Padrão</h2>
+             <div class="mb-4">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" x-model="temFrete" class="form-checkbox h-5 w-5 text-green-600">
+                    <span class="text-gray-700 font-medium">As viagens são fretes (pagamento por tonelada)</span>
+                </label>
+            </div>
+             <div x-show="temFrete" x-transition class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                 <h3 class="text-lg font-semibold text-blue-800 mb-3"><i class="fas fa-weight-hanging mr-2"></i>Detalhes do Frete Padrão</h3>
+                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="material_lote" class="block text-gray-700 font-medium mb-1">Material</label>
+                        <input type="text" class="form-input" id="material_lote" name="material_lote" placeholder="Ex: Tora de Pinus">
+                    </div>
+                    <div>
+                        <label for="peso_toneladas_lote" class="block text-gray-700 font-medium mb-1">Peso Total (Toneladas)</label>
+                        <input type="number" step="0.001" class="form-input" id="peso_toneladas_lote" name="peso_toneladas_lote" placeholder="Ex: 41.880">
+                    </div>
+                    <div>
+                        <label for="valor_por_tonelada_lote" class="block text-gray-700 font-medium mb-1">Valor/Tonelada Motorista (R$)</label>
+                        <input type="number" step="0.01" class="form-input" id="valor_por_tonelada_lote" name="valor_por_tonelada_lote" placeholder="Ex: 49.00">
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600 mt-2">O pagamento do motorista (Peso * Valor/Ton) será calculado e poderá ser ajustado na prévia.</p>
+            </div>
+             <small class="block text-gray-500 mt-1">O valor a cobrar e observações poderão ser definidos individualmente na etapa de pré-visualização.</small>
+        </div>
+
+        {# Seção Geração em Lote (sem alterações) #}
+        <div class="card-section">
+             <h2 class="section-title"><i class="fas fa-cogs mr-2"></i>Geração em Lote</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="data_base" class="block text-gray-700 font-medium mb-1">Data/Hora da 1ª Viagem</label>
+                    <input type="text" id="data_base" name="data_base" required class="form-input flatpickr-datetime">
+                </div>
+                <div>
+                    <label for="quantidade" class="block text-gray-700 font-medium mb-1">Quantidade de Viagens</label>
+                    <input type="number" id="quantidade" name="quantidade" min="1" max="50" value="1" required class="form-input">
+                     <small class="text-gray-500">Máx: 50 por vez.</small>
+                </div>
+                <div>
+                    <label for="intervalo_minutos" class="block text-gray-700 font-medium mb-1">Intervalo entre Viagens (min)</label>
+                    <input type="number" id="intervalo_minutos" name="intervalo_minutos" min="0" value="0" class="form-input" placeholder="Opcional">
+                </div>
+            </div>
+        </div>
+
+        {# Botão Gerar Prévia (sem alterações) #}
+        <div class="text-right mt-6">
+            <button type="submit" id="btn-gerar-preview" class="btn-primary px-6 py-3 rounded font-semibold text-lg">
+                <i class="fas fa-list-alt mr-2"></i>Gerar Prévia das Viagens
+            </button>
+        </div>
+    </form>
+
+    <div id="secao-grid-preview" style="display: none;">
+         <h2 class="text-2xl font-semibold mb-4 text-gray-700">Prévia das Viagens Geradas</h2>
+         <p class="mb-4 text-gray-600">Ajuste a Data/Hora, Valor a Cobrar, Observações e dados do Frete (se aplicável) conforme necessário antes de salvar.</p>
+         <div class="overflow-x-auto bg-white rounded shadow border border-gray-200">
+             <table id="preview-table" class="min-w-full divide-y divide-gray-200 table-auto">
+                 <thead class="bg-gray-100">
+                     <tr>
+                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-100 z-10">Data/Hora</th>
+                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motorista</th>
+                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Veículo</th>
+                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Carreta</th>
+                         {# Coluna Cliente ajustada #}
+                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente (Primário)</th>
+                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origem</th>
+                         {# Coluna Destinos ajustada #}
+                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destinos (Endereços)</th>
+                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Material</th>
+                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Peso (TN)</th>
+                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor/TN Mot. (R$)</th>
+                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Cobrar (R$)</th>
+                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Obs.</th>
+                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky right-0 bg-gray-100 z-10">Ações</th>
+                     </tr>
+                 </thead>
+                 <tbody id="tbody-preview" class="bg-white divide-y divide-gray-200">
+                     </tbody>
+             </table>
+         </div>
+          <div class="mt-6 flex justify-between items-center">
+              <button type="button" id="btn-voltar-form" class="btn-secondary px-5 py-2 rounded font-semibold">
+                  <i class="fas fa-arrow-left mr-2"></i>Voltar e Descartar
+              </button>
+              <button type="button" id="btn-salvar-lote" class="btn-primary px-8 py-3 rounded font-semibold text-lg">
+                  <i class="fas fa-save mr-2"></i>Salvar Todas as Viagens Listadas
+              </button>
+         </div>
+     </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.js"></script>
+<script>
+
+    // --- Funções Auxiliares para Endereços Dinâmicos (MODIFICADAS) ---
+
+    // Guarda a lista de clientes em JS para clonar selects
+    // *** CORREÇÃO APLICADA AQUI: |escapejs foi trocado por |tojson ***
+    const listaClientes = [
+        {% for cliente in clientes %}
+        {
+            id: {{ cliente.id }},
+            nome: {{ cliente.nome_razao_social|tojson }}, {# Usa tojson para escapar caracteres especiais #}
+            logradouro: {{ cliente.logradouro|tojson }},
+            numero: {{ cliente.numero|tojson }},
+            bairro: {{ cliente.bairro|tojson }},
+            cidade: {{ cliente.cidade|tojson }},
+            estado: {{ cliente.estado|tojson }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    // Função chamada quando um cliente é selecionado no dropdown
+    function carregarEnderecoCliente(selectElement) {
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        const destinoItem = selectElement.closest('.destino-item');
+        const ruaInput = destinoItem.querySelector('.street-destino');
+        const numeroInput = destinoItem.querySelector('.number-destino');
+        const fullAddressInput = destinoItem.querySelector('.full-address-destino');
+
+        if (selectElement.value) {
+            // Pega os dados dos atributos data-*
+            const logradouro = selectedOption.getAttribute('data-logradouro') || '';
+            const numero = selectedOption.getAttribute('data-numero') || '';
+            const bairro = selectedOption.getAttribute('data-bairro') || '';
+            const cidade = selectedOption.getAttribute('data-cidade') || '';
+            const estado = selectedOption.getAttribute('data-estado') || '';
+
+            // Monta string de exibição
+            let displayAddress = logradouro;
+            if (bairro) displayAddress += `, ${bairro}`;
+            if (cidade) displayAddress += `, ${cidade}`;
+            if (estado) displayAddress += ` - ${estado}`;
+
+            ruaInput.value = displayAddress;
+            numeroInput.value = numero;
+
+            // Monta string completa para a API
+            let fullAddress = logradouro;
+             if (numero) fullAddress += `, ${numero}`;
+             if (bairro) fullAddress += `, ${bairro}`;
+             if (cidade) fullAddress += `, ${cidade}`;
+             if (estado) fullAddress += ` - ${estado}`;
+            fullAddressInput.value = fullAddress.replace(/,\s*$/, "").trim();
+
+        } else {
+            ruaInput.value = '';
+            numeroInput.value = '';
+            fullAddressInput.value = '';
+        }
+    }
+
+
+    function adicionarDestinoLote() {
+        const container = document.getElementById("destinos-container-lote");
+        const newDestinoDiv = document.createElement("div");
+        newDestinoDiv.className = "destino-item border border-gray-200 p-3 rounded mb-3 bg-gray-50";
+        // Cria o HTML com o select e os inputs readonly, usando a listaClientes JS
+        newDestinoDiv.innerHTML = `
+            <div class="flex-grow space-y-2">
+                 <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Cliente Destino</label>
+                    <select name="cliente_destino_id[]" class="form-select cliente-destino-select" required onchange="carregarEnderecoCliente(this)">
+                        <option value="">Selecione um cliente...</option>
+                        ${listaClientes.map(cliente => `
+                            <option value="${cliente.id}"
+                                    data-nome="${cliente.nome}" {# Atributos data-* ainda úteis para pegar dados rápido #}
+                                    data-logradouro="${cliente.logradouro}"
+                                    data-numero="${cliente.numero}"
+                                    data-bairro="${cliente.bairro}"
+                                    data-cidade="${cliente.cidade}"
+                                    data-estado="${cliente.estado}">
+                                ${cliente.nome} {# Exibe o nome que já está escapado corretamente em listaClientes #}
+                            </option>
+                        `).join('')}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Endereço Carregado</label>
+                    <div class="address-group">
+                        <input type="text" class="form-input street-input street-destino" name="rua_destino_display[]" placeholder="Rua, Bairro, Cidade..." readonly>
+                        <input type="text" class="form-input number-input number-destino" name="numero_destino_display[]" placeholder="Nº" readonly>
+                        <input type="hidden" class="full-address-destino" name="full_address_destino[]">
+                    </div>
+                </div>
+            </div>
+            <button type="button" class="btn-danger p-2 rounded-md self-center ml-2" onclick="removerDestinoLote(this)">
+                <i class="fas fa-trash"></i>
+            </button>`;
+        container.appendChild(newDestinoDiv);
+    }
+
+    function removerDestinoLote(button) {
+        const container = document.getElementById("destinos-container-lote");
+        if (container.children.length > 1) {
+            button.closest(".destino-item").remove();
+        } else {
+            Swal.fire("Atenção!", "É necessário pelo menos um destino (cliente).", "warning");
+        }
+    }
+
+     // Função de autocomplete ORS (mantida para o campo de ORIGEM)
+     let debounceTimer;
+     let orsApiKey = "{{ ORS_API_KEY }}";
+     function vincularAutocompleteORS(inputElement) {
+         if (!inputElement || typeof Awesomplete === 'undefined' || !orsApiKey) return;
+         const awesomplete = new Awesomplete(inputElement, { minChars: 3, autoFirst: true, list: [], replace: function(suggestion) {
+             this.input.value = suggestion.value; // Usa o valor completo da sugestão
+         }});
+         inputElement.addEventListener("input", function () {
+             clearTimeout(debounceTimer);
+             const term = this.value;
+             if (term.length < 3) { awesomplete.list = []; return; }
+             debounceTimer = setTimeout(() => {
+                 const focusLon = -49.27; const focusLat = -25.42; // Coordenadas para priorizar resultados locais
+                 const url = `https://api.openrouteservice.org/geocode/autocomplete?api_key=${orsApiKey}&text=${encodeURIComponent(term)}&boundary.country=BRA&focus.point.lon=${focusLon}&focus.point.lat=${focusLat}`;
+                 fetch(url)
+                 .then(r => r.json())
+                 .then(d => {
+                     if (d.features) {
+                        // Mapeia para que a sugestão seja o endereço formatado ('label')
+                        awesomplete.list = d.features.map(f => ({ label: f.properties.label, value: f.properties.label }));
+                     } else {
+                        awesomplete.list = [];
+                     }
+                 })
+                 .catch(e => {
+                    console.error("Erro no autocomplete ORS:", e);
+                    awesomplete.list = [];
+                 });
+             }, 350);
+         });
+         inputElement.addEventListener('awesomplete-selectcomplete', function(event) {
+             event.preventDefault(); // Impede submit ao selecionar com Enter
+         });
+     }
+
+
+    // --- Lógica Principal da Página ---
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inicializar Flatpickr
+        flatpickr(".flatpickr-datetime", {
+            enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, locale: "pt",
+            defaultDate: new Date()
+        });
+
+        // Inicializar Autocomplete APENAS no campo de origem
+        vincularAutocompleteORS(document.getElementById("endereco_saida"));
+
+        // Botão Adicionar Destino
+        document.getElementById('adicionar-destino-lote').addEventListener('click', adicionarDestinoLote);
+
+        const formInicial = document.getElementById('form-lote-inicial');
+        const secaoGrid = document.getElementById('secao-grid-preview');
+        const tbodyPreview = document.getElementById('tbody-preview');
+        const btnGerarPreview = document.getElementById('btn-gerar-preview');
+        const btnSalvarLote = document.getElementById('btn-salvar-lote');
+        const btnVoltarForm = document.getElementById('btn-voltar-form');
+        const csrfTokenInput = document.querySelector('input[name="csrf_token"]');
+        const csrfToken = csrfTokenInput ? csrfTokenInput.value : null;
+
+
+        // --- Evento: Gerar Prévia (MODIFICADO) ---
+        formInicial.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            btnGerarPreview.disabled = true;
+            btnGerarPreview.innerHTML = '<span class="loading-spinner"></span> Gerando...';
+
+             // Coleta destinos (CLIENTE IDs e ENDEREÇOS COMPLETOS)
+             const destinosClientes = [];
+             let primeiroClienteNome = null;
+
+             document.querySelectorAll('#destinos-container-lote .destino-item').forEach((item, index) => {
+                 const selectCliente = item.querySelector('.cliente-destino-select');
+                 const enderecoCompletoInput = item.querySelector('.full-address-destino');
+                 const clienteId = selectCliente.value;
+                 const enderecoCompleto = enderecoCompletoInput.value.trim();
+                 const selectedOption = selectCliente.options[selectCliente.selectedIndex];
+                 // Usa o atributo data-nome para pegar o nome do cliente
+                 const clienteNome = selectedOption ? selectedOption.getAttribute('data-nome') : null;
+
+
+                 if (clienteId && enderecoCompleto && clienteNome) {
+                     destinosClientes.push({
+                         cliente_id: clienteId, // Não enviado para API de preview, mas pode ser útil
+                         cliente_nome: clienteNome, // Guardar nome para referência futura
+                         endereco: enderecoCompleto // Endereço formatado do input hidden
+                     });
+                     if (index === 0) {
+                         primeiroClienteNome = clienteNome; // Define o primeiro como principal
+                     }
+                 }
+             });
+
+             if (destinosClientes.length === 0) {
+                 Swal.fire('Erro', 'Selecione pelo menos um cliente de destino válido e carregue o endereço.', 'error');
+                 btnGerarPreview.disabled = false;
+                 btnGerarPreview.innerHTML = '<i class="fas fa-list-alt mr-2"></i>Gerar Prévia';
+                 return;
+             }
+
+             const ruaSaida = document.getElementById('endereco_saida').value.trim();
+             const numeroSaida = document.getElementById('endereco_saida_numero').value.trim();
+             const enderecoSaidaCompleto = numeroSaida ? `${ruaSaida}, ${numeroSaida}` : ruaSaida;
+
+             if (!ruaSaida) {
+                 Swal.fire('Erro', 'O endereço de origem é obrigatório.', 'error');
+                 btnGerarPreview.disabled = false;
+                 btnGerarPreview.innerHTML = '<i class="fas fa-list-alt mr-2"></i>Gerar Prévia';
+                 return;
+             }
+
+
+            const formData = {
+                motorista_id: document.getElementById('motorista_id').value,
+                veiculo_id: document.getElementById('veiculo_id').value,
+                carreta_id: document.getElementById('carreta_id').value || null,
+                cliente_nome_principal: primeiroClienteNome, // Nome do primeiro cliente
+                endereco_saida: enderecoSaidaCompleto,
+                enderecos_destino: destinosClientes.map(d => d.endereco), // Lista de strings de endereço
+                data_base: document.getElementById('data_base').value,
+                quantidade: document.getElementById('quantidade').value,
+                intervalo_minutos: document.getElementById('intervalo_minutos').value || 0,
+                is_frete: document.querySelector('input[type="checkbox"][x-model="temFrete"]').checked,
+                material: document.getElementById('material_lote').value,
+                peso_toneladas: document.getElementById('peso_toneladas_lote').value,
+                valor_por_tonelada: document.getElementById('valor_por_tonelada_lote').value
+            };
+             if (!formData.is_frete) {
+                 delete formData.material;
+                 delete formData.peso_toneladas;
+                 delete formData.valor_por_tonelada;
+             }
+
+            // O fetch para /api/viagens/gerar_lote_preview permanece igual
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (csrfToken) {
+                    headers['X-CSRFToken'] = csrfToken;
+                }
+                const response = await fetch('/api/viagens/gerar_lote_preview', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                     const errorData = await response.json();
+                     throw new Error(errorData.message || `Erro ${response.status}`);
+                 }
+                const result = await response.json();
+
+                if (result.success) {
+                    tbodyPreview.innerHTML = '';
+                    result.viagens.forEach((viagem, index) => {
+                        const row = tbodyPreview.insertRow();
+                        row.setAttribute('data-index', index);
+                        row.setAttribute('data-motorista-id', viagem.motorista_id);
+                        row.setAttribute('data-veiculo-id', viagem.veiculo_id);
+                        row.setAttribute('data-carreta-id', viagem.carreta_id || '');
+                        row.setAttribute('data-cliente-nome', viagem.cliente_nome_principal);
+                        row.setAttribute('data-endereco-saida', viagem.endereco_saida);
+                        row.setAttribute('data-destinos-list', JSON.stringify(viagem.destinos_list));
+                        row.setAttribute('data-is-frete', viagem.is_frete);
+                        row.setAttribute('data-material-orig', viagem.material || '');
+                        row.setAttribute('data-peso-orig', viagem.peso_toneladas || '');
+                        row.setAttribute('data-valor-ton-orig', viagem.valor_por_tonelada || '');
+
+                        const destinosDisplay = viagem.destinos_list.join('; ');
+                        const isFreteBool = viagem.is_frete === true || String(viagem.is_frete).toLowerCase() === 'true';
+
+                        row.innerHTML = `
+                            <td class="sticky left-0 bg-white z-5"><input type="text" class="form-input input-datetime flatpickr-datetime-grid" value="${viagem.data_hora_iso.replace('T', ' ')}" style="min-width: 160px;"></td>
+                            <td>${viagem.motorista_nome}</td>
+                            <td>${viagem.veiculo_placa}</td>
+                            <td>${viagem.carreta_placa}</td>
+                            <td>${viagem.cliente_nome_principal}</td> {# Exibe o cliente primário #}
+                            <td title="${viagem.endereco_saida}">${viagem.endereco_saida.substring(0, 30)}${viagem.endereco_saida.length > 30 ? '...' : ''}</td>
+                            <td title="${destinosDisplay}">${destinosDisplay.substring(0, 35)}${destinosDisplay.length > 35 ? '...' : ''}</td> {# Exibe a lista de endereços #}
+                            {# Colunas de Frete Editáveis (desabilitadas se não for frete) #}
+                            <td><input type="text" class="form-input input-material" value="${viagem.material || ''}" ${!isFreteBool ? 'readonly style="background-color:#e9ecef;"' : ''} style="min-width: 120px;"></td>
+                            <td><input type="number" step="0.001" class="form-input input-peso" value="${viagem.peso_toneladas || ''}" ${!isFreteBool ? 'readonly style="background-color:#e9ecef;"' : ''} style="width: 90px;"></td>
+                            <td><input type="number" step="0.01" class="form-input input-valor-ton" value="${viagem.valor_por_tonelada || ''}" ${!isFreteBool ? 'readonly style="background-color:#e9ecef;"' : ''} style="width: 90px;"></td>
+                            {# Fim Colunas Frete #}
+                            <td><input type="number" step="0.01" class="form-input input-valor" placeholder="0.00" style="width: 100px;"></td>
+                            <td><input type="text" class="form-input input-obs" placeholder="Opcional" style="min-width: 150px;"></td>
+                            <td class="sticky right-0 bg-white z-5"><button type="button" class="btn-danger btn-sm px-2 py-1 rounded btn-remover-viagem" title="Remover esta viagem da lista"><i class="fas fa-trash"></i></button></td>
+                        `;
+                    });
+
+                    flatpickr(".flatpickr-datetime-grid", {
+                         enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, locale: "pt"
+                    });
+                    formInicial.style.display = 'none';
+                    secaoGrid.style.display = 'block';
+
+                } else {
+                    Swal.fire('Erro ao Gerar Prévia', result.message || 'Ocorreu um erro desconhecido.', 'error');
+                }
+            } catch (error) {
+                console.error("Erro no fetch ao gerar prévia:", error);
+                Swal.fire('Erro', `Não foi possível gerar a prévia: ${error.message}`, 'error');
+            } finally {
+                btnGerarPreview.disabled = false;
+                btnGerarPreview.innerHTML = '<i class="fas fa-list-alt mr-2"></i>Gerar Prévia';
+            }
+        });
+
+         // --- Evento: Remover Viagem da Prévia ---
+        tbodyPreview.addEventListener('click', function(event) {
+            if (event.target.closest('.btn-remover-viagem')) {
+                event.target.closest('tr').remove();
+            }
+        });
+
+        // --- Evento: Voltar para o Formulário ---
+        btnVoltarForm.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Tem certeza?',
+                text: "Voltar irá descartar a prévia gerada.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sim, voltar!',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    secaoGrid.style.display = 'none';
+                    formInicial.style.display = 'block';
+                    tbodyPreview.innerHTML = ''; // Limpa a prévia
+                    // Reset do formulário movido para cá também
+                    formInicial.reset();
+                    flatpickr("#data_base").setDate(new Date());
+                     const destinosContainer = document.getElementById('destinos-container-lote');
+                     while (destinosContainer.children.length > 1) { destinosContainer.removeChild(destinosContainer.lastChild); }
+                     const firstDestino = destinosContainer.querySelector('.destino-item');
+                     if (firstDestino) {
+                         firstDestino.querySelector('.cliente-destino-select').value = '';
+                         firstDestino.querySelector('.street-destino').value = '';
+                         firstDestino.querySelector('.number-destino').value = '';
+                         firstDestino.querySelector('.full-address-destino').value = '';
+                     }
+                      const freteCheckbox = document.querySelector('input[type="checkbox"][x-model="temFrete"]');
+                      if (freteCheckbox) {
+                          freteCheckbox.checked = false;
+                          freteCheckbox.dispatchEvent(new Event('change'));
+                      }
+                }
+            })
+        });
+
+        // --- Evento: Salvar Lote (sem alterações na lógica interna, apenas na coleta inicial) ---
+        btnSalvarLote.addEventListener('click', async function() {
+            const rows = tbodyPreview.querySelectorAll('tr');
+            if (rows.length === 0) {
+                Swal.fire('Atenção', 'Não há viagens na prévia para salvar.', 'warning');
+                return;
+            }
+
+            btnSalvarLote.disabled = true;
+            btnSalvarLote.innerHTML = '<span class="loading-spinner"></span> Salvando...';
+            btnVoltarForm.disabled = true;
+
+            const viagensParaSalvar = [];
+            let dataValid = true;
+            let erroValidacao = null;
+
+            rows.forEach((row, rowIndex) => {
+                if (!dataValid) return;
+
+                const dataHoraInput = row.querySelector('.input-datetime');
+                const valorInput = row.querySelector('.input-valor');
+                const obsInput = row.querySelector('.input-obs');
+                const materialInput = row.querySelector('.input-material');
+                const pesoInput = row.querySelector('.input-peso');
+                const valorTonInput = row.querySelector('.input-valor-ton');
+                const isFrete = row.getAttribute('data-is-frete') === 'true';
+
+                if (!dataHoraInput || !dataHoraInput._flatpickr || !dataHoraInput._flatpickr.selectedDates[0]) {
+                     erroValidacao = `Data/Hora inválida na linha ${rowIndex + 1}. Verifique o formato.`;
+                     dataValid = false;
+                     return;
+                }
+
+                if (isFrete) {
+                    if (!materialInput.value.trim()) {
+                        erroValidacao = `Material é obrigatório para frete na linha ${rowIndex + 1}.`;
+                        dataValid = false; return;
+                    }
+                    const pesoValue = pesoInput.value ? parseFloat(pesoInput.value) : 0;
+                    if (isNaN(pesoValue) || pesoValue <= 0) {
+                         erroValidacao = `Peso (TN) inválido ou não preenchido para frete na linha ${rowIndex + 1}.`;
+                         dataValid = false; return;
+                    }
+                     const valorTonValue = valorTonInput.value ? parseFloat(valorTonInput.value) : -1;
+                     if (isNaN(valorTonValue) || valorTonValue < 0) {
+                         erroValidacao = `Valor/TN Motorista inválido ou não preenchido para frete na linha ${rowIndex + 1}.`;
+                         dataValid = false; return;
+                    }
+                }
+
+                let destinosList = [];
+                try {
+                    destinosList = JSON.parse(row.getAttribute('data-destinos-list') || '[]');
+                } catch (e) { console.error("Erro ao parsear destinos na linha " + (rowIndex + 1), e); }
+
+                const viagemData = {
+                    motorista_id: row.getAttribute('data-motorista-id'),
+                    veiculo_id: row.getAttribute('data-veiculo-id'),
+                    carreta_id: row.getAttribute('data-carreta-id') || null,
+                    cliente_nome: row.getAttribute('data-cliente-nome'),
+                    endereco_saida: row.getAttribute('data-endereco-saida'),
+                    enderecos_destino: destinosList,
+                    data_hora_iso: dataHoraInput._flatpickr.selectedDates[0].toISOString(),
+                    valor_recebido: valorInput.value || '0',
+                    observacoes: obsInput.value || '',
+                    is_frete: isFrete,
+                    material: isFrete ? materialInput.value : null,
+                    peso_toneladas: isFrete ? pesoInput.value : null,
+                    valor_por_tonelada: isFrete ? valorTonInput.value : null
+                };
+
+                viagensParaSalvar.push(viagemData);
+            });
+
+            if (!dataValid) {
+                 Swal.fire('Erro de Validação', erroValidacao || 'Verifique os dados nas linhas da prévia.', 'error');
+                 btnSalvarLote.disabled = false;
+                 btnSalvarLote.innerHTML = '<i class="fas fa-save mr-2"></i>Salvar Todas as Viagens Listadas';
+                 btnVoltarForm.disabled = false;
+                 return;
+            }
+
+             try {
+                 const headers = { 'Content-Type': 'application/json' };
+                 if (csrfToken) {
+                    headers['X-CSRFToken'] = csrfToken;
+                 }
+                 const response = await fetch('/api/viagens/salvar_lote', {
+                     method: 'POST',
+                     headers: headers,
+                     body: JSON.stringify(viagensParaSalvar)
+                 });
+
+                 const result = await response.json();
+
+                 if (!response.ok) {
+                      let errorHtml = result.message || `Erro ${response.status} ao salvar.`;
+                      if (result.errors && result.errors.length > 0) {
+                          errorHtml += '<br><br><strong>Detalhes:</strong><ul style="text-align: left; margin-left: 20px;">';
+                          result.errors.forEach(err => { errorHtml += `<li>${err}</li>`; });
+                          errorHtml += '</ul>';
+                      }
+                       Swal.fire({ title: 'Erro ao Salvar', html: errorHtml, icon: 'error' });
+
+                 } else if (result.success) {
+                     Swal.fire({
+                         title: 'Sucesso!',
+                         text: result.message,
+                         icon: 'success',
+                         confirmButtonText: 'OK'
+                     }).then(() => {
+                         // Limpa tudo e volta ao formulário inicial
+                         tbodyPreview.innerHTML = '';
+                         secaoGrid.style.display = 'none';
+                         formInicial.style.display = 'block';
+                         formInicial.reset();
+                         flatpickr("#data_base").setDate(new Date());
+                          const destinosContainer = document.getElementById('destinos-container-lote');
+                          while (destinosContainer.children.length > 1) { destinosContainer.removeChild(destinosContainer.lastChild); }
+                          const firstDestino = destinosContainer.querySelector('.destino-item');
+                          if (firstDestino) {
+                              firstDestino.querySelector('.cliente-destino-select').value = '';
+                              firstDestino.querySelector('.street-destino').value = '';
+                              firstDestino.querySelector('.number-destino').value = '';
+                              firstDestino.querySelector('.full-address-destino').value = '';
+                          }
+                           const freteCheckbox = document.querySelector('input[type="checkbox"][x-model="temFrete"]');
+                           if (freteCheckbox) {
+                               freteCheckbox.checked = false;
+                               freteCheckbox.dispatchEvent(new Event('change'));
+                           }
+                     });
+                 } else {
+                     Swal.fire('Erro Inesperado', result.message || 'O servidor retornou um erro inesperado.', 'warning');
+                 }
+
+             } catch (error) {
+                 console.error("Erro no fetch ao salvar:", error);
+                 Swal.fire('Erro de Rede', 'Não foi possível se comunicar com o servidor para salvar.', 'error');
+             } finally {
+                 btnSalvarLote.disabled = false;
+                 btnSalvarLote.innerHTML = '<i class="fas fa-save mr-2"></i>Salvar Todas as Viagens Listadas';
+                 btnVoltarForm.disabled = false;
+             }
+        }); // Fim do listener btnSalvarLote
+
+    }); // Fim do DOMContentLoaded
+</script>
+{% endblock %}
