@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Histórico Geral de Ações</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.1/css/jquery.dataTables.min.css" />
+  <style>
+    body { 
+      font-family: 'Inter', sans-serif; 
+      background-color: #f2f3f5; 
+      color: #2c3e50;
+    }
+    .container { 
+      max-width: 1400px; 
+      margin: 20px auto; 
+      padding: 20px; 
+      background: #fff; 
+      border-radius: 10px; 
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
+    }
+    h1 { 
+      text-align: center; 
+      margin-bottom: 20px; 
+      color: #34495e; 
+    }
+    .header-flex {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    .view-toggle {
+      display: flex;
+      gap: 10px;
+    }
+    .btn { 
+      padding: 8px 15px; 
+      border-radius: 5px; 
+      text-decoration: none; 
+      display: inline-flex; 
+      align-items: center; 
+      justify-content: center; 
+      color: white; 
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-secondary { 
+      background-color: #6c757d; 
+    }
+    .btn-primary {
+      background-color: #3498db;
+    }
+    .btn-active {
+      background-color: #2980b9;
+    }
+    .btn:hover {
+      opacity: 0.9;
+    }
+    .stats-box {
+      background: #ecf0f1;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+    }
+    .stat-item {
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: #7f8c8d;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #3498db;
+    }
+    table.dataTable thead th { 
+      background-color: #3498db; 
+      color: #fff;
+      font-weight: 600;
+    }
+    table.dataTable tbody tr:hover {
+      background-color: #f8f9fa;
+      cursor: pointer;
+    }
+    table a {
+      color: #2980b9;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    table a:hover {
+      text-decoration: underline;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-criada {
+      background-color: #d5f4e6;
+      color: #27ae60;
+    }
+    .badge-editada {
+      background-color: #fef5e7;
+      color: #f39c12;
+    }
+    .badge-aprovada {
+      background-color: #d6eaf8;
+      color: #2980b9;
+    }
+    .badge-recusada {
+      background-color: #fadbd8;
+      color: #c0392b;
+    }
+    .badge-fechada {
+      background-color: #ebdef0;
+      color: #8e44ad;
+    }
+    .details-column {
+      max-width: 300px;
+      word-wrap: break-word;
+      font-size: 13px;
+      color: #555;
+    }
+    .clickable-row {
+      cursor: pointer;
+    }
+    .clickable-row:hover {
+      background-color: #e8f4f8 !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header-flex">
+      <h1><i class="fas fa-history"></i> Histórico Geral de Ações</h1>
+      <div class="view-toggle">
+        <a href="{{ url_for('historico_geral') }}" class="btn btn-active">
+          <i class="fas fa-list"></i> Resumido
+        </a>
+        <a href="{{ url_for('historico_geral_completo') }}" class="btn btn-primary">
+          <i class="fas fa-list-ul"></i> Completo
+        </a>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+          <i class="fas fa-arrow-left"></i> Voltar
+        </a>
+      </div>
+    </div>
+
+    <div class="stats-box">
+      <div class="stat-item">
+        <div class="stat-label">Total de RDs</div>
+        <div class="stat-value">{{ total_rds }}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Total de Ações</div>
+        <div class="stat-value">{{ total_acoes }}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Última Ação</div>
+        <div class="stat-value">{{ ultima_acao }}</div>
+      </div>
+    </div>
+
+    <table id="tabela-historico" class="display" style="width:100%">
+      <thead>
+        <tr>
+          <th>ID da RD</th>
+          <th>Última Ação</th>
+          <th>Data/Hora</th>
+          <th>Usuário</th>
+          <th>Total de Movimentações</th>
+          <th>Detalhes da Última Ação</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if resumo_rds %}
+          {% for rd_info in resumo_rds %}
+          <tr class="clickable-row" onclick="window.location.href='{{ url_for('ver_historico', rd_id=rd_info.rd_id) }}'">
+            <td>
+              <a href="{{ url_for('ver_historico', rd_id=rd_info.rd_id) }}">{{ rd_info.rd_id }}</a>
+            </td>
+            <td>
+              <span class="badge {% if 'Criada' in rd_info.ultima_acao %}badge-criada{% elif 'Editada' in rd_info.ultima_acao %}badge-editada{% elif 'Aprovada' in rd_info.ultima_acao or 'Liberado' in rd_info.ultima_acao %}badge-aprovada{% elif 'Recusado' in rd_info.ultima_acao %}badge-recusada{% elif 'Fechado' in rd_info.ultima_acao %}badge-fechada{% endif %}">
+                {{ rd_info.ultima_acao }}
+              </span>
+            </td>
+            <td>{{ rd_info.data_ultima_acao.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+            <td>{{ rd_info.usuario_ultima_acao | capitalize }}</td>
+            <td style="text-align: center;">
+              <strong>{{ rd_info.total_movimentacoes }}</strong>
+            </td>
+            <td class="details-column">{{ rd_info.detalhes_ultima_acao or 'N/A' }}</td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6" style="text-align: center; padding: 20px; color: #95a5a6;">
+              <i class="fas fa-inbox"></i> Nenhum histórico de ações encontrado.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script type="text/javascript" src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      $('#tabela-historico').DataTable({
+        "order": [[ 0, "desc" ]],
+        "pageLength": 25,
+        "lengthMenu": [[10, 25, 50, 100], [10, 25, 50, 100]],
+        "columnDefs": [
+          { "orderable": false, "targets": 0 },
+          { "orderable": false, "targets": 1 },
+          { "orderable": false, "targets": 2 },
+          { "orderable": false, "targets": 3 },
+          { "orderable": false, "targets": 4 },
+          { "orderable": false, "targets": 5 }
+        ],
+        "language": {
+          "sProcessing": "Processando...",
+          "sLengthMenu": "Mostrar _MENU_ registros",
+          "sZeroRecords": "Nenhum registro encontrado",
+          "sInfo": "Mostrando de _START_ a _END_ do total de _TOTAL_ registros",
+          "sInfoEmpty": "Mostrando 0 a 0 do total de 0 registros",
+          "sInfoFiltered": "(filtrado do total de _MAX_ registros)",
+          "sSearch": "Buscar:",
+          "oPaginate": {
+            "sFirst": "Primeiro",
+            "sPrevious": "Anterior",
+            "sNext": "Próximo",
+            "sLast": "Último"
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>
